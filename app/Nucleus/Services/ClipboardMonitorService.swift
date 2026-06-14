@@ -11,6 +11,7 @@ final class ClipboardMonitorService: ObservableObject {
 
     private var timer: Timer?
     private var lastCapturedContent: String?
+    private var isApplyingPaste = false
 
     var onCapture: ((ClipboardCapture) -> Void)?
 
@@ -32,6 +33,8 @@ final class ClipboardMonitorService: ObservableObject {
     }
 
     private func pollPasteboard() {
+        guard !isApplyingPaste else { return }
+
         let pasteboard = NSPasteboard.general
         guard pasteboard.changeCount != lastChangeCount else { return }
         lastChangeCount = pasteboard.changeCount
@@ -46,5 +49,15 @@ final class ClipboardMonitorService: ObservableObject {
         lastCapturedContent = content
         let source = NSWorkspace.shared.frontmostApplication?.localizedName ?? "Unknown"
         onCapture?(ClipboardCapture(content: content, sourceApplication: source))
+    }
+
+    func preparePaste(_ content: String) {
+        isApplyingPaste = true
+        lastCapturedContent = content
+    }
+
+    func completePaste() {
+        lastChangeCount = NSPasteboard.general.changeCount
+        isApplyingPaste = false
     }
 }

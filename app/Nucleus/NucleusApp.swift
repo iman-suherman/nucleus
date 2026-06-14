@@ -57,6 +57,12 @@ struct NucleusApp: App {
                 }
                 .keyboardShortcut(",", modifiers: .command)
             }
+            CommandGroup(after: .pasteboard) {
+                Button("Paste from Clipboard History…") {
+                    ClipboardPasteController.shared.presentPicker()
+                }
+                .keyboardShortcut("v", modifiers: [.command, .shift])
+            }
         }
 
         Settings {

@@ -85,6 +85,7 @@ final class AppViewModel: ObservableObject {
         }
         ClipboardMonitorService.shared.start()
         completeStartupStep(.clipboard)
+        ClipboardPasteController.shared.start()
 
         await beginStartupStep(.notifications, message: "Preparing notifications…")
         NucleusNotificationService.shared.prepare()
@@ -434,14 +435,6 @@ final class AppViewModel: ObservableObject {
         let context = ModelContext(modelContainer)
         try? ClipboardRepository.insert(entry, context: context)
         reloadLocalData()
-        NucleusNotificationService.shared.notifyClipboardSaved(entry)
-        try? appendActivity(
-            ActivityItem(
-                title: "Clipboard saved",
-                detail: String(entry.content.prefix(80)),
-                source: .clipboard
-            )
-        )
     }
 
     private func handleMailNotificationAction(_ action: NucleusNotificationService.MailNotificationAction) {

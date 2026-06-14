@@ -72,16 +72,6 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
         UNUserNotificationCenter.current().add(request)
     }
 
-    func notifyClipboardSaved(_ entry: ClipboardEntry) {
-        let content = UNMutableNotificationContent()
-        content.title = "Clipboard Saved"
-        content.body = String(entry.content.prefix(120))
-        content.sound = .default
-        UNUserNotificationCenter.current().add(
-            UNNotificationRequest(identifier: "clip-\(entry.id.uuidString)", content: content, trigger: nil)
-        )
-    }
-
     func registerCategories() {
         let open = UNNotificationAction(identifier: "OPEN", title: "Open", options: [.foreground])
         let markRead = UNNotificationAction(identifier: "MARK_READ", title: "Mark Read")

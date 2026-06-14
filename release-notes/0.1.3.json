@@ -1,0 +1,13 @@
+{
+  "version": "0.1.3",
+  "summary": "Quiet clipboard history with a global paste shortcut.",
+  "releaseNotes": {
+    "introduced": [
+      "Press ⇧⌘V anywhere to pick from clipboard history, replace the system clipboard, and paste into the focused field",
+      "Searchable clipboard picker with keyboard navigation"
+    ],
+    "changed": [
+      "Clipboard captures are saved silently without notifications or activity feed entries"
+    ]
+  }
+}
