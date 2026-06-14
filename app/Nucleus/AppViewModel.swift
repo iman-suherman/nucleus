@@ -106,16 +106,46 @@ final class AppViewModel: ObservableObject {
         await syncCalendar()
         completeStartupStep(.calendarSync)
 
-        if accounts.isEmpty {
-            seedDemoDataIfNeeded()
-        }
-
+        purgeUnauthenticatedAccounts()
         DockBadgeController.update(unreadCount: totalUnread)
         startupMessage = "Nucleus is ready"
         startupProgressFraction = 1
         try? await Task.sleep(nanoseconds: 250_000_000)
         isStartingUp = false
         statusMessage = statusMessageForCurrentState()
+        await promptSignInIfNeeded(settings: settings)
+    }
+
+    func promptSignInIfNeeded(settings: AppSettings) async {
+        purgeUnauthenticatedAccounts()
+
+        guard accounts.isEmpty else { return }
+
+        sidebarSelection = .workspace(.inbox)
+
+        guard settings.oauthConfiguration.isConfigured else {
+            sidebarSelection = .workspace(.accounts)
+            oauthError = "Enter your Google OAuth Client ID in Account Center to sign in."
+            statusMessage = "Configure Google OAuth to sign in"
+            return
+        }
+
+        await addGoogleAccount(settings: settings, categoryName: "Personal")
+    }
+
+    func hasStoredTokens(for accountID: UUID) -> Bool {
+        KeychainTokenStore.shared.hasTokens(accountID: accountID)
+    }
+
+    func purgeUnauthenticatedAccounts() {
+        let stale = accounts.filter { !hasStoredTokens(for: $0.id) }
+        guard !stale.isEmpty else { return }
+
+        let context = ModelContext(modelContainer)
+        for account in stale {
+            try? AccountRepository.delete(id: account.id, context: context)
+        }
+        reloadLocalData()
     }
 
     func checkForUpdatesWhenEligible() {
@@ -174,7 +204,7 @@ final class AppViewModel: ObservableObject {
         }
     }
 
-    func addGoogleAccount(settings: AppSettings) async {
+    func addGoogleAccount(settings: AppSettings, categoryName: String? = nil) async {
         oauthError = nil
         guard settings.oauthConfiguration.isConfigured else {
             oauthError = "Enter your Google OAuth Client ID in Settings first."
@@ -188,9 +218,12 @@ final class AppViewModel: ObservableObject {
                 clientSecret: settings.googleClientSecret.nilIfEmpty
             )
 
+            let trimmedCategory = categoryName?.trimmingCharacters(in: .whitespacesAndNewlines)
+            let resolvedName = trimmedCategory?.isEmpty == false ? trimmedCategory! : profile.name
+
             let account = GoogleAccount(
                 email: profile.email,
-                displayName: profile.name,
+                displayName: resolvedName,
                 avatarURL: profile.picture ?? "",
                 isPrimary: accounts.isEmpty,
                 isPrimaryNotesAccount: accounts.isEmpty
@@ -201,6 +234,8 @@ final class AppViewModel: ObservableObject {
             let context = ModelContext(modelContainer)
             try AccountRepository.upsert(account, context: context)
             reloadLocalData()
+            AppSettings.shared.selectedMailAccountID = account.id
+            sidebarSelection = .workspace(.inbox)
             await syncMail()
             await syncCalendar()
 
@@ -236,6 +271,18 @@ final class AppViewModel: ObservableObject {
         let context = ModelContext(modelContainer)
         try? AccountRepository.setPrimaryNotesAccount(id: account.id, context: context)
         reloadLocalData()
+    }
+
+    func updateAccountCategory(_ account: GoogleAccount, name: String) {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+
+        var updated = account
+        updated.displayName = trimmed
+        let context = ModelContext(modelContainer)
+        try? AccountRepository.upsert(updated, context: context)
+        reloadLocalData()
+        statusMessage = "Renamed category to \(trimmed)"
     }
 
     func syncMail() async {
@@ -443,74 +490,6 @@ final class AppViewModel: ObservableObject {
         let context = ModelContext(modelContainer)
         try ActivityRepository.append(item, context: context)
         activityFeed.insert(item, at: 0)
-    }
-
-    private func seedDemoDataIfNeeded() {
-        let context = ModelContext(modelContainer)
-        guard (try? AccountRepository.fetchAll(context: context))?.isEmpty == true else { return }
-
-        let demoAccounts = [
-            GoogleAccount(email: "personal@gmail.com", displayName: "Personal", isPrimary: true, isPrimaryNotesAccount: true),
-            GoogleAccount(email: "work@gmail.com", displayName: "Work"),
-            GoogleAccount(email: "client@gmail.com", displayName: "Client"),
-        ]
-        for account in demoAccounts {
-            try? AccountRepository.upsert(account, context: context)
-        }
-
-        let now = Date()
-        let demoEvents = [
-            CalendarEventSummary(
-                id: "demo-1",
-                accountID: demoAccounts[1].id,
-                title: "Team Standup",
-                startDate: Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: now) ?? now,
-                endDate: Calendar.current.date(bySettingHour: 9, minute: 30, second: 0, of: now) ?? now,
-                meetingLink: "https://meet.google.com/demo-standup",
-                accountEmail: demoAccounts[1].email
-            ),
-            CalendarEventSummary(
-                id: "demo-2",
-                accountID: demoAccounts[2].id,
-                title: "Client Meeting",
-                startDate: Calendar.current.date(bySettingHour: 10, minute: 0, second: 0, of: now) ?? now,
-                endDate: Calendar.current.date(bySettingHour: 11, minute: 0, second: 0, of: now) ?? now,
-                accountEmail: demoAccounts[2].email
-            ),
-        ]
-        try? CalendarRepository.replaceEvents(demoEvents, context: context)
-
-        let demoClip = ClipboardEntry(
-            content: "kubectl get pods -A",
-            contentType: "command",
-            sourceApplication: "Visual Studio Code",
-            tags: ["kubernetes", "command"],
-            capturedAt: now.addingTimeInterval(-120)
-        )
-        try? ClipboardRepository.insert(demoClip, context: context)
-
-        let demoNote = NoteDocument(
-            title: "Meeting Notes",
-            markdown: """
-            # Meeting Notes
-            Date: \(NucleusFormatters.dayHeader.string(from: now))
-
-            Discussion:
-            - Production deployment
-            - Kubernetes migration
-            """,
-            folder: .meetingNotes
-        )
-        try? NoteRepository.upsert(demoNote, context: context)
-
-        reloadLocalData()
-        unreadByAccount = [
-            demoAccounts[0].id: 5,
-            demoAccounts[1].id: 8,
-            demoAccounts[2].id: 2,
-        ]
-        totalUnread = 15
-        DockBadgeController.update(unreadCount: totalUnread)
     }
 }
 

@@ -56,6 +56,7 @@ struct AccountCenterView: View {
                         unreadCount: viewModel.unreadByAccount[account.id] ?? 0,
                         onSetPrimary: { viewModel.setPrimaryAccount(account) },
                         onSetNotesAccount: { viewModel.setPrimaryNotesAccount(account) },
+                        onRename: { viewModel.updateAccountCategory(account, name: $0) },
                         onRemove: { viewModel.removeAccount(account) }
                     )
                 }
@@ -83,14 +84,36 @@ private struct AccountCard: View {
     let unreadCount: Int
     let onSetPrimary: () -> Void
     let onSetNotesAccount: () -> Void
+    let onRename: (String) -> Void
     let onRemove: () -> Void
+
+    @State private var categoryName: String
+
+    init(
+        account: GoogleAccount,
+        unreadCount: Int,
+        onSetPrimary: @escaping () -> Void,
+        onSetNotesAccount: @escaping () -> Void,
+        onRename: @escaping (String) -> Void,
+        onRemove: @escaping () -> Void
+    ) {
+        self.account = account
+        self.unreadCount = unreadCount
+        self.onSetPrimary = onSetPrimary
+        self.onSetNotesAccount = onSetNotesAccount
+        self.onRename = onRename
+        self.onRemove = onRemove
+        _categoryName = State(initialValue: account.displayName)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(account.displayName)
+                    TextField("Category", text: $categoryName)
                         .font(.headline)
+                        .textFieldStyle(.plain)
+                        .onSubmit { onRename(categoryName) }
                     Text(account.email)
                         .foregroundStyle(.secondary)
                 }

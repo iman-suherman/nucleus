@@ -1,0 +1,17 @@
+{
+  "version": "0.1.1",
+  "summary": "Improved first-run sign-in, customizable inbox categories, and a clearer update button.",
+  "releaseNotes": {
+    "introduced": [
+      "Automatic Google sign-in on first launch",
+      "Add and rename inbox categories beyond Personal, Work, and Client",
+      "Gmail opens directly on the Google sign-in screen"
+    ],
+    "changed": [
+      "Check for Updates toolbar button now shows icon and label with bordered styling"
+    ],
+    "fixed": [
+      "Removed demo inbox categories that showed the Gmail marketing page without signing in"
+    ]
+  }
+}

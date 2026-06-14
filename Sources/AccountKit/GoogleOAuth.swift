@@ -85,6 +85,10 @@ public final class KeychainTokenStore: Sendable {
         ]
         SecItemDelete(query as CFDictionary)
     }
+
+    public func hasTokens(accountID: UUID) -> Bool {
+        (try? loadTokens(accountID: accountID)) != nil
+    }
 }
 
 public enum GoogleOAuthScopes {
