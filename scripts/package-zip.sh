@@ -26,5 +26,5 @@ echo "==> Creating Sparkle update archive"
 echo "    App:    $APP_PATH"
 echo "    Output: $OUTPUT_ZIP"
 
-ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "$OUTPUT_ZIP"
+COPYFILE_DISABLE=1 ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "$OUTPUT_ZIP"
 echo "Created: $OUTPUT_ZIP"

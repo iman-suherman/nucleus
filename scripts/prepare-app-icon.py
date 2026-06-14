@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Prepare the Nucleus app icon with macOS-style rounded corners."""
+"""Prepare the Nucleus app icon: remove black matte, trim, and fit macOS dock safe area."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ import sys
 from pathlib import Path
 
 try:
-    from PIL import Image, ImageDraw
+    from PIL import Image, ImageChops
 except ImportError:
     print(
         "error: Pillow is required. Install with: python3 -m pip install -r requirements.txt",
@@ -16,38 +16,64 @@ except ImportError:
     )
     raise SystemExit(1) from None
 
-# macOS squircle corner radius is ~22.37% of the icon edge.
-DEFAULT_RADIUS_RATIO = 0.2237
+# Slightly tighter than the usual 8% inset so Nucleus matches peer icon visual weight.
+DEFAULT_PADDING_RATIO = 0.05
+DEFAULT_INNER_TRIM = 12
 
 
-def ensure_square(image: Image.Image, size: int) -> Image.Image:
-    """Resize and center artwork on a square RGBA canvas."""
+def remove_black_background(image: Image.Image, threshold: int = 35) -> Image.Image:
+    """Turn near-black pixels transparent while preserving rounded edge anti-aliasing."""
     rgba = image.convert("RGBA")
-    canvas = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-    rgba.thumbnail((size, size), Image.Resampling.LANCZOS)
-    offset_x = (size - rgba.width) // 2
-    offset_y = (size - rgba.height) // 2
-    canvas.paste(rgba, (offset_x, offset_y), rgba)
-    return canvas
+    red, green, blue, alpha = rgba.split()
+    luminance = Image.merge("RGB", (red, green, blue)).convert("L")
+    content_mask = luminance.point(lambda value: 255 if value > threshold else 0)
+    if alpha.getextrema()[0] < 255:
+        content_mask = ImageChops.multiply(content_mask, alpha)
+    rgba.putalpha(content_mask)
+    return rgba
 
 
-def apply_rounded_corners(
+def trim_transparent_bounds(
     image: Image.Image,
-    *,
-    radius_ratio: float = DEFAULT_RADIUS_RATIO,
+    margin: int = 0,
+    inner_trim: int = 0,
 ) -> Image.Image:
-    """Clip the icon to a rounded rectangle with anti-aliased edges."""
-    rgba = image.convert("RGBA")
-    width, height = rgba.size
-    radius = max(1, int(min(width, height) * radius_ratio))
+    """Crop to visible content, optionally shaving an inner matte bezel."""
+    alpha = image.split()[3]
+    bbox = alpha.point(lambda value: 255 if value > 8 else 0).getbbox()
+    if bbox is None:
+        return image
 
-    mask = Image.new("L", rgba.size, 0)
-    draw = ImageDraw.Draw(mask)
-    draw.rounded_rectangle((0, 0, width - 1, height - 1), radius=radius, fill=255)
+    left, top, right, bottom = bbox
+    left = max(0, left - margin + inner_trim)
+    top = max(0, top - margin + inner_trim)
+    right = min(image.width, right + margin - inner_trim)
+    bottom = min(image.height, bottom + margin - inner_trim)
+    if right <= left or bottom <= top:
+        return image
+    return image.crop((left, top, right, bottom))
 
-    rounded = Image.new("RGBA", rgba.size, (0, 0, 0, 0))
-    rounded.paste(rgba, (0, 0), mask)
-    return rounded
+
+def fit_to_dock_canvas(
+    image: Image.Image,
+    size: int = 1024,
+    padding_ratio: float = DEFAULT_PADDING_RATIO,
+) -> Image.Image:
+    """
+    Center icon content on a transparent square canvas.
+
+    macOS applies its own squircle mask in the Dock, so we keep a small inset to
+    avoid clipping the artwork's rounded corners.
+    """
+    content_limit = int(size * (1 - (padding_ratio * 2)))
+    content = image.copy()
+    content.thumbnail((content_limit, content_limit), Image.Resampling.LANCZOS)
+
+    canvas = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    offset_x = (size - content.width) // 2
+    offset_y = (size - content.height) // 2
+    canvas.paste(content, (offset_x, offset_y), content)
+    return canvas
 
 
 def prepare_icon(
@@ -55,18 +81,21 @@ def prepare_icon(
     output_path: Path,
     *,
     size: int = 1024,
-    radius_ratio: float = DEFAULT_RADIUS_RATIO,
+    threshold: int = 35,
+    padding_ratio: float = DEFAULT_PADDING_RATIO,
+    inner_trim: int = DEFAULT_INNER_TRIM,
 ) -> None:
     source = Image.open(source_path)
-    squared = ensure_square(source, size)
-    rounded = apply_rounded_corners(squared, radius_ratio=radius_ratio)
+    cleaned = remove_black_background(source, threshold=threshold)
+    trimmed = trim_transparent_bounds(cleaned, margin=0, inner_trim=inner_trim)
+    prepared = fit_to_dock_canvas(trimmed, size=size, padding_ratio=padding_ratio)
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    rounded.save(output_path, format="PNG", optimize=True)
+    prepared.save(output_path, format="PNG", optimize=True)
     print(
         f"Prepared icon: {source_path.name} ({source.size[0]}x{source.size[1]}) "
-        f"-> {output_path.name} ({rounded.size[0]}x{rounded.size[1]}, "
-        f"radius={int(size * radius_ratio)}px)"
+        f"-> {output_path.name} ({prepared.size[0]}x{prepared.size[1]}, "
+        f"padding={padding_ratio:.1%}, inner_trim={inner_trim}px)"
     )
 
 
@@ -88,7 +117,7 @@ def main() -> None:
     repo_root = Path(__file__).resolve().parents[1]
     assets_dir = repo_root / "app" / "Nucleus" / "Assets"
 
-    parser = argparse.ArgumentParser(description="Prepare Nucleus app icon with rounded corners.")
+    parser = argparse.ArgumentParser(description="Prepare Nucleus app icon for macOS.")
     parser.add_argument(
         "--source",
         type=Path,
@@ -102,11 +131,18 @@ def main() -> None:
         help="Prepared icon used by the Swift icon generator",
     )
     parser.add_argument("--size", type=int, default=1024)
+    parser.add_argument("--threshold", type=int, default=35)
     parser.add_argument(
-        "--radius-ratio",
+        "--padding-ratio",
         type=float,
-        default=DEFAULT_RADIUS_RATIO,
-        help="Corner radius as a fraction of icon size (default: macOS squircle)",
+        default=DEFAULT_PADDING_RATIO,
+        help="Inset from each edge as a fraction of icon size (default: 5.5%%)",
+    )
+    parser.add_argument(
+        "--inner-trim",
+        type=int,
+        default=DEFAULT_INNER_TRIM,
+        help="Pixels to crop inside the outer matte bezel (default: 12)",
     )
     args = parser.parse_args()
 
@@ -118,7 +154,9 @@ def main() -> None:
         source_path,
         args.output,
         size=args.size,
-        radius_ratio=args.radius_ratio,
+        threshold=args.threshold,
+        padding_ratio=args.padding_ratio,
+        inner_trim=args.inner_trim,
     )
 
 

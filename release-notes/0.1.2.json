@@ -1,0 +1,11 @@
+{
+  "version": "0.1.2",
+  "summary": "Fix Sparkle auto-update installation failures.",
+  "releaseNotes": {
+    "fixed": [
+      "Sparkle updates no longer fail with “An error occurred while launching the installer”",
+      "Removed App Sandbox so Sparkle can install updates like other non–App Store macOS apps",
+      "Cleaner Sparkle update ZIP archives without macOS metadata folders"
+    ]
+  }
+}
