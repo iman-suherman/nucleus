@@ -9,10 +9,6 @@ type AppHeroIconProps = {
 export function AppHeroIcon({ className = "", priority = false }: AppHeroIconProps) {
   return (
     <div className={`app-hero ${className}`.trim()}>
-      <div aria-hidden className="app-hero-glow" />
-      <div aria-hidden className="app-hero-core-glow" />
-      <div aria-hidden className="app-hero-ring" />
-      <div aria-hidden className="app-hero-sweep" />
       <Image
         src="/app-icon.png"
         alt={`${BRAND_NAME} app icon`}
@@ -21,7 +17,7 @@ export function AppHeroIcon({ className = "", priority = false }: AppHeroIconPro
         priority={priority}
         unoptimized
         sizes="(max-width: 1024px) 90vw, 32rem"
-        className="app-hero-image relative z-10 h-full w-full scale-[1.04] object-contain drop-shadow-[0_16px_40px_rgba(0,122,255,0.35)]"
+        className="app-hero-image h-full w-full object-contain"
       />
     </div>
   );
