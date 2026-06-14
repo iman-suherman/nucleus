@@ -1,0 +1,26 @@
+---
+description: Git commit author identity for this repository
+alwaysApply: true
+---
+
+# Git Commit Identity
+
+When creating git commits in this repository:
+
+- **Author**: `Iman Suherman <iman.suherman@gmail.com>`
+- **Never** add `Co-authored-by` trailers or any other co-author attribution unless the user explicitly requests it.
+- **Never** use, reference, or leave traces of `suherman@qantas.com` in commit messages, author fields, or trailers.
+
+Use the author and committer env vars on each commit without changing git config:
+
+```bash
+GIT_COMMITTER_NAME="Iman Suherman" \
+GIT_COMMITTER_EMAIL="iman.suherman@gmail.com" \
+git commit --author="Iman Suherman <iman.suherman@gmail.com>" -m "$(cat <<'EOF'
+Commit message here.
+
+EOF
+)"
+```
+
+If the environment's default git identity differs, always pass `--author` and the `GIT_COMMITTER_*` env vars explicitly rather than running `git config`.

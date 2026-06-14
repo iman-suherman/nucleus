@@ -1,0 +1,74 @@
+<?xml version="1.0" standalone="yes"?>
+<rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
+    <channel>
+        <title>DiskWise</title>
+        <item>
+            <title>0.6.2</title>
+            <pubDate>Sun, 14 Jun 2026 19:46:22 +1000</pubDate>
+            <sparkle:version>6002</sparkle:version>
+            <sparkle:shortVersionString>0.6.2</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <description><![CDATA[<ul>
+<li><strong>What's new</strong><ul>
+<li>System Optimization — Memory Analyzer and System Status combined into one hub for health, memory, and AI recommendations</li>
+<li>Sidebar score badges — Disk shows HD (free space) and System Optimization shows Health (score) and Mem (percent) with color thresholds</li>
+</ul></li>
+<li><strong>Improvements</strong><ul>
+<li>Duplicate groups load preview paths only; full member lists load when you preview cleanup</li>
+<li>Scan index writes stream in batches and release SQLite cache after heavy work</li>
+<li>AI storage analysis caps in-memory file samples at 25,000 instead of 500,000</li>
+<li>Memory Analyzer retains fewer background samples and runs periodic AI every 10 minutes</li>
+<li>Apple Intelligence memory insights use formatted markdown with clearer paragraph spacing</li>
+</ul></li>
+<li><strong>Fixes</strong><ul>
+<li>Reduced idle RAM after scans by clearing cached category files and duplicate reloads mid-scan</li>
+</ul></li>
+</ul>
+]]></description>
+            <enclosure url="https://diskwise-download.suherman.net/downloads/DiskWise-0.6.2.zip" length="15896238" type="application/octet-stream" sparkle:edSignature="GIk2ie/WiI2a4+T8eFbza0eiiw6RCWTc8/gCeguhMJJzGTNJOY6rLez7NwmEbeElc/XR1I5RROn0bUYP+uDKCQ=="/>
+        </item>
+        <item>
+            <title>0.6.1</title>
+            <pubDate>Sun, 14 Jun 2026 19:07:21 +1000</pubDate>
+            <sparkle:version>6001</sparkle:version>
+            <sparkle:shortVersionString>0.6.1</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <description><![CDATA[<ul>
+<li><strong>What's new</strong><ul>
+<li>Action buttons on Optimization Analysis — perform Free Memory, Quit, Restart, or Focus App directly from AI insights</li>
+<li>Periodic Apple Intelligence re-analysis every 5 minutes based on current memory usage and computing habits</li>
+<li>Memory Analyzer enabled by default — background sampling starts when DiskWise launches</li>
+<li>Insight notifications — alerts when Apple Intelligence finds a new recommendation, with a one-tap Perform Action button</li>
+<li>Notification permission prompt on first launch when memory notifications are enabled</li>
+</ul></li>
+<li><strong>Improvements</strong><ul>
+<li>Apple Intelligence memory prompts now include a Better computing habits section with practical Mac usage tips</li>
+<li>Suggested Actions and Optimization Analysis share the same actionable recommendation rows</li>
+</ul></li>
+</ul>
+]]></description>
+            <enclosure url="https://diskwise-download.suherman.net/downloads/DiskWise-0.6.1.zip" length="15826945" type="application/octet-stream" sparkle:edSignature="MZr7i0UeOkrjZzppy21K4+eaoSn2rNGmgiAm349WzK86/rmfS+PuiMdyC9TTnHybp7QEciuse7qPlY+hvNL9CQ=="/>
+        </item>
+        <item>
+            <title>0.6.0</title>
+            <pubDate>Sun, 14 Jun 2026 18:51:01 +1000</pubDate>
+            <sparkle:version>6000</sparkle:version>
+            <sparkle:shortVersionString>0.6.0</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <description><![CDATA[<ul>
+<li><strong>What's new</strong><ul>
+<li>Memory Analyzer — samples memory every 20–30 seconds, tracks usual RAM consumers, and surfaces optimization actions</li>
+<li>Apple Intelligence memory insights — AI-powered analysis of how to run apps more efficiently, with rule-based fallback</li>
+<li>Suggested actions — free inactive memory, quit or restart heavy apps, and focus browsers to trim tabs</li>
+<li>Menu-first navigation — Disk, Memory Analyzer, System Status, Maintenance, and Duplicates live in the sidebar</li>
+<li>Drive picker in the top toolbar — select internal and external volumes for disk analysis from the menu bar area</li>
+</ul></li>
+<li><strong>Improvements</strong><ul>
+<li>Navigation layout pivoted: feature menus moved from the top toolbar to the sidebar; volume list moved to the top toolbar</li>
+</ul></li>
+</ul>
+]]></description>
+            <enclosure url="https://diskwise-download.suherman.net/downloads/DiskWise-0.6.0.zip" length="15745798" type="application/octet-stream" sparkle:edSignature="VBAPya7+PxddkBp5xzFNQYuYM27Bue8CiaxZKZlaquUFyx5LoRbtCfZPEvfco9ml4NF5Lom78QW6pgRx4/pJBg=="/>
+        </item>
+    </channel>
+</rss>

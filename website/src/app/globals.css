@@ -1,0 +1,176 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #0a0a0b;
+  --foreground: #f1f5f9;
+  --muted: #94a3b8;
+  --surface: #141416;
+  --surface-elevated: #1c1c1f;
+  --border: rgba(255, 255, 255, 0.08);
+}
+
+html {
+  scroll-behavior: smooth;
+  overflow-x: hidden;
+  color-scheme: dark;
+}
+
+body {
+  overflow-x: hidden;
+  color: var(--foreground);
+  background:
+    radial-gradient(circle at top left, rgba(0, 122, 255, 0.18), transparent 32%),
+    radial-gradient(circle at top right, rgba(88, 86, 214, 0.14), transparent 28%),
+    radial-gradient(circle at 80% 20%, rgba(76, 217, 100, 0.08), transparent 22%),
+    var(--background);
+  min-height: 100vh;
+}
+
+.gradient-text {
+  background: linear-gradient(90deg, #4da3ff 0%, #8b89ff 45%, #007aff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.card {
+  @apply rounded-2xl border border-white/10 bg-white/[0.04] shadow-soft backdrop-blur;
+}
+
+.btn-primary {
+  @apply inline-flex items-center justify-center rounded-xl bg-brand-blue px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#3395ff];
+}
+
+.btn-secondary {
+  @apply inline-flex items-center justify-center rounded-xl border border-white/15 bg-white/[0.06] px-5 py-3 text-sm font-semibold text-slate-200 transition hover:border-brand-blue/40 hover:bg-white/[0.1] hover:text-white;
+}
+
+.btn-cta-primary {
+  @apply flex h-11 w-full items-center justify-center whitespace-nowrap rounded-xl border border-transparent bg-white px-5 text-sm font-semibold text-brand-blue transition hover:bg-slate-100;
+}
+
+.btn-cta-secondary {
+  @apply flex h-11 w-full items-center justify-center whitespace-nowrap rounded-xl border border-white/30 px-5 text-sm font-semibold text-white transition hover:bg-white/10;
+}
+
+.app-icon-hero,
+.app-icon-mark,
+.app-hero-image {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.app-hero {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 22%;
+  overflow: hidden;
+}
+
+.app-hero-glow {
+  position: absolute;
+  inset: 8%;
+  z-index: 0;
+  border-radius: 22%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.22) 0%,
+    rgba(0, 122, 255, 0.32) 24%,
+    rgba(88, 86, 214, 0.16) 48%,
+    transparent 72%
+  );
+  animation: app-hero-glow 2.8s ease-in-out infinite;
+}
+
+.app-hero-core-glow {
+  position: absolute;
+  inset: 24%;
+  z-index: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.38) 0%, rgba(125, 211, 252, 0.24) 38%, transparent 72%);
+  filter: blur(10px);
+  animation: app-hero-core-glow 3.2s ease-in-out infinite;
+}
+
+.app-hero-ring {
+  position: absolute;
+  inset: 3%;
+  z-index: 20;
+  border-radius: 22%;
+  pointer-events: none;
+  background: conic-gradient(
+    from -90deg,
+    transparent 0deg,
+    rgba(0, 122, 255, 0.12) 24deg,
+    rgba(125, 211, 252, 0.85) 42deg,
+    rgba(88, 86, 214, 0.18) 58deg,
+    transparent 82deg,
+    transparent 360deg
+  );
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
+  animation: app-hero-spin 2.4s linear infinite;
+}
+
+.app-hero-sweep {
+  position: absolute;
+  inset: 3%;
+  z-index: 21;
+  border-radius: 22%;
+  pointer-events: none;
+  background: conic-gradient(
+    from -90deg,
+    transparent 0deg,
+    transparent 352deg,
+    rgba(186, 230, 253, 0.9) 356deg,
+    transparent 360deg
+  );
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
+  animation: app-hero-spin 2.4s linear infinite;
+  filter: drop-shadow(0 0 6px rgba(125, 211, 252, 0.85));
+}
+
+@keyframes app-hero-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes app-hero-glow {
+  0%,
+  100% {
+    opacity: 0.6;
+    transform: scale(0.96);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes app-hero-core-glow {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(0.92);
+  }
+
+  50% {
+    opacity: 0.95;
+    transform: scale(1.08);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-hero-glow,
+  .app-hero-core-glow,
+  .app-hero-ring,
+  .app-hero-sweep {
+    animation: none;
+  }
+}

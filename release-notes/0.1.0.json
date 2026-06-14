@@ -1,0 +1,13 @@
+{
+  "version": "0.1.0",
+  "summary": "Initial release of Nucleus — Personal Operating System for macOS.",
+  "releaseNotes": {
+    "introduced": [
+      "Unified Gmail inbox with multi-account tabs",
+      "Calendar timeline across Google accounts",
+      "Clipboard history with search and save-to-notes",
+      "Markdown notes workspace",
+      "Sparkle auto-update support"
+    ]
+  }
+}

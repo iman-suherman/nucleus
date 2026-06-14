@@ -1,0 +1,41 @@
+{
+  "name": "nucleus",
+  "version": "0.1.0",
+  "displayName": "Nucleus",
+  "publisher": "Iman Suherman",
+  "private": true,
+  "description": "Personal Operating System for macOS. A native Swift workspace that unifies Gmail, Google Calendar, notes, clipboard intelligence, notifications, and meeting workflows across multiple Google accounts.",
+  "dependencies": {
+    "@google-cloud/firestore": "^8.6.0"
+  },
+  "scripts": {
+    "info": "node scripts/info.cjs",
+    "init": "npm run info",
+    "build": "swift build",
+    "test": "swift test",
+    "dev:app": "swift build && swift test && npm run build:app && npm run run:app",
+    "local": "bash scripts/local.sh",
+    "start": "bash scripts/start.sh",
+    "setup:xcodegen": "brew install xcodegen",
+    "setup:xcode": "xcodebuild -runFirstLaunch",
+    "build:app": "bash scripts/build.sh",
+    "prepare:icon": "bash scripts/prepare-app-icon.sh && swift scripts/generate-app-icon.swift app/Nucleus/Assets.xcassets/AppIcon.appiconset app/Nucleus/Assets/AppIconSource.png",
+    "prepare:website": "swift scripts/prepare-website-assets.swift",
+    "build:app:release": "bash scripts/build.sh release",
+    "sign": "bash scripts/sign.sh",
+    "package": "bash scripts/package.sh",
+    "release": "node scripts/release-publish.cjs",
+    "release:local": "bash scripts/release.sh",
+    "upload:release": "node scripts/upload-release.cjs",
+    "run:app": "bash scripts/run-app.sh",
+    "open:xcode": "open app/Nucleus.xcodeproj",
+    "app": "npm run build:app && npm run run:app",
+    "xcode": "npm run build:app && npm run open:xcode",
+    "dev:website": "npm install --prefix website && npm run dev --prefix website",
+    "deploy:website": "node scripts/deploy-website.cjs",
+    "deploy:registry": "node scripts/deploy-registry-api.cjs",
+    "sparkle:setup-keys": "bash scripts/sparkle-setup-keys.sh",
+    "sparkle:appcast": "node scripts/generate-appcast.cjs",
+    "postinstall": "npm run info"
+  }
+}

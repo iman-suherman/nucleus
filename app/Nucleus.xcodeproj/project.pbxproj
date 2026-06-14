@@ -1,0 +1,503 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		04F320BF6094F76B0F24258B /* ClipboardMonitorService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D1B19E37F9DEE038DE32B26 /* ClipboardMonitorService.swift */; };
+		06E33DD4ED6CCAE1245318FB /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 0E4DA79CEF8E748BA3E23EAA /* Sparkle */; };
+		0DF76E6C3FFC27AFE1D7BCFC /* ClipboardKit in Frameworks */ = {isa = PBXBuildFile; productRef = F1636452BBBF1856D36D7603 /* ClipboardKit */; };
+		0DF8DBEBA58E40936F22C450 /* AccountCenterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69A7BEC28EFE1D402738D081 /* AccountCenterView.swift */; };
+		1009C3EAC35EB16973A02E97 /* AccountKit in Frameworks */ = {isa = PBXBuildFile; productRef = ECEB06ED4768094EA96F5F7E /* AccountKit */; };
+		194D73C14442409686DEF2AE /* ClipboardWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C643F64124025FA6F196C435 /* ClipboardWorkspaceView.swift */; };
+		2A0B56C8E90F257BB66650C4 /* NucleusNotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 584F84F9AF029CC4D8800A01 /* NucleusNotificationService.swift */; };
+		2E92D4BDB66A47E6E813E56B /* BackgroundSyncServices.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50537B36D31255DB7C3030C9 /* BackgroundSyncServices.swift */; };
+		3D175EB1F440C6B0D9078FA6 /* NotificationCenterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D6623E78F744254448AB90A /* NotificationCenterView.swift */; };
+		3F48A8BA617C1BF575B71A17 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BF4B3460305D779B31B79D8C /* Assets.xcassets */; };
+		4502C4FF7AEF207C5B35F583 /* NucleusKit in Frameworks */ = {isa = PBXBuildFile; productRef = 3AEE0E5864A512AD45140FF0 /* NucleusKit */; };
+		51EAB3CEA8190FEC48F1F8B8 /* NotesWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 953865571573F05622595783 /* NotesWorkspaceView.swift */; };
+		5E7C65A062AF7D911926A67F /* StartupSplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F2DE343844F3EF7B493842C /* StartupSplashView.swift */; };
+		68556500C668B7A54CCA4BA4 /* SparkleUpdater.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6238A17B183A8059CB7A2C0 /* SparkleUpdater.swift */; };
+		68F673476FAE5D0CA8204F89 /* MailWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 948AE221487288E373756BDD /* MailWorkspaceView.swift */; };
+		779C8BFFA5C17B8EEC8E9296 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 414321C6FA288B25C3F312A3 /* AppSettings.swift */; };
+		86A2EDB6E47C37FFBA5DE437 /* CalendarWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F58A8AC449384291C26E26C /* CalendarWorkspaceView.swift */; };
+		8D3E706DCBFA8683B8315E2E /* entitlements.mac.plist in Resources */ = {isa = PBXBuildFile; fileRef = 12805D482D496E9FAF46F5A6 /* entitlements.mac.plist */; };
+		9B0DCC0F8A21372D7F8D82F1 /* WorkspaceStatusBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95F9299FA19C03821267F616 /* WorkspaceStatusBadge.swift */; };
+		B20F50C768EE29A5A27E9276 /* GoogleOAuthCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = C55529D4C35CB4895D85F0EF /* GoogleOAuthCoordinator.swift */; };
+		B9E2844DD110DC0608825A91 /* AppViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9169DE152DD2077D9F7C4DB3 /* AppViewModel.swift */; };
+		C0DBC257A8BAB9C658468527 /* NucleusApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2698972D63EAE12C5F050DE /* NucleusApp.swift */; };
+		C442A46B050B3F01536FCC47 /* DockBadgeController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 035D0E9FC4A418A7C52523C6 /* DockBadgeController.swift */; };
+		C7B8138444FEA8F5600C4648 /* CalendarKit in Frameworks */ = {isa = PBXBuildFile; productRef = 0663CFC119484D7BD11FB843 /* CalendarKit */; };
+		D867766C290D28A0DCB552EA /* DatabaseKit in Frameworks */ = {isa = PBXBuildFile; productRef = DAECE07451118013D6E717ED /* DatabaseKit */; };
+		DA24CFEA61CAC79C5A243DA0 /* SupportViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4CEADA0142869F8949F55DD /* SupportViews.swift */; };
+		DDA9D760632D2CDC4544A09A /* NotesKit in Frameworks */ = {isa = PBXBuildFile; productRef = 93B2C6D49EA5F6E3F446A3F3 /* NotesKit */; };
+		E61500042BE1E8A2138B4EDD /* MailKit in Frameworks */ = {isa = PBXBuildFile; productRef = 05DB77AAF24A6898436A8A52 /* MailKit */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		035D0E9FC4A418A7C52523C6 /* DockBadgeController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DockBadgeController.swift; sourceTree = "<group>"; };
+		0E94FBF67AC3185DD7F65D61 /* nucleus */ = {isa = PBXFileReference; lastKnownFileType = folder; name = nucleus; path = ..; sourceTree = SOURCE_ROOT; };
+		12805D482D496E9FAF46F5A6 /* entitlements.mac.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = entitlements.mac.plist; sourceTree = "<group>"; };
+		35B2C2677CC4B681656C62C2 /* Nucleus.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Nucleus.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		3C96EA452B81430207A5A9FB /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		414321C6FA288B25C3F312A3 /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
+		50537B36D31255DB7C3030C9 /* BackgroundSyncServices.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundSyncServices.swift; sourceTree = "<group>"; };
+		584F84F9AF029CC4D8800A01 /* NucleusNotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NucleusNotificationService.swift; sourceTree = "<group>"; };
+		69A7BEC28EFE1D402738D081 /* AccountCenterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountCenterView.swift; sourceTree = "<group>"; };
+		6D6623E78F744254448AB90A /* NotificationCenterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationCenterView.swift; sourceTree = "<group>"; };
+		6F58A8AC449384291C26E26C /* CalendarWorkspaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarWorkspaceView.swift; sourceTree = "<group>"; };
+		8D1B19E37F9DEE038DE32B26 /* ClipboardMonitorService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardMonitorService.swift; sourceTree = "<group>"; };
+		9169DE152DD2077D9F7C4DB3 /* AppViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppViewModel.swift; sourceTree = "<group>"; };
+		948AE221487288E373756BDD /* MailWorkspaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MailWorkspaceView.swift; sourceTree = "<group>"; };
+		953865571573F05622595783 /* NotesWorkspaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotesWorkspaceView.swift; sourceTree = "<group>"; };
+		95F9299FA19C03821267F616 /* WorkspaceStatusBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceStatusBadge.swift; sourceTree = "<group>"; };
+		9F2DE343844F3EF7B493842C /* StartupSplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartupSplashView.swift; sourceTree = "<group>"; };
+		B6238A17B183A8059CB7A2C0 /* SparkleUpdater.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SparkleUpdater.swift; sourceTree = "<group>"; };
+		BF4B3460305D779B31B79D8C /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		C2698972D63EAE12C5F050DE /* NucleusApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NucleusApp.swift; sourceTree = "<group>"; };
+		C55529D4C35CB4895D85F0EF /* GoogleOAuthCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoogleOAuthCoordinator.swift; sourceTree = "<group>"; };
+		C643F64124025FA6F196C435 /* ClipboardWorkspaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardWorkspaceView.swift; sourceTree = "<group>"; };
+		E4CEADA0142869F8949F55DD /* SupportViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupportViews.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		4618B6C17309E86A956A0ED6 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				06E33DD4ED6CCAE1245318FB /* Sparkle in Frameworks */,
+				4502C4FF7AEF207C5B35F583 /* NucleusKit in Frameworks */,
+				D867766C290D28A0DCB552EA /* DatabaseKit in Frameworks */,
+				1009C3EAC35EB16973A02E97 /* AccountKit in Frameworks */,
+				E61500042BE1E8A2138B4EDD /* MailKit in Frameworks */,
+				C7B8138444FEA8F5600C4648 /* CalendarKit in Frameworks */,
+				0DF76E6C3FFC27AFE1D7BCFC /* ClipboardKit in Frameworks */,
+				DDA9D760632D2CDC4544A09A /* NotesKit in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		1D490A0B2835A4B7A3D80054 /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				69A7BEC28EFE1D402738D081 /* AccountCenterView.swift */,
+				6F58A8AC449384291C26E26C /* CalendarWorkspaceView.swift */,
+				C643F64124025FA6F196C435 /* ClipboardWorkspaceView.swift */,
+				948AE221487288E373756BDD /* MailWorkspaceView.swift */,
+				953865571573F05622595783 /* NotesWorkspaceView.swift */,
+				6D6623E78F744254448AB90A /* NotificationCenterView.swift */,
+				9F2DE343844F3EF7B493842C /* StartupSplashView.swift */,
+				E4CEADA0142869F8949F55DD /* SupportViews.swift */,
+				95F9299FA19C03821267F616 /* WorkspaceStatusBadge.swift */,
+			);
+			path = Components;
+			sourceTree = "<group>";
+		};
+		466AF8445649955C30A247E1 /* Nucleus */ = {
+			isa = PBXGroup;
+			children = (
+				414321C6FA288B25C3F312A3 /* AppSettings.swift */,
+				9169DE152DD2077D9F7C4DB3 /* AppViewModel.swift */,
+				BF4B3460305D779B31B79D8C /* Assets.xcassets */,
+				12805D482D496E9FAF46F5A6 /* entitlements.mac.plist */,
+				3C96EA452B81430207A5A9FB /* Info.plist */,
+				C2698972D63EAE12C5F050DE /* NucleusApp.swift */,
+				B6238A17B183A8059CB7A2C0 /* SparkleUpdater.swift */,
+				1D490A0B2835A4B7A3D80054 /* Components */,
+				70C6AE6CD197164C03FC3FC2 /* Services */,
+			);
+			path = Nucleus;
+			sourceTree = "<group>";
+		};
+		70C6AE6CD197164C03FC3FC2 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				50537B36D31255DB7C3030C9 /* BackgroundSyncServices.swift */,
+				8D1B19E37F9DEE038DE32B26 /* ClipboardMonitorService.swift */,
+				035D0E9FC4A418A7C52523C6 /* DockBadgeController.swift */,
+				C55529D4C35CB4895D85F0EF /* GoogleOAuthCoordinator.swift */,
+				584F84F9AF029CC4D8800A01 /* NucleusNotificationService.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		952FE1F1150C5DD27FAF45EF /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				35B2C2677CC4B681656C62C2 /* Nucleus.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		BE87F95A911B3BC122A2E31A /* Packages */ = {
+			isa = PBXGroup;
+			children = (
+				0E94FBF67AC3185DD7F65D61 /* nucleus */,
+			);
+			name = Packages;
+			sourceTree = "<group>";
+		};
+		DF5C11EBC4E7F41C308C26CC = {
+			isa = PBXGroup;
+			children = (
+				466AF8445649955C30A247E1 /* Nucleus */,
+				BE87F95A911B3BC122A2E31A /* Packages */,
+				952FE1F1150C5DD27FAF45EF /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		DB1E0D2630414328DE7163D5 /* Nucleus */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 7E09C760230D6FFCA85855E1 /* Build configuration list for PBXNativeTarget "Nucleus" */;
+			buildPhases = (
+				8B0D2F05B6C97289D2969A9A /* Sources */,
+				3B7F2D5D8FB141CBE3BF22D8 /* Resources */,
+				4618B6C17309E86A956A0ED6 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Nucleus;
+			packageProductDependencies = (
+				0E4DA79CEF8E748BA3E23EAA /* Sparkle */,
+				3AEE0E5864A512AD45140FF0 /* NucleusKit */,
+				DAECE07451118013D6E717ED /* DatabaseKit */,
+				ECEB06ED4768094EA96F5F7E /* AccountKit */,
+				05DB77AAF24A6898436A8A52 /* MailKit */,
+				0663CFC119484D7BD11FB843 /* CalendarKit */,
+				F1636452BBBF1856D36D7603 /* ClipboardKit */,
+				93B2C6D49EA5F6E3F446A3F3 /* NotesKit */,
+			);
+			productName = Nucleus;
+			productReference = 35B2C2677CC4B681656C62C2 /* Nucleus.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		0CF985CADA30704845FA3B25 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					DB1E0D2630414328DE7163D5 = {
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = D2E13B3292A4C8F950F568E7 /* Build configuration list for PBXProject "Nucleus" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = DF5C11EBC4E7F41C308C26CC;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				747853A3A9D5E77150015D34 /* XCRemoteSwiftPackageReference "Sparkle" */,
+				F65862AD11A475D420DB7D40 /* XCLocalSwiftPackageReference ".." */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 952FE1F1150C5DD27FAF45EF /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				DB1E0D2630414328DE7163D5 /* Nucleus */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		3B7F2D5D8FB141CBE3BF22D8 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				3F48A8BA617C1BF575B71A17 /* Assets.xcassets in Resources */,
+				8D3E706DCBFA8683B8315E2E /* entitlements.mac.plist in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		8B0D2F05B6C97289D2969A9A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				0DF8DBEBA58E40936F22C450 /* AccountCenterView.swift in Sources */,
+				779C8BFFA5C17B8EEC8E9296 /* AppSettings.swift in Sources */,
+				B9E2844DD110DC0608825A91 /* AppViewModel.swift in Sources */,
+				2E92D4BDB66A47E6E813E56B /* BackgroundSyncServices.swift in Sources */,
+				86A2EDB6E47C37FFBA5DE437 /* CalendarWorkspaceView.swift in Sources */,
+				04F320BF6094F76B0F24258B /* ClipboardMonitorService.swift in Sources */,
+				194D73C14442409686DEF2AE /* ClipboardWorkspaceView.swift in Sources */,
+				C442A46B050B3F01536FCC47 /* DockBadgeController.swift in Sources */,
+				B20F50C768EE29A5A27E9276 /* GoogleOAuthCoordinator.swift in Sources */,
+				68F673476FAE5D0CA8204F89 /* MailWorkspaceView.swift in Sources */,
+				51EAB3CEA8190FEC48F1F8B8 /* NotesWorkspaceView.swift in Sources */,
+				3D175EB1F440C6B0D9078FA6 /* NotificationCenterView.swift in Sources */,
+				C0DBC257A8BAB9C658468527 /* NucleusApp.swift in Sources */,
+				2A0B56C8E90F257BB66650C4 /* NucleusNotificationService.swift in Sources */,
+				68556500C668B7A54CCA4BA4 /* SparkleUpdater.swift in Sources */,
+				5E7C65A062AF7D911926A67F /* StartupSplashView.swift in Sources */,
+				DA24CFEA61CAC79C5A243DA0 /* SupportViews.swift in Sources */,
+				9B0DCC0F8A21372D7F8D82F1 /* WorkspaceStatusBadge.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		1B12112A073A32495740AAB5 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.9;
+			};
+			name = Debug;
+		};
+		5E80A35875DE6FD818AC8820 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.9;
+			};
+			name = Release;
+		};
+		F83F4D0675A69EA7EDA64DA6 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Nucleus/entitlements.mac.plist;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1000;
+				ENABLE_HARDENED_RUNTIME = YES;
+				INFOPLIST_FILE = Nucleus/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = net.suherman.nucleus;
+				SDKROOT = macosx;
+				SPARKLE_FEED_URL = "http://127.0.0.1:3000/appcast.xml";
+				SPARKLE_PUBLIC_ED_KEY = "B6P7+AkeawAfMFk4f5j3+0diuQWorDuCYNrVX0vJeV0=";
+			};
+			name = Debug;
+		};
+		FDC228E8C9126A8BEF13682E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Nucleus/entitlements.mac.plist;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1000;
+				ENABLE_HARDENED_RUNTIME = YES;
+				INFOPLIST_FILE = Nucleus/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = net.suherman.nucleus;
+				SDKROOT = macosx;
+				SPARKLE_FEED_URL = "https://nucleus-registry.suherman.net/appcast.xml";
+				SPARKLE_PUBLIC_ED_KEY = "B6P7+AkeawAfMFk4f5j3+0diuQWorDuCYNrVX0vJeV0=";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		7E09C760230D6FFCA85855E1 /* Build configuration list for PBXNativeTarget "Nucleus" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F83F4D0675A69EA7EDA64DA6 /* Debug */,
+				FDC228E8C9126A8BEF13682E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		D2E13B3292A4C8F950F568E7 /* Build configuration list for PBXProject "Nucleus" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1B12112A073A32495740AAB5 /* Debug */,
+				5E80A35875DE6FD818AC8820 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		F65862AD11A475D420DB7D40 /* XCLocalSwiftPackageReference ".." */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ..;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		747853A3A9D5E77150015D34 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.7.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		05DB77AAF24A6898436A8A52 /* MailKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = MailKit;
+		};
+		0663CFC119484D7BD11FB843 /* CalendarKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = CalendarKit;
+		};
+		0E4DA79CEF8E748BA3E23EAA /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 747853A3A9D5E77150015D34 /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
+		};
+		3AEE0E5864A512AD45140FF0 /* NucleusKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = NucleusKit;
+		};
+		93B2C6D49EA5F6E3F446A3F3 /* NotesKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = NotesKit;
+		};
+		DAECE07451118013D6E717ED /* DatabaseKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = DatabaseKit;
+		};
+		ECEB06ED4768094EA96F5F7E /* AccountKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = AccountKit;
+		};
+		F1636452BBBF1856D36D7603 /* ClipboardKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = ClipboardKit;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 0CF985CADA30704845FA3B25 /* Project object */;
+}
