@@ -66,20 +66,19 @@ body {
 .app-hero {
   position: relative;
   aspect-ratio: 1;
-  border-radius: 22%;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .app-hero-glow {
   position: absolute;
-  inset: 8%;
+  inset: 14%;
   z-index: 0;
   border-radius: 22%;
   background: radial-gradient(
     circle,
-    rgba(255, 255, 255, 0.22) 0%,
-    rgba(0, 122, 255, 0.32) 24%,
-    rgba(88, 86, 214, 0.16) 48%,
+    rgba(255, 255, 255, 0.28) 0%,
+    rgba(0, 122, 255, 0.34) 22%,
+    rgba(88, 86, 214, 0.18) 46%,
     transparent 72%
   );
   animation: app-hero-glow 2.8s ease-in-out infinite;
@@ -87,37 +86,37 @@ body {
 
 .app-hero-core-glow {
   position: absolute;
-  inset: 24%;
+  inset: 28%;
   z-index: 1;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.38) 0%, rgba(125, 211, 252, 0.24) 38%, transparent 72%);
-  filter: blur(10px);
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.45) 0%, rgba(125, 211, 252, 0.28) 36%, transparent 72%);
+  filter: blur(12px);
   animation: app-hero-core-glow 3.2s ease-in-out infinite;
 }
 
 .app-hero-ring {
   position: absolute;
-  inset: 3%;
+  inset: 6%;
   z-index: 20;
   border-radius: 22%;
   pointer-events: none;
   background: conic-gradient(
     from -90deg,
     transparent 0deg,
-    rgba(0, 122, 255, 0.12) 24deg,
-    rgba(125, 211, 252, 0.85) 42deg,
-    rgba(88, 86, 214, 0.18) 58deg,
+    rgba(0, 122, 255, 0.1) 24deg,
+    rgba(125, 211, 252, 0.65) 42deg,
+    rgba(88, 86, 214, 0.14) 58deg,
     transparent 82deg,
     transparent 360deg
   );
-  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
-  mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 1px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 1px));
   animation: app-hero-spin 2.4s linear infinite;
 }
 
 .app-hero-sweep {
   position: absolute;
-  inset: 3%;
+  inset: 6%;
   z-index: 21;
   border-radius: 22%;
   pointer-events: none;
@@ -125,13 +124,13 @@ body {
     from -90deg,
     transparent 0deg,
     transparent 352deg,
-    rgba(186, 230, 253, 0.9) 356deg,
+    rgba(186, 230, 253, 0.75) 356deg,
     transparent 360deg
   );
-  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
-  mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 1px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 1px));
   animation: app-hero-spin 2.4s linear infinite;
-  filter: drop-shadow(0 0 6px rgba(125, 211, 252, 0.85));
+  filter: drop-shadow(0 0 4px rgba(125, 211, 252, 0.65));
 }
 
 @keyframes app-hero-spin {

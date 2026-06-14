@@ -11,7 +11,10 @@ let outputPath = CommandLine.arguments.dropFirst().dropFirst().first
     ?? repoRoot.appendingPathComponent("website/public/app-icon.png").path
 let heroOutputPath = repoRoot.appendingPathComponent("website/public/hero.png").path
 
-let blackThreshold = 28
+// Strip the outer matte and dark bezel so the website icon reads lighter on the page.
+let blackThreshold = 58
+let feather = 28
+let innerTrim = 10
 
 func makeTransparentBitmap(from path: String) -> (rep: NSBitmapImageRep, width: Int, height: Int)? {
     guard let image = NSImage(contentsOfFile: path),
@@ -43,8 +46,6 @@ func makeTransparentBitmap(from path: String) -> (rep: NSBitmapImageRep, width: 
     guard let data = rep.bitmapData else { return nil }
     let bytesPerRow = rep.bytesPerRow
 
-    let feather: Int = 24
-
     for y in 0..<height {
         for x in 0..<width {
             let offset = y * bytesPerRow + x * 4
@@ -70,7 +71,13 @@ func makeTransparentBitmap(from path: String) -> (rep: NSBitmapImageRep, width: 
     return (rep, width, height)
 }
 
-func cropToOpaqueBounds(_ rep: NSBitmapImageRep, width: Int, height: Int, padding: Int = 6) -> NSBitmapImageRep {
+func cropToOpaqueBounds(
+    _ rep: NSBitmapImageRep,
+    width: Int,
+    height: Int,
+    padding: Int = 0,
+    trim: Int = 0
+) -> NSBitmapImageRep {
     guard let data = rep.bitmapData else { return rep }
     let bytesPerRow = rep.bytesPerRow
 
@@ -95,10 +102,10 @@ func cropToOpaqueBounds(_ rep: NSBitmapImageRep, width: Int, height: Int, paddin
         return rep
     }
 
-    minX = max(0, minX - padding)
-    minY = max(0, minY - padding)
-    maxX = min(width - 1, maxX + padding)
-    maxY = min(height - 1, maxY + padding)
+    minX = max(0, minX - padding + trim)
+    minY = max(0, minY - padding + trim)
+    maxX = min(width - 1, maxX + padding - trim)
+    maxY = min(height - 1, maxY + padding - trim)
 
     let cropWidth = maxX - minX + 1
     let cropHeight = maxY - minY + 1
@@ -138,12 +145,74 @@ func cropToOpaqueBounds(_ rep: NSBitmapImageRep, width: Int, height: Int, paddin
     return cropped
 }
 
+func padToSquare(_ rep: NSBitmapImageRep) -> NSBitmapImageRep {
+    let width = rep.pixelsWide
+    let height = rep.pixelsHigh
+    let side = max(width, height)
+
+    guard let square = NSBitmapImageRep(
+        bitmapDataPlanes: nil,
+        pixelsWide: side,
+        pixelsHigh: side,
+        bitsPerSample: 8,
+        samplesPerPixel: 4,
+        hasAlpha: true,
+        isPlanar: false,
+        colorSpaceName: .deviceRGB,
+        bytesPerRow: 0,
+        bitsPerPixel: 0
+    ), let squareData = square.bitmapData else {
+        return rep
+    }
+
+    square.size = NSSize(
+        width: rep.size.width * CGFloat(side) / CGFloat(max(width, 1)),
+        height: rep.size.height * CGFloat(side) / CGFloat(max(height, 1))
+    )
+
+    let squareBytesPerRow = square.bytesPerRow
+    for y in 0..<side {
+        for x in 0..<side {
+            let offset = y * squareBytesPerRow + x * 4
+            squareData[offset] = 0
+            squareData[offset + 1] = 0
+            squareData[offset + 2] = 0
+            squareData[offset + 3] = 0
+        }
+    }
+
+    guard let sourceData = rep.bitmapData else { return rep }
+    let sourceBytesPerRow = rep.bytesPerRow
+    let offsetX = (side - width) / 2
+    let offsetY = (side - height) / 2
+
+    for y in 0..<height {
+        for x in 0..<width {
+            let src = y * sourceBytesPerRow + x * 4
+            let dst = (offsetY + y) * squareBytesPerRow + (offsetX + x) * 4
+            squareData[dst] = sourceData[src]
+            squareData[dst + 1] = sourceData[src + 1]
+            squareData[dst + 2] = sourceData[src + 2]
+            squareData[dst + 3] = sourceData[src + 3]
+        }
+    }
+
+    return square
+}
+
 guard let initial = makeTransparentBitmap(from: sourcePath) else {
     fputs("prepare-website-assets: failed to load \(sourcePath)\n", stderr)
     exit(1)
 }
 
-let cropped = cropToOpaqueBounds(initial.rep, width: initial.width, height: initial.height)
+let cropped = padToSquare(
+    cropToOpaqueBounds(
+        initial.rep,
+        width: initial.width,
+        height: initial.height,
+        trim: innerTrim
+    )
+)
 
 guard let png = cropped.representation(using: .png, properties: [:]) else {
     fputs("prepare-website-assets: failed to encode PNG\n", stderr)
@@ -159,7 +228,14 @@ try png.write(to: outputURL)
 
 fputs("prepare-website-assets: wrote \(outputPath)\n", stderr)
 
-let heroCropped = cropToOpaqueBounds(initial.rep, width: initial.width, height: initial.height, padding: 0)
+let heroCropped = padToSquare(
+    cropToOpaqueBounds(
+        initial.rep,
+        width: initial.width,
+        height: initial.height,
+        trim: innerTrim + 4
+    )
+)
 
 guard let heroPNG = heroCropped.representation(using: .png, properties: [:]) else {
     fputs("prepare-website-assets: failed to encode hero PNG\n", stderr)

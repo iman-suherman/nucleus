@@ -21,7 +21,7 @@ export function AppHeroIcon({ className = "", priority = false }: AppHeroIconPro
         priority={priority}
         unoptimized
         sizes="(max-width: 1024px) 90vw, 32rem"
-        className="app-hero-image relative z-10 h-auto w-full object-contain drop-shadow-[0_16px_40px_rgba(0,122,255,0.35)]"
+        className="app-hero-image relative z-10 h-full w-full scale-[1.04] object-contain drop-shadow-[0_16px_40px_rgba(0,122,255,0.35)]"
       />
     </div>
   );
