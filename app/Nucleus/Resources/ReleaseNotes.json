@@ -1,11 +1,11 @@
 {
-  "version": "0.2.0",
-  "summary": "Calendar is view-only — embedded Google Calendar without sync or Upcoming.",
+  "version": "0.2.1",
+  "summary": "Remove the Notifications activity feed workspace.",
   "releaseNotes": {
     "changed": [
-      "Calendar workspace now shows only the embedded Google Calendar web view, filling the pane",
-      "Removed calendar sync, Upcoming event list, top meeting bar, meeting reminders, and calendar sidebar badge",
-      "Removed calendar sync interval from Settings — mail sync is unchanged"
+      "Removed the Notifications sidebar pane and in-app activity feed",
+      "Stopped logging email and note events to the activity stream",
+      "Mail and chat macOS push notifications are unchanged"
     ]
   }
 }
