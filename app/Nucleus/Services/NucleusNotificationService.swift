@@ -1,3 +1,4 @@
+import AppKit
 import CalendarKit
 import Foundation
 import NucleusKit
@@ -37,7 +38,7 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
         } else {
             content.body = "\(message.subject)\n\(message.snippet)"
         }
-        content.sound = mailNotificationSound()
+        applyMailSound(to: content)
         content.categoryIdentifier = "NUCLEUS_MAIL"
         content.userInfo = [
             "messageID": message.id,
@@ -66,7 +67,7 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
         content.title = delta == 1 ? "New Email" : "\(delta) New Emails"
         content.subtitle = accountName
         content.body = unreadCount == 1 ? "1 unread message in your inbox" : "\(unreadCount) unread messages in your inbox"
-        content.sound = mailNotificationSound()
+        applyMailSound(to: content)
         content.categoryIdentifier = "NUCLEUS_MAIL"
 
         let request = UNNotificationRequest(
@@ -82,7 +83,9 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
         content.title = delta == 1 ? "New Chat Message" : "\(delta) New Chat Messages"
         content.subtitle = accountName
         content.body = unreadCount == 1 ? "1 unread message in Google Chat" : "\(unreadCount) unread messages in Google Chat"
-        content.sound = Self.chatSound
+        if !isAppActive {
+            content.sound = Self.chatSound
+        }
         content.categoryIdentifier = "NUCLEUS_CHAT"
 
         let request = UNNotificationRequest(
@@ -95,8 +98,18 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
 
     private static let chatSound = UNNotificationSound(named: UNNotificationSoundName("Funky"))
 
+    private var isAppActive: Bool {
+        NSApplication.shared.isActive
+    }
+
     private func mailNotificationSound() -> UNNotificationSound? {
         AppSettings.shared.mailNotificationSound.notificationSound
+    }
+
+    /// Background notifications use UNNotificationSound; foreground plays manually in `willPresent`.
+    private func applyMailSound(to content: UNMutableNotificationContent) {
+        guard !isAppActive else { return }
+        content.sound = mailNotificationSound()
     }
 
     func rescheduleMeetingReminders(_ reminders: [MeetingReminderPlanner.Reminder]) async {
@@ -179,30 +192,28 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
         _ center: UNUserNotificationCenter,
         willPresent notification: UNNotification
     ) async -> UNNotificationPresentationOptions {
-        let playedCustomSound = await playForegroundAlertIfNeeded(for: notification)
+        let options = await foregroundPresentationOptions(for: notification)
         await handleMeetingReminderPresentation(notification)
-        return playedCustomSound ? [.banner] : [.banner, .sound]
+        return options
     }
 
-    @discardableResult
-    private func playForegroundAlertIfNeeded(for notification: UNNotification) async -> Bool {
+    private func foregroundPresentationOptions(for notification: UNNotification) -> UNNotificationPresentationOptions {
         switch notification.request.content.categoryIdentifier {
         case "NUCLEUS_MAIL":
-            let sound = AppSettings.shared.mailNotificationSound
-            switch sound {
+            switch AppSettings.shared.mailNotificationSound {
             case .silent:
-                return false
+                return [.banner]
             case .system:
-                return false
+                return [.banner, .sound]
             case .funky, .nucleusMail:
-                sound.playAlert()
-                return true
+                AppSettings.shared.mailNotificationSound.playAlert()
+                return [.banner]
             }
         case "NUCLEUS_CHAT":
             MailNotificationSound.funky.playAlert()
-            return true
+            return [.banner]
         default:
-            return false
+            return [.banner, .sound]
         }
     }
 
