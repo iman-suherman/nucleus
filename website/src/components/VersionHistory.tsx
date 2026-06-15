@@ -2,10 +2,12 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { LocalReleaseDate } from "@/components/LocalReleaseDate";
+import { ReleaseNotesDetail } from "@/components/ReleaseNotesDetail";
 import { useAllVersions } from "@/hooks/useRegistry";
 import {
   formatBytes,
   publishedAtToIso,
+  releaseNotesSections,
   toPublicDownloadUrl,
   type AppVersion,
 } from "@/lib/registry";
@@ -20,6 +22,7 @@ function ReleaseCard({
   isLatest: boolean;
 }) {
   const releasedAtIso = publishedAtToIso(version.publishedAt);
+  const hasDetailedNotes = releaseNotesSections(version.releaseNotes).length > 0;
 
   return (
     <article className="card p-6">
@@ -33,7 +36,7 @@ function ReleaseCard({
               </span>
             )}
           </div>
-          <p className="mt-2 text-sm text-slate-400">
+          <p className="mt-2 text-sm leading-relaxed text-slate-400">
             {version.summary ?? "Nucleus release"}
           </p>
           <p className="mt-2 text-xs text-slate-500">
@@ -52,6 +55,12 @@ function ReleaseCard({
           Download DMG
         </a>
       </div>
+
+      {hasDetailedNotes && (
+        <div className="mt-6 border-t border-white/10 pt-6">
+          <ReleaseNotesDetail notes={version.releaseNotes} />
+        </div>
+      )}
     </article>
   );
 }
@@ -154,7 +163,8 @@ export function VersionHistory() {
         </p>
         <h2 className="mt-2 text-3xl font-bold text-slate-50">Download any version</h2>
         <p className="mt-2 max-w-2xl text-slate-400">
-          Browse past releases and grab the DMG you need.
+          Browse past releases, read full release notes for each version, and download the DMG
+          you need.
         </p>
       </div>
 

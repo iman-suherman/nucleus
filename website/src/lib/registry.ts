@@ -142,3 +142,21 @@ export function flattenReleaseNotes(notes?: ReleaseNotes): string[] {
     ...(notes.removed ?? []).map((item) => `Removed: ${item}`),
   ];
 }
+
+export type ReleaseNotesSection = {
+  id: string;
+  title: string;
+  items: string[];
+};
+
+export function releaseNotesSections(notes?: ReleaseNotes): ReleaseNotesSection[] {
+  if (!notes) return [];
+  return [
+    { id: "breaking", title: "Important changes", items: notes.breaking ?? [] },
+    { id: "introduced", title: "What's new", items: notes.introduced ?? [] },
+    { id: "changed", title: "Improvements", items: notes.changed ?? [] },
+    { id: "fixed", title: "Fixes", items: notes.fixed ?? [] },
+    { id: "updated", title: "Under the hood", items: notes.updated ?? [] },
+    { id: "removed", title: "Removed", items: notes.removed ?? [] },
+  ].filter((section) => section.items.length > 0);
+}

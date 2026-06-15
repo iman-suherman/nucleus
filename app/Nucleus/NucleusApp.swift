@@ -83,16 +83,16 @@ struct ContentView: View {
     var body: some View {
         ZStack {
             VStack(spacing: 0) {
+                workspaceStatusBar
                 NavigationSplitView {
                     sidebar
                         .navigationSplitViewColumnWidth(min: 260, ideal: appSettings.sidebarWidth, max: 340)
                 } detail: {
                     detailContent
-                        .safeAreaInset(edge: .top, spacing: 0) {
-                            workspaceStatusBar
-                        }
                 }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .toolbar(.hidden, for: .windowToolbar)
 
             if viewModel.isStartingUp {
                 StartupSplashOverlay(

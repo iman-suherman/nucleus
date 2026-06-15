@@ -1,0 +1,14 @@
+{
+  "version": "0.3.15",
+  "summary": "Fixes the window header shifting under the title bar.",
+  "releaseNotes": {
+    "fixed": [
+      "Status bar and sidebar no longer draw under the macOS traffic lights",
+      "Window content respects the title bar instead of using full-size content view",
+      "Status bar spans the full window width below the title bar on every workspace"
+    ],
+    "changed": [
+      "Version history on nucleus.suherman.net shows detailed release notes for each release"
+    ]
+  }
+}
