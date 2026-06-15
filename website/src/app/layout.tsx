@@ -9,7 +9,7 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: BRAND_NAME,
-  description: `${BRAND_TAGLINE}. Unify Gmail, Google Calendar, notes, and clipboard intelligence across multiple Google accounts.`,
+  description: `${BRAND_TAGLINE}. Unify Gmail, Google Chat, Calendar, notes, clipboard intelligence, and Funky alerts across multiple Google accounts.`,
   icons: {
     icon: "/app-icon.png",
     apple: "/app-icon.png",
@@ -23,7 +23,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <body className={`${inter.className} bg-brand-navy text-slate-100 antialiased`}>
+      <body className={`${inter.className} bg-[#0a0a0b] text-slate-100 antialiased`}>
         <Header />
         <main>{children}</main>
         <Footer />

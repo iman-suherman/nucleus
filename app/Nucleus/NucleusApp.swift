@@ -13,7 +13,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         DispatchQueue.main.async {
-            NSApp.appearance = NSAppearance(named: .darkAqua)
             _ = SparkleUpdaterController.shared
         }
     }
@@ -88,7 +87,6 @@ struct ContentView: View {
                         .navigationSplitViewColumnWidth(min: 260, ideal: 280, max: 340)
                 } detail: {
                     detailContent
-                        .nucleusCanvasBackground()
                         .toolbar {
                             ToolbarItem(placement: .principal) {
                                 WorkspaceStatusBadge(
@@ -109,15 +107,10 @@ struct ContentView: View {
                                     Label("Check for Updates…", systemImage: "arrow.down.circle")
                                         .labelStyle(.titleAndIcon)
                                 }
-                                .buttonStyle(.borderless)
-                                .foregroundStyle(NucleusTheme.textSecondary)
+                                .buttonStyle(.bordered)
                             }
                         }
-                        .toolbarBackground(NucleusTheme.canvas, for: .windowToolbar)
-                        .toolbarBackground(.visible, for: .windowToolbar)
-                        .toolbarColorScheme(.dark, for: .windowToolbar)
                 }
-                .background(NucleusTheme.canvas)
             }
 
             if viewModel.isStartingUp {
@@ -137,8 +130,6 @@ struct ContentView: View {
             }
         }
         .animation(.easeInOut(duration: 0.22), value: viewModel.isStartingUp)
-        .preferredColorScheme(.dark)
-        .nucleusCanvasBackground()
     }
 
     @ViewBuilder
@@ -166,11 +157,10 @@ struct ContentView: View {
             Section {
                 Text("Nucleus")
                     .font(.title2.bold())
-                    .foregroundStyle(NucleusTheme.textPrimary)
                     .padding(.vertical, 4)
                 Text("Personal Operating System")
                     .font(.caption)
-                    .foregroundStyle(NucleusTheme.textSecondary)
+                    .foregroundStyle(.secondary)
             }
 
             Section("Workspace") {
@@ -188,21 +178,18 @@ struct ContentView: View {
             }
         }
         .listStyle(.sidebar)
-        .nucleusSidebarListStyle()
-        .foregroundStyle(NucleusTheme.textPrimary)
     }
 
     private func sidebarRow(for pane: WorkspacePane) -> some View {
         HStack(spacing: 10) {
             Image(systemName: pane.icon)
                 .frame(width: 20)
-                .foregroundStyle(NucleusTheme.textSecondary)
+                .foregroundStyle(.secondary)
             VStack(alignment: .leading, spacing: 2) {
                 Text(pane.title)
-                    .foregroundStyle(NucleusTheme.textPrimary)
                 Text(pane.subtitle)
                     .font(.caption2)
-                    .foregroundStyle(NucleusTheme.textSecondary)
+                    .foregroundStyle(.secondary)
                     .lineLimit(1)
             }
             Spacer()

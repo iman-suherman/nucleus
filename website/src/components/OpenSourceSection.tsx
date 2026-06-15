@@ -10,7 +10,7 @@ export function OpenSourceSection() {
         </p>
         <a
           href={GITHUB_REPO_URL}
-          className="mt-6 inline-flex text-brand-accent transition hover:text-brand-accentHover"
+          className="mt-6 inline-flex text-brand-blue transition hover:text-[#3395ff]"
           target="_blank"
           rel="noopener noreferrer"
         >

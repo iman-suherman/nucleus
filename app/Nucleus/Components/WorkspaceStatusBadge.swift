@@ -5,39 +5,32 @@ struct WorkspaceStatusBadge: View {
     let mailUnreadCount: Int
     let chatUnreadCount: Int
 
+    private let chatBadgeColor = Color(red: 129 / 255, green: 201 / 255, blue: 149 / 255)
+
     var body: some View {
         HStack(spacing: 10) {
             if mailUnreadCount > 0 || chatUnreadCount > 0 {
                 HStack(spacing: 6) {
                     if mailUnreadCount > 0 {
-                        unreadPill(
-                            count: mailUnreadCount,
-                            icon: "envelope.fill",
-                            tint: NucleusTheme.mailBadge
-                        )
+                        unreadPill(count: mailUnreadCount, icon: "envelope.fill", tint: .blue)
                     }
                     if chatUnreadCount > 0 {
-                        unreadPill(
-                            count: chatUnreadCount,
-                            icon: "message.fill",
-                            tint: NucleusTheme.chatBadge
-                        )
+                        unreadPill(count: chatUnreadCount, icon: "message.fill", tint: chatBadgeColor)
                     }
                 }
             } else {
                 Image(systemName: "envelope")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(NucleusTheme.textSecondary)
+                    .foregroundStyle(.secondary)
             }
 
             Text(message)
                 .font(.subheadline.weight(.semibold))
                 .lineLimit(1)
-                .foregroundStyle(NucleusTheme.textPrimary)
         }
         .padding(.horizontal, 18)
         .padding(.vertical, 10)
-        .background(NucleusTheme.surface, in: Capsule())
+        .background(.thinMaterial, in: Capsule())
     }
 
     private func unreadPill(count: Int, icon: String, tint: Color) -> some View {

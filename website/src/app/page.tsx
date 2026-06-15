@@ -8,7 +8,7 @@ import { OpenSourceSection } from "@/components/OpenSourceSection";
 export const metadata: Metadata = {
   title: "Nucleus — Personal Operating System for macOS",
   description:
-    "Unify Gmail, Google Calendar, clipboard intelligence, and markdown notes across multiple Google accounts.",
+    "Unify Gmail, Google Chat, Calendar, clipboard intelligence, markdown notes, and Funky alerts across multiple Google accounts.",
 };
 
 export default function HomePage() {

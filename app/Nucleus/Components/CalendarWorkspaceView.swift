@@ -26,7 +26,6 @@ struct CalendarWebView: NSViewRepresentable {
         webView.navigationDelegate = context.coordinator
         webView.uiDelegate = context.coordinator
         webView.customUserAgent = Self.safariUserAgent
-        NucleusTheme.applyWebViewChrome(to: webView)
         context.coordinator.accountID = accountID
         context.coordinator.accountEmail = accountEmail
         loadCalendar(into: webView, email: accountEmail)
@@ -235,7 +234,6 @@ struct CalendarWorkspaceView: View {
                 .padding(.horizontal, 12)
                 .padding(.top, 8)
                 .padding(.bottom, 8)
-                .background(NucleusTheme.canvas)
 
             if let account = selectedAccount {
                 ScrollView {
@@ -244,6 +242,8 @@ struct CalendarWorkspaceView: View {
                             CalendarWebView(accountID: account.id, accountEmail: account.email)
                                 .id("calendar-\(account.id)")
                                 .frame(minHeight: 420)
+                                .padding(.horizontal, 12)
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
                         }
 
                         upcomingEvents(for: account)
@@ -259,7 +259,7 @@ struct CalendarWorkspaceView: View {
                 )
             }
         }
-        .nucleusWorkspaceChrome()
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var selectedAccount: GoogleAccount? {
@@ -282,12 +282,7 @@ struct CalendarWorkspaceView: View {
                                 Text(account.displayName)
                                     .font(.subheadline.weight(.semibold))
                                 if eventCount > 0 {
-                                    Text("\(eventCount)")
-                                        .font(.caption2.weight(.bold))
-                                        .padding(.horizontal, 6)
-                                        .padding(.vertical, 2)
-                                        .background(NucleusTheme.accent.opacity(0.25), in: Capsule())
-                                        .foregroundStyle(NucleusTheme.accent)
+                                    NucleusCountBadge(count: eventCount)
                                 }
                             }
                             .nucleusAccountTab(isSelected: selectedAccount?.id == account.id)
@@ -311,7 +306,7 @@ struct CalendarWorkspaceView: View {
                     Text("Upcoming")
                         .font(.title3.bold())
                     Text("Meetings for \(account.displayName) in the next 7 days.")
-                        .foregroundStyle(NucleusTheme.textSecondary)
+                        .foregroundStyle(.secondary)
                         .font(.subheadline)
                 }
 
@@ -412,6 +407,6 @@ private struct CalendarEventCard: View {
             Spacer()
         }
         .padding(16)
-        .background(NucleusTheme.surface, in: RoundedRectangle(cornerRadius: 14))
+        .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 14))
     }
 }

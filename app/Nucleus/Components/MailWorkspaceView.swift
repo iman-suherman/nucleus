@@ -26,7 +26,6 @@ struct GmailWebView: NSViewRepresentable {
         webView.navigationDelegate = context.coordinator
         webView.uiDelegate = context.coordinator
         webView.customUserAgent = Self.safariUserAgent
-        NucleusTheme.applyWebViewChrome(to: webView)
         context.coordinator.accountID = accountID
         context.coordinator.accountEmail = accountEmail
         loadInbox(into: webView, email: accountEmail)
@@ -258,14 +257,16 @@ struct MailWorkspaceView: View {
     var body: some View {
         VStack(spacing: 0) {
             accountTabs
-                .padding(.horizontal, 12)
-                .padding(.top, 8)
+                .padding(.horizontal, 20)
+                .padding(.top, 16)
                 .padding(.bottom, 8)
-                .background(NucleusTheme.canvas)
 
             if let account = selectedAccount {
                 GmailWebView(accountID: account.id, accountEmail: account.email)
                     .id(account.id)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 16)
             } else {
                 ContentUnavailableView(
                     "No Gmail account selected",
@@ -274,7 +275,7 @@ struct MailWorkspaceView: View {
                 )
             }
         }
-        .nucleusWorkspaceChrome()
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .sheet(item: $renamingAccount) { account in
             AccountCategoryEditorSheet(
                 title: "Rename Category",

@@ -17,7 +17,7 @@ export function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-white/10 bg-brand-navy/85 backdrop-blur-xl">
+    <header className="sticky top-0 z-50 border-b border-white/10 bg-[#0a0a0b]/85 backdrop-blur-xl">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4">
         <Link href="/" className="flex min-w-0 items-center gap-2 sm:gap-3">
           <Image
@@ -77,7 +77,7 @@ export function Header() {
       {menuOpen && (
         <nav
           id="mobile-nav"
-          className="border-t border-white/10 bg-brand-navyLight px-4 py-4 shadow-soft md:hidden"
+          className="border-t border-white/10 bg-[#141416] px-4 py-4 shadow-soft md:hidden"
         >
           <ul className="space-y-1">
             {nav.map((item) => (

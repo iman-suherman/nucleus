@@ -1,0 +1,11 @@
+{
+  "version": "0.1.13",
+  "summary": "Restore original app and website styling, with updated README and marketing copy.",
+  "releaseNotes": {
+    "changed": [
+      "Reverted the Gmail-dark app chrome and logo-aligned website palette back to the original Nucleus styling",
+      "README and marketing site now document the full feature set from launch through today — Gmail, Chat, calendar sync, Funky alerts, clipboard, and notes"
+    ],
+    "fixed": []
+  }
+}
