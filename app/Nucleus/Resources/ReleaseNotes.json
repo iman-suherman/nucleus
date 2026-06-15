@@ -1,11 +1,10 @@
 {
-  "version": "0.2.5",
-  "summary": "Mail notification sounds match your Settings choice in preview and live alerts.",
+  "version": "0.2.6",
+  "summary": "Mail notifications play only one sound when Nucleus is in the foreground.",
   "releaseNotes": {
     "fixed": [
-      "Settings preview and live mail alerts now play the same sound for Nucleus Mail, Funky, and System default",
-      "Custom sounds are installed into Application Support so macOS can play them for background notifications",
-      "System default uses the macOS Hero alert instead of a generic beep"
+      "Foreground mail alerts no longer play the macOS notification ding and your chosen sound at the same time",
+      "Custom sounds play once via Nucleus while the system sound is suppressed when the app is active"
     ]
   }
 }
