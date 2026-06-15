@@ -1,0 +1,14 @@
+{
+  "version": "0.1.17",
+  "summary": "Fix calendar sync for Google Workspace accounts using web session auth.",
+  "releaseNotes": {
+    "fixed": [
+      "Calendar sync now uses Google Calendar’s session API (SAPISIDHASH) with your signed-in cookies — the same auth path the calendar web app uses, so Work/Qantas calendars populate Upcoming reliably",
+      "iCal and DOM scraping remain as fallbacks when the API path is unavailable",
+      "Embedded calendar web views also fetch events via the session API during sync"
+    ],
+    "changed": [
+      "Upcoming window uses a full 7-day horizon through end of day"
+    ]
+  }
+}

@@ -23,7 +23,8 @@ public enum CalendarWebEventParser {
     }
 
     public static func parse(entries: [Entry], account: GoogleAccount, now: Date = Date()) -> [CalendarEventSummary] {
-        let horizon = Calendar.current.date(byAdding: .day, value: 7, to: now) ?? now
+        let calendar = Calendar.current
+        let horizon = calendar.date(byAdding: .day, value: 8, to: calendar.startOfDay(for: now)) ?? now
         var events: [CalendarEventSummary] = []
         var seen = Set<String>()
 
@@ -68,7 +69,7 @@ public enum CalendarWebEventParser {
             if let startDate = combine(day: dayDate, time: start),
                let endDate = combine(day: dayDate, time: end),
                endDate > now,
-               startDate <= horizon {
+               startDate < horizon {
                 let title = extractTitle(from: entry.label, beforeTime: start)
                 return ParsedEvent(title: title, startDate: startDate, endDate: endDate)
             }
@@ -94,7 +95,7 @@ public enum CalendarWebEventParser {
         let dayDate = parseDayDate(in: trimmed, reference: now)
         guard let startDate = combine(day: dayDate, time: startText),
               let endDate = combine(day: dayDate, time: endText) else { return nil }
-        guard endDate > now, startDate <= horizon else { return nil }
+        guard endDate > now, startDate < horizon else { return nil }
         return ParsedEvent(title: title, startDate: startDate, endDate: endDate)
     }
 
@@ -109,7 +110,7 @@ public enum CalendarWebEventParser {
         let calendar = Calendar.current
         let startDate = calendar.startOfDay(for: dayDate)
         guard let endDate = calendar.date(byAdding: .day, value: 1, to: startDate) else { return nil }
-        guard endDate > now, startDate <= horizon else { return nil }
+        guard endDate > now, startDate < horizon else { return nil }
         return ParsedEvent(title: title, startDate: startDate, endDate: endDate)
     }
 

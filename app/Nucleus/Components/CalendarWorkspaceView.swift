@@ -156,11 +156,14 @@ struct CalendarWebView: NSViewRepresentable {
         private func reportEvents(from webView: WKWebView) {
             guard let accountID, let accountEmail else { return }
             let script = CalendarWebView.eventSyncScript(for: accountEmail)
-            webView.evaluateJavaScript(script, completionHandler: { result, _ in
+            webView.evaluateJavaScript(script, completionHandler: { result, error in
                 guard let payload = result as? String,
                       let data = payload.data(using: .utf8),
                       let syncPayload = try? JSONDecoder().decode(CalendarWebSyncPayload.self, from: data) else { return }
-                guard !syncPayload.entries.isEmpty || !(syncPayload.ics?.isEmpty ?? true) else { return }
+                let apiPayloads = syncPayload.apiPayloads
+                guard !syncPayload.entries.isEmpty
+                    || !(syncPayload.ics?.isEmpty ?? true)
+                    || !apiPayloads.isEmpty else { return }
 
                 var userInfo: [String: Any] = [
                     "accountID": accountID.uuidString,
@@ -168,6 +171,9 @@ struct CalendarWebView: NSViewRepresentable {
                 ]
                 if let ics = syncPayload.ics, !ics.isEmpty {
                     userInfo["icsText"] = ics
+                }
+                if !apiPayloads.isEmpty {
+                    userInfo["apiPayloads"] = apiPayloads
                 }
 
                 NotificationCenter.default.post(
@@ -183,6 +189,16 @@ struct CalendarWebView: NSViewRepresentable {
 private struct CalendarWebSyncPayload: Decodable {
     let entries: [CalendarWebEventParser.Entry]
     let ics: String?
+    let apiItemsJSON: String?
+
+    var apiPayloads: [[String: Any]] {
+        guard let apiItemsJSON,
+              let data = apiItemsJSON.data(using: .utf8),
+              let payloads = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else {
+            return []
+        }
+        return payloads
+    }
 }
 
 private extension CalendarWebView {
@@ -193,6 +209,7 @@ private extension CalendarWebView {
         return """
         (function() {
           const authEmail = '\(escapedEmail)';
+          const apiKey = 'AIzaSyCalF5eq3dsgCFs8i7KbZfJd5Y1u0--b40';
           const entries = [];
           const seen = new Set();
           const timePattern = /(\\d{1,2}(?::\\d{2})?\\s*(?:AM|PM|am|pm)?)\\s*(?:–|-|—|to)\\s*(\\d{1,2}(?::\\d{2})?\\s*(?:AM|PM|am|pm)?)/i;
@@ -209,18 +226,87 @@ private extension CalendarWebView {
             });
           }
 
-          document.querySelectorAll('[data-eventid], [data-eventchip], [data-event-id]').forEach(function(node) {
-            addLabel(node.getAttribute('aria-label'));
-          });
+          function collectEventLabels() {
+            document.querySelectorAll('[data-eventid], [data-eventchip], [data-event-id]').forEach(function(node) {
+              addLabel(node.getAttribute('aria-label'));
+              const nested = node.querySelector('[aria-label]');
+              if (nested) addLabel(nested.getAttribute('aria-label'));
+              const text = (node.textContent || '').replace(/\\s+/g, ' ').trim();
+              if (text && text.length < 120) addLabel(text);
+            });
+
+            document.querySelectorAll('[role="gridcell"]').forEach(function(cell) {
+              const dayHint = (cell.getAttribute('aria-label') || '').trim();
+              cell.querySelectorAll('[data-eventid], [data-eventchip], [data-event-id]').forEach(function(node) {
+                const label = node.getAttribute('aria-label') || (node.textContent || '').replace(/\\s+/g, ' ').trim();
+                if (label && dayHint && !label.includes(',')) {
+                  addLabel(label + ', ' + dayHint);
+                } else {
+                  addLabel(label);
+                }
+              });
+            });
+          }
+
+          collectEventLabels();
+
+          async function authHeader() {
+            const match = document.cookie.match(/(?:^|;\\s*)(?:SAPISID|__Secure-1PAPISID|__Secure-3PAPISID)=([^;]+)/);
+            if (!match) return null;
+            const t = Math.floor(Date.now() / 1000);
+            const input = t + ' ' + decodeURIComponent(match[1]) + ' https://calendar.google.com';
+            const digest = await crypto.subtle.digest('SHA-1', new TextEncoder().encode(input));
+            const hash = Array.from(new Uint8Array(digest)).map(function(b) {
+              return b.toString(16).padStart(2, '0');
+            }).join('');
+            return 'SAPISIDHASH ' + t + '_' + hash;
+          }
+
+          async function fetchApiItems() {
+            const authorization = await authHeader();
+            if (!authorization) return [];
+            const timeMin = new Date().toISOString();
+            const timeMax = new Date(Date.now() + 8 * 24 * 60 * 60 * 1000).toISOString();
+            const authuser = encodeURIComponent(authEmail);
+            const urls = [
+              'https://clients6.google.com/calendar/v3/calendars/primary/events?key=' + apiKey
+                + '&calendarId=primary&singleEvents=true&orderBy=startTime&maxResults=100'
+                + '&timeMin=' + encodeURIComponent(timeMin) + '&timeMax=' + encodeURIComponent(timeMax)
+                + '&authuser=' + authuser,
+              'https://www.googleapis.com/calendar/v3/calendars/primary/events?key=' + apiKey
+                + '&calendarId=primary&singleEvents=true&orderBy=startTime&maxResults=100'
+                + '&timeMin=' + encodeURIComponent(timeMin) + '&timeMax=' + encodeURIComponent(timeMax)
+                + '&authuser=' + authuser
+            ];
+            for (const url of urls) {
+              try {
+                const resp = await fetch(url, {
+                  credentials: 'include',
+                  headers: {
+                    Authorization: authorization,
+                    'X-Goog-AuthUser': '0'
+                  }
+                });
+                if (!resp.ok) continue;
+                const json = await resp.json();
+                if (json && Array.isArray(json.items) && json.items.length) {
+                  return json.items;
+                }
+              } catch (e) {}
+            }
+            return [];
+          }
 
           return (async function() {
             let ics = null;
+            let apiItems = [];
             const authuser = encodeURIComponent(authEmail);
             const paths = [
               '/calendar/u/0/ical/primary/basic.ics?authuser=' + authuser,
               '/calendar/ical/primary/basic.ics?authuser=' + authuser,
               '/calendar/feed/ical/primary?authuser=' + authuser,
             ];
+            apiItems = await fetchApiItems();
             for (const path of paths) {
               try {
                 const resp = await fetch('https://calendar.google.com' + path, { credentials: 'include' });
@@ -232,7 +318,11 @@ private extension CalendarWebView {
                 }
               } catch (e) {}
             }
-            return JSON.stringify({ entries: entries.slice(0, 80), ics: ics });
+            return JSON.stringify({
+              entries: entries.slice(0, 120),
+              ics: ics,
+              apiItemsJSON: JSON.stringify(apiItems)
+            });
           })();
         })();
         """

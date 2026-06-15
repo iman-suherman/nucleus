@@ -2,8 +2,15 @@ import Foundation
 import NucleusKit
 
 public enum CalendarWebSessionClient {
+    /// Public API key embedded in Google Calendar web (session auth still required).
+    private static let calendarWebAPIKey = "AIzaSyCalF5eq3dsgCFs8i7KbZfJd5Y1u0--b40"
+
     public static func sync(account: GoogleAccount, cookies: [HTTPCookie]) async -> [CalendarEventSummary] {
         guard !cookies.isEmpty else { return [] }
+
+        if let apiEvents = await fetchEventsViaWebSessionAPI(account: account, cookies: cookies), !apiEvents.isEmpty {
+            return apiEvents
+        }
 
         let encodedEmail = account.email.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? account.email
         let encodedQuery = account.email.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? account.email
@@ -22,6 +29,98 @@ public enum CalendarWebSessionClient {
         }
 
         return []
+    }
+
+    public static func parseAPIEventPayloads(_ payloads: [[String: Any]], account: GoogleAccount) -> [CalendarEventSummary] {
+        let now = Date()
+        let horizon = upcomingHorizon(from: now)
+        return payloads
+            .compactMap { CalendarEventParser.parse($0, account: account) }
+            .filter { $0.endDate > now && $0.startDate < horizon }
+            .sorted { $0.startDate < $1.startDate }
+    }
+
+    private static func upcomingHorizon(from now: Date) -> Date {
+        let calendar = Calendar.current
+        let startOfToday = calendar.startOfDay(for: now)
+        return calendar.date(byAdding: .day, value: 8, to: startOfToday) ?? now
+    }
+
+    private static func fetchEventsViaWebSessionAPI(
+        account: GoogleAccount,
+        cookies: [HTTPCookie]
+    ) async -> [CalendarEventSummary]? {
+        guard let authorization = GoogleSessionAuth.sapisidHash(cookies: cookies) else { return nil }
+
+        let now = Date()
+        let horizon = upcomingHorizon(from: now)
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime]
+
+        let encodedEmail = account.email.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? account.email
+        let hosts = [
+            "https://clients6.google.com/calendar/v3/calendars/primary/events",
+            "https://www.googleapis.com/calendar/v3/calendars/primary/events",
+        ]
+
+        for host in hosts {
+            var components = URLComponents(string: host)!
+            components.queryItems = [
+                URLQueryItem(name: "key", value: calendarWebAPIKey),
+                URLQueryItem(name: "calendarId", value: "primary"),
+                URLQueryItem(name: "singleEvents", value: "true"),
+                URLQueryItem(name: "orderBy", value: "startTime"),
+                URLQueryItem(name: "maxResults", value: "100"),
+                URLQueryItem(name: "timeMin", value: formatter.string(from: now)),
+                URLQueryItem(name: "timeMax", value: formatter.string(from: horizon)),
+                URLQueryItem(name: "authuser", value: encodedEmail),
+            ]
+
+            guard let url = components.url else { continue }
+            if let payloads = await fetchAPIPayloads(url: url, cookies: cookies, authorization: authorization) {
+                let events = parseAPIEventPayloads(payloads, account: account)
+                if !events.isEmpty {
+                    return events
+                }
+            }
+        }
+
+        return nil
+    }
+
+    private static func fetchAPIPayloads(
+        url: URL,
+        cookies: [HTTPCookie],
+        authorization: String
+    ) async -> [[String: Any]]? {
+        do {
+            let storage = HTTPCookieStorage()
+            cookies.forEach { storage.setCookie($0) }
+
+            let config = URLSessionConfiguration.ephemeral
+            config.httpCookieStorage = storage
+            config.httpShouldSetCookies = true
+            config.timeoutIntervalForRequest = 25
+
+            var request = URLRequest(url: url)
+            request.setValue(authorization, forHTTPHeaderField: "Authorization")
+            request.setValue("0", forHTTPHeaderField: "X-Goog-AuthUser")
+            request.setValue(
+                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15",
+                forHTTPHeaderField: "User-Agent"
+            )
+            request.setValue("https://calendar.google.com", forHTTPHeaderField: "Origin")
+            request.setValue("https://calendar.google.com/calendar/u/0/r", forHTTPHeaderField: "Referer")
+
+            let (data, response) = try await URLSession(configuration: config).data(for: request)
+            guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+                return nil
+            }
+            let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+            return json?["items"] as? [[String: Any]]
+        } catch {
+            return nil
+        }
     }
 
     public static func parseICS(_ text: String, account: GoogleAccount) -> [CalendarEventSummary] {
@@ -98,7 +197,7 @@ public enum CalendarWebSessionClient {
     private static func parseICSEvents(_ text: String, account: GoogleAccount) -> [CalendarEventSummary] {
         let unfolded = unfoldICS(text)
         let now = Date()
-        let horizon = Calendar.current.date(byAdding: .day, value: 7, to: now) ?? now
+        let horizon = upcomingHorizon(from: now)
         var events: [CalendarEventSummary] = []
         var current: [String: String] = [:]
 
@@ -158,7 +257,7 @@ public enum CalendarWebSessionClient {
         }
         let endDate = parseICSDate(key: endKey, value: fields[endKey] ?? fields["DTEND"])
             ?? startDate.addingTimeInterval(3600)
-        guard endDate > now, startDate <= horizon else { return nil }
+        guard endDate > now, startDate < horizon else { return nil }
 
         let location = fields["LOCATION"] ?? ""
         let description = fields["DESCRIPTION"]?.replacingOccurrences(of: "\\n", with: "\n") ?? ""

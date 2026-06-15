@@ -84,15 +84,32 @@ final class AppViewModel: ObservableObject {
                   let data = json.data(using: .utf8),
                   let entries = try? JSONDecoder().decode([CalendarWebEventParser.Entry].self, from: data) else { return }
             let icsText = notification.userInfo?["icsText"] as? String
-            self?.applyWebCalendarEvents(accountID: accountID, entries: entries, icsText: icsText)
+            let apiPayloads = notification.userInfo?["apiPayloads"] as? [[String: Any]] ?? []
+            self?.applyWebCalendarEvents(
+                accountID: accountID,
+                entries: entries,
+                icsText: icsText,
+                apiPayloads: apiPayloads
+            )
         }
     }
 
-    func applyWebCalendarEvents(accountID: UUID, entries: [CalendarWebEventParser.Entry], icsText: String? = nil) {
+    func applyWebCalendarEvents(
+        accountID: UUID,
+        entries: [CalendarWebEventParser.Entry],
+        icsText: String? = nil,
+        apiPayloads: [[String: Any]] = []
+    ) {
         guard let account = accounts.first(where: { $0.id == accountID }) else { return }
         var merged: [CalendarEventSummary] = []
+        if !apiPayloads.isEmpty {
+            merged = CalendarWebSessionClient.parseAPIEventPayloads(apiPayloads, account: account)
+        }
         if let icsText, !icsText.isEmpty {
-            merged = CalendarWebSessionClient.parseICS(icsText, account: account)
+            merged = CalendarWebSessionClient.mergeEvents(
+                icalEvents: CalendarWebSessionClient.parseICS(icsText, account: account),
+                webEvents: merged
+            )
         }
         let domEvents = CalendarWebEventParser.parse(entries: entries, account: account)
         merged = CalendarWebSessionClient.mergeEvents(icalEvents: merged, webEvents: domEvents)
@@ -358,7 +375,7 @@ final class AppViewModel: ObservableObject {
     private func performCalendarSync() async {
         NotificationCenter.default.post(name: .calendarWebEventsPollNow, object: nil)
         // Give embedded calendar web views time to fetch ICS and report visible events.
-        try? await Task.sleep(nanoseconds: 2_000_000_000)
+        try? await Task.sleep(nanoseconds: 2_500_000_000)
         await syncCalendar(rescheduleNotifications: true)
     }
 
@@ -418,8 +435,9 @@ final class AppViewModel: ObservableObject {
 
     func calendarEvents(for accountID: UUID?) -> [CalendarEventSummary] {
         let now = Date()
-        let horizon = Calendar.current.date(byAdding: .day, value: 7, to: now) ?? now
-        let upcoming = calendarEvents.filter { $0.endDate > now && $0.startDate <= horizon }
+        let calendar = Calendar.current
+        let horizon = calendar.date(byAdding: .day, value: 8, to: calendar.startOfDay(for: now)) ?? now
+        let upcoming = calendarEvents.filter { $0.endDate > now && $0.startDate < horizon }
         guard let accountID else { return upcoming }
         return upcoming.filter { $0.accountID == accountID }
     }
