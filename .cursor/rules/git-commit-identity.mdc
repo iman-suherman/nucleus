@@ -8,10 +8,12 @@ alwaysApply: true
 When creating git commits in this repository:
 
 - **Author**: `Iman Suherman <iman.suherman@gmail.com>`
+- **Committer**: `Iman Suherman <iman.suherman@gmail.com>`
 - **Never** add `Co-authored-by` trailers or any other co-author attribution unless the user explicitly requests it.
+- **Never** add `Co-authored-by: Cursor <cursoragent@cursor.com>` or any Cursor/agent attribution.
 - **Never** use, reference, or leave traces of `suherman@qantas.com` in commit messages, author fields, or trailers.
 
-Use the author and committer env vars on each commit without changing git config:
+Always pass explicit author and committer env vars on every commit. Do not rely on the environment default identity and do not run `git config` to change identity.
 
 ```bash
 GIT_COMMITTER_NAME="Iman Suherman" \
@@ -23,4 +25,10 @@ EOF
 )"
 ```
 
-If the environment's default git identity differs, always pass `--author` and the `GIT_COMMITTER_*` env vars explicitly rather than running `git config`.
+Before finishing any task that creates commits, verify the latest commit message does not contain `Co-authored-by`.
+
+If history needs cleaning, run:
+
+```bash
+GIT_SEQUENCE_EDITOR=true git rebase --root --exec 'bash scripts/rewrite-commit-identity.sh'
+```
