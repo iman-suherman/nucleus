@@ -1,0 +1,11 @@
+{
+  "version": "0.3.7",
+  "summary": "Fix window move and resize snapping back to a saved position.",
+  "releaseNotes": {
+    "fixed": [
+      "Window no longer snaps back when you move or resize it",
+      "Window size and position stay on each Mac instead of syncing via iCloud",
+      "Sidebar and Notes column widths still sync across devices"
+    ]
+  }
+}

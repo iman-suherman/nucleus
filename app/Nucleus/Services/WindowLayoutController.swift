@@ -11,6 +11,8 @@ final class WindowLayoutController {
     private var moveObserver: NSObjectProtocol?
     private weak var trackedWindow: NSWindow?
     private var onLayoutChange: ((WindowLayoutState) -> Void)?
+    private var hasRestoredInitialFrame = false
+    private var isApplyingProgrammatically = false
 
     private init() {}
 
@@ -36,18 +38,31 @@ final class WindowLayoutController {
         ) { [weak self] _ in
             self?.publishCurrentLayout()
         }
+        restoreSavedFrameOnce(from: AppSettings.shared.windowLayout)
     }
 
-    func apply(_ layout: WindowLayoutState?, sidebarWidth: CGFloat? = nil, notesListWidth: CGFloat? = nil) {
-        guard let layout else { return }
-        guard let window = trackedWindow ?? NSApp.windows.first(where: { $0.canBecomeMain }) else { return }
+    /// Restores saved frame once at launch. Frame is never re-applied after user interaction.
+    func restoreSavedFrameOnce(from layout: WindowLayoutState?) {
+        guard !hasRestoredInitialFrame else { return }
+        guard let layout, let window = trackedWindow else { return }
+        hasRestoredInitialFrame = true
 
-        var frame = window.frame
-        frame.size = NSSize(width: max(layout.width, 1180), height: max(layout.height, 780))
-        if let originX = layout.originX, let originY = layout.originY {
-            frame.origin = NSPoint(x: originX, y: originY)
+        var target = window.frame
+        if layout.width > 0, layout.height > 0 {
+            target.size = NSSize(
+                width: max(layout.width, 1180),
+                height: max(layout.height, 780)
+            )
         }
-        window.setFrame(frame, display: true)
+        if let originX = layout.originX, let originY = layout.originY {
+            target.origin = NSPoint(x: originX, y: originY)
+        }
+
+        guard !framesApproximatelyEqual(window.frame, target) else { return }
+
+        isApplyingProgrammatically = true
+        window.setFrame(target, display: true)
+        isApplyingProgrammatically = false
     }
 
     func captureCurrentLayout(
@@ -67,8 +82,16 @@ final class WindowLayoutController {
     }
 
     private func publishCurrentLayout() {
+        guard !isApplyingProgrammatically else { return }
         guard let layout = captureCurrentLayout(sidebarWidth: nil, notesListWidth: nil) else { return }
         onLayoutChange?(layout)
+    }
+
+    private func framesApproximatelyEqual(_ lhs: NSRect, _ rhs: NSRect) -> Bool {
+        abs(lhs.origin.x - rhs.origin.x) < 1
+            && abs(lhs.origin.y - rhs.origin.y) < 1
+            && abs(lhs.size.width - rhs.size.width) < 1
+            && abs(lhs.size.height - rhs.size.height) < 1
     }
 
     private func detachObservers() {
@@ -86,21 +109,36 @@ final class WindowLayoutController {
 struct WindowLayoutAccessor: NSViewRepresentable {
     let onWindowReady: (NSWindow) -> Void
 
+    func makeCoordinator() -> Coordinator {
+        Coordinator(onWindowReady: onWindowReady)
+    }
+
     func makeNSView(context: Context) -> NSView {
         let view = NSView(frame: .zero)
         DispatchQueue.main.async {
-            if let window = view.window {
-                onWindowReady(window)
-            }
+            context.coordinator.attachIfNeeded(to: view.window)
         }
         return view
     }
 
     func updateNSView(_ nsView: NSView, context: Context) {
         DispatchQueue.main.async {
-            if let window = nsView.window {
-                onWindowReady(window)
-            }
+            context.coordinator.attachIfNeeded(to: nsView.window)
+        }
+    }
+
+    final class Coordinator {
+        let onWindowReady: (NSWindow) -> Void
+        private weak var attachedWindow: NSWindow?
+
+        init(onWindowReady: @escaping (NSWindow) -> Void) {
+            self.onWindowReady = onWindowReady
+        }
+
+        func attachIfNeeded(to window: NSWindow?) {
+            guard let window, attachedWindow !== window else { return }
+            attachedWindow = window
+            onWindowReady(window)
         }
     }
 }

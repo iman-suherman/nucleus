@@ -4,14 +4,78 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { LocalReleaseDate } from "@/components/LocalReleaseDate";
 import { useAllVersions } from "@/hooks/useRegistry";
 import {
-  flattenReleaseNotes,
   formatBytes,
+  groupedReleaseNotes,
+  hasReleaseNotes,
   publishedAtToIso,
   toPublicDownloadUrl,
   type AppVersion,
 } from "@/lib/registry";
 
 const PAGE_SIZE = 10;
+
+function ReleaseNotesDetail({
+  version,
+  defaultOpen,
+}: {
+  version: AppVersion;
+  defaultOpen: boolean;
+}) {
+  const sections = groupedReleaseNotes(version.releaseNotes);
+  const markdown = version.releaseNotesMarkdown?.trim();
+
+  if (sections.length === 0 && !markdown) {
+    return null;
+  }
+
+  return (
+    <details
+      className="group mt-4 rounded-xl border border-white/10 bg-slate-900/40"
+      open={defaultOpen}
+    >
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-medium text-slate-200 marker:content-none [&::-webkit-details-marker]:hidden">
+        <span>Release details</span>
+        <span
+          className="text-xs text-slate-500 transition group-open:rotate-180"
+          aria-hidden
+        >
+          ▾
+        </span>
+      </summary>
+      <div className="space-y-4 border-t border-white/10 px-4 py-4">
+        {sections.map((section) => (
+          <div key={section.label}>
+            <h4 className="text-xs font-semibold uppercase tracking-wide text-brand-blue">
+              {section.label}
+            </h4>
+            <ul className="mt-2 space-y-1.5 text-sm text-slate-300">
+              {section.items.map((item) => (
+                <li key={item} className="flex gap-2">
+                  <span className="text-slate-500" aria-hidden>
+                    •
+                  </span>
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+        {markdown && (
+          <div className="prose prose-invert prose-sm max-w-none text-slate-300">
+            {sections.length > 0 && (
+              <h4 className="text-xs font-semibold uppercase tracking-wide text-brand-blue">
+                Full notes
+              </h4>
+            )}
+            <pre className="mt-2 whitespace-pre-wrap font-sans text-sm leading-relaxed text-slate-300">
+              {markdown}
+            </pre>
+          </div>
+        )}
+      </div>
+    </details>
+  );
+}
 
 function ReleaseCard({
   version,
@@ -20,13 +84,13 @@ function ReleaseCard({
   version: AppVersion;
   isLatest: boolean;
 }) {
-  const notes = flattenReleaseNotes(version.releaseNotes).slice(0, 4);
   const releasedAtIso = publishedAtToIso(version.publishedAt);
+  const showNotes = hasReleaseNotes(version);
 
   return (
     <article className="card p-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-        <div>
+        <div className="min-w-0 flex-1">
           <div className="flex items-center gap-3">
             <h3 className="text-xl font-semibold text-slate-100">v{version.version}</h3>
             {isLatest && (
@@ -49,12 +113,12 @@ function ReleaseCard({
               <>Released — · {formatBytes(version.sizeBytes)}</>
             )}
           </p>
-          {notes.length > 0 && (
-            <ul className="mt-4 space-y-1 text-sm text-slate-400">
-              {notes.map((note) => (
-                <li key={note}>• {note}</li>
-              ))}
-            </ul>
+          {showNotes ? (
+            <ReleaseNotesDetail version={version} defaultOpen={isLatest} />
+          ) : (
+            <p className="mt-4 text-sm text-slate-500">
+              No detailed release notes for this version.
+            </p>
           )}
         </div>
         <a href={toPublicDownloadUrl(version)} className="btn-primary shrink-0">
@@ -73,6 +137,7 @@ function LoadingSkeleton() {
           <div className="h-6 w-24 animate-pulse rounded bg-slate-700" />
           <div className="mt-3 h-4 w-2/3 animate-pulse rounded bg-slate-800" />
           <div className="mt-2 h-3 w-1/3 animate-pulse rounded bg-slate-800" />
+          <div className="mt-4 h-10 w-full animate-pulse rounded-xl bg-slate-800/80" />
         </div>
       ))}
     </div>
@@ -163,7 +228,7 @@ export function VersionHistory() {
         </p>
         <h2 className="mt-2 text-3xl font-bold text-slate-50">Download any version</h2>
         <p className="mt-2 max-w-2xl text-slate-400">
-          Browse past releases, read what changed, and grab the DMG you need.
+          Browse past releases, expand release details, and grab the DMG you need.
         </p>
       </div>
 

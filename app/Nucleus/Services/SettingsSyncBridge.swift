@@ -134,7 +134,7 @@ final class SettingsSyncBridge {
             emailNotificationsEnabled: settings.emailNotificationsEnabled,
             calendarNotificationsEnabled: settings.calendarNotificationsEnabled,
             selectedWorkspacePane: settings.selectedWorkspacePane,
-            windowLayout: settings.windowLayout,
+            windowLayout: settings.windowLayout?.cloudKitColumnWidths(),
             clipboardSyncEnabled: settings.clipboardSyncEnabled,
             clipboardSaveToNotesEnabled: settings.clipboardSaveToNotesEnabled,
             iCloudKeychainTokenSyncEnabled: settings.iCloudKeychainTokenSyncEnabled,
@@ -163,7 +163,11 @@ extension AppSettings {
         emailNotificationsEnabled = remoteConfiguration.emailNotificationsEnabled
         calendarNotificationsEnabled = remoteConfiguration.calendarNotificationsEnabled
         selectedWorkspacePane = remoteConfiguration.selectedWorkspacePane
-        windowLayout = remoteConfiguration.windowLayout
+        if let remoteLayout = remoteConfiguration.windowLayout {
+            var layout = windowLayout ?? WindowLayoutState(width: 1320, height: 880)
+            layout.mergeCloudKitColumnWidths(from: remoteLayout)
+            windowLayout = layout
+        }
         clipboardSyncEnabled = remoteConfiguration.clipboardSyncEnabled
         clipboardSaveToNotesEnabled = remoteConfiguration.clipboardSaveToNotesEnabled
         iCloudKeychainTokenSyncEnabled = remoteConfiguration.iCloudKeychainTokenSyncEnabled

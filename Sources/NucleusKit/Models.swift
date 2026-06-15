@@ -296,6 +296,25 @@ public struct WindowLayoutState: Codable, Hashable, Sendable {
         self.sidebarWidth = sidebarWidth
         self.notesListWidth = notesListWidth
     }
+
+    /// Column widths synced via iCloud. Frame size and position stay on each Mac.
+    public func cloudKitColumnWidths() -> WindowLayoutState {
+        WindowLayoutState(
+            width: 0,
+            height: 0,
+            sidebarWidth: sidebarWidth,
+            notesListWidth: notesListWidth
+        )
+    }
+
+    public mutating func mergeCloudKitColumnWidths(from remote: WindowLayoutState) {
+        if let sidebarWidth = remote.sidebarWidth {
+            self.sidebarWidth = sidebarWidth
+        }
+        if let notesListWidth = remote.notesListWidth {
+            self.notesListWidth = notesListWidth
+        }
+    }
 }
 
 /// Configuration synced via iCloud CloudKit. OAuth tokens sync separately via iCloud Keychain when enabled.

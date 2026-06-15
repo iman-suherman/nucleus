@@ -136,8 +136,38 @@ export function flattenReleaseNotes(notes?: ReleaseNotes): string[] {
   return [
     ...(notes.introduced ?? []),
     ...(notes.changed ?? []),
+    ...(notes.updated ?? []),
     ...(notes.fixed ?? []),
     ...(notes.breaking ?? []).map((item) => `Important: ${item}`),
     ...(notes.removed ?? []).map((item) => `Removed: ${item}`),
   ];
+}
+
+export const RELEASE_NOTE_SECTIONS: {
+  key: keyof ReleaseNotes;
+  label: string;
+}[] = [
+  { key: "breaking", label: "Important changes" },
+  { key: "introduced", label: "What's new" },
+  { key: "changed", label: "Improvements" },
+  { key: "fixed", label: "Fixes" },
+  { key: "updated", label: "Under the hood" },
+  { key: "removed", label: "Removed" },
+];
+
+export function groupedReleaseNotes(
+  notes?: ReleaseNotes,
+): { label: string; items: string[] }[] {
+  if (!notes) return [];
+  return RELEASE_NOTE_SECTIONS.map(({ key, label }) => ({
+    label,
+    items: notes[key] ?? [],
+  })).filter((section) => section.items.length > 0);
+}
+
+export function hasReleaseNotes(version: AppVersion): boolean {
+  return (
+    groupedReleaseNotes(version.releaseNotes).length > 0 ||
+    Boolean(version.releaseNotesMarkdown?.trim())
+  );
 }

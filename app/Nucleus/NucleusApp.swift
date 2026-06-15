@@ -48,10 +48,7 @@ struct NucleusApp: App {
                     }
                 )
         }
-        .defaultSize(
-            width: appSettings.windowLayout?.width ?? 1320,
-            height: appSettings.windowLayout?.height ?? 880
-        )
+        .defaultSize(width: 1320, height: 880)
         .windowStyle(.automatic)
         .commands {
             CommandGroup(replacing: .newItem) {}

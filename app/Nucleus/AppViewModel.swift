@@ -83,11 +83,6 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
            let pane = WorkspacePane(rawValue: raw) {
             sidebarSelection = .workspace(pane)
         }
-        WindowLayoutController.shared.apply(
-            settings.windowLayout,
-            sidebarWidth: settings.sidebarWidth,
-            notesListWidth: settings.notesListWidth
-        )
     }
 
     func sidebarSelectionDidChange(_ selection: SidebarSelection) {
@@ -104,22 +99,25 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         scheduleLayoutPush()
     }
 
+    private var layoutPushTask: Task<Void, Never>?
+    private var layoutSaveTask: Task<Void, Never>?
+
     private func startWindowLayoutTracking() {
         WindowLayoutController.shared.startTracking { [weak self] layout in
             guard let self else { return }
-            var merged = AppSettings.shared.windowLayout ?? layout
-            merged.width = layout.width
-            merged.height = layout.height
-            merged.originX = layout.originX
-            merged.originY = layout.originY
-            merged.sidebarWidth = AppSettings.shared.windowLayout?.sidebarWidth
-            merged.notesListWidth = AppSettings.shared.windowLayout?.notesListWidth
-            AppSettings.shared.windowLayout = merged
-            self.scheduleLayoutPush()
+            self.layoutSaveTask?.cancel()
+            self.layoutSaveTask = Task { @MainActor in
+                try? await Task.sleep(nanoseconds: 300_000_000)
+                guard !Task.isCancelled else { return }
+                var merged = AppSettings.shared.windowLayout ?? layout
+                merged.width = layout.width
+                merged.height = layout.height
+                merged.originX = layout.originX
+                merged.originY = layout.originY
+                AppSettings.shared.windowLayout = merged
+            }
         }
     }
-
-    private var layoutPushTask: Task<Void, Never>?
 
     private func scheduleLayoutPush() {
         layoutPushTask?.cancel()
