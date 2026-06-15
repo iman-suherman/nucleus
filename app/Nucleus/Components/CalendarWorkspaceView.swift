@@ -13,6 +13,8 @@ struct CalendarWebView: NSViewRepresentable {
     let accountID: UUID
     let accountEmail: String
 
+    fileprivate static let syncMessageHandlerName = "nucleusCalendarSync"
+
     private static let safariUserAgent =
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15"
 
@@ -21,6 +23,7 @@ struct CalendarWebView: NSViewRepresentable {
         configuration.defaultWebpagePreferences.allowsContentJavaScript = true
         configuration.websiteDataStore = GmailWebSessionStore.dataStore(for: accountID)
         configuration.preferences.isElementFullscreenEnabled = true
+        configuration.userContentController.add(context.coordinator, name: Self.syncMessageHandlerName)
 
         let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.navigationDelegate = context.coordinator
@@ -47,6 +50,10 @@ struct CalendarWebView: NSViewRepresentable {
         return URL(string: "https://calendar.google.com/calendar/u/0/r/week?authuser=\(encoded)")
     }
 
+    static func authUserIndex(from url: URL) -> Int? {
+        CalendarWebAuthIndexStore.index(from: url)
+    }
+
     private static func signInURL(for email: String) -> URL? {
         guard let continueTarget = calendarURL(for: email)?.absoluteString else { return nil }
         var components = URLComponents(string: "https://accounts.google.com/v3/signin/identifier")
@@ -66,14 +73,21 @@ struct CalendarWebView: NSViewRepresentable {
         }
     }
 
-    final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate {
+    final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate, WKScriptMessageHandler {
         var accountID: UUID?
         var accountEmail: String?
         private var eventPollTimer: Timer?
         private var pollNowObserver: NSObjectProtocol?
+        private var lastReportedAuthUserIndex: Int?
 
         deinit {
             eventPollTimer?.invalidate()
+        }
+
+        func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+            guard message.name == CalendarWebView.syncMessageHandlerName,
+                  let accountID else { return }
+            handleSyncMessage(message.body, accountID: accountID)
         }
 
         func webView(
@@ -108,6 +122,10 @@ struct CalendarWebView: NSViewRepresentable {
             let path = url.absoluteString
 
             if path.contains("calendar.google.com/calendar") {
+                if let accountID, let index = CalendarWebView.authUserIndex(from: url) {
+                    CalendarWebAuthIndexStore.setIndex(index, for: accountID)
+                    lastReportedAuthUserIndex = index
+                }
                 startEventPolling(in: webView)
                 return
             }
@@ -155,64 +173,80 @@ struct CalendarWebView: NSViewRepresentable {
 
         private func reportEvents(from webView: WKWebView) {
             guard let accountID, let accountEmail else { return }
-            let script = CalendarWebView.eventSyncScript(for: accountEmail)
-            webView.evaluateJavaScript(script, completionHandler: { result, error in
-                guard let payload = result as? String,
-                      let data = payload.data(using: .utf8),
-                      let syncPayload = try? JSONDecoder().decode(CalendarWebSyncPayload.self, from: data) else { return }
-                let apiPayloads = syncPayload.apiPayloads
-                guard !syncPayload.entries.isEmpty
-                    || !(syncPayload.ics?.isEmpty ?? true)
-                    || !apiPayloads.isEmpty else { return }
-
-                var userInfo: [String: Any] = [
-                    "accountID": accountID.uuidString,
-                    "entriesJSON": (try? String(data: JSONEncoder().encode(syncPayload.entries), encoding: .utf8)) ?? "[]",
-                ]
-                if let ics = syncPayload.ics, !ics.isEmpty {
-                    userInfo["icsText"] = ics
-                }
-                if !apiPayloads.isEmpty {
-                    userInfo["apiPayloads"] = apiPayloads
-                }
-
-                NotificationCenter.default.post(
-                    name: .calendarWebEventsDidChange,
-                    object: nil,
-                    userInfo: userInfo
-                )
-            })
+            let authUserIndex = CalendarWebAuthIndexStore.index(for: accountID) ?? lastReportedAuthUserIndex ?? 0
+            let script = CalendarWebView.eventSyncScript(for: accountEmail, authUserIndex: authUserIndex)
+            webView.evaluateJavaScript(script, completionHandler: { _, _ in })
         }
-    }
-}
 
-private struct CalendarWebSyncPayload: Decodable {
-    let entries: [CalendarWebEventParser.Entry]
-    let ics: String?
-    let apiItemsJSON: String?
+        private func handleSyncMessage(_ body: Any, accountID: UUID) {
+            let payload: [String: Any]
+            if let dictionary = body as? [String: Any] {
+                payload = dictionary
+            } else if let jsonString = body as? String,
+                      let data = jsonString.data(using: .utf8),
+                      let dictionary = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                payload = dictionary
+            } else {
+                return
+            }
 
-    var apiPayloads: [[String: Any]] {
-        guard let apiItemsJSON,
-              let data = apiItemsJSON.data(using: .utf8),
-              let payloads = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else {
+            guard let entriesJSON = payload["entriesJSON"] as? String else { return }
+            let icsText = payload["icsText"] as? String
+            let apiPayloads = decodeAPIPayloads(from: payload["apiItemsJSON"])
+
+            guard entriesJSON != "[]" || !(icsText?.isEmpty ?? true) || !apiPayloads.isEmpty else { return }
+
+            var userInfo: [String: Any] = [
+                "accountID": accountID.uuidString,
+                "entriesJSON": entriesJSON,
+            ]
+            if let icsText, !icsText.isEmpty {
+                userInfo["icsText"] = icsText
+            }
+            if !apiPayloads.isEmpty {
+                userInfo["apiPayloads"] = apiPayloads
+            }
+
+            NotificationCenter.default.post(
+                name: .calendarWebEventsDidChange,
+                object: nil,
+                userInfo: userInfo
+            )
+        }
+
+        private func decodeAPIPayloads(from value: Any?) -> [[String: Any]] {
+            if let payloads = value as? [[String: Any]] {
+                return payloads
+            }
+            if let jsonString = value as? String,
+               let data = jsonString.data(using: .utf8),
+               let payloads = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] {
+                return payloads
+            }
             return []
         }
-        return payloads
     }
 }
 
 private extension CalendarWebView {
-    static func eventSyncScript(for email: String) -> String {
+    static func eventSyncScript(for email: String, authUserIndex: Int) -> String {
         let escapedEmail = email
             .replacingOccurrences(of: "\\", with: "\\\\")
             .replacingOccurrences(of: "'", with: "\\'")
         return """
         (function() {
           const authEmail = '\(escapedEmail)';
+          const authUserIndex = \(authUserIndex);
           const apiKey = 'AIzaSyCalF5eq3dsgCFs8i7KbZfJd5Y1u0--b40';
           const entries = [];
           const seen = new Set();
           const timePattern = /(\\d{1,2}(?::\\d{2})?\\s*(?:AM|PM|am|pm)?)\\s*(?:–|-|—|to)\\s*(\\d{1,2}(?::\\d{2})?\\s*(?:AM|PM|am|pm)?)/i;
+
+          function postPayload(payload) {
+            if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.nucleusCalendarSync) {
+              window.webkit.messageHandlers.nucleusCalendarSync.postMessage(payload);
+            }
+          }
 
           function addLabel(label) {
             const trimmed = (label || '').trim();
@@ -267,41 +301,49 @@ private extension CalendarWebView {
             if (!authorization) return [];
             const timeMin = new Date().toISOString();
             const timeMax = new Date(Date.now() + 8 * 24 * 60 * 60 * 1000).toISOString();
-            const authuser = encodeURIComponent(authEmail);
-            const urls = [
-              'https://clients6.google.com/calendar/v3/calendars/primary/events?key=' + apiKey
-                + '&calendarId=primary&singleEvents=true&orderBy=startTime&maxResults=100'
-                + '&timeMin=' + encodeURIComponent(timeMin) + '&timeMax=' + encodeURIComponent(timeMax)
-                + '&authuser=' + authuser,
-              'https://www.googleapis.com/calendar/v3/calendars/primary/events?key=' + apiKey
-                + '&calendarId=primary&singleEvents=true&orderBy=startTime&maxResults=100'
-                + '&timeMin=' + encodeURIComponent(timeMin) + '&timeMax=' + encodeURIComponent(timeMax)
-                + '&authuser=' + authuser
+            const authUsers = [String(authUserIndex), '0', '1', '2', '3', authEmail];
+            const calendarIds = ['primary', authEmail];
+            const hosts = [
+              'https://clients6.google.com/calendar/v3/calendars',
+              'https://www.googleapis.com/calendar/v3/calendars'
             ];
-            for (const url of urls) {
-              try {
-                const resp = await fetch(url, {
-                  credentials: 'include',
-                  headers: {
-                    Authorization: authorization,
-                    'X-Goog-AuthUser': '0'
-                  }
-                });
-                if (!resp.ok) continue;
-                const json = await resp.json();
-                if (json && Array.isArray(json.items) && json.items.length) {
-                  return json.items;
+
+            for (const authUser of authUsers) {
+              const headerAuthUser = /^\\d+$/.test(authUser) ? authUser : String(authUserIndex);
+              for (const calendarId of calendarIds) {
+                for (const host of hosts) {
+                  const url = host + '/' + encodeURIComponent(calendarId) + '/events?key=' + apiKey
+                    + '&calendarId=' + encodeURIComponent(calendarId)
+                    + '&singleEvents=true&orderBy=startTime&maxResults=100'
+                    + '&timeMin=' + encodeURIComponent(timeMin)
+                    + '&timeMax=' + encodeURIComponent(timeMax)
+                    + '&authuser=' + encodeURIComponent(authUser);
+                  try {
+                    const resp = await fetch(url, {
+                      credentials: 'include',
+                      headers: {
+                        Authorization: authorization,
+                        'X-Goog-AuthUser': headerAuthUser
+                      }
+                    });
+                    if (!resp.ok) continue;
+                    const json = await resp.json();
+                    if (json && Array.isArray(json.items) && json.items.length) {
+                      return json.items;
+                    }
+                  } catch (e) {}
                 }
-              } catch (e) {}
+              }
             }
             return [];
           }
 
-          return (async function() {
+          (async function() {
             let ics = null;
             let apiItems = [];
             const authuser = encodeURIComponent(authEmail);
             const paths = [
+              '/calendar/u/' + authUserIndex + '/ical/primary/basic.ics?authuser=' + authuser,
               '/calendar/u/0/ical/primary/basic.ics?authuser=' + authuser,
               '/calendar/ical/primary/basic.ics?authuser=' + authuser,
               '/calendar/feed/ical/primary?authuser=' + authuser,
@@ -318,9 +360,9 @@ private extension CalendarWebView {
                 }
               } catch (e) {}
             }
-            return JSON.stringify({
-              entries: entries.slice(0, 120),
-              ics: ics,
+            postPayload({
+              entriesJSON: JSON.stringify(entries.slice(0, 120)),
+              icsText: ics,
               apiItemsJSON: JSON.stringify(apiItems)
             });
           })();

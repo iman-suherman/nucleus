@@ -38,8 +38,9 @@ public enum CalendarEventParser {
         let title = payload["summary"] as? String ?? "(Untitled meeting)"
         let location = payload["location"] as? String ?? ""
 
-        let startDate = parseEventDate(payload["start"] as? [String: Any]) ?? Date()
-        let endDate = parseEventDate(payload["end"] as? [String: Any]) ?? startDate.addingTimeInterval(3600)
+        let startDate = parseEventDate(payload["start"] as? [String: Any], isEnd: false) ?? Date()
+        let endDate = parseEventDate(payload["end"] as? [String: Any], isEnd: true)
+            ?? startDate.addingTimeInterval(3600)
 
         var attendees: [String] = []
         if let attendeeItems = payload["attendees"] as? [[String: Any]] {
@@ -61,7 +62,7 @@ public enum CalendarEventParser {
         )
     }
 
-    private static func parseEventDate(_ payload: [String: Any]?) -> Date? {
+    private static func parseEventDate(_ payload: [String: Any]?, isEnd: Bool) -> Date? {
         guard let payload else { return nil }
         if let dateTime = payload["dateTime"] as? String {
             let formatter = ISO8601DateFormatter()
@@ -75,8 +76,14 @@ public enum CalendarEventParser {
         if let date = payload["date"] as? String {
             let formatter = DateFormatter()
             formatter.dateFormat = "yyyy-MM-dd"
-            formatter.timeZone = TimeZone.current
-            return formatter.date(from: date)
+            formatter.timeZone = .current
+            guard let day = formatter.date(from: date) else { return nil }
+            let calendar = Calendar.current
+            let startOfDay = calendar.startOfDay(for: day)
+            if isEnd {
+                return calendar.date(byAdding: .day, value: 1, to: startOfDay) ?? startOfDay
+            }
+            return startOfDay
         }
         return nil
     }

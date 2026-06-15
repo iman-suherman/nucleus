@@ -123,6 +123,12 @@ struct ContentView: View {
                 )
             }
 
+            if viewModel.showWhatsNew, let release = viewModel.whatsNewRelease {
+                WhatsNewOverlay(release: release) {
+                    viewModel.dismissWhatsNew()
+                }
+            }
+
             ForEach(viewModel.webSessionAccounts) { account in
                 GmailUnreadPoller(accountID: account.id, accountEmail: account.email)
                 CalendarWebPoller(accountID: account.id, accountEmail: account.email)
@@ -130,6 +136,7 @@ struct ContentView: View {
             }
         }
         .animation(.easeInOut(duration: 0.22), value: viewModel.isStartingUp)
+        .animation(.easeInOut(duration: 0.22), value: viewModel.showWhatsNew)
     }
 
     @ViewBuilder

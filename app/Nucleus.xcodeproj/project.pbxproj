@@ -23,13 +23,16 @@
 		5AB3E566D34F7195E90F8AF2 /* NucleusTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FE025998DE849CA2FCBCC91 /* NucleusTheme.swift */; };
 		5E7C65A062AF7D911926A67F /* StartupSplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F2DE343844F3EF7B493842C /* StartupSplashView.swift */; };
 		627462CDC0887CCD00A910E4 /* NucleusMail.caf in Resources */ = {isa = PBXBuildFile; fileRef = A1ADB4D8B805C7C16E7A1939 /* NucleusMail.caf */; };
+		67D16211CC02FDAF4A0379CD /* ReleaseNotes.json in Resources */ = {isa = PBXBuildFile; fileRef = 2F1A694368885A964F497B45 /* ReleaseNotes.json */; };
 		68556500C668B7A54CCA4BA4 /* SparkleUpdater.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6238A17B183A8059CB7A2C0 /* SparkleUpdater.swift */; };
 		68F673476FAE5D0CA8204F89 /* MailWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 948AE221487288E373756BDD /* MailWorkspaceView.swift */; };
+		6A81848593CE059032A516A7 /* ReleaseNotesLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9987E7B42A89E15817F7CAD9 /* ReleaseNotesLoader.swift */; };
 		779C8BFFA5C17B8EEC8E9296 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 414321C6FA288B25C3F312A3 /* AppSettings.swift */; };
 		8489DED1153909B55543B5E4 /* ChatWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68D014822AC55CF805FF2873 /* ChatWorkspaceView.swift */; };
 		86A2EDB6E47C37FFBA5DE437 /* CalendarWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F58A8AC449384291C26E26C /* CalendarWorkspaceView.swift */; };
 		89DD2F6A9B7E342945B2F792 /* NotificationUserInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A0BFA8EFB82901232FB9B24 /* NotificationUserInfo.swift */; };
 		8D3E706DCBFA8683B8315E2E /* entitlements.mac.plist in Resources */ = {isa = PBXBuildFile; fileRef = 12805D482D496E9FAF46F5A6 /* entitlements.mac.plist */; };
+		914183577EE397F3EA7C0EF7 /* WhatsNewOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31C5C1AF3794BF5FF1456573 /* WhatsNewOverlay.swift */; };
 		92F3296DC4AFB5C4A78EF11D /* ClipboardPasteController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F73321C16D7956F50F538A6E /* ClipboardPasteController.swift */; };
 		9B0DCC0F8A21372D7F8D82F1 /* WorkspaceStatusBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95F9299FA19C03821267F616 /* WorkspaceStatusBadge.swift */; };
 		9DD421879CE8E2380986DE94 /* GmailWebSessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C19EFA3DE919CAF339A8D6E /* GmailWebSessionStore.swift */; };
@@ -40,6 +43,7 @@
 		C8B7DC0B032F4FA042820B5B /* AuthStateMigration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 964EE9A5CC0993B6B53D3120 /* AuthStateMigration.swift */; };
 		D867766C290D28A0DCB552EA /* DatabaseKit in Frameworks */ = {isa = PBXBuildFile; productRef = DAECE07451118013D6E717ED /* DatabaseKit */; };
 		DA24CFEA61CAC79C5A243DA0 /* SupportViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4CEADA0142869F8949F55DD /* SupportViews.swift */; };
+		DCC4B4B8A424D0C638BDAD3C /* CalendarWebAuthIndexStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99525F1C7DA669B771908581 /* CalendarWebAuthIndexStore.swift */; };
 		DDA9D760632D2CDC4544A09A /* NotesKit in Frameworks */ = {isa = PBXBuildFile; productRef = 93B2C6D49EA5F6E3F446A3F3 /* NotesKit */; };
 		E084DF303AFCF5970158EC6C /* AccountCategoryEditorSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 927BBCFD3EA8B38DF2FC4788 /* AccountCategoryEditorSheet.swift */; };
 		E45F6E0F6660F34010CFDEBE /* ClipboardPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D130F5FD244D81A8B8DBE22 /* ClipboardPickerView.swift */; };
@@ -55,6 +59,8 @@
 		112B420029E08E6DBBC4BF67 /* UpcomingEventsBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpcomingEventsBar.swift; sourceTree = "<group>"; };
 		12805D482D496E9FAF46F5A6 /* entitlements.mac.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = entitlements.mac.plist; sourceTree = "<group>"; };
 		2D130F5FD244D81A8B8DBE22 /* ClipboardPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardPickerView.swift; sourceTree = "<group>"; };
+		2F1A694368885A964F497B45 /* ReleaseNotes.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = ReleaseNotes.json; sourceTree = "<group>"; };
+		31C5C1AF3794BF5FF1456573 /* WhatsNewOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhatsNewOverlay.swift; sourceTree = "<group>"; };
 		35B2C2677CC4B681656C62C2 /* Nucleus.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Nucleus.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		3C96EA452B81430207A5A9FB /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		414321C6FA288B25C3F312A3 /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
@@ -75,6 +81,8 @@
 		953865571573F05622595783 /* NotesWorkspaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotesWorkspaceView.swift; sourceTree = "<group>"; };
 		95F9299FA19C03821267F616 /* WorkspaceStatusBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceStatusBadge.swift; sourceTree = "<group>"; };
 		964EE9A5CC0993B6B53D3120 /* AuthStateMigration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthStateMigration.swift; sourceTree = "<group>"; };
+		99525F1C7DA669B771908581 /* CalendarWebAuthIndexStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarWebAuthIndexStore.swift; sourceTree = "<group>"; };
+		9987E7B42A89E15817F7CAD9 /* ReleaseNotesLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReleaseNotesLoader.swift; sourceTree = "<group>"; };
 		9F2DE343844F3EF7B493842C /* StartupSplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartupSplashView.swift; sourceTree = "<group>"; };
 		A1ADB4D8B805C7C16E7A1939 /* NucleusMail.caf */ = {isa = PBXFileReference; path = NucleusMail.caf; sourceTree = "<group>"; };
 		B6238A17B183A8059CB7A2C0 /* SparkleUpdater.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SparkleUpdater.swift; sourceTree = "<group>"; };
@@ -121,6 +129,7 @@
 				9F2DE343844F3EF7B493842C /* StartupSplashView.swift */,
 				E4CEADA0142869F8949F55DD /* SupportViews.swift */,
 				112B420029E08E6DBBC4BF67 /* UpcomingEventsBar.swift */,
+				31C5C1AF3794BF5FF1456573 /* WhatsNewOverlay.swift */,
 				95F9299FA19C03821267F616 /* WorkspaceStatusBadge.swift */,
 			);
 			path = Components;
@@ -138,6 +147,7 @@
 				B6238A17B183A8059CB7A2C0 /* SparkleUpdater.swift */,
 				F046C7E266E5FB494BFEE70A /* Assets */,
 				1D490A0B2835A4B7A3D80054 /* Components */,
+				6F6FFB061DF1DABAB49226B9 /* Resources */,
 				70C6AE6CD197164C03FC3FC2 /* Services */,
 			);
 			path = Nucleus;
@@ -152,17 +162,27 @@
 			path = Sounds;
 			sourceTree = "<group>";
 		};
+		6F6FFB061DF1DABAB49226B9 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				2F1A694368885A964F497B45 /* ReleaseNotes.json */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
 		70C6AE6CD197164C03FC3FC2 /* Services */ = {
 			isa = PBXGroup;
 			children = (
 				964EE9A5CC0993B6B53D3120 /* AuthStateMigration.swift */,
 				50537B36D31255DB7C3030C9 /* BackgroundSyncServices.swift */,
+				99525F1C7DA669B771908581 /* CalendarWebAuthIndexStore.swift */,
 				8D1B19E37F9DEE038DE32B26 /* ClipboardMonitorService.swift */,
 				F73321C16D7956F50F538A6E /* ClipboardPasteController.swift */,
 				035D0E9FC4A418A7C52523C6 /* DockBadgeController.swift */,
 				7C19EFA3DE919CAF339A8D6E /* GmailWebSessionStore.swift */,
 				7A0BFA8EFB82901232FB9B24 /* NotificationUserInfo.swift */,
 				584F84F9AF029CC4D8800A01 /* NucleusNotificationService.swift */,
+				9987E7B42A89E15817F7CAD9 /* ReleaseNotesLoader.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -275,6 +295,7 @@
 				3F48A8BA617C1BF575B71A17 /* Assets.xcassets in Resources */,
 				4E988604D8181071BA70B0EF /* Funky.caf in Resources */,
 				627462CDC0887CCD00A910E4 /* NucleusMail.caf in Resources */,
+				67D16211CC02FDAF4A0379CD /* ReleaseNotes.json in Resources */,
 				8D3E706DCBFA8683B8315E2E /* entitlements.mac.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -293,6 +314,7 @@
 				B9E2844DD110DC0608825A91 /* AppViewModel.swift in Sources */,
 				C8B7DC0B032F4FA042820B5B /* AuthStateMigration.swift in Sources */,
 				2E92D4BDB66A47E6E813E56B /* BackgroundSyncServices.swift in Sources */,
+				DCC4B4B8A424D0C638BDAD3C /* CalendarWebAuthIndexStore.swift in Sources */,
 				86A2EDB6E47C37FFBA5DE437 /* CalendarWorkspaceView.swift in Sources */,
 				8489DED1153909B55543B5E4 /* ChatWorkspaceView.swift in Sources */,
 				04F320BF6094F76B0F24258B /* ClipboardMonitorService.swift in Sources */,
@@ -308,10 +330,12 @@
 				C0DBC257A8BAB9C658468527 /* NucleusApp.swift in Sources */,
 				2A0B56C8E90F257BB66650C4 /* NucleusNotificationService.swift in Sources */,
 				5AB3E566D34F7195E90F8AF2 /* NucleusTheme.swift in Sources */,
+				6A81848593CE059032A516A7 /* ReleaseNotesLoader.swift in Sources */,
 				68556500C668B7A54CCA4BA4 /* SparkleUpdater.swift in Sources */,
 				5E7C65A062AF7D911926A67F /* StartupSplashView.swift in Sources */,
 				DA24CFEA61CAC79C5A243DA0 /* SupportViews.swift in Sources */,
 				FE075ADEC4591B5017B6CAF2 /* UpcomingEventsBar.swift in Sources */,
+				914183577EE397F3EA7C0EF7 /* WhatsNewOverlay.swift in Sources */,
 				9B0DCC0F8A21372D7F8D82F1 /* WorkspaceStatusBadge.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

@@ -1,0 +1,15 @@
+{
+  "version": "0.1.18",
+  "summary": "Fix calendar sync for multi-account Google Workspace sessions and show What's New after updates.",
+  "releaseNotes": {
+    "fixed": [
+      "Calendar sync detects the correct Google account slot (u/0, u/1, …) instead of always using account 0 — Work/Qantas calendars now sync when it is not your first Google login",
+      "Session API requests send full Google cookies and try multiple account indices and calendar IDs",
+      "Embedded calendar sync uses a reliable native bridge instead of fragile JavaScript callbacks",
+      "All-day API events parse start and end dates correctly"
+    ],
+    "introduced": [
+      "What's New splash appears on first launch after each upgrade with release notes for that version"
+    ]
+  }
+}

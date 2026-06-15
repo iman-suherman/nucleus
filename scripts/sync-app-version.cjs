@@ -4,6 +4,7 @@
 const fs = require("fs");
 const path = require("path");
 const { assertSemver, versionSortKey } = require("./semver.cjs");
+const { bundleReleaseNotes } = require("./bundle-release-notes.cjs");
 
 const root = path.join(__dirname, "..");
 
@@ -58,6 +59,7 @@ function syncAppVersion(version) {
   }
 
   console.log(`sync-version: app version → ${version} (build ${buildNumber})`);
+  bundleReleaseNotes(version);
 }
 
 if (require.main === module) {

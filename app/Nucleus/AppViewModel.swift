@@ -47,6 +47,8 @@ final class AppViewModel: ObservableObject {
     @Published var startupProgressFraction: Double = 0
     @Published var statusMessage = "Ready"
     @Published var isSyncingCalendar = false
+    @Published var showWhatsNew = false
+    @Published var whatsNewRelease: AppReleaseNotes?
     @Published var quickReplyContext: QuickReplyContext?
     @Published var accountError: String?
 
@@ -307,7 +309,21 @@ final class AppViewModel: ObservableObject {
         try? await Task.sleep(nanoseconds: 250_000_000)
         isStartingUp = false
         statusMessage = statusMessageForCurrentState()
+        presentWhatsNewIfNeeded()
         await promptSignInIfNeeded(settings: settings)
+    }
+
+    func dismissWhatsNew() {
+        ReleaseNotesLoader.markCurrentVersionSeen()
+        showWhatsNew = false
+        whatsNewRelease = nil
+    }
+
+    private func presentWhatsNewIfNeeded() {
+        guard ReleaseNotesLoader.shouldPresentWhatsNew() else { return }
+        guard let release = ReleaseNotesLoader.loadCurrentRelease() else { return }
+        whatsNewRelease = release
+        showWhatsNew = true
     }
 
     func promptSignInIfNeeded(settings: AppSettings) async {
@@ -375,7 +391,7 @@ final class AppViewModel: ObservableObject {
     private func performCalendarSync() async {
         NotificationCenter.default.post(name: .calendarWebEventsPollNow, object: nil)
         // Give embedded calendar web views time to fetch ICS and report visible events.
-        try? await Task.sleep(nanoseconds: 2_500_000_000)
+        try? await Task.sleep(nanoseconds: 3_000_000_000)
         await syncCalendar(rescheduleNotifications: true)
     }
 
@@ -668,7 +684,12 @@ final class AppViewModel: ObservableObject {
 
         for account in accounts where account.authMode == .webSession {
             let cookies = await GmailWebSessionStore.cookies(for: account.id)
-            let icalEvents = await CalendarWebSessionClient.sync(account: account, cookies: cookies)
+            let authUserIndex = CalendarWebAuthIndexStore.index(for: account.id)
+            let icalEvents = await CalendarWebSessionClient.sync(
+                account: account,
+                cookies: cookies,
+                authUserIndex: authUserIndex
+            )
             let webEvents = webReportedCalendarEvents[account.id] ?? []
             allEvents.append(
                 contentsOf: CalendarWebSessionClient.mergeEvents(icalEvents: icalEvents, webEvents: webEvents)

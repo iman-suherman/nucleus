@@ -5,16 +5,26 @@ public enum CalendarWebSessionClient {
     /// Public API key embedded in Google Calendar web (session auth still required).
     private static let calendarWebAPIKey = "AIzaSyCalF5eq3dsgCFs8i7KbZfJd5Y1u0--b40"
 
-    public static func sync(account: GoogleAccount, cookies: [HTTPCookie]) async -> [CalendarEventSummary] {
+    public static func sync(
+        account: GoogleAccount,
+        cookies: [HTTPCookie],
+        authUserIndex: Int? = nil
+    ) async -> [CalendarEventSummary] {
         guard !cookies.isEmpty else { return [] }
 
-        if let apiEvents = await fetchEventsViaWebSessionAPI(account: account, cookies: cookies), !apiEvents.isEmpty {
+        if let apiEvents = await fetchEventsViaWebSessionAPI(
+            account: account,
+            cookies: cookies,
+            preferredAuthUserIndex: authUserIndex
+        ), !apiEvents.isEmpty {
             return apiEvents
         }
 
         let encodedEmail = account.email.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? account.email
         let encodedQuery = account.email.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? account.email
+        let userIndex = authUserIndex ?? 0
         let candidates = [
+            URL(string: "https://calendar.google.com/calendar/u/\(userIndex)/ical/primary/basic.ics?authuser=\(encodedQuery)")!,
             URL(string: "https://calendar.google.com/calendar/u/0/ical/primary/basic.ics?authuser=\(encodedQuery)")!,
             icalURL(path: "primary/basic.ics", email: account.email),
             icalURL(path: "primary/public/basic.ics", email: account.email),
@@ -48,7 +58,8 @@ public enum CalendarWebSessionClient {
 
     private static func fetchEventsViaWebSessionAPI(
         account: GoogleAccount,
-        cookies: [HTTPCookie]
+        cookies: [HTTPCookie],
+        preferredAuthUserIndex: Int?
     ) async -> [CalendarEventSummary]? {
         guard let authorization = GoogleSessionAuth.sapisidHash(cookies: cookies) else { return nil }
 
@@ -58,29 +69,51 @@ public enum CalendarWebSessionClient {
         formatter.formatOptions = [.withInternetDateTime]
 
         let encodedEmail = account.email.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? account.email
+        let encodedCalendarEmail = account.email.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? account.email
         let hosts = [
-            "https://clients6.google.com/calendar/v3/calendars/primary/events",
-            "https://www.googleapis.com/calendar/v3/calendars/primary/events",
+            "https://clients6.google.com/calendar/v3/calendars",
+            "https://www.googleapis.com/calendar/v3/calendars",
         ]
 
-        for host in hosts {
-            var components = URLComponents(string: host)!
-            components.queryItems = [
-                URLQueryItem(name: "key", value: calendarWebAPIKey),
-                URLQueryItem(name: "calendarId", value: "primary"),
-                URLQueryItem(name: "singleEvents", value: "true"),
-                URLQueryItem(name: "orderBy", value: "startTime"),
-                URLQueryItem(name: "maxResults", value: "100"),
-                URLQueryItem(name: "timeMin", value: formatter.string(from: now)),
-                URLQueryItem(name: "timeMax", value: formatter.string(from: horizon)),
-                URLQueryItem(name: "authuser", value: encodedEmail),
-            ]
+        var authUserCandidates: [String] = []
+        if let preferredAuthUserIndex {
+            authUserCandidates.append(String(preferredAuthUserIndex))
+        }
+        authUserCandidates.append(contentsOf: ["0", "1", "2", "3"])
+        authUserCandidates.append(encodedEmail)
+        authUserCandidates = Array(Set(authUserCandidates))
 
-            guard let url = components.url else { continue }
-            if let payloads = await fetchAPIPayloads(url: url, cookies: cookies, authorization: authorization) {
-                let events = parseAPIEventPayloads(payloads, account: account)
-                if !events.isEmpty {
-                    return events
+        let calendarIDs = ["primary", encodedCalendarEmail]
+
+        for authUser in authUserCandidates {
+            let headerAuthUser = Int(authUser).map(String.init) ?? authUserCandidates.first(where: { Int($0) != nil }) ?? "0"
+            for calendarID in calendarIDs {
+                for host in hosts {
+                    let encodedCalendarID = calendarID.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? calendarID
+                    var components = URLComponents(string: "\(host)/\(encodedCalendarID)/events")!
+                    components.queryItems = [
+                        URLQueryItem(name: "key", value: calendarWebAPIKey),
+                        URLQueryItem(name: "calendarId", value: calendarID),
+                        URLQueryItem(name: "singleEvents", value: "true"),
+                        URLQueryItem(name: "orderBy", value: "startTime"),
+                        URLQueryItem(name: "maxResults", value: "100"),
+                        URLQueryItem(name: "timeMin", value: formatter.string(from: now)),
+                        URLQueryItem(name: "timeMax", value: formatter.string(from: horizon)),
+                        URLQueryItem(name: "authuser", value: authUser),
+                    ]
+
+                    guard let url = components.url else { continue }
+                    if let payloads = await fetchAPIPayloads(
+                        url: url,
+                        cookies: cookies,
+                        authorization: authorization,
+                        authUserHeader: headerAuthUser
+                    ) {
+                        let events = parseAPIEventPayloads(payloads, account: account)
+                        if !events.isEmpty {
+                            return events
+                        }
+                    }
                 }
             }
         }
@@ -91,7 +124,8 @@ public enum CalendarWebSessionClient {
     private static func fetchAPIPayloads(
         url: URL,
         cookies: [HTTPCookie],
-        authorization: String
+        authorization: String,
+        authUserHeader: String
     ) async -> [[String: Any]]? {
         do {
             let storage = HTTPCookieStorage()
@@ -104,20 +138,27 @@ public enum CalendarWebSessionClient {
 
             var request = URLRequest(url: url)
             request.setValue(authorization, forHTTPHeaderField: "Authorization")
-            request.setValue("0", forHTTPHeaderField: "X-Goog-AuthUser")
+            request.setValue(authUserHeader, forHTTPHeaderField: "X-Goog-AuthUser")
+            let cookieHeader = GoogleSessionAuth.cookieHeader(from: cookies)
+            if !cookieHeader.isEmpty {
+                request.setValue(cookieHeader, forHTTPHeaderField: "Cookie")
+            }
             request.setValue(
                 "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15",
                 forHTTPHeaderField: "User-Agent"
             )
             request.setValue("https://calendar.google.com", forHTTPHeaderField: "Origin")
-            request.setValue("https://calendar.google.com/calendar/u/0/r", forHTTPHeaderField: "Referer")
+            request.setValue("https://calendar.google.com/calendar/u/\(authUserHeader)/r/week", forHTTPHeaderField: "Referer")
 
             let (data, response) = try await URLSession(configuration: config).data(for: request)
             guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
                 return nil
             }
             let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
-            return json?["items"] as? [[String: Any]]
+            if let items = json?["items"] as? [[String: Any]] {
+                return items
+            }
+            return []
         } catch {
             return nil
         }
@@ -190,6 +231,10 @@ public enum CalendarWebSessionClient {
             forHTTPHeaderField: "User-Agent"
         )
         request.setValue("https://calendar.google.com/", forHTTPHeaderField: "Referer")
+        let cookieHeader = GoogleSessionAuth.cookieHeader(from: cookies)
+        if !cookieHeader.isEmpty {
+            request.setValue(cookieHeader, forHTTPHeaderField: "Cookie")
+        }
 
         return try await URLSession(configuration: config).data(for: request)
     }

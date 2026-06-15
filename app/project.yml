@@ -27,6 +27,7 @@ targets:
     resources:
       - path: Nucleus/Assets/AppIcon.icns
       - path: Nucleus/Assets/Sounds
+      - path: Nucleus/Resources/ReleaseNotes.json
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: net.suherman.nucleus

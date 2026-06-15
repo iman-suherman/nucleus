@@ -18,6 +18,9 @@ fi
 echo "==> Preparing app icon (rounded corners)"
 bash "$ROOT_DIR/scripts/prepare-app-icon.sh"
 
+echo "==> Bundling release notes"
+node "$ROOT_DIR/scripts/bundle-release-notes.cjs"
+
 echo "==> Generating app icon sizes from AppIconSource.png"
 swift "$ROOT_DIR/scripts/generate-app-icon.swift" \
   "$APP_DIR/Nucleus/Assets.xcassets/AppIcon.appiconset" \

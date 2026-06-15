@@ -21,4 +21,17 @@ enum GoogleSessionAuth {
         }
         return nil
     }
+
+    static func cookieHeader(from cookies: [HTTPCookie]) -> String {
+        var seen = Set<String>()
+        return cookies
+            .filter { cookie in
+                cookie.domain.contains("google.com") && !cookie.value.isEmpty
+            }
+            .compactMap { cookie -> String? in
+                guard seen.insert(cookie.name).inserted else { return nil }
+                return "\(cookie.name)=\(cookie.value)"
+            }
+            .joined(separator: "; ")
+    }
 }
