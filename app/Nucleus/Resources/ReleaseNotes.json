@@ -1,11 +1,13 @@
 {
-  "version": "0.2.1",
-  "summary": "Remove the Notifications activity feed workspace.",
+  "version": "0.2.2",
+  "summary": "Reliable new-mail alerts with a configurable notification sound.",
   "releaseNotes": {
-    "changed": [
-      "Removed the Notifications sidebar pane and in-app activity feed",
-      "Stopped logging email and note events to the activity stream",
-      "Mail and chat macOS push notifications are unchanged"
+    "introduced": [
+      "Settings → Mail → Notification sound — choose Nucleus Mail, Funky, System default, or Silent, with a play preview"
+    ],
+    "fixed": [
+      "New email alerts now fire when unread count increases even if Gmail message details are not synced yet",
+      "Per-message notifications still show sender, subject, and snippet when the mail feed provides them"
     ]
   }
 }
