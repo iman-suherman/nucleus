@@ -36,7 +36,7 @@ struct AccountCenterView: View {
                 .buttonStyle(.borderedProminent)
             }
 
-            Text("Sign in to Gmail inside Inbox for each category. Web sign-in works for personal, work, and school Google accounts.")
+            Text("Account metadata syncs via iCloud. OAuth tokens can sync via iCloud Keychain. Gmail web views still need sign-in inside Inbox on each Mac.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
@@ -72,9 +72,12 @@ struct AccountCenterView: View {
                     AccountCard(
                         account: account,
                         unreadCount: viewModel.unreadByAccount[account.id] ?? 0,
+                        needsReconnect: viewModel.needsReconnect(for: account),
+                        isOAuthConnected: viewModel.isOAuthConnected(account),
                         onSetPrimary: { viewModel.setPrimaryAccount(account) },
                         onSetNotesAccount: { viewModel.setPrimaryNotesAccount(account) },
                         onRename: { viewModel.updateAccountCategory(account, name: $0) },
+                        onReconnect: { viewModel.reconnectAccount(account) },
                         onRemove: { viewModel.removeAccount(account) }
                     )
                 }
@@ -86,9 +89,12 @@ struct AccountCenterView: View {
 private struct AccountCard: View {
     let account: GoogleAccount
     let unreadCount: Int
+    let needsReconnect: Bool
+    let isOAuthConnected: Bool
     let onSetPrimary: () -> Void
     let onSetNotesAccount: () -> Void
     let onRename: (String) -> Void
+    let onReconnect: () -> Void
     let onRemove: () -> Void
 
     @State private var categoryName: String
@@ -96,16 +102,22 @@ private struct AccountCard: View {
     init(
         account: GoogleAccount,
         unreadCount: Int,
+        needsReconnect: Bool,
+        isOAuthConnected: Bool,
         onSetPrimary: @escaping () -> Void,
         onSetNotesAccount: @escaping () -> Void,
         onRename: @escaping (String) -> Void,
+        onReconnect: @escaping () -> Void,
         onRemove: @escaping () -> Void
     ) {
         self.account = account
         self.unreadCount = unreadCount
+        self.needsReconnect = needsReconnect
+        self.isOAuthConnected = isOAuthConnected
         self.onSetPrimary = onSetPrimary
         self.onSetNotesAccount = onSetNotesAccount
         self.onRename = onRename
+        self.onReconnect = onReconnect
         self.onRemove = onRemove
         _categoryName = State(initialValue: account.displayName)
     }
@@ -120,8 +132,23 @@ private struct AccountCard: View {
                         .onSubmit { onRename(categoryName) }
                     Text(account.email)
                         .foregroundStyle(.secondary)
+                    if isOAuthConnected {
+                        Label("API connected via iCloud Keychain", systemImage: "key.icloud.fill")
+                            .font(.caption2)
+                            .foregroundStyle(.green)
+                    }
                     if account.authMode == .webSession {
-                        Text("Web Gmail · sign in inside Inbox")
+                        if needsReconnect {
+                            Label("Needs Gmail sign-in on this Mac", systemImage: "exclamationmark.circle")
+                                .font(.caption2)
+                                .foregroundStyle(.orange)
+                        } else {
+                            Text("Signed in on this Mac")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                    } else if isOAuthConnected {
+                        Text("OAuth session active")
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                     }
@@ -137,6 +164,12 @@ private struct AccountCard: View {
             }
 
             HStack {
+                if needsReconnect {
+                    Button("Reconnect in Inbox", action: onReconnect)
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.small)
+                }
+
                 if account.isPrimary {
                     Label("Primary inbox", systemImage: "star.fill")
                         .font(.caption)

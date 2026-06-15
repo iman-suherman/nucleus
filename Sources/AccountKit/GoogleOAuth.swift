@@ -41,16 +41,25 @@ public final class KeychainTokenStore: Sendable {
 
     private init() {}
 
-    public func saveTokens(_ tokens: OAuthTokenBundle, accountID: UUID) throws {
+    public func saveTokens(
+        _ tokens: OAuthTokenBundle,
+        accountID: UUID,
+        synchronizable: Bool = true
+    ) throws {
         let data = try JSONEncoder().encode(tokens)
-        let query: [String: Any] = [
+        deleteTokens(accountID: accountID)
+
+        var query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: accountID.uuidString,
             kSecValueData as String: data,
+            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock,
         ]
+        if synchronizable {
+            query[kSecAttrSynchronizable as String] = kCFBooleanTrue
+        }
 
-        SecItemDelete(query as CFDictionary)
         let status = SecItemAdd(query as CFDictionary, nil)
         guard status == errSecSuccess else {
             throw KeychainError.unexpectedStatus(status)
@@ -58,16 +67,22 @@ public final class KeychainTokenStore: Sendable {
     }
 
     public func loadTokens(accountID: UUID) throws -> OAuthTokenBundle {
-        let query: [String: Any] = [
+        var query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: accountID.uuidString,
             kSecReturnData as String: true,
             kSecMatchLimit as String: kSecMatchLimitOne,
+            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny,
         ]
 
         var item: CFTypeRef?
-        let status = SecItemCopyMatching(query as CFDictionary, &item)
+        var status = SecItemCopyMatching(query as CFDictionary, &item)
+        if status == errSecItemNotFound {
+            query.removeValue(forKey: kSecAttrSynchronizable as String)
+            status = SecItemCopyMatching(query as CFDictionary, &item)
+        }
+
         guard status != errSecItemNotFound else {
             throw KeychainError.itemNotFound
         }
@@ -78,16 +93,40 @@ public final class KeychainTokenStore: Sendable {
     }
 
     public func deleteTokens(accountID: UUID) {
-        let query: [String: Any] = [
+        for synchronizable in [kCFBooleanTrue, kCFBooleanFalse] as [CFTypeRef] {
+            let query: [String: Any] = [
+                kSecClass as String: kSecClassGenericPassword,
+                kSecAttrService as String: service,
+                kSecAttrAccount as String: accountID.uuidString,
+                kSecAttrSynchronizable as String: synchronizable,
+            ]
+            SecItemDelete(query as CFDictionary)
+        }
+
+        let legacyQuery: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: accountID.uuidString,
         ]
-        SecItemDelete(query as CFDictionary)
+        SecItemDelete(legacyQuery as CFDictionary)
     }
 
     public func hasTokens(accountID: UUID) -> Bool {
         (try? loadTokens(accountID: accountID)) != nil
+    }
+
+    public func migrateAllToSynchronizable(accountIDs: [UUID]) {
+        for accountID in accountIDs {
+            guard let tokens = try? loadTokens(accountID: accountID) else { continue }
+            try? saveTokens(tokens, accountID: accountID, synchronizable: true)
+        }
+    }
+
+    public func migrateAllToLocalOnly(accountIDs: [UUID]) {
+        for accountID in accountIDs {
+            guard let tokens = try? loadTokens(accountID: accountID) else { continue }
+            try? saveTokens(tokens, accountID: accountID, synchronizable: false)
+        }
     }
 }
 
@@ -236,10 +275,16 @@ public actor AccountSessionStore {
 
     private var configuration = GoogleOAuthConfiguration(clientID: "")
     private var clientSecret: String?
+    private var tokenSynchronizable = true
 
-    public func updateConfiguration(_ configuration: GoogleOAuthConfiguration, clientSecret: String? = nil) {
+    public func updateConfiguration(
+        _ configuration: GoogleOAuthConfiguration,
+        clientSecret: String? = nil,
+        tokenSynchronizable: Bool = true
+    ) {
         self.configuration = configuration
         self.clientSecret = clientSecret
+        self.tokenSynchronizable = tokenSynchronizable
     }
 
     public func currentConfiguration() -> GoogleOAuthConfiguration {
@@ -256,7 +301,11 @@ public actor AccountSessionStore {
             configuration: configuration,
             clientSecret: clientSecret
         )
-        try KeychainTokenStore.shared.saveTokens(refreshed, accountID: accountID)
+        try KeychainTokenStore.shared.saveTokens(
+            refreshed,
+            accountID: accountID,
+            synchronizable: tokenSynchronizable
+        )
         return refreshed.accessToken
     }
 }

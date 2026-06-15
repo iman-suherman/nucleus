@@ -3,22 +3,65 @@ import NucleusKit
 import SwiftData
 
 public enum NucleusDatabase {
-    public static let schema = Schema([
+    public static let syncedSchema = Schema([
         GoogleAccountRecord.self,
+        NoteRecord.self,
+        SyncedSettingsRecord.self,
         ClipboardItemRecord.self,
+    ])
+
+    public static let localSchema = Schema([
         CalendarEventRecord.self,
         ActivityNotificationRecord.self,
-        NoteRecord.self,
         MailMessageRecord.self,
     ])
 
-    public static func makeContainer(inMemory: Bool = false) throws -> ModelContainer {
-        let configuration = ModelConfiguration(
-            "Nucleus",
-            schema: schema,
-            isStoredInMemoryOnly: inMemory
+    public static let schema = Schema([
+        GoogleAccountRecord.self,
+        NoteRecord.self,
+        SyncedSettingsRecord.self,
+        ClipboardItemRecord.self,
+        CalendarEventRecord.self,
+        ActivityNotificationRecord.self,
+        MailMessageRecord.self,
+    ])
+
+    public static func makeContainer(
+        inMemory: Bool = false,
+        enableCloudKit: Bool = true
+    ) throws -> ModelContainer {
+        if inMemory {
+            let configuration = ModelConfiguration(
+                "Nucleus",
+                schema: schema,
+                isStoredInMemoryOnly: true
+            )
+            return try ModelContainer(for: schema, configurations: [configuration])
+        }
+
+        let syncedConfiguration = ModelConfiguration(
+            "Synced",
+            schema: syncedSchema,
+            cloudKitDatabase: enableCloudKit ? .automatic : .none
         )
-        return try ModelContainer(for: schema, configurations: [configuration])
+
+        let localConfiguration = ModelConfiguration(
+            "Local",
+            schema: localSchema,
+            cloudKitDatabase: .none
+        )
+
+        return try ModelContainer(
+            for: GoogleAccountRecord.self,
+            NoteRecord.self,
+            SyncedSettingsRecord.self,
+            ClipboardItemRecord.self,
+            CalendarEventRecord.self,
+            ActivityNotificationRecord.self,
+            MailMessageRecord.self,
+            configurations: syncedConfiguration,
+            localConfiguration
+        )
     }
 
     public static func defaultStoreURL() throws -> URL {
@@ -35,7 +78,10 @@ public enum NucleusDatabase {
 public enum AccountRepository {
     public static func fetchAll(context: ModelContext) throws -> [GoogleAccount] {
         let descriptor = FetchDescriptor<GoogleAccountRecord>(
-            sortBy: [SortDescriptor(\.email)]
+            sortBy: [
+                SortDescriptor(\.sortOrder),
+                SortDescriptor(\.email),
+            ]
         )
         return try context.fetch(descriptor).map(\.model)
     }
@@ -50,6 +96,7 @@ public enum AccountRepository {
         if let existing = try context.fetch(descriptor).first {
             existing.apply(account)
         } else {
+            let nextSortOrder = try nextAccountSortOrder(context: context)
             context.insert(GoogleAccountRecord(
                 id: account.id,
                 email: account.email,
@@ -57,7 +104,8 @@ public enum AccountRepository {
                 avatarURL: account.avatarURL,
                 isPrimary: account.isPrimary,
                 isPrimaryNotesAccount: account.isPrimaryNotesAccount,
-                authMode: account.authMode.rawValue
+                authMode: account.authMode.rawValue,
+                sortOrder: nextSortOrder
             ))
         }
         try context.save()
@@ -87,6 +135,38 @@ public enum AccountRepository {
         let all = try context.fetch(FetchDescriptor<GoogleAccountRecord>())
         for record in all {
             record.isPrimaryNotesAccount = record.id == id
+        }
+        try context.save()
+    }
+
+    private static func nextAccountSortOrder(context: ModelContext) throws -> Int {
+        let records = try context.fetch(FetchDescriptor<GoogleAccountRecord>())
+        return (records.map(\.sortOrder).max() ?? -1) + 1
+    }
+}
+
+public enum SyncedSettingsRepository {
+    public static func fetch(context: ModelContext) throws -> NucleusSyncedConfiguration? {
+        let singletonID = NucleusSyncedConfiguration.singletonRecordID
+        var descriptor = FetchDescriptor<SyncedSettingsRecord>(
+            predicate: #Predicate { $0.id == singletonID }
+        )
+        descriptor.fetchLimit = 1
+        guard let record = try context.fetch(descriptor).first else { return nil }
+        return try record.configuration
+    }
+
+    public static func upsert(_ configuration: NucleusSyncedConfiguration, context: ModelContext) throws {
+        let singletonID = NucleusSyncedConfiguration.singletonRecordID
+        var descriptor = FetchDescriptor<SyncedSettingsRecord>(
+            predicate: #Predicate { $0.id == singletonID }
+        )
+        descriptor.fetchLimit = 1
+
+        if let existing = try context.fetch(descriptor).first {
+            try existing.apply(configuration)
+        } else {
+            context.insert(try SyncedSettingsRecord(configuration: configuration))
         }
         try context.save()
     }
@@ -127,7 +207,7 @@ public enum ClipboardRepository {
             .map(\.entry)
     }
 
-    public static func insert(_ entry: ClipboardEntry, context: ModelContext) throws {
+    public static func insert(_ entry: ClipboardEntry, context: ModelContext, maxItems: Int = 200) throws {
         context.insert(ClipboardItemRecord(
             id: entry.id,
             content: entry.content,
@@ -137,7 +217,21 @@ public enum ClipboardRepository {
             isPinned: entry.isPinned,
             capturedAt: entry.capturedAt
         ))
+        try prune(context: context, maxItems: maxItems)
         try context.save()
+    }
+
+    public static func prune(context: ModelContext, maxItems: Int = 200) throws {
+        let descriptor = FetchDescriptor<ClipboardItemRecord>(
+            sortBy: [SortDescriptor(\.capturedAt, order: .reverse)]
+        )
+        let records = try context.fetch(descriptor)
+        guard records.count > maxItems else { return }
+
+        let overflow = records.dropFirst(maxItems)
+        for record in overflow where !record.isPinned {
+            context.delete(record)
+        }
     }
 
     public static func setPinned(id: UUID, pinned: Bool, context: ModelContext) throws {

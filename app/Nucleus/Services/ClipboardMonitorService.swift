@@ -14,6 +14,7 @@ final class ClipboardMonitorService: ObservableObject {
     private var isApplyingPaste = false
 
     var onCapture: ((ClipboardCapture) -> Void)?
+    var isCaptureEnabled: () -> Bool = { true }
 
     private init() {}
 
@@ -33,6 +34,7 @@ final class ClipboardMonitorService: ObservableObject {
     }
 
     private func pollPasteboard() {
+        guard isCaptureEnabled() else { return }
         guard !isApplyingPaste else { return }
 
         let pasteboard = NSPasteboard.general

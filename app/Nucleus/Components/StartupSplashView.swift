@@ -3,6 +3,8 @@ import SwiftUI
 enum StartupStep: String, CaseIterable, Identifiable {
     case database
     case accounts
+    case icloudSync
+    case keychainSync
     case clipboard
     case notifications
     case mailSync
@@ -13,6 +15,8 @@ enum StartupStep: String, CaseIterable, Identifiable {
         switch self {
         case .database: return "Loading workspace data"
         case .accounts: return "Restoring Google accounts"
+        case .icloudSync: return "Syncing via iCloud"
+        case .keychainSync: return "Restoring Google credentials"
         case .clipboard: return "Starting clipboard monitor"
         case .notifications: return "Preparing notifications"
         case .mailSync: return "Syncing mail"
@@ -23,6 +27,8 @@ enum StartupStep: String, CaseIterable, Identifiable {
         switch self {
         case .database: return "externaldrive"
         case .accounts: return "person.crop.circle"
+        case .icloudSync: return "icloud"
+        case .keychainSync: return "key.icloud"
         case .clipboard: return "doc.on.clipboard"
         case .notifications: return "bell"
         case .mailSync: return "tray.full"

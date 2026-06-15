@@ -3,6 +3,7 @@ import Foundation
 import SwiftUI
 import AppKit
 import UserNotifications
+import NucleusKit
 
 enum MailNotificationSound: String, CaseIterable, Identifiable {
     case funky = "Funky"
@@ -81,6 +82,12 @@ final class AppSettings: ObservableObject {
         static let selectedMailAccountID = "nucleus.settings.selectedMailAccountID"
         static let selectedCalendarAccountID = "nucleus.settings.selectedCalendarAccountID"
         static let selectedChatAccountID = "nucleus.settings.selectedChatAccountID"
+        static let emailNotificationsEnabled = "nucleus.settings.emailNotificationsEnabled"
+        static let calendarNotificationsEnabled = "nucleus.settings.calendarNotificationsEnabled"
+        static let clipboardSyncEnabled = "nucleus.settings.clipboardSyncEnabled"
+        static let iCloudKeychainTokenSyncEnabled = "nucleus.settings.iCloudKeychainTokenSyncEnabled"
+        static let selectedWorkspacePane = "nucleus.settings.selectedWorkspacePane"
+        static let windowLayout = "nucleus.settings.windowLayout"
     }
 
     static let currentAppVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.1.0"
@@ -127,6 +134,50 @@ final class AppSettings: ObservableObject {
         }
     }
 
+    @Published var emailNotificationsEnabled: Bool {
+        didSet { UserDefaults.standard.set(emailNotificationsEnabled, forKey: Keys.emailNotificationsEnabled) }
+    }
+
+    @Published var calendarNotificationsEnabled: Bool {
+        didSet { UserDefaults.standard.set(calendarNotificationsEnabled, forKey: Keys.calendarNotificationsEnabled) }
+    }
+
+    @Published var clipboardSyncEnabled: Bool {
+        didSet { UserDefaults.standard.set(clipboardSyncEnabled, forKey: Keys.clipboardSyncEnabled) }
+    }
+
+    @Published var iCloudKeychainTokenSyncEnabled: Bool {
+        didSet { UserDefaults.standard.set(iCloudKeychainTokenSyncEnabled, forKey: Keys.iCloudKeychainTokenSyncEnabled) }
+    }
+
+    @Published var selectedWorkspacePane: String? {
+        didSet {
+            if let selectedWorkspacePane {
+                UserDefaults.standard.set(selectedWorkspacePane, forKey: Keys.selectedWorkspacePane)
+            } else {
+                UserDefaults.standard.removeObject(forKey: Keys.selectedWorkspacePane)
+            }
+        }
+    }
+
+    @Published var windowLayout: WindowLayoutState? {
+        didSet {
+            if let windowLayout, let data = try? JSONEncoder().encode(windowLayout) {
+                UserDefaults.standard.set(data, forKey: Keys.windowLayout)
+            } else {
+                UserDefaults.standard.removeObject(forKey: Keys.windowLayout)
+            }
+        }
+    }
+
+    var sidebarWidth: CGFloat {
+        CGFloat(windowLayout?.sidebarWidth ?? 280)
+    }
+
+    var notesListWidth: CGFloat {
+        CGFloat(windowLayout?.notesListWidth ?? 280)
+    }
+
     func mailNotificationSound(for accountID: UUID) -> MailNotificationSound {
         mailNotificationSoundOverrides[accountID] ?? mailNotificationSound
     }
@@ -137,6 +188,10 @@ final class AppSettings: ObservableObject {
 
     func clearMailNotificationSound(for accountID: UUID) {
         mailNotificationSoundOverrides.removeValue(forKey: accountID)
+    }
+
+    func replaceMailNotificationSoundOverrides(_ overrides: [UUID: MailNotificationSound]) {
+        mailNotificationSoundOverrides = overrides
     }
 
     private init() {
@@ -168,6 +223,39 @@ final class AppSettings: ObservableObject {
             selectedChatAccountID = id
         } else {
             selectedChatAccountID = nil
+        }
+
+        if UserDefaults.standard.object(forKey: Keys.emailNotificationsEnabled) != nil {
+            emailNotificationsEnabled = UserDefaults.standard.bool(forKey: Keys.emailNotificationsEnabled)
+        } else {
+            emailNotificationsEnabled = true
+        }
+
+        if UserDefaults.standard.object(forKey: Keys.calendarNotificationsEnabled) != nil {
+            calendarNotificationsEnabled = UserDefaults.standard.bool(forKey: Keys.calendarNotificationsEnabled)
+        } else {
+            calendarNotificationsEnabled = true
+        }
+
+        if UserDefaults.standard.object(forKey: Keys.clipboardSyncEnabled) != nil {
+            clipboardSyncEnabled = UserDefaults.standard.bool(forKey: Keys.clipboardSyncEnabled)
+        } else {
+            clipboardSyncEnabled = true
+        }
+
+        if UserDefaults.standard.object(forKey: Keys.iCloudKeychainTokenSyncEnabled) != nil {
+            iCloudKeychainTokenSyncEnabled = UserDefaults.standard.bool(forKey: Keys.iCloudKeychainTokenSyncEnabled)
+        } else {
+            iCloudKeychainTokenSyncEnabled = true
+        }
+
+        selectedWorkspacePane = UserDefaults.standard.string(forKey: Keys.selectedWorkspacePane)
+
+        if let data = UserDefaults.standard.data(forKey: Keys.windowLayout),
+           let layout = try? JSONDecoder().decode(WindowLayoutState.self, from: data) {
+            windowLayout = layout
+        } else {
+            windowLayout = nil
         }
     }
 

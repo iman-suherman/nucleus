@@ -14,6 +14,7 @@ let package = Package(
         .library(name: "CalendarKit", targets: ["CalendarKit"]),
         .library(name: "ClipboardKit", targets: ["ClipboardKit"]),
         .library(name: "NotesKit", targets: ["NotesKit"]),
+        .library(name: "SyncKit", targets: ["SyncKit"]),
     ],
     targets: [
         .target(name: "NucleusKit"),
@@ -45,6 +46,10 @@ let package = Package(
         .target(
             name: "NotesKit",
             dependencies: ["NucleusKit", "DatabaseKit", "AccountKit"]
+        ),
+        .target(
+            name: "SyncKit",
+            dependencies: ["NucleusKit", "DatabaseKit"]
         ),
     ]
 )

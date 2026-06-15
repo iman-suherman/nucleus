@@ -1,0 +1,159 @@
+import Combine
+import DatabaseKit
+import Foundation
+import NucleusKit
+import SwiftData
+import SyncKit
+
+@MainActor
+protocol SyncedLayoutApplying: AnyObject {
+    func applySyncedLayout(from settings: AppSettings)
+}
+
+@MainActor
+final class SettingsSyncBridge {
+    static let shared = SettingsSyncBridge()
+
+    private var modelContainer: ModelContainer?
+    private weak var layoutDelegate: SyncedLayoutApplying?
+    private var settingsObserver: AnyCancellable?
+    private var remoteChangeObserver: AnyCancellable?
+    private var isApplyingRemote = false
+    private var pushTask: Task<Void, Never>?
+
+    private init() {}
+
+    func start(
+        modelContainer: ModelContainer,
+        settings: AppSettings,
+        layoutDelegate: SyncedLayoutApplying?
+    ) {
+        self.modelContainer = modelContainer
+        self.layoutDelegate = layoutDelegate
+        mergeOnLaunch(into: settings)
+        observeSettingsChanges(settings)
+        observeRemoteChanges(settings)
+    }
+
+    func pushNow(from settings: AppSettings) {
+        guard let modelContainer else { return }
+        guard !isApplyingRemote else { return }
+
+        let context = ModelContext(modelContainer)
+        let configuration = makeConfiguration(from: settings, context: context)
+        try? SyncedSettingsRepository.upsert(configuration, context: context)
+    }
+
+    func applyRemote(into settings: AppSettings) {
+        guard let modelContainer else { return }
+        let context = ModelContext(modelContainer)
+        guard let remote = try? SyncedSettingsRepository.fetch(context: context) else { return }
+
+        isApplyingRemote = true
+        settings.apply(remoteConfiguration: remote)
+        layoutDelegate?.applySyncedLayout(from: settings)
+        isApplyingRemote = false
+    }
+
+    private func mergeOnLaunch(into settings: AppSettings) {
+        guard let modelContainer else { return }
+        let context = ModelContext(modelContainer)
+        let localConfiguration = makeConfiguration(from: settings, context: context)
+
+        if let remote = try? SyncedSettingsRepository.fetch(context: context) {
+            if remote.updatedAt >= localConfiguration.updatedAt {
+                isApplyingRemote = true
+                settings.apply(remoteConfiguration: remote)
+                layoutDelegate?.applySyncedLayout(from: settings)
+                isApplyingRemote = false
+            } else {
+                try? SyncedSettingsRepository.upsert(localConfiguration, context: context)
+            }
+            return
+        }
+
+        try? SyncedSettingsRepository.upsert(localConfiguration, context: context)
+        layoutDelegate?.applySyncedLayout(from: settings)
+    }
+
+    private func observeSettingsChanges(_ settings: AppSettings) {
+        settingsObserver = settings.objectWillChange
+            .debounce(for: .milliseconds(400), scheduler: RunLoop.main)
+            .sink { [weak self, weak settings] _ in
+                guard let self, let settings else { return }
+                self.schedulePush(from: settings)
+            }
+    }
+
+    private func observeRemoteChanges(_ settings: AppSettings) {
+        remoteChangeObserver = NotificationCenter.default.publisher(for: .nucleusCloudKitDataDidChange)
+            .receive(on: RunLoop.main)
+            .sink { [weak self, weak settings] _ in
+                guard let self, let settings else { return }
+                self.applyRemote(into: settings)
+            }
+    }
+
+    private func schedulePush(from settings: AppSettings) {
+        pushTask?.cancel()
+        pushTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 200_000_000)
+            guard !Task.isCancelled else { return }
+            pushNow(from: settings)
+        }
+    }
+
+    private func makeConfiguration(from settings: AppSettings, context: ModelContext) -> NucleusSyncedConfiguration {
+        let accounts = (try? AccountRepository.fetchAll(context: context)) ?? []
+        let primaryAccountID = accounts.first(where: { $0.isPrimary })?.id.uuidString
+        let overrides = Dictionary(
+            uniqueKeysWithValues: settings.mailNotificationSoundOverrides.map { ($0.key.uuidString, $0.value.rawValue) }
+        )
+
+        return NucleusSyncedConfiguration(
+            version: NucleusSyncedConfiguration.currentVersion,
+            primaryAccountID: primaryAccountID,
+            mailSyncInterval: settings.mailSyncInterval,
+            mailNotificationSound: settings.mailNotificationSound.rawValue,
+            mailNotificationSoundByAccount: overrides,
+            selectedMailAccountID: settings.selectedMailAccountID?.uuidString,
+            selectedCalendarAccountID: settings.selectedCalendarAccountID?.uuidString,
+            selectedChatAccountID: settings.selectedChatAccountID?.uuidString,
+            emailNotificationsEnabled: settings.emailNotificationsEnabled,
+            calendarNotificationsEnabled: settings.calendarNotificationsEnabled,
+            selectedWorkspacePane: settings.selectedWorkspacePane,
+            windowLayout: settings.windowLayout,
+            clipboardSyncEnabled: settings.clipboardSyncEnabled,
+            iCloudKeychainTokenSyncEnabled: settings.iCloudKeychainTokenSyncEnabled,
+            updatedAt: Date()
+        )
+    }
+}
+
+extension AppSettings {
+    func apply(remoteConfiguration: NucleusSyncedConfiguration) {
+        mailSyncInterval = remoteConfiguration.mailSyncInterval
+
+        if let raw = MailNotificationSound(rawValue: remoteConfiguration.mailNotificationSound) {
+            mailNotificationSound = raw
+        }
+
+        var overrides: [UUID: MailNotificationSound] = [:]
+        for (accountIDRaw, soundRaw) in remoteConfiguration.mailNotificationSoundByAccount {
+            guard let accountID = UUID(uuidString: accountIDRaw),
+                  let sound = MailNotificationSound(rawValue: soundRaw) else { continue }
+            overrides[accountID] = sound
+        }
+        replaceMailNotificationSoundOverrides(overrides)
+
+        selectedMailAccountID = remoteConfiguration.selectedMailAccountID.flatMap(UUID.init(uuidString:))
+        selectedCalendarAccountID = remoteConfiguration.selectedCalendarAccountID.flatMap(UUID.init(uuidString:))
+        selectedChatAccountID = remoteConfiguration.selectedChatAccountID.flatMap(UUID.init(uuidString:))
+        emailNotificationsEnabled = remoteConfiguration.emailNotificationsEnabled
+        calendarNotificationsEnabled = remoteConfiguration.calendarNotificationsEnabled
+        selectedWorkspacePane = remoteConfiguration.selectedWorkspacePane
+        windowLayout = remoteConfiguration.windowLayout
+        clipboardSyncEnabled = remoteConfiguration.clipboardSyncEnabled
+        iCloudKeychainTokenSyncEnabled = remoteConfiguration.iCloudKeychainTokenSyncEnabled
+    }
+}

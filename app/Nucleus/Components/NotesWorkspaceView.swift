@@ -3,12 +3,13 @@ import SwiftUI
 
 struct NotesWorkspaceView: View {
     @EnvironmentObject private var viewModel: AppViewModel
+    @EnvironmentObject private var appSettings: AppSettings
     @State private var editorText = ""
 
     var body: some View {
         HSplitView {
             notesList
-                .frame(minWidth: 240, idealWidth: 280, maxWidth: 340)
+                .frame(minWidth: 240, idealWidth: appSettings.notesListWidth, maxWidth: 340)
 
             noteEditor
                 .frame(minWidth: 420)
@@ -47,6 +48,15 @@ struct NotesWorkspaceView: View {
                     }
                     .tag(Optional(note.id))
                 }
+            }
+        }
+        .background {
+            GeometryReader { proxy in
+                Color.clear
+                    .onAppear { viewModel.updateNotesListWidth(proxy.size.width) }
+                    .onChange(of: proxy.size.width) { _, width in
+                        viewModel.updateNotesListWidth(width)
+                    }
             }
         }
     }

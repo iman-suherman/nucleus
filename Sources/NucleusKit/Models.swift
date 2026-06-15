@@ -252,6 +252,107 @@ public enum NoteFolder: String, Codable, CaseIterable, Sendable {
     }
 }
 
+/// Configuration synced via iCloud CloudKit. OAuth tokens and Google content stay device-local.
+public struct WindowLayoutState: Codable, Hashable, Sendable {
+    public var width: Double
+    public var height: Double
+    public var originX: Double?
+    public var originY: Double?
+    public var sidebarWidth: Double?
+    public var notesListWidth: Double?
+
+    public init(
+        width: Double,
+        height: Double,
+        originX: Double? = nil,
+        originY: Double? = nil,
+        sidebarWidth: Double? = nil,
+        notesListWidth: Double? = nil
+    ) {
+        self.width = width
+        self.height = height
+        self.originX = originX
+        self.originY = originY
+        self.sidebarWidth = sidebarWidth
+        self.notesListWidth = notesListWidth
+    }
+}
+
+/// Configuration synced via iCloud CloudKit. OAuth tokens sync separately via iCloud Keychain when enabled.
+public struct NucleusSyncedConfiguration: Codable, Hashable, Sendable {
+    public static let currentVersion = 2
+    public static let singletonRecordID = UUID(uuidString: "00000000-0000-0000-0000-000000000001")!
+
+    public var version: Int
+    public var primaryAccountID: String?
+    public var mailSyncInterval: TimeInterval
+    public var mailNotificationSound: String
+    public var mailNotificationSoundByAccount: [String: String]
+    public var selectedMailAccountID: String?
+    public var selectedCalendarAccountID: String?
+    public var selectedChatAccountID: String?
+    public var emailNotificationsEnabled: Bool
+    public var calendarNotificationsEnabled: Bool
+    public var selectedWorkspacePane: String?
+    public var windowLayout: WindowLayoutState?
+    public var clipboardSyncEnabled: Bool
+    public var iCloudKeychainTokenSyncEnabled: Bool
+    public var updatedAt: Date
+
+    public init(
+        version: Int = NucleusSyncedConfiguration.currentVersion,
+        primaryAccountID: String? = nil,
+        mailSyncInterval: TimeInterval = 60,
+        mailNotificationSound: String = "NucleusMail",
+        mailNotificationSoundByAccount: [String: String] = [:],
+        selectedMailAccountID: String? = nil,
+        selectedCalendarAccountID: String? = nil,
+        selectedChatAccountID: String? = nil,
+        emailNotificationsEnabled: Bool = true,
+        calendarNotificationsEnabled: Bool = true,
+        selectedWorkspacePane: String? = nil,
+        windowLayout: WindowLayoutState? = nil,
+        clipboardSyncEnabled: Bool = true,
+        iCloudKeychainTokenSyncEnabled: Bool = true,
+        updatedAt: Date = Date()
+    ) {
+        self.version = version
+        self.primaryAccountID = primaryAccountID
+        self.mailSyncInterval = mailSyncInterval
+        self.mailNotificationSound = mailNotificationSound
+        self.mailNotificationSoundByAccount = mailNotificationSoundByAccount
+        self.selectedMailAccountID = selectedMailAccountID
+        self.selectedCalendarAccountID = selectedCalendarAccountID
+        self.selectedChatAccountID = selectedChatAccountID
+        self.emailNotificationsEnabled = emailNotificationsEnabled
+        self.calendarNotificationsEnabled = calendarNotificationsEnabled
+        self.selectedWorkspacePane = selectedWorkspacePane
+        self.windowLayout = windowLayout
+        self.clipboardSyncEnabled = clipboardSyncEnabled
+        self.iCloudKeychainTokenSyncEnabled = iCloudKeychainTokenSyncEnabled
+        self.updatedAt = updatedAt
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        version = try container.decodeIfPresent(Int.self, forKey: .version) ?? 1
+        primaryAccountID = try container.decodeIfPresent(String.self, forKey: .primaryAccountID)
+        mailSyncInterval = try container.decodeIfPresent(TimeInterval.self, forKey: .mailSyncInterval) ?? 60
+        mailNotificationSound = try container.decodeIfPresent(String.self, forKey: .mailNotificationSound) ?? "NucleusMail"
+        mailNotificationSoundByAccount = try container.decodeIfPresent([String: String].self, forKey: .mailNotificationSoundByAccount) ?? [:]
+        selectedMailAccountID = try container.decodeIfPresent(String.self, forKey: .selectedMailAccountID)
+        selectedCalendarAccountID = try container.decodeIfPresent(String.self, forKey: .selectedCalendarAccountID)
+        selectedChatAccountID = try container.decodeIfPresent(String.self, forKey: .selectedChatAccountID)
+        emailNotificationsEnabled = try container.decodeIfPresent(Bool.self, forKey: .emailNotificationsEnabled) ?? true
+        calendarNotificationsEnabled = try container.decodeIfPresent(Bool.self, forKey: .calendarNotificationsEnabled) ?? true
+        selectedWorkspacePane = try container.decodeIfPresent(String.self, forKey: .selectedWorkspacePane)
+        windowLayout = try container.decodeIfPresent(WindowLayoutState.self, forKey: .windowLayout)
+        clipboardSyncEnabled = try container.decodeIfPresent(Bool.self, forKey: .clipboardSyncEnabled) ?? true
+        iCloudKeychainTokenSyncEnabled = try container.decodeIfPresent(Bool.self, forKey: .iCloudKeychainTokenSyncEnabled) ?? true
+        updatedAt = try container.decodeIfPresent(Date.self, forKey: .updatedAt) ?? Date()
+    }
+}
+
 public enum NucleusFormatters {
     public static let relativeDate: RelativeDateTimeFormatter = {
         let formatter = RelativeDateTimeFormatter()

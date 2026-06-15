@@ -61,6 +61,8 @@ targets:
         product: ClipboardKit
       - package: NucleusPackages
         product: NotesKit
+      - package: NucleusPackages
+        product: SyncKit
     scheme:
       testTargets: []
 

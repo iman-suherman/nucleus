@@ -11,6 +11,7 @@ public final class GoogleAccountRecord {
     public var isPrimary: Bool
     public var isPrimaryNotesAccount: Bool
     public var authMode: String = GoogleAccountAuthMode.webSession.rawValue
+    public var sortOrder: Int = 0
     public var createdAt: Date
 
     public init(
@@ -21,6 +22,7 @@ public final class GoogleAccountRecord {
         isPrimary: Bool = false,
         isPrimaryNotesAccount: Bool = false,
         authMode: String = GoogleAccountAuthMode.webSession.rawValue,
+        sortOrder: Int = 0,
         createdAt: Date = Date()
     ) {
         self.id = id
@@ -30,6 +32,7 @@ public final class GoogleAccountRecord {
         self.isPrimary = isPrimary
         self.isPrimaryNotesAccount = isPrimaryNotesAccount
         self.authMode = authMode
+        self.sortOrder = sortOrder
         self.createdAt = createdAt
     }
 
@@ -291,5 +294,35 @@ public final class MailMessageRecord {
             receivedAt: receivedAt,
             isUnread: isUnread
         )
+    }
+}
+
+@Model
+public final class SyncedSettingsRecord {
+    @Attribute(.unique) public var id: UUID
+    public var payloadData: Data
+    public var updatedAt: Date
+
+    public init(id: UUID, payloadData: Data, updatedAt: Date) {
+        self.id = id
+        self.payloadData = payloadData
+        self.updatedAt = updatedAt
+    }
+
+    public init(configuration: NucleusSyncedConfiguration) throws {
+        id = NucleusSyncedConfiguration.singletonRecordID
+        payloadData = try JSONEncoder().encode(configuration)
+        updatedAt = configuration.updatedAt
+    }
+
+    public var configuration: NucleusSyncedConfiguration {
+        get throws {
+            try JSONDecoder().decode(NucleusSyncedConfiguration.self, from: payloadData)
+        }
+    }
+
+    public func apply(_ configuration: NucleusSyncedConfiguration) throws {
+        payloadData = try JSONEncoder().encode(configuration)
+        updatedAt = configuration.updatedAt
     }
 }

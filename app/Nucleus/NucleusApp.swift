@@ -42,8 +42,16 @@ struct NucleusApp: App {
                     viewModel.checkForUpdatesWhenEligible()
                     viewModel.refreshMailUnreadNow()
                 }
+                .background(
+                    WindowLayoutAccessor { window in
+                        WindowLayoutController.shared.attach(to: window)
+                    }
+                )
         }
-        .defaultSize(width: 1320, height: 880)
+        .defaultSize(
+            width: appSettings.windowLayout?.width ?? 1320,
+            height: appSettings.windowLayout?.height ?? 880
+        )
         .windowStyle(.automatic)
         .commands {
             CommandGroup(replacing: .newItem) {}
@@ -77,7 +85,7 @@ struct ContentView: View {
             VStack(spacing: 0) {
                 NavigationSplitView {
                     sidebar
-                        .navigationSplitViewColumnWidth(min: 260, ideal: 280, max: 340)
+                        .navigationSplitViewColumnWidth(min: 260, ideal: appSettings.sidebarWidth, max: 340)
                 } detail: {
                     detailContent
                         .toolbar {
@@ -124,6 +132,9 @@ struct ContentView: View {
         }
         .animation(.easeInOut(duration: 0.22), value: viewModel.isStartingUp)
         .animation(.easeInOut(duration: 0.22), value: viewModel.showWhatsNew)
+        .onChange(of: viewModel.sidebarSelection) { _, selection in
+            viewModel.sidebarSelectionDidChange(selection)
+        }
     }
 
     @ViewBuilder

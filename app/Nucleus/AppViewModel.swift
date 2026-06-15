@@ -8,6 +8,7 @@ import NotesKit
 import NucleusKit
 import SwiftData
 import SwiftUI
+import SyncKit
 
 enum SidebarSelection: Hashable {
     case workspace(WorkspacePane)
@@ -23,7 +24,7 @@ struct QuickReplyContext: Identifiable {
 }
 
 @MainActor
-final class AppViewModel: ObservableObject {
+final class AppViewModel: ObservableObject, SyncedLayoutApplying {
     static weak var current: AppViewModel?
 
     @Published var sidebarSelection: SidebarSelection = .workspace(.inbox)
@@ -47,8 +48,11 @@ final class AppViewModel: ObservableObject {
     @Published var whatsNewRelease: AppReleaseNotes?
     @Published var quickReplyContext: QuickReplyContext?
     @Published var accountError: String?
+    @Published var webSessionStatus: [UUID: Bool] = [:]
+    @Published var oauthConnectionStatus: [UUID: Bool] = [:]
 
     let modelContainer: ModelContainer
+    let syncService = CloudKitSyncService.shared
     private let mailSyncService = MailSyncService()
     private var knownMessageIDs = Set<String>()
     private var webReportedUnread: [UUID: Int] = [:]
@@ -66,6 +70,73 @@ final class AppViewModel: ObservableObject {
         observeGmailWebSignIn()
         observeGmailWebUnreadCount()
         observeChatWebUnreadCount()
+        observeCloudKitChanges()
+        startWindowLayoutTracking()
+    }
+
+    func applySyncedLayout(from settings: AppSettings) {
+        if let raw = settings.selectedWorkspacePane,
+           let pane = WorkspacePane(rawValue: raw) {
+            sidebarSelection = .workspace(pane)
+        }
+        WindowLayoutController.shared.apply(
+            settings.windowLayout,
+            sidebarWidth: settings.sidebarWidth,
+            notesListWidth: settings.notesListWidth
+        )
+    }
+
+    func sidebarSelectionDidChange(_ selection: SidebarSelection) {
+        guard case .workspace(let pane) = selection else { return }
+        AppSettings.shared.selectedWorkspacePane = pane.rawValue
+        pushSyncedConfiguration()
+    }
+
+    func updateNotesListWidth(_ width: CGFloat) {
+        var layout = AppSettings.shared.windowLayout ?? WindowLayoutState(width: 1320, height: 880)
+        guard abs((layout.notesListWidth ?? 280) - Double(width)) > 4 else { return }
+        layout.notesListWidth = Double(width)
+        AppSettings.shared.windowLayout = layout
+        scheduleLayoutPush()
+    }
+
+    private func startWindowLayoutTracking() {
+        WindowLayoutController.shared.startTracking { [weak self] layout in
+            guard let self else { return }
+            var merged = AppSettings.shared.windowLayout ?? layout
+            merged.width = layout.width
+            merged.height = layout.height
+            merged.originX = layout.originX
+            merged.originY = layout.originY
+            merged.sidebarWidth = AppSettings.shared.windowLayout?.sidebarWidth
+            merged.notesListWidth = AppSettings.shared.windowLayout?.notesListWidth
+            AppSettings.shared.windowLayout = merged
+            self.scheduleLayoutPush()
+        }
+    }
+
+    private var layoutPushTask: Task<Void, Never>?
+
+    private func scheduleLayoutPush() {
+        layoutPushTask?.cancel()
+        layoutPushTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 500_000_000)
+            guard !Task.isCancelled else { return }
+            pushSyncedConfiguration()
+        }
+    }
+
+    private func observeCloudKitChanges() {
+        NotificationCenter.default.addObserver(
+            forName: .nucleusCloudKitDataDidChange,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.reloadLocalData()
+                await self?.refreshWebSessionStatus()
+            }
+        }
     }
 
     private func observeGmailWebUnreadCount() {
@@ -181,6 +252,7 @@ final class AppViewModel: ObservableObject {
             queue: .main
         ) { [weak self] _ in
             Task { @MainActor in
+                await self?.refreshWebSessionStatus()
                 await self?.syncMail()
             }
         }
@@ -200,7 +272,27 @@ final class AppViewModel: ObservableObject {
         await beginStartupStep(.accounts, message: "Restoring Google accounts…")
         completeStartupStep(.accounts)
 
+        await beginStartupStep(.icloudSync, message: "Syncing configuration via iCloud…")
+        syncService.start()
+        SettingsSyncBridge.shared.start(
+            modelContainer: modelContainer,
+            settings: settings,
+            layoutDelegate: self
+        )
+        await syncService.refreshAccountStatus()
+        try? await Task.sleep(nanoseconds: 350_000_000)
+        reloadLocalData()
+        reconcileSelectedAccounts(settings: settings)
+        applySyncedLayout(from: settings)
+        await refreshWebSessionStatus()
+        completeStartupStep(.icloudSync)
+
+        await beginStartupStep(.keychainSync, message: "Restoring Google credentials…")
+        await autoReconnectAccounts(settings: settings)
+        completeStartupStep(.keychainSync)
+
         await beginStartupStep(.clipboard, message: "Starting clipboard monitor…")
+        ClipboardMonitorService.shared.isCaptureEnabled = { settings.clipboardSyncEnabled }
         ClipboardMonitorService.shared.onCapture = { [weak self] capture in
             Task { @MainActor in
                 self?.handleClipboardCapture(capture)
@@ -228,7 +320,6 @@ final class AppViewModel: ObservableObject {
         await syncMail()
         completeStartupStep(.mailSync)
 
-        purgeUnauthenticatedAccounts()
         DockBadgeController.update(unreadCount: totalUnread)
         startupMessage = "Nucleus is ready"
         startupProgressFraction = 1
@@ -253,35 +344,105 @@ final class AppViewModel: ObservableObject {
     }
 
     func promptSignInIfNeeded(settings: AppSettings) async {
-        purgeUnauthenticatedAccounts()
+        await refreshWebSessionStatus()
+        await autoReconnectAccounts(settings: settings)
 
-        guard accounts.isEmpty else { return }
+        if accounts.isEmpty {
+            sidebarSelection = .workspace(.accounts)
+            statusMessage = "Add a Gmail account to begin"
+            return
+        }
+
+        let needsSignIn = accounts.filter { needsReconnect(for: $0) }
+        guard !needsSignIn.isEmpty else {
+            statusMessage = statusMessageForCurrentState()
+            return
+        }
 
         sidebarSelection = .workspace(.accounts)
-        statusMessage = "Add a Gmail account to begin"
+        if needsSignIn.count == 1, let account = needsSignIn.first {
+            statusMessage = "Sign in to \(account.displayName.isEmpty ? account.email : account.displayName) on this Mac"
+        } else {
+            statusMessage = "Sign in to \(needsSignIn.count) Google accounts on this Mac"
+        }
+    }
+
+    func autoReconnectAccounts(settings: AppSettings) async {
+        await GoogleOAuthConfigurationLoader.loadIntoSessionStore(
+            tokenSynchronizable: settings.iCloudKeychainTokenSyncEnabled
+        )
+
+        if settings.iCloudKeychainTokenSyncEnabled {
+            KeychainTokenStore.shared.migrateAllToSynchronizable(accountIDs: accounts.map(\.id))
+            try? await Task.sleep(nanoseconds: 1_000_000_000)
+        } else {
+            KeychainTokenStore.shared.migrateAllToLocalOnly(accountIDs: accounts.map(\.id))
+        }
+
+        guard GoogleOAuthConfigurationLoader.isConfigured else {
+            oauthConnectionStatus = [:]
+            return
+        }
+
+        var status: [UUID: Bool] = [:]
+        for account in accounts {
+            guard KeychainTokenStore.shared.hasTokens(accountID: account.id) else {
+                status[account.id] = false
+                continue
+            }
+            do {
+                _ = try await AccountSessionStore.shared.validAccessToken(accountID: account.id)
+                status[account.id] = true
+            } catch {
+                status[account.id] = false
+            }
+        }
+        oauthConnectionStatus = status
+    }
+
+    func isOAuthConnected(_ account: GoogleAccount) -> Bool {
+        oauthConnectionStatus[account.id] == true
+    }
+
+    func needsReconnect(for account: GoogleAccount) -> Bool {
+        if isOAuthConnected(account), account.authMode == .oauth {
+            return false
+        }
+        if account.authMode == .webSession {
+            if isOAuthConnected(account) {
+                return !(webSessionStatus[account.id] ?? false)
+            }
+            return !(webSessionStatus[account.id] ?? false)
+        }
+        return !isOAuthConnected(account)
+    }
+
+    func refreshWebSessionStatus() async {
+        var status: [UUID: Bool] = [:]
+        for account in webSessionAccounts {
+            let cookies = await GmailWebSessionStore.cookies(for: account.id)
+            status[account.id] = cookies.contains { $0.domain.contains("google.com") }
+        }
+        webSessionStatus = status
+    }
+
+    func reconnectAccount(_ account: GoogleAccount) {
+        AppSettings.shared.selectedMailAccountID = account.id
+        sidebarSelection = .workspace(.inbox)
+        statusMessage = "Sign in to Gmail for \(account.displayName.isEmpty ? account.email : account.displayName)"
     }
 
     func isAccountConnected(_ account: GoogleAccount) -> Bool {
-        account.authMode == .webSession
+        switch account.authMode {
+        case .oauth:
+            return isOAuthConnected(account)
+        case .webSession:
+            return (webSessionStatus[account.id] ?? false) || isOAuthConnected(account)
+        }
     }
 
     func purgeUnauthenticatedAccounts() {
-        let context = ModelContext(modelContainer)
-
-        for account in accounts where account.authMode == .oauth {
-            KeychainTokenStore.shared.deleteTokens(accountID: account.id)
-            try? AccountRepository.delete(id: account.id, context: context)
-        }
-
-        reloadLocalData()
-
-        let stale = accounts.filter { !isAccountConnected($0) }
-        guard !stale.isEmpty else { return }
-
-        for account in stale {
-            try? AccountRepository.delete(id: account.id, context: context)
-        }
-        reloadLocalData()
+        // Account metadata syncs via CloudKit; credentials restore through iCloud Keychain and web sign-in.
     }
 
     func checkForUpdatesWhenEligible() {
@@ -334,10 +495,28 @@ final class AppViewModel: ObservableObject {
         if selectedNoteID == nil {
             selectedNoteID = notes.first?.id
         }
-        if let primary = accounts.first(where: { $0.isPrimary }) ?? accounts.first {
-            AppSettings.shared.selectedMailAccountID = primary.id
-            AppSettings.shared.selectedCalendarAccountID = primary.id
-            AppSettings.shared.selectedChatAccountID = primary.id
+    }
+
+    func reconcileSelectedAccounts(settings: AppSettings) {
+        let accountIDs = Set(accounts.map(\.id))
+        let fallback = accounts.first(where: { $0.isPrimary }) ?? accounts.first
+
+        if let selected = settings.selectedMailAccountID, !accountIDs.contains(selected) {
+            settings.selectedMailAccountID = fallback?.id
+        } else if settings.selectedMailAccountID == nil {
+            settings.selectedMailAccountID = fallback?.id
+        }
+
+        if let selected = settings.selectedCalendarAccountID, !accountIDs.contains(selected) {
+            settings.selectedCalendarAccountID = fallback?.id
+        } else if settings.selectedCalendarAccountID == nil {
+            settings.selectedCalendarAccountID = fallback?.id
+        }
+
+        if let selected = settings.selectedChatAccountID, !accountIDs.contains(selected) {
+            settings.selectedChatAccountID = fallback?.id
+        } else if settings.selectedChatAccountID == nil {
+            settings.selectedChatAccountID = fallback?.id
         }
     }
 
@@ -397,6 +576,7 @@ final class AppViewModel: ObservableObject {
         AppSettings.shared.selectedChatAccountID = account.id
         sidebarSelection = .workspace(.inbox)
         statusMessage = "Sign in to Gmail for \(trimmedEmail)"
+        pushSyncedConfiguration()
     }
 
     func removeAccount(_ account: GoogleAccount) {
@@ -411,6 +591,7 @@ final class AppViewModel: ObservableObject {
         AppSettings.shared.clearMailNotificationSound(for: account.id)
         EmbeddedWebViewRegistry.remove(accountID: account.id)
         reloadLocalData()
+        pushSyncedConfiguration()
     }
 
     func setPrimaryAccount(_ account: GoogleAccount) {
@@ -420,12 +601,14 @@ final class AppViewModel: ObservableObject {
         AppSettings.shared.selectedCalendarAccountID = account.id
         AppSettings.shared.selectedChatAccountID = account.id
         reloadLocalData()
+        pushSyncedConfiguration()
     }
 
     func setPrimaryNotesAccount(_ account: GoogleAccount) {
         let context = ModelContext(modelContainer)
         try? AccountRepository.setPrimaryNotesAccount(id: account.id, context: context)
         reloadLocalData()
+        pushSyncedConfiguration()
     }
 
     func updateAccountCategory(_ account: GoogleAccount, name: String) {
@@ -438,6 +621,11 @@ final class AppViewModel: ObservableObject {
         try? AccountRepository.upsert(updated, context: context)
         reloadLocalData()
         statusMessage = "Renamed category to \(trimmed)"
+        pushSyncedConfiguration()
+    }
+
+    private func pushSyncedConfiguration() {
+        SettingsSyncBridge.shared.pushNow(from: AppSettings.shared)
     }
 
     func syncMail() async {
@@ -594,6 +782,7 @@ final class AppViewModel: ObservableObject {
     }
 
     private func handleClipboardCapture(_ capture: ClipboardCapture) {
+        guard AppSettings.shared.clipboardSyncEnabled else { return }
         let entry = capture.asEntry()
         let context = ModelContext(modelContainer)
         try? ClipboardRepository.insert(entry, context: context)

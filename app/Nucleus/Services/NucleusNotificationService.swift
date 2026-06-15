@@ -27,6 +27,7 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
     }
 
     func notifyNewMail(_ message: MailMessageSummary, accountName: String? = nil) {
+        guard AppSettings.shared.emailNotificationsEnabled else { return }
         let content = UNMutableNotificationContent()
         let sender = message.fromName.isEmpty ? message.fromEmail : message.fromName
         content.title = sender
@@ -61,6 +62,7 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
     }
 
     func notifyIncomingMail(unreadCount: Int, delta: Int, accountName: String, accountID: UUID) {
+        guard AppSettings.shared.emailNotificationsEnabled else { return }
         let content = UNMutableNotificationContent()
         content.title = delta == 1 ? "New Email" : "\(delta) New Emails"
         content.subtitle = accountName
@@ -128,6 +130,7 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
     }
 
     func rescheduleMeetingReminders(_ reminders: [MeetingReminderPlanner.Reminder]) async {
+        guard AppSettings.shared.calendarNotificationsEnabled else { return }
         let center = UNUserNotificationCenter.current()
         let pending = await center.pendingNotificationRequests()
         let calendarIDs = pending.filter { $0.identifier.hasPrefix("calendar-") }.map(\.identifier)
@@ -146,6 +149,7 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
     }
 
     func notifyMeetingReminder(_ event: CalendarEventSummary, kind: MeetingReminderPlanner.Reminder.Kind) {
+        guard AppSettings.shared.calendarNotificationsEnabled else { return }
         let content = meetingContent(for: event, kind: kind)
         let request = UNNotificationRequest(
             identifier: "calendar-\(event.id)-\(kind.rawValue)-immediate",

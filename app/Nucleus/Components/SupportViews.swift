@@ -1,6 +1,7 @@
 import AppKit
 import NucleusKit
 import SwiftUI
+import SyncKit
 
 struct QuickReplySheet: View {
     let context: QuickReplyContext
@@ -43,10 +44,57 @@ struct QuickReplySheet: View {
 
 struct AppSettingsView: View {
     @ObservedObject var settings: AppSettings
+    @ObservedObject var syncService: CloudKitSyncService
+    @ObservedObject var viewModel: AppViewModel
     var accounts: [GoogleAccount]
 
     var body: some View {
         Form {
+            Section("iCloud Sync") {
+                LabeledContent("Status") {
+                    HStack(spacing: 8) {
+                        Image(systemName: syncService.status.isAvailable ? "checkmark.icloud" : "icloud.slash")
+                            .foregroundStyle(syncService.status.isAvailable ? .green : .secondary)
+                        Text(syncService.status.label)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                if let lastRemoteChangeAt = syncService.lastRemoteChangeAt {
+                    LabeledContent("Last update") {
+                        Text(lastRemoteChangeAt, style: .relative)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                Text("Accounts, notes, clipboard history, window layout, and preferences sync through iCloud. Gmail web sessions still require sign-in inside Inbox on each Mac.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                Toggle("Sync clipboard history", isOn: $settings.clipboardSyncEnabled)
+
+                Button("Refresh iCloud Status") {
+                    Task { await syncService.refreshAccountStatus() }
+                }
+            }
+
+            Section("iCloud Keychain") {
+                Toggle("Sync Google OAuth tokens", isOn: $settings.iCloudKeychainTokenSyncEnabled)
+
+                Text("When enabled, Google refresh tokens sync through iCloud Keychain for automatic API reconnection on new Macs. Requires iCloud Keychain in System Settings.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                Button("Refresh Credentials") {
+                    Task { await viewModel.autoReconnectAccounts(settings: settings) }
+                }
+            }
+
+            Section("Notifications") {
+                Toggle("Email notifications", isOn: $settings.emailNotificationsEnabled)
+                Toggle("Calendar notifications", isOn: $settings.calendarNotificationsEnabled)
+            }
+
             Section("Mail notifications") {
                 if accounts.isEmpty {
                     Text("Add a mail account to choose notification sounds.")
@@ -109,11 +157,16 @@ struct SettingsWorkspaceView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Settings")
                         .font(.title2.bold())
-                    Text("Configure per-account mail sounds, sync intervals, and app info.")
+                    Text("Configure iCloud sync, notification preferences, clipboard sync, and mail sounds.")
                         .foregroundStyle(.secondary)
                 }
 
-                AppSettingsView(settings: settings, accounts: viewModel.accounts)
+                AppSettingsView(
+                    settings: settings,
+                    syncService: viewModel.syncService,
+                    viewModel: viewModel,
+                    accounts: viewModel.accounts
+                )
                     .frame(maxWidth: 560, alignment: .leading)
             }
             .padding(24)
