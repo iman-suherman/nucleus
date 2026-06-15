@@ -1,10 +1,10 @@
 {
-  "version": "0.2.3",
-  "summary": "Settings in the sidebar System section.",
+  "version": "0.2.4",
+  "summary": "Mail notification sounds play reliably when Nucleus is in the foreground.",
   "releaseNotes": {
-    "changed": [
-      "Settings now appears under System in the left sidebar — mail notification sound, sync interval, and app info open in the main panel",
-      "⌘, opens Settings in the sidebar instead of a separate window"
+    "fixed": [
+      "Mail alerts now play your chosen notification sound when the banner appears while Nucleus is open",
+      "Custom sounds use the correct macOS bundle filename so background notifications can play Nucleus Mail and Funky"
     ]
   }
 }
