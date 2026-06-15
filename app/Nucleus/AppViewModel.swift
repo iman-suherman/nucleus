@@ -122,24 +122,21 @@ final class AppViewModel: ObservableObject {
 
         guard accounts.isEmpty else { return }
 
-        sidebarSelection = .workspace(.inbox)
-
-        guard settings.oauthConfiguration.isConfigured else {
-            sidebarSelection = .workspace(.accounts)
-            oauthError = "Enter your Google OAuth Client ID in Account Center to sign in."
-            statusMessage = "Configure Google OAuth to sign in"
-            return
-        }
-
-        await addGoogleAccount(settings: settings, categoryName: "Personal")
+        sidebarSelection = .workspace(.accounts)
+        statusMessage = "Add a Google account to begin"
     }
 
-    func hasStoredTokens(for accountID: UUID) -> Bool {
-        KeychainTokenStore.shared.hasTokens(accountID: accountID)
+    func isAccountConnected(_ account: GoogleAccount) -> Bool {
+        switch account.authMode {
+        case .oauth:
+            return hasStoredTokens(for: account.id)
+        case .webSession:
+            return true
+        }
     }
 
     func purgeUnauthenticatedAccounts() {
-        let stale = accounts.filter { !hasStoredTokens(for: $0.id) }
+        let stale = accounts.filter { !isAccountConnected($0) }
         guard !stale.isEmpty else { return }
 
         let context = ModelContext(modelContainer)
@@ -203,6 +200,51 @@ final class AppViewModel: ObservableObject {
         if let primary = accounts.first(where: { $0.isPrimary }) ?? accounts.first {
             AppSettings.shared.selectedMailAccountID = primary.id
         }
+    }
+
+    func hasStoredTokens(for accountID: UUID) -> Bool {
+        KeychainTokenStore.shared.hasTokens(accountID: accountID)
+    }
+
+    var oauthAccounts: [GoogleAccount] {
+        accounts.filter(\.usesOAuthAPI)
+    }
+
+    func addWebGmailAccount(email: String, categoryName: String) {
+        oauthError = nil
+
+        let trimmedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard trimmedEmail.contains("@") else {
+            oauthError = "Enter a valid Gmail address."
+            return
+        }
+
+        if accounts.contains(where: { $0.email.lowercased() == trimmedEmail }) {
+            oauthError = "That Gmail address is already added."
+            if let existing = accounts.first(where: { $0.email.lowercased() == trimmedEmail }) {
+                AppSettings.shared.selectedMailAccountID = existing.id
+                sidebarSelection = .workspace(.inbox)
+            }
+            return
+        }
+
+        let trimmedCategory = categoryName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let resolvedName = trimmedCategory.isEmpty ? trimmedEmail : trimmedCategory
+
+        let account = GoogleAccount(
+            email: trimmedEmail,
+            displayName: resolvedName,
+            isPrimary: accounts.isEmpty,
+            isPrimaryNotesAccount: false,
+            authMode: .webSession
+        )
+
+        let context = ModelContext(modelContainer)
+        try? AccountRepository.upsert(account, context: context)
+        reloadLocalData()
+        AppSettings.shared.selectedMailAccountID = account.id
+        sidebarSelection = .workspace(.inbox)
+        statusMessage = "Sign in to Gmail for \(trimmedEmail)"
     }
 
     func addGoogleAccount(settings: AppSettings, categoryName: String? = nil) async {
@@ -287,15 +329,18 @@ final class AppViewModel: ObservableObject {
     }
 
     func syncMail() async {
-        guard !accounts.isEmpty else {
-            totalUnread = 0
-            DockBadgeController.update(unreadCount: 0)
+        let apiAccounts = oauthAccounts
+        guard !apiAccounts.isEmpty else {
+            if accounts.allSatisfy({ $0.authMode == .webSession }) {
+                totalUnread = 0
+                DockBadgeController.update(unreadCount: 0)
+            }
             return
         }
 
         statusMessage = "Syncing mail…"
         let result = await MailSyncEngine.sync(
-            accounts: accounts,
+            accounts: apiAccounts,
             knownMessageIDs: knownMessageIDs,
             accessTokenProvider: { accountID in
                 try await AccountSessionStore.shared.validAccessToken(accountID: accountID)
@@ -327,11 +372,12 @@ final class AppViewModel: ObservableObject {
     }
 
     func syncCalendar() async {
-        guard !accounts.isEmpty else { return }
+        let apiAccounts = oauthAccounts
+        guard !apiAccounts.isEmpty else { return }
 
         statusMessage = "Syncing calendar…"
         let events = await CalendarSyncEngine.sync(
-            accounts: accounts,
+            accounts: apiAccounts,
             accessTokenProvider: { accountID in
                 try await AccountSessionStore.shared.validAccessToken(accountID: accountID)
             }

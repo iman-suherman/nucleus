@@ -10,6 +10,7 @@ public final class GoogleAccountRecord {
     public var avatarURL: String
     public var isPrimary: Bool
     public var isPrimaryNotesAccount: Bool
+    public var authMode: String = GoogleAccountAuthMode.oauth.rawValue
     public var createdAt: Date
 
     public init(
@@ -19,6 +20,7 @@ public final class GoogleAccountRecord {
         avatarURL: String = "",
         isPrimary: Bool = false,
         isPrimaryNotesAccount: Bool = false,
+        authMode: String = GoogleAccountAuthMode.oauth.rawValue,
         createdAt: Date = Date()
     ) {
         self.id = id
@@ -27,6 +29,7 @@ public final class GoogleAccountRecord {
         self.avatarURL = avatarURL
         self.isPrimary = isPrimary
         self.isPrimaryNotesAccount = isPrimaryNotesAccount
+        self.authMode = authMode
         self.createdAt = createdAt
     }
 
@@ -37,7 +40,8 @@ public final class GoogleAccountRecord {
             displayName: displayName,
             avatarURL: avatarURL,
             isPrimary: isPrimary,
-            isPrimaryNotesAccount: isPrimaryNotesAccount
+            isPrimaryNotesAccount: isPrimaryNotesAccount,
+            authMode: GoogleAccountAuthMode(rawValue: authMode) ?? .oauth
         )
     }
 
@@ -47,6 +51,7 @@ public final class GoogleAccountRecord {
         avatarURL = account.avatarURL
         isPrimary = account.isPrimary
         isPrimaryNotesAccount = account.isPrimaryNotesAccount
+        authMode = account.authMode.rawValue
     }
 }
 

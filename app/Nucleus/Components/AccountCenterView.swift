@@ -6,6 +6,10 @@ struct AccountCenterView: View {
     @EnvironmentObject private var viewModel: AppViewModel
     @EnvironmentObject private var settings: AppSettings
 
+    @State private var isAddingWebAccount = false
+    @State private var webAccountEmail = ""
+    @State private var webAccountCategory = ""
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
@@ -25,19 +29,43 @@ struct AccountCenterView: View {
             Text("Manage multiple Google identities, default inbox, and notes storage account.")
                 .foregroundStyle(.secondary)
 
-            Button {
-                Task { await viewModel.addGoogleAccount(settings: settings) }
-            } label: {
-                Label("Add Google Account", systemImage: "plus.circle.fill")
+            HStack(spacing: 12) {
+                Button {
+                    isAddingWebAccount = true
+                } label: {
+                    Label("Add Gmail (Web Sign-In)", systemImage: "globe")
+                }
+                .buttonStyle(.borderedProminent)
+
+                Button {
+                    Task { await viewModel.addGoogleAccount(settings: settings) }
+                } label: {
+                    Label("Add Google Account (API)", systemImage: "key.fill")
+                }
+                .buttonStyle(.bordered)
+                .disabled(GoogleOAuthCoordinator.shared.isAuthenticating || !settings.oauthConfiguration.isConfigured)
             }
-            .buttonStyle(.borderedProminent)
-            .disabled(GoogleOAuthCoordinator.shared.isAuthenticating)
+
+            Text("Use Web Sign-In for work or school accounts that block third-party apps. Use API sign-in for personal Gmail with calendar sync, notifications, and Drive notes.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
 
             if let oauthError = viewModel.oauthError {
                 Text(oauthError)
                     .font(.caption)
                     .foregroundStyle(.red)
             }
+        }
+        .sheet(isPresented: $isAddingWebAccount) {
+            AddWebGmailAccountSheet(
+                email: $webAccountEmail,
+                categoryName: $webAccountCategory,
+                onSubmit: {
+                    viewModel.addWebGmailAccount(email: webAccountEmail, categoryName: webAccountCategory)
+                    isAddingWebAccount = false
+                },
+                onCancel: { isAddingWebAccount = false }
+            )
         }
     }
 
@@ -69,7 +97,7 @@ struct AccountCenterView: View {
             VStack(alignment: .leading, spacing: 12) {
                 TextField("Client ID", text: $settings.googleClientID)
                 SecureField("Client Secret (optional for desktop OAuth)", text: $settings.googleClientSecret)
-                Text("Create a Desktop OAuth client in Google Cloud Console and register redirect URI net.suherman.nucleus:/oauth2redirect")
+                Text("Create an iOS OAuth client in Google Cloud Console with Bundle ID net.suherman.nucleus, then paste the Client ID here. Not required for Web Sign-In accounts.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -116,6 +144,11 @@ private struct AccountCard: View {
                         .onSubmit { onRename(categoryName) }
                     Text(account.email)
                         .foregroundStyle(.secondary)
+                    if account.authMode == .webSession {
+                        Text("Web Gmail · sign in inside Inbox")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
                 }
                 Spacer()
                 if unreadCount > 0 {

@@ -1,5 +1,10 @@
 import Foundation
 
+public enum GoogleAccountAuthMode: String, Codable, Hashable, Sendable {
+    case oauth
+    case webSession
+}
+
 public struct GoogleAccount: Identifiable, Codable, Hashable, Sendable {
     public let id: UUID
     public var email: String
@@ -7,6 +12,7 @@ public struct GoogleAccount: Identifiable, Codable, Hashable, Sendable {
     public var avatarURL: String
     public var isPrimary: Bool
     public var isPrimaryNotesAccount: Bool
+    public var authMode: GoogleAccountAuthMode
 
     public init(
         id: UUID = UUID(),
@@ -14,7 +20,8 @@ public struct GoogleAccount: Identifiable, Codable, Hashable, Sendable {
         displayName: String,
         avatarURL: String = "",
         isPrimary: Bool = false,
-        isPrimaryNotesAccount: Bool = false
+        isPrimaryNotesAccount: Bool = false,
+        authMode: GoogleAccountAuthMode = .oauth
     ) {
         self.id = id
         self.email = email
@@ -22,6 +29,11 @@ public struct GoogleAccount: Identifiable, Codable, Hashable, Sendable {
         self.avatarURL = avatarURL
         self.isPrimary = isPrimary
         self.isPrimaryNotesAccount = isPrimaryNotesAccount
+        self.authMode = authMode
+    }
+
+    public var usesOAuthAPI: Bool {
+        authMode == .oauth
     }
 }
 

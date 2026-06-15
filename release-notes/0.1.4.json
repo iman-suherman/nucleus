@@ -1,0 +1,14 @@
+{
+  "version": "0.1.4",
+  "summary": "Add web Gmail sign-in for Workspace accounts blocked by OAuth policies.",
+  "releaseNotes": {
+    "introduced": [
+      "Add Gmail (Web Sign-In) for work or school Google accounts that block third-party OAuth apps",
+      "Sign in to Gmail inside Nucleus the same way Mail+ does, without requesting Gmail API access"
+    ],
+    "changed": [
+      "Account Center now separates Web Sign-In and API sign-in paths",
+      "Mail and calendar API sync runs only for OAuth-connected accounts"
+    ]
+  }
+}

@@ -38,9 +38,11 @@
 		E084DF303AFCF5970158EC6C /* AccountCategoryEditorSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 927BBCFD3EA8B38DF2FC4788 /* AccountCategoryEditorSheet.swift */; };
 		E45F6E0F6660F34010CFDEBE /* ClipboardPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D130F5FD244D81A8B8DBE22 /* ClipboardPickerView.swift */; };
 		E61500042BE1E8A2138B4EDD /* MailKit in Frameworks */ = {isa = PBXBuildFile; productRef = 05DB77AAF24A6898436A8A52 /* MailKit */; };
+		EDB250E352E4A3372A211D5C /* AddWebGmailAccountSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 015B76265392421D7C57E815 /* AddWebGmailAccountSheet.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		015B76265392421D7C57E815 /* AddWebGmailAccountSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddWebGmailAccountSheet.swift; sourceTree = "<group>"; };
 		035D0E9FC4A418A7C52523C6 /* DockBadgeController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DockBadgeController.swift; sourceTree = "<group>"; };
 		0E94FBF67AC3185DD7F65D61 /* nucleus */ = {isa = PBXFileReference; lastKnownFileType = folder; name = nucleus; path = ..; sourceTree = SOURCE_ROOT; };
 		12805D482D496E9FAF46F5A6 /* entitlements.mac.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = entitlements.mac.plist; sourceTree = "<group>"; };
@@ -93,6 +95,7 @@
 			children = (
 				927BBCFD3EA8B38DF2FC4788 /* AccountCategoryEditorSheet.swift */,
 				69A7BEC28EFE1D402738D081 /* AccountCenterView.swift */,
+				015B76265392421D7C57E815 /* AddWebGmailAccountSheet.swift */,
 				6F58A8AC449384291C26E26C /* CalendarWorkspaceView.swift */,
 				2D130F5FD244D81A8B8DBE22 /* ClipboardPickerView.swift */,
 				C643F64124025FA6F196C435 /* ClipboardWorkspaceView.swift */,
@@ -246,6 +249,7 @@
 			files = (
 				E084DF303AFCF5970158EC6C /* AccountCategoryEditorSheet.swift in Sources */,
 				0DF8DBEBA58E40936F22C450 /* AccountCenterView.swift in Sources */,
+				EDB250E352E4A3372A211D5C /* AddWebGmailAccountSheet.swift in Sources */,
 				779C8BFFA5C17B8EEC8E9296 /* AppSettings.swift in Sources */,
 				B9E2844DD110DC0608825A91 /* AppViewModel.swift in Sources */,
 				2E92D4BDB66A47E6E813E56B /* BackgroundSyncServices.swift in Sources */,

@@ -56,7 +56,8 @@ public enum AccountRepository {
                 displayName: account.displayName,
                 avatarURL: account.avatarURL,
                 isPrimary: account.isPrimary,
-                isPrimaryNotesAccount: account.isPrimaryNotesAccount
+                isPrimaryNotesAccount: account.isPrimaryNotesAccount,
+                authMode: account.authMode.rawValue
             ))
         }
         try context.save()

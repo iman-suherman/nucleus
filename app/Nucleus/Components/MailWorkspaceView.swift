@@ -100,6 +100,7 @@ struct MailWorkspaceView: View {
     @State private var renameDraft = ""
     @State private var isAddingCategory = false
     @State private var newCategoryName = ""
+    @State private var newCategoryEmail = ""
 
     var body: some View {
         VStack(spacing: 0) {
@@ -135,18 +136,12 @@ struct MailWorkspaceView: View {
             )
         }
         .sheet(isPresented: $isAddingCategory) {
-            AccountCategoryEditorSheet(
-                title: "New Category",
-                actionLabel: "Sign in with Google",
+            AddWebGmailAccountSheet(
+                email: $newCategoryEmail,
                 categoryName: $newCategoryName,
                 onSubmit: {
                     isAddingCategory = false
-                    Task {
-                        await viewModel.addGoogleAccount(
-                            settings: settings,
-                            categoryName: newCategoryName.trimmingCharacters(in: .whitespacesAndNewlines)
-                        )
-                    }
+                    viewModel.addWebGmailAccount(email: newCategoryEmail, categoryName: newCategoryName)
                 },
                 onCancel: { isAddingCategory = false }
             )
@@ -200,6 +195,7 @@ struct MailWorkspaceView: View {
 
                 Button {
                     newCategoryName = ""
+                    newCategoryEmail = ""
                     isAddingCategory = true
                 } label: {
                     Label("Add Category", systemImage: "plus")
