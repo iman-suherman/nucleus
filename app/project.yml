@@ -25,6 +25,7 @@ targets:
           - Assets/AppIconSource.png
           - Assets/AppIconSource.raw.png
           - entitlements.mac.plist
+          - entitlements.mac.icloud.plist
     resources:
       - path: Nucleus/Assets/AppIcon.icns
       - path: Nucleus/Assets/Sounds

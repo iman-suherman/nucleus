@@ -1,0 +1,10 @@
+{
+  "version": "0.3.2",
+  "summary": "Fix launch failure caused by iCloud entitlements before CloudKit is fully provisioned.",
+  "releaseNotes": {
+    "fixed": [
+      "Fix Nucleus failing to open when iCloud container entitlements are not yet active for the signing team",
+      "Keep local-only storage until CloudKit is enabled in Apple Developer for team Q3TXW887NM"
+    ]
+  }
+}
