@@ -1,0 +1,18 @@
+{
+  "version": "0.1.11",
+  "summary": "Per-message mail alerts, reliable calendar sync, and cleaner app icon.",
+  "releaseNotes": {
+    "introduced": [
+      "Background mail and calendar pollers keep badges and alerts working outside Inbox and Calendar tabs"
+    ],
+    "changed": [
+      "Email notifications now arrive one-by-one with sender, account, and subject instead of a bundled unread summary",
+      "Calendar upcoming list and meeting alerts sync from web view and iCal with improved date and timezone parsing",
+      "App and website icons updated with white shadow halo removed"
+    ],
+    "fixed": [
+      "Dock badge and mail notifications now update reliably for web Gmail accounts",
+      "Calendar no longer shows empty upcoming list when meetings are visible in the week view"
+    ]
+  }
+}

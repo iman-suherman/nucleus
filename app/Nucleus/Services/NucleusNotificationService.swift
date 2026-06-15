@@ -25,11 +25,18 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { _, _ in }
     }
 
-    func notifyNewMail(_ message: MailMessageSummary) {
+    func notifyNewMail(_ message: MailMessageSummary, accountName: String? = nil) {
         let content = UNMutableNotificationContent()
-        content.title = "New Email"
-        content.subtitle = message.fromName
-        content.body = message.subject
+        let sender = message.fromName.isEmpty ? message.fromEmail : message.fromName
+        content.title = sender
+        content.subtitle = accountName ?? message.subject
+        if accountName == nil {
+            content.body = message.subject
+        } else if message.snippet.isEmpty || message.snippet == message.subject {
+            content.body = message.subject
+        } else {
+            content.body = "\(message.subject)\n\(message.snippet)"
+        }
         content.sound = Self.alertSound
         content.categoryIdentifier = "NUCLEUS_MAIL"
         content.userInfo = [
@@ -46,6 +53,12 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
             trigger: nil
         )
         UNUserNotificationCenter.current().add(request)
+    }
+
+    func notifyNewMailMessages(_ messages: [MailMessageSummary], accountName: String) {
+        for message in messages {
+            notifyNewMail(message, accountName: accountName)
+        }
     }
 
     func notifyIncomingMail(unreadCount: Int, delta: Int, accountName: String) {

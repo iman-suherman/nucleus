@@ -6,11 +6,13 @@ public enum CalendarWebSessionClient {
         guard !cookies.isEmpty else { return [] }
 
         let encodedEmail = account.email.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? account.email
+        let encodedQuery = account.email.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? account.email
         let candidates = [
+            URL(string: "https://calendar.google.com/calendar/u/0/ical/primary/basic.ics?authuser=\(encodedQuery)")!,
             icalURL(path: "primary/basic.ics", email: account.email),
             icalURL(path: "primary/public/basic.ics", email: account.email),
-            URL(string: "https://calendar.google.com/calendar/u/0/ical/primary/basic.ics?authuser=\(account.email.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? account.email)")!,
-            URL(string: "https://calendar.google.com/calendar/ical/\(encodedEmail)/public/basic.ics?authuser=\(account.email.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? account.email)")!,
+            URL(string: "https://calendar.google.com/calendar/feed/ical/primary?authuser=\(encodedQuery)")!,
+            URL(string: "https://calendar.google.com/calendar/ical/\(encodedEmail)/public/basic.ics?authuser=\(encodedQuery)")!,
         ]
 
         for url in candidates {
@@ -111,7 +113,10 @@ public enum CalendarWebSessionClient {
             let keyPart = String(line[..<separator])
             let value = String(line[line.index(after: separator)...])
             let key = keyPart.split(separator: ";").first.map(String.init) ?? keyPart
-            current[key] = value
+            current[keyPart] = value
+            if current[key] == nil {
+                current[key] = value
+            }
         }
 
         return events.sorted { $0.startDate < $1.startDate }
@@ -136,8 +141,17 @@ public enum CalendarWebSessionClient {
         horizon: Date
     ) -> CalendarEventSummary? {
         guard let uid = fields["UID"], let summary = fields["SUMMARY"] else { return nil }
-        guard let startDate = parseICSDate(fields["DTSTART"]) else { return nil }
-        let endDate = parseICSDate(fields["DTEND"]) ?? startDate.addingTimeInterval(3600)
+        let startKey = fields.keys.first(where: { $0.hasPrefix("DTSTART") && $0.contains("TZID=") })
+            ?? fields.keys.first(where: { $0.hasPrefix("DTSTART") })
+            ?? "DTSTART"
+        let endKey = fields.keys.first(where: { $0.hasPrefix("DTEND") && $0.contains("TZID=") })
+            ?? fields.keys.first(where: { $0.hasPrefix("DTEND") })
+            ?? "DTEND"
+        guard let startDate = parseICSDate(key: startKey, value: fields[startKey] ?? fields["DTSTART"]) else {
+            return nil
+        }
+        let endDate = parseICSDate(key: endKey, value: fields[endKey] ?? fields["DTEND"])
+            ?? startDate.addingTimeInterval(3600)
         guard endDate > now, startDate <= horizon else { return nil }
 
         let location = fields["LOCATION"] ?? ""
@@ -157,18 +171,28 @@ public enum CalendarWebSessionClient {
         )
     }
 
-    private static func parseICSDate(_ value: String?) -> Date? {
+    private static func parseICSDate(key: String, value: String?) -> Date? {
         guard let value else { return nil }
         let cleaned = value.trimmingCharacters(in: .whitespacesAndNewlines)
 
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+
+        if key.localizedCaseInsensitiveContains("TZID="),
+           let tzid = key.split(separator: ";").first(where: { $0.uppercased().hasPrefix("TZID=") })?.dropFirst(5) {
+            formatter.timeZone = TimeZone(identifier: String(tzid)) ?? .current
+        } else if cleaned.hasSuffix("Z") {
+            formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        } else {
+            formatter.timeZone = .current
+        }
+
         let formats = [
+            "yyyyMMdd'T'HHmmssX",
             "yyyyMMdd'T'HHmmss'Z'",
             "yyyyMMdd'T'HHmmss",
             "yyyyMMdd",
         ]
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = cleaned.hasSuffix("Z") ? TimeZone(secondsFromGMT: 0) : TimeZone.current
 
         for format in formats {
             formatter.dateFormat = format
@@ -177,6 +201,10 @@ public enum CalendarWebSessionClient {
             }
         }
         return nil
+    }
+
+    private static func parseICSDate(_ value: String?) -> Date? {
+        parseICSDate(key: "DTSTART", value: value)
     }
 
     private static func extractMeetingLink(description: String, location: String) -> String? {

@@ -151,10 +151,7 @@ struct ChatWebView: NSViewRepresentable {
                 NotificationCenter.default.post(
                     name: .chatWebUnreadCountDidChange,
                     object: nil,
-                    userInfo: [
-                        "accountID": accountID,
-                        "count": count,
-                    ]
+                    userInfo: NotificationUserInfo.mailUnreadPayload(accountID: accountID, count: count)
                 )
             }
         }

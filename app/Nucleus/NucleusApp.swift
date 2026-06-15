@@ -40,6 +40,8 @@ struct NucleusApp: App {
                 }
                 .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
                     viewModel.checkForUpdatesWhenEligible()
+                    viewModel.refreshMailUnreadNow()
+                    viewModel.refreshCalendarEventsNow()
                 }
         }
         .defaultSize(width: 1320, height: 880)
@@ -116,6 +118,8 @@ struct ContentView: View {
             }
 
             ForEach(viewModel.webSessionAccounts) { account in
+                GmailUnreadPoller(accountID: account.id, accountEmail: account.email)
+                CalendarWebPoller(accountID: account.id, accountEmail: account.email)
                 ChatUnreadPoller(accountID: account.id, accountEmail: account.email)
             }
         }

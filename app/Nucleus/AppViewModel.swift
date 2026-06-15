@@ -58,6 +58,8 @@ final class AppViewModel: ObservableObject {
     private var webReportedChatUnread: [UUID: Int] = [:]
     private var chatUnreadBaselineEstablished = Set<UUID>()
     private var webReportedCalendarEvents: [UUID: [CalendarEventSummary]] = [:]
+    private var notifiedMessageIDs = Set<String>()
+    private var pendingMailNotificationDeltas: [UUID: Int] = [:]
 
     init() {
         modelContainer = (try? NucleusDatabase.makeContainer()) ?? {
@@ -76,15 +78,17 @@ final class AppViewModel: ObservableObject {
             object: nil,
             queue: .main
         ) { [weak self] notification in
-            guard let accountID = notification.userInfo?["accountID"] as? UUID,
-                  let labels = notification.userInfo?["labels"] as? [String] else { return }
-            self?.applyWebCalendarEvents(accountID: accountID, labels: labels)
+            guard let accountID = NotificationUserInfo.accountID(from: notification.userInfo),
+                  let json = notification.userInfo?["entriesJSON"] as? String,
+                  let data = json.data(using: .utf8),
+                  let entries = try? JSONDecoder().decode([CalendarWebEventParser.Entry].self, from: data) else { return }
+            self?.applyWebCalendarEvents(accountID: accountID, entries: entries)
         }
     }
 
-    func applyWebCalendarEvents(accountID: UUID, labels: [String]) {
+    func applyWebCalendarEvents(accountID: UUID, entries: [CalendarWebEventParser.Entry]) {
         guard let account = accounts.first(where: { $0.id == accountID }) else { return }
-        let events = CalendarWebEventParser.parse(labels: labels, account: account)
+        let events = CalendarWebEventParser.parse(entries: entries, account: account)
         guard !events.isEmpty else { return }
         webReportedCalendarEvents[accountID] = events
         Task { await syncCalendar() }
@@ -96,31 +100,81 @@ final class AppViewModel: ObservableObject {
             object: nil,
             queue: .main
         ) { [weak self] notification in
-            guard let accountID = notification.userInfo?["accountID"] as? UUID,
-                  let count = notification.userInfo?["count"] as? Int else { return }
+            guard let accountID = NotificationUserInfo.accountID(from: notification.userInfo),
+                  let count = NotificationUserInfo.unreadCount(from: notification.userInfo) else { return }
             self?.applyWebUnreadCount(accountID: accountID, count: count)
         }
     }
 
     func applyWebUnreadCount(accountID: UUID, count: Int) {
         let previous = webReportedUnread[accountID] ?? 0
+        let hadBaseline = unreadBaselineEstablished.contains(accountID)
         webReportedUnread[accountID] = max(0, count)
         unreadByAccount[accountID] = max(0, count)
         totalUnread = unreadByAccount.values.reduce(0, +)
         DockBadgeController.update(unreadCount: totalUnread)
         statusMessage = statusMessageForCurrentState()
-
-        if unreadBaselineEstablished.contains(accountID), count > previous {
-            let account = accounts.first(where: { $0.id == accountID })
-            NucleusNotificationService.shared.notifyIncomingMail(
-                unreadCount: count,
-                delta: count - previous,
-                accountName: account?.displayName ?? account?.email ?? "Inbox"
-            )
-        }
         unreadBaselineEstablished.insert(accountID)
 
+        if hadBaseline, count > previous {
+            pendingMailNotificationDeltas[accountID, default: 0] += count - previous
+            Task { await syncMail() }
+        }
+
         Task { await syncCalendar() }
+    }
+
+    @discardableResult
+    private func deliverMailNotifications(
+        accountID: UUID,
+        preferredMessages: [MailMessageSummary] = [],
+        limit: Int
+    ) -> Int {
+        guard limit > 0 else { return 0 }
+
+        var delivered = 0
+        var seen = Set<String>()
+        let accountName = accounts.first(where: { $0.id == accountID })?.displayName
+            ?? accounts.first(where: { $0.id == accountID })?.email
+            ?? "Inbox"
+
+        let orderedCandidates = (preferredMessages + mailMessages)
+            .filter { message in
+                message.accountID == accountID
+                    && message.isUnread
+                    && !notifiedMessageIDs.contains(message.id)
+                    && seen.insert(message.id).inserted
+            }
+            .sorted { $0.receivedAt > $1.receivedAt }
+
+        for message in orderedCandidates.prefix(limit) {
+            NucleusNotificationService.shared.notifyNewMail(message, accountName: accountName)
+            notifiedMessageIDs.insert(message.id)
+            delivered += 1
+            try? appendActivity(
+                ActivityItem(
+                    title: "New Email",
+                    detail: "\(message.fromName): \(message.subject)",
+                    source: .gmail,
+                    accountEmail: accounts.first(where: { $0.id == accountID })?.email
+                )
+            )
+        }
+
+        return delivered
+    }
+
+    private func flushPendingMailNotifications() {
+        for account in accounts {
+            guard var delta = pendingMailNotificationDeltas[account.id], delta > 0 else { continue }
+            let delivered = deliverMailNotifications(accountID: account.id, limit: delta)
+            delta -= delivered
+            if delta > 0 {
+                pendingMailNotificationDeltas[account.id] = delta
+            } else {
+                pendingMailNotificationDeltas.removeValue(forKey: account.id)
+            }
+        }
     }
 
     private func observeChatWebUnreadCount() {
@@ -129,8 +183,8 @@ final class AppViewModel: ObservableObject {
             object: nil,
             queue: .main
         ) { [weak self] notification in
-            guard let accountID = notification.userInfo?["accountID"] as? UUID,
-                  let count = notification.userInfo?["count"] as? Int else { return }
+            guard let accountID = NotificationUserInfo.accountID(from: notification.userInfo),
+                  let count = NotificationUserInfo.unreadCount(from: notification.userInfo) else { return }
             self?.applyWebChatUnreadCount(accountID: accountID, count: count)
         }
     }
@@ -265,6 +319,15 @@ final class AppViewModel: ObservableObject {
         SparkleUpdaterController.shared.checkForUpdatesInForegroundIfNeeded()
     }
 
+    func refreshMailUnreadNow() {
+        NotificationCenter.default.post(name: .gmailWebUnreadPollNow, object: nil)
+    }
+
+    func refreshCalendarEventsNow() {
+        NotificationCenter.default.post(name: .calendarWebEventsPollNow, object: nil)
+        Task { await syncCalendar() }
+    }
+
     private func statusMessageForCurrentState() -> String {
         if accounts.isEmpty {
             return "Add a Google account to begin"
@@ -320,8 +383,11 @@ final class AppViewModel: ObservableObject {
     }
 
     func calendarEvents(for accountID: UUID?) -> [CalendarEventSummary] {
-        guard let accountID else { return calendarEvents }
-        return calendarEvents.filter { $0.accountID == accountID }
+        let now = Date()
+        let horizon = Calendar.current.date(byAdding: .day, value: 7, to: now) ?? now
+        let upcoming = calendarEvents.filter { $0.endDate > now && $0.startDate <= horizon }
+        guard let accountID else { return upcoming }
+        return upcoming.filter { $0.accountID == accountID }
     }
 
     func upcomingEvents(limit: Int = 8) -> [CalendarEventSummary] {
@@ -528,8 +594,9 @@ final class AppViewModel: ObservableObject {
                 knownMessageIDs: knownMessageIDs
             )
             let atomUnread = result.unreadByAccount[account.id] ?? 0
-            let webUnread = webReportedUnread[account.id] ?? 0
-            mergedUnread[account.id] = max(atomUnread, webUnread)
+            let combinedUnread = max(atomUnread, webReportedUnread[account.id] ?? 0)
+            webReportedUnread[account.id] = combinedUnread
+            mergedUnread[account.id] = combinedUnread
             mergedMessages.append(contentsOf: result.messages)
             mergedNew.append(contentsOf: result.newMessages)
         }
@@ -542,17 +609,26 @@ final class AppViewModel: ObservableObject {
         let context = ModelContext(modelContainer)
         try? MailRepository.replaceMessages(mergedMessages, context: context)
 
-        for message in mergedNew.sorted(by: { $0.receivedAt > $1.receivedAt }) {
-            NucleusNotificationService.shared.notifyNewMail(message)
-            try? appendActivity(
-                ActivityItem(
-                    title: "New Email",
-                    detail: "\(message.fromName): \(message.subject)",
-                    source: .gmail,
-                    accountEmail: accounts.first(where: { $0.id == message.accountID })?.email
-                )
+        let newMessagesByAccount = Dictionary(grouping: mergedNew, by: \.accountID)
+        for account in accounts {
+            let newMessages = newMessagesByAccount[account.id] ?? []
+            guard !newMessages.isEmpty else { continue }
+            deliverMailNotifications(
+                accountID: account.id,
+                preferredMessages: newMessages.sorted { $0.receivedAt > $1.receivedAt },
+                limit: newMessages.count
             )
+            if var delta = pendingMailNotificationDeltas[account.id] {
+                delta = max(0, delta - newMessages.count)
+                if delta > 0 {
+                    pendingMailNotificationDeltas[account.id] = delta
+                } else {
+                    pendingMailNotificationDeltas.removeValue(forKey: account.id)
+                }
+            }
         }
+
+        flushPendingMailNotifications()
 
         DockBadgeController.update(unreadCount: totalUnread)
         statusMessage = statusMessageForCurrentState()

@@ -1,10 +1,12 @@
 import AccountKit
+import CalendarKit
 import NucleusKit
 import SwiftUI
 import WebKit
 
 extension Notification.Name {
     static let calendarWebEventsDidChange = Notification.Name("CalendarWebEventsDidChange")
+    static let calendarWebEventsPollNow = Notification.Name("CalendarWebEventsPollNow")
 }
 
 struct CalendarWebView: NSViewRepresentable {
@@ -68,6 +70,7 @@ struct CalendarWebView: NSViewRepresentable {
         var accountID: UUID?
         var accountEmail: String?
         private var eventPollTimer: Timer?
+        private var pollNowObserver: NSObjectProtocol?
 
         deinit {
             eventPollTimer?.invalidate()
@@ -124,7 +127,18 @@ struct CalendarWebView: NSViewRepresentable {
         private func startEventPolling(in webView: WKWebView) {
             stopEventPolling()
             reportEvents(from: webView)
-            eventPollTimer = Timer.scheduledTimer(withTimeInterval: 45, repeats: true) { [weak self, weak webView] _ in
+            let timer = Timer(timeInterval: 30, repeats: true) { [weak self, weak webView] _ in
+                guard let webView else { return }
+                self?.reportEvents(from: webView)
+            }
+            RunLoop.main.add(timer, forMode: .common)
+            eventPollTimer = timer
+
+            pollNowObserver = NotificationCenter.default.addObserver(
+                forName: .calendarWebEventsPollNow,
+                object: nil,
+                queue: .main
+            ) { [weak self, weak webView] _ in
                 guard let webView else { return }
                 self?.reportEvents(from: webView)
             }
@@ -133,32 +147,29 @@ struct CalendarWebView: NSViewRepresentable {
         private func stopEventPolling() {
             eventPollTimer?.invalidate()
             eventPollTimer = nil
+            if let pollNowObserver {
+                NotificationCenter.default.removeObserver(pollNowObserver)
+                self.pollNowObserver = nil
+            }
         }
 
         private func reportEvents(from webView: WKWebView) {
             guard let accountID else { return }
-            webView.evaluateJavaScript(CalendarWebView.eventExtractionScript) { result, _ in
-                let labels: [String]
-                if let array = result as? [String] {
-                    labels = array
-                } else if let json = result as? String,
-                          let data = json.data(using: .utf8),
-                          let array = try? JSONDecoder().decode([String].self, from: data) {
-                    labels = array
-                } else {
-                    labels = []
-                }
+            webView.evaluateJavaScript(CalendarWebView.eventExtractionScript, completionHandler: { result, _ in
+                guard let payload = result as? String,
+                      let data = payload.data(using: .utf8),
+                      let entries = try? JSONDecoder().decode([CalendarWebEventParser.Entry].self, from: data),
+                      !entries.isEmpty else { return }
 
-                guard !labels.isEmpty else { return }
                 NotificationCenter.default.post(
                     name: .calendarWebEventsDidChange,
                     object: nil,
                     userInfo: [
-                        "accountID": accountID,
-                        "labels": labels,
+                        "accountID": accountID.uuidString,
+                        "entriesJSON": payload,
                     ]
                 )
-            }
+            })
         }
     }
 }
@@ -166,18 +177,51 @@ struct CalendarWebView: NSViewRepresentable {
 private extension CalendarWebView {
     static let eventExtractionScript = """
     (function() {
-      const labels = new Set();
-      document.querySelectorAll('[data-eventid], [data-eventchip]').forEach(function(node) {
-        const label = node.getAttribute('aria-label') || '';
-        if (label.trim()) labels.add(label.trim());
+      const entries = [];
+      const seen = new Set();
+      const timePattern = /(\\d{1,2}(?::\\d{2})?\\s*(?:AM|PM|am|pm)?)\\s*(?:–|-|—|to)\\s*(\\d{1,2}(?::\\d{2})?\\s*(?:AM|PM|am|pm)?)/i;
+
+      function addLabel(label) {
+        const trimmed = (label || '').trim();
+        if (!trimmed || trimmed.length < 4 || seen.has(trimmed)) return;
+        seen.add(trimmed);
+        const match = trimmed.match(timePattern);
+        entries.push({
+          label: trimmed,
+          start: match ? match[1].trim() : null,
+          end: match ? match[2].trim() : null
+        });
+      }
+
+      document.querySelectorAll('[data-eventid], [data-eventchip], [data-event-id]').forEach(function(node) {
+        addLabel(node.getAttribute('aria-label'));
       });
-      document.querySelectorAll('[role="button"][aria-label]').forEach(function(node) {
+
+      document.querySelectorAll('[role="button"][aria-label], [role="link"][aria-label]').forEach(function(node) {
         const label = node.getAttribute('aria-label') || '';
-        if (label.includes(',') && /\\d/.test(label)) labels.add(label.trim());
+        if (timePattern.test(label)) addLabel(label);
       });
-      return JSON.stringify(Array.from(labels).slice(0, 40));
+
+      document.querySelectorAll('[aria-label]').forEach(function(node) {
+        const label = node.getAttribute('aria-label') || '';
+        if (timePattern.test(label) && label.includes(',')) addLabel(label);
+      });
+
+      return JSON.stringify(entries.slice(0, 60));
     })();
     """
+}
+
+struct CalendarWebPoller: View {
+    let accountID: UUID
+    let accountEmail: String
+
+    var body: some View {
+        CalendarWebView(accountID: accountID, accountEmail: accountEmail)
+            .frame(width: 1, height: 1)
+            .opacity(0.01)
+            .allowsHitTesting(false)
+    }
 }
 
 struct CalendarWorkspaceView: View {

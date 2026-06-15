@@ -9,10 +9,13 @@ final class MailSyncService {
     func start(viewModel: AppViewModel, interval: TimeInterval) {
         self.viewModel = viewModel
         stop()
-        timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
+        timer = Timer(timeInterval: interval, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 await self?.viewModel?.syncMail()
             }
+        }
+        if let timer {
+            RunLoop.main.add(timer, forMode: .common)
         }
         Task { await viewModel.syncMail() }
     }

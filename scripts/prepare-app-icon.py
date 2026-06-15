@@ -20,6 +20,20 @@ except ImportError:
 DEFAULT_PADDING_RATIO = 0.05
 DEFAULT_INNER_TRIM = 0
 DEFAULT_WHITE_THRESHOLD = 235
+DEFAULT_HALO_LUMINANCE = 85
+DEFAULT_HALO_SATURATION = 50
+
+
+def _luminance(red: int, green: int, blue: int) -> int:
+    return (red * 299 + green * 587 + blue * 114) // 1000
+
+
+def _saturation(red: int, green: int, blue: int) -> int:
+    maximum = max(red, green, blue)
+    minimum = min(red, green, blue)
+    if maximum == 0:
+        return 0
+    return (maximum - minimum) * 255 // maximum
 
 
 def remove_near_white_background(
@@ -32,8 +46,7 @@ def remove_near_white_background(
     pixels = rgba.load()
 
     def is_background(red: int, green: int, blue: int) -> bool:
-        luminance = (red * 299 + green * 587 + blue * 114) // 1000
-        return luminance >= threshold
+        return _luminance(red, green, blue) >= threshold
 
     visited = [[False] * width for _ in range(height)]
     queue: list[tuple[int, int]] = []
@@ -54,6 +67,59 @@ def remove_near_white_background(
                 continue
             red, green, blue, _alpha = pixels[next_x, next_y]
             if is_background(red, green, blue):
+                visited[next_y][next_x] = True
+                queue.append((next_x, next_y))
+
+    return rgba
+
+
+def remove_light_halo(
+    image: Image.Image,
+    *,
+    luminance_threshold: int = DEFAULT_HALO_LUMINANCE,
+    saturation_threshold: int = DEFAULT_HALO_SATURATION,
+) -> Image.Image:
+    """Remove neutral gray drop-shadow pixels left outside the rounded icon after matte removal."""
+    rgba = image.convert("RGBA")
+    width, height = rgba.size
+    pixels = rgba.load()
+
+    def is_halo(red: int, green: int, blue: int) -> bool:
+        return (
+            _luminance(red, green, blue) >= luminance_threshold
+            and _saturation(red, green, blue) <= saturation_threshold
+        )
+
+    visited = [[False] * width for _ in range(height)]
+    queue: list[tuple[int, int]] = []
+
+    for y in range(height):
+        for x in range(width):
+            if pixels[x, y][3] != 0:
+                continue
+            for next_x, next_y in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
+                if not (0 <= next_x < width and 0 <= next_y < height):
+                    continue
+                if visited[next_y][next_x] or pixels[next_x, next_y][3] == 0:
+                    continue
+                red, green, blue, _alpha = pixels[next_x, next_y]
+                if is_halo(red, green, blue):
+                    visited[next_y][next_x] = True
+                    queue.append((next_x, next_y))
+
+    while queue:
+        x, y = queue.pop()
+        red, green, blue, _alpha = pixels[x, y]
+        if not is_halo(red, green, blue):
+            continue
+        pixels[x, y] = (0, 0, 0, 0)
+        for next_x, next_y in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
+            if not (0 <= next_x < width and 0 <= next_y < height):
+                continue
+            if visited[next_y][next_x] or pixels[next_x, next_y][3] == 0:
+                continue
+            red, green, blue, _alpha = pixels[next_x, next_y]
+            if is_halo(red, green, blue):
                 visited[next_y][next_x] = True
                 queue.append((next_x, next_y))
 
@@ -90,7 +156,8 @@ def detect_background_mode(image: Image.Image) -> str:
 
 def remove_matte_background(image: Image.Image, *, threshold: int = 35) -> Image.Image:
     if detect_background_mode(image) == "white":
-        return remove_near_white_background(image, threshold=max(threshold, DEFAULT_WHITE_THRESHOLD))
+        cleaned = remove_near_white_background(image, threshold=max(threshold, DEFAULT_WHITE_THRESHOLD))
+        return remove_light_halo(cleaned)
     return remove_black_background(image, threshold=threshold)
 
 
