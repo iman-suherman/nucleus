@@ -1,0 +1,15 @@
+{
+  "version": "0.3.17",
+  "summary": "Fixes the window header layout that broke in v0.3.13.",
+  "releaseNotes": {
+    "fixed": [
+      "Sidebar and toolbar no longer draw under the macOS traffic lights",
+      "Restores the compact single-line toolbar status badge from v0.3.12 — the multi-line badge added in v0.3.13 broke unified toolbar layout",
+      "Toolbar moved to the split view level so both sidebar and detail panes respect title bar spacing",
+      "Window chrome disables full-size content view so content stays below the title bar"
+    ],
+    "changed": [
+      "Hover the toolbar status badge to see per-account unread breakdown in a tooltip"
+    ]
+  }
+}

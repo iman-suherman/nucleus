@@ -50,6 +50,7 @@ struct NucleusApp: App {
         }
         .defaultSize(width: 1320, height: 880)
         .windowStyle(.automatic)
+        .windowToolbarStyle(.unified(showsTitle: false))
         .commands {
             CommandGroup(replacing: .newItem) {}
             CommandGroup(after: .appInfo) {
@@ -76,40 +77,51 @@ struct NucleusApp: App {
     }
 }
 
+private struct WindowToolbarChromeModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(macOS 15.0, *) {
+            content
+                .toolbarBackground(.regularMaterial, for: .windowToolbar)
+                .toolbarBackgroundVisibility(.visible, for: .windowToolbar)
+        } else {
+            content
+        }
+    }
+}
+
 struct ContentView: View {
     @EnvironmentObject private var viewModel: AppViewModel
     @EnvironmentObject private var appSettings: AppSettings
 
     var body: some View {
         ZStack {
-            VStack(spacing: 0) {
-                NavigationSplitView {
-                    sidebar
-                        .navigationSplitViewColumnWidth(min: 260, ideal: appSettings.sidebarWidth, max: 340)
-                } detail: {
-                    detailContent
-                        .toolbar {
-                            ToolbarItem(placement: .principal) {
-                                WorkspaceStatusBadge(
-                                    message: viewModel.statusMessage,
-                                    mailUnreadCount: viewModel.totalUnread,
-                                    chatUnreadCount: viewModel.totalChatUnread,
-                                    mailAccounts: viewModel.unreadBreakdown(for: viewModel.unreadByAccount),
-                                    chatAccounts: viewModel.unreadBreakdown(for: viewModel.chatUnreadByAccount)
-                                )
-                            }
-                            ToolbarItem(placement: .automatic) {
-                                Button {
-                                    SparkleUpdaterController.shared.checkForUpdates()
-                                } label: {
-                                    Label("Check for Updates…", systemImage: "arrow.down.circle")
-                                        .labelStyle(.titleAndIcon)
-                                }
-                                .buttonStyle(.bordered)
-                            }
-                        }
+            NavigationSplitView {
+                sidebar
+                    .navigationSplitViewColumnWidth(min: 260, ideal: appSettings.sidebarWidth, max: 340)
+            } detail: {
+                detailContent
+            }
+            .toolbar {
+                ToolbarItem(placement: .principal) {
+                    WorkspaceStatusBadge(
+                        message: viewModel.statusMessage,
+                        mailUnreadCount: viewModel.totalUnread,
+                        chatUnreadCount: viewModel.totalChatUnread,
+                        mailAccounts: viewModel.unreadBreakdown(for: viewModel.unreadByAccount),
+                        chatAccounts: viewModel.unreadBreakdown(for: viewModel.chatUnreadByAccount)
+                    )
+                }
+                ToolbarItem(placement: .automatic) {
+                    Button {
+                        SparkleUpdaterController.shared.checkForUpdates()
+                    } label: {
+                        Label("Check for Updates…", systemImage: "arrow.down.circle")
+                            .labelStyle(.titleAndIcon)
+                    }
+                    .buttonStyle(.bordered)
                 }
             }
+            .modifier(WindowToolbarChromeModifier())
 
             if viewModel.isStartingUp {
                 StartupSplashOverlay(
@@ -184,7 +196,8 @@ struct ContentView: View {
         List(selection: $viewModel.sidebarSelection) {
             Section {
                 NucleusBrandMark(logoSize: 44, showText: true)
-                    .padding(.vertical, 4)
+                    .padding(.top, 8)
+                    .padding(.bottom, 4)
             }
 
             Section("Workspace") {

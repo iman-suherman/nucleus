@@ -19,8 +19,11 @@ struct WorkspaceStatusBadge: View {
         mailUnreadCount > 0 || chatUnreadCount > 0
     }
 
-    private var showsOperationalMessage: Bool {
-        hasUnread && message != unreadSummaryMessage
+    private var statusLine: String {
+        if hasUnread {
+            return unreadSummaryMessage
+        }
+        return message
     }
 
     private var unreadSummaryMessage: String {
@@ -48,7 +51,7 @@ struct WorkspaceStatusBadge: View {
     }
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 10) {
             if hasUnread {
                 HStack(spacing: 6) {
                     if mailUnreadCount > 0 {
@@ -58,52 +61,34 @@ struct WorkspaceStatusBadge: View {
                         unreadPill(count: chatUnreadCount, icon: "message.fill", tint: chatBadgeColor)
                     }
                 }
-
-                Divider()
-                    .frame(height: 22)
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(unreadDetailMessage)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.primary)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-
-                    if showsOperationalMessage {
-                        Text(message)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                            .truncationMode(.tail)
-                    }
-                }
             } else {
                 Image(systemName: "checkmark.circle.fill")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.green)
-
-                Text(message)
-                    .font(.subheadline.weight(.semibold))
-                    .lineLimit(1)
             }
+
+            Text(statusLine)
+                .font(.subheadline.weight(.semibold))
+                .lineLimit(1)
+                .truncationMode(.tail)
         }
         .padding(.horizontal, 18)
         .padding(.vertical, 10)
-        .frame(minWidth: 320, idealWidth: 480, maxWidth: 560)
         .background(.thinMaterial, in: Capsule())
+        .help(hasUnread ? unreadDetailMessage : message)
     }
 
     private func unreadPill(count: Int, icon: String, tint: Color) -> some View {
-        HStack(spacing: 5) {
+        HStack(spacing: 4) {
             Image(systemName: icon)
-                .font(.caption.weight(.bold))
+                .font(.caption2.weight(.bold))
             Text("\(count)")
                 .font(.caption.weight(.bold))
                 .monospacedDigit()
         }
         .foregroundStyle(tint)
-        .padding(.horizontal, 10)
-        .padding(.vertical, 5)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
         .background(tint.opacity(0.18), in: Capsule())
     }
 }
