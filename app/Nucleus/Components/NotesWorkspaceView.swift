@@ -132,17 +132,17 @@ struct NotesWorkspaceView: View {
                         .background(.quaternary.opacity(0.25), in: RoundedRectangle(cornerRadius: 10))
                 }
 
-                HStack {
+                HStack(spacing: 12) {
                     Button("Delete", role: .destructive) {
                         Task { await viewModel.deleteNote(note) }
                     }
-
-                    Spacer()
 
                     Button("Save") {
                         Task { await saveCurrentNote(note) }
                     }
                     .buttonStyle(.borderedProminent)
+
+                    Spacer()
                 }
             } else {
                 ContentUnavailableView(

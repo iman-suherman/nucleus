@@ -44,25 +44,67 @@ final class WindowLayoutController {
     /// Restores saved frame once at launch. Frame is never re-applied after user interaction.
     func restoreSavedFrameOnce(from layout: WindowLayoutState?) {
         guard !hasRestoredInitialFrame else { return }
-        guard let layout, let window = trackedWindow else { return }
+        guard let window = trackedWindow else { return }
         hasRestoredInitialFrame = true
 
         var target = window.frame
-        if layout.width > 0, layout.height > 0 {
-            target.size = NSSize(
-                width: max(layout.width, 1180),
-                height: max(layout.height, 780)
-            )
-        }
-        if let originX = layout.originX, let originY = layout.originY {
-            target.origin = NSPoint(x: originX, y: originY)
+        if let layout {
+            if layout.width > 0, layout.height > 0 {
+                target.size = NSSize(
+                    width: max(layout.width, 1180),
+                    height: max(layout.height, 780)
+                )
+            }
+            if let originX = layout.originX, let originY = layout.originY {
+                target.origin = NSPoint(x: originX, y: originY)
+            }
         }
 
-        guard !framesApproximatelyEqual(window.frame, target) else { return }
+        let constrained = frameConstrainedToVisibleScreen(target, on: window, centerIfNeeded: layout == nil)
+        guard !framesApproximatelyEqual(window.frame, constrained) else { return }
 
         isApplyingProgrammatically = true
-        window.setFrame(target, display: true)
+        window.setFrame(constrained, display: true)
         isApplyingProgrammatically = false
+    }
+
+    private func frameConstrainedToVisibleScreen(
+        _ frame: NSRect,
+        on window: NSWindow,
+        centerIfNeeded: Bool
+    ) -> NSRect {
+        let screen = window.screen ?? NSScreen.main ?? NSScreen.screens.first
+        guard let visible = screen?.visibleFrame else { return frame }
+
+        var result = frame
+        result.size.width = min(max(result.size.width, 1180), visible.width)
+        result.size.height = min(max(result.size.height, 780), visible.height)
+
+        let intersectsVisible = visible.intersection(result)
+        let isMostlyVisible = intersectsVisible.width > result.width * 0.5
+            && intersectsVisible.height > result.height * 0.5
+
+        if centerIfNeeded || !isMostlyVisible {
+            result.origin = NSPoint(
+                x: visible.midX - result.width / 2,
+                y: visible.midY - result.height / 2
+            )
+        }
+
+        if result.minX < visible.minX {
+            result.origin.x = visible.minX
+        }
+        if result.maxX > visible.maxX {
+            result.origin.x = visible.maxX - result.width
+        }
+        if result.minY < visible.minY {
+            result.origin.y = visible.minY
+        }
+        if result.maxY > visible.maxY {
+            result.origin.y = visible.maxY - result.height
+        }
+
+        return result
     }
 
     func captureCurrentLayout(

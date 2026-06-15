@@ -76,26 +76,20 @@ struct NucleusApp: App {
 struct ContentView: View {
     @EnvironmentObject private var viewModel: AppViewModel
     @EnvironmentObject private var appSettings: AppSettings
-    @State private var sidebarVisibility: NavigationSplitViewVisibility = .all
-
-    private var isSidebarVisible: Bool {
-        sidebarVisibility != .detailOnly
-    }
 
     var body: some View {
         ZStack {
             VStack(spacing: 0) {
-                NavigationSplitView(columnVisibility: $sidebarVisibility) {
+                NavigationSplitView {
                     sidebar
                         .navigationSplitViewColumnWidth(min: 260, ideal: appSettings.sidebarWidth, max: 340)
                 } detail: {
                     detailContent
                         .toolbar {
                             ToolbarItem(placement: .navigation) {
-                                if !isSidebarVisible {
-                                    NucleusBrandMark(logoSize: 32, showText: true)
-                                        .transition(.opacity.combined(with: .move(edge: .leading)))
-                                }
+                                Text("Nucleus")
+                                    .font(.title2.bold())
+                                    .frame(width: 120, alignment: .leading)
                             }
                             ToolbarItem(placement: .principal) {
                                 WorkspaceStatusBadge(
@@ -140,7 +134,6 @@ struct ContentView: View {
         }
         .animation(.easeInOut(duration: 0.22), value: viewModel.isStartingUp)
         .animation(.easeInOut(duration: 0.22), value: viewModel.showWhatsNew)
-        .animation(.easeInOut(duration: 0.22), value: sidebarVisibility)
         .onChange(of: viewModel.sidebarSelection) { _, selection in
             viewModel.sidebarSelectionDidChange(selection)
         }
@@ -190,7 +183,7 @@ struct ContentView: View {
     private var sidebar: some View {
         List(selection: $viewModel.sidebarSelection) {
             Section {
-                NucleusBrandMark(logoSize: 44, showText: false)
+                NucleusBrandMark(logoSize: 44, showText: true)
                     .padding(.vertical, 4)
             }
 
