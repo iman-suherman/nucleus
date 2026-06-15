@@ -6,7 +6,6 @@ enum StartupStep: String, CaseIterable, Identifiable {
     case clipboard
     case notifications
     case mailSync
-    case calendarSync
 
     var id: String { rawValue }
 
@@ -17,7 +16,6 @@ enum StartupStep: String, CaseIterable, Identifiable {
         case .clipboard: return "Starting clipboard monitor"
         case .notifications: return "Preparing notifications"
         case .mailSync: return "Syncing mail"
-        case .calendarSync: return "Syncing calendar"
         }
     }
 
@@ -28,7 +26,6 @@ enum StartupStep: String, CaseIterable, Identifiable {
         case .clipboard: return "doc.on.clipboard"
         case .notifications: return "bell"
         case .mailSync: return "tray.full"
-        case .calendarSync: return "calendar"
         }
     }
 }

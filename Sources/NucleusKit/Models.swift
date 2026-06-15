@@ -63,7 +63,7 @@ public enum WorkspacePane: String, CaseIterable, Identifiable, Sendable {
     public var subtitle: String {
         switch self {
         case .inbox: return "Gmail across all accounts"
-        case .calendar: return "Unified meetings timeline"
+        case .calendar: return "Google Calendar in Nucleus"
         case .chat: return "Google Chat messages"
         case .clipboard: return "Recent clips and templates"
         case .notes: return "Markdown knowledge base"

@@ -8,7 +8,6 @@ final class AppSettings: ObservableObject {
 
     private enum Keys {
         static let mailSyncInterval = "nucleus.settings.mailSyncInterval"
-        static let calendarSyncInterval = "nucleus.settings.calendarSyncInterval"
         static let selectedMailAccountID = "nucleus.settings.selectedMailAccountID"
         static let selectedCalendarAccountID = "nucleus.settings.selectedCalendarAccountID"
         static let selectedChatAccountID = "nucleus.settings.selectedChatAccountID"
@@ -18,10 +17,6 @@ final class AppSettings: ObservableObject {
 
     @Published var mailSyncInterval: TimeInterval {
         didSet { UserDefaults.standard.set(mailSyncInterval, forKey: Keys.mailSyncInterval) }
-    }
-
-    @Published var calendarSyncInterval: TimeInterval {
-        didSet { UserDefaults.standard.set(calendarSyncInterval, forKey: Keys.calendarSyncInterval) }
     }
 
     @Published var selectedMailAccountID: UUID? {
@@ -56,7 +51,6 @@ final class AppSettings: ObservableObject {
 
     private init() {
         mailSyncInterval = UserDefaults.standard.object(forKey: Keys.mailSyncInterval) as? TimeInterval ?? 60
-        calendarSyncInterval = UserDefaults.standard.object(forKey: Keys.calendarSyncInterval) as? TimeInterval ?? 120
 
         if let raw = UserDefaults.standard.string(forKey: Keys.selectedMailAccountID),
            let id = UUID(uuidString: raw) {

@@ -49,9 +49,6 @@ struct AppSettingsView: View {
                 Stepper(value: $settings.mailSyncInterval, in: 30...300, step: 30) {
                     Text("Mail sync every \(Int(settings.mailSyncInterval))s")
                 }
-                Stepper(value: $settings.calendarSyncInterval, in: 60...900, step: 60) {
-                    Text("Calendar sync every \(Int(settings.calendarSyncInterval))s")
-                }
             }
 
             Section("About") {

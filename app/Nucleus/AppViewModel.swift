@@ -1,5 +1,4 @@
 import AccountKit
-import CalendarKit
 import ClipboardKit
 import Combine
 import DatabaseKit
@@ -30,7 +29,6 @@ final class AppViewModel: ObservableObject {
     @Published var sidebarSelection: SidebarSelection = .workspace(.inbox)
     @Published var accounts: [GoogleAccount] = []
     @Published var clipboardEntries: [ClipboardEntry] = []
-    @Published var calendarEvents: [CalendarEventSummary] = []
     @Published var activityFeed: [ActivityItem] = []
     @Published var notes: [NoteDocument] = []
     @Published var mailMessages: [MailMessageSummary] = []
@@ -46,7 +44,6 @@ final class AppViewModel: ObservableObject {
     @Published var startupActiveStep: StartupStep?
     @Published var startupProgressFraction: Double = 0
     @Published var statusMessage = "Ready"
-    @Published var isSyncingCalendar = false
     @Published var showWhatsNew = false
     @Published var whatsNewRelease: AppReleaseNotes?
     @Published var quickReplyContext: QuickReplyContext?
@@ -54,13 +51,11 @@ final class AppViewModel: ObservableObject {
 
     let modelContainer: ModelContainer
     private let mailSyncService = MailSyncService()
-    private let calendarSyncService = CalendarSyncService()
     private var knownMessageIDs = Set<String>()
     private var webReportedUnread: [UUID: Int] = [:]
     private var unreadBaselineEstablished = Set<UUID>()
     private var webReportedChatUnread: [UUID: Int] = [:]
     private var chatUnreadBaselineEstablished = Set<UUID>()
-    private var webReportedCalendarEvents: [UUID: [CalendarEventSummary]] = [:]
     private var notifiedMessageIDs = Set<String>()
     private var pendingMailNotificationDeltas: [UUID: Int] = [:]
 
@@ -72,53 +67,6 @@ final class AppViewModel: ObservableObject {
         observeGmailWebSignIn()
         observeGmailWebUnreadCount()
         observeChatWebUnreadCount()
-        observeCalendarWebEvents()
-    }
-
-    private func observeCalendarWebEvents() {
-        NotificationCenter.default.addObserver(
-            forName: .calendarWebEventsDidChange,
-            object: nil,
-            queue: .main
-        ) { [weak self] notification in
-            guard let accountID = NotificationUserInfo.accountID(from: notification.userInfo),
-                  let json = notification.userInfo?["entriesJSON"] as? String,
-                  let data = json.data(using: .utf8),
-                  let entries = try? JSONDecoder().decode([CalendarWebEventParser.Entry].self, from: data) else { return }
-            let icsText = notification.userInfo?["icsText"] as? String
-            let apiPayloads = notification.userInfo?["apiPayloads"] as? [[String: Any]] ?? []
-            self?.applyWebCalendarEvents(
-                accountID: accountID,
-                entries: entries,
-                icsText: icsText,
-                apiPayloads: apiPayloads
-            )
-        }
-    }
-
-    func applyWebCalendarEvents(
-        accountID: UUID,
-        entries: [CalendarWebEventParser.Entry],
-        icsText: String? = nil,
-        apiPayloads: [[String: Any]] = []
-    ) {
-        guard let account = accounts.first(where: { $0.id == accountID }) else { return }
-        var merged: [CalendarEventSummary] = []
-        if !apiPayloads.isEmpty {
-            merged = CalendarWebSessionClient.parseAPIEventPayloads(apiPayloads, account: account)
-        }
-        if let icsText, !icsText.isEmpty {
-            merged = CalendarWebSessionClient.mergeEvents(
-                icalEvents: CalendarWebSessionClient.parseICS(icsText, account: account),
-                webEvents: merged
-            )
-        }
-        let hasStructuredSources = !apiPayloads.isEmpty || !(icsText?.isEmpty ?? true)
-        if merged.isEmpty, !hasStructuredSources {
-            merged = CalendarWebEventParser.parse(entries: entries, account: account)
-        }
-        webReportedCalendarEvents[accountID] = merged
-        Task { await syncCalendar() }
     }
 
     private func observeGmailWebUnreadCount() {
@@ -147,8 +95,6 @@ final class AppViewModel: ObservableObject {
             pendingMailNotificationDeltas[accountID, default: 0] += count - previous
             Task { await syncMail() }
         }
-
-        Task { await syncCalendar() }
     }
 
     @discardableResult
@@ -241,7 +187,6 @@ final class AppViewModel: ObservableObject {
         ) { [weak self] _ in
             Task { @MainActor in
                 await self?.syncMail()
-                await self?.syncCalendar()
             }
         }
     }
@@ -278,29 +223,14 @@ final class AppViewModel: ObservableObject {
                 self?.handleMailNotificationAction(action)
             }
         }
-        NucleusNotificationService.shared.onMeetingReminder = { [weak self] event, _ in
-            Task { @MainActor in
-                try? self?.appendActivity(
-                    ActivityItem(
-                        title: "Meeting reminder",
-                        detail: event.title,
-                        source: .calendar,
-                        accountEmail: event.accountEmail
-                    )
-                )
-            }
-        }
+        NucleusNotificationService.shared.onMeetingReminder = nil
+        await NucleusNotificationService.shared.rescheduleMeetingReminders([])
         completeStartupStep(.notifications)
 
         await beginStartupStep(.mailSync, message: "Syncing mail…")
         mailSyncService.start(viewModel: self, interval: settings.mailSyncInterval)
         await syncMail()
         completeStartupStep(.mailSync)
-
-        await beginStartupStep(.calendarSync, message: "Syncing calendar…")
-        calendarSyncService.start(viewModel: self, interval: settings.calendarSyncInterval)
-        await syncCalendarAutomatically()
-        completeStartupStep(.calendarSync)
 
         purgeUnauthenticatedAccounts()
         DockBadgeController.update(unreadCount: totalUnread)
@@ -366,35 +296,6 @@ final class AppViewModel: ObservableObject {
         NotificationCenter.default.post(name: .gmailWebUnreadPollNow, object: nil)
     }
 
-    func refreshCalendarEventsNow() {
-        syncCalendarNow()
-    }
-
-    func syncCalendarNow() {
-        guard !isSyncingCalendar else { return }
-        Task {
-            isSyncingCalendar = true
-            statusMessage = "Syncing calendar…"
-            defer {
-                isSyncingCalendar = false
-                statusMessage = statusMessageForCurrentState()
-            }
-            await performCalendarSync()
-        }
-    }
-
-    func syncCalendarAutomatically() async {
-        guard !accounts.isEmpty, !isSyncingCalendar else { return }
-        await performCalendarSync()
-    }
-
-    private func performCalendarSync() async {
-        NotificationCenter.default.post(name: .calendarWebEventsPollNow, object: nil)
-        // Give embedded calendar web views time to fetch ICS and report visible events.
-        try? await Task.sleep(nanoseconds: 3_000_000_000)
-        await syncCalendar(rescheduleNotifications: true)
-    }
-
     private func statusMessageForCurrentState() -> String {
         if accounts.isEmpty {
             return "Add a Gmail account to begin"
@@ -402,10 +303,7 @@ final class AppViewModel: ObservableObject {
         if totalUnread > 0 {
             return "\(totalUnread) unread messages"
         }
-        if calendarEvents.isEmpty {
-            return "No upcoming events"
-        }
-        return "\(calendarEvents.count) upcoming events"
+        return "Ready"
     }
 
     private func beginStartupStep(_ step: StartupStep, message: String) async {
@@ -434,7 +332,6 @@ final class AppViewModel: ObservableObject {
         let context = ModelContext(modelContainer)
         accounts = (try? AccountRepository.fetchAll(context: context)) ?? []
         clipboardEntries = (try? ClipboardRepository.fetchRecent(context: context)) ?? []
-        calendarEvents = (try? CalendarRepository.fetchUpcoming(context: context)) ?? []
         activityFeed = (try? ActivityRepository.fetchRecent(context: context)) ?? []
         notes = (try? NoteRepository.fetchAll(context: context)) ?? []
         totalUnread = (try? MailRepository.unreadCount(context: context)) ?? 0
@@ -447,41 +344,6 @@ final class AppViewModel: ObservableObject {
             AppSettings.shared.selectedCalendarAccountID = primary.id
             AppSettings.shared.selectedChatAccountID = primary.id
         }
-    }
-
-    func calendarEvents(for accountID: UUID?) -> [CalendarEventSummary] {
-        let now = Date()
-        let calendar = Calendar.current
-        let horizon = calendar.date(byAdding: .day, value: 8, to: calendar.startOfDay(for: now)) ?? now
-        let upcoming = calendarEvents.filter { $0.endDate > now && $0.startDate < horizon }
-        guard let accountID else { return upcoming }
-        return upcoming.filter { $0.accountID == accountID }
-    }
-
-    func upcomingEvents(limit: Int = 8) -> [CalendarEventSummary] {
-        let now = Date()
-        return calendarEvents
-            .filter { $0.endDate > now }
-            .sorted { $0.startDate < $1.startDate }
-            .prefix(limit)
-            .map { $0 }
-    }
-
-    var todaysUpcomingMeetingCount: Int {
-        let calendar = Calendar.current
-        let now = Date()
-        return calendarEvents.filter { event in
-            calendar.isDateInToday(event.startDate) && event.endDate > now
-        }.count
-    }
-
-    func accountDisplayName(for accountID: UUID) -> String {
-        accounts.first(where: { $0.id == accountID })?.displayName ?? calendarEvents.first(where: { $0.accountID == accountID })?.accountEmail ?? "Calendar"
-    }
-
-    func openCalendar(for event: CalendarEventSummary) {
-        AppSettings.shared.selectedCalendarAccountID = event.accountID
-        sidebarSelection = .workspace(.calendar)
     }
 
     func openChat(for accountID: UUID) {
@@ -656,58 +518,6 @@ final class AppViewModel: ObservableObject {
         statusMessage = statusMessageForCurrentState()
     }
 
-    func syncCalendar(rescheduleNotifications: Bool = true) async {
-        guard !accounts.isEmpty else {
-            calendarEvents = []
-            if rescheduleNotifications {
-                await NucleusNotificationService.shared.rescheduleMeetingReminders([])
-            }
-            return
-        }
-
-        if !isSyncingCalendar {
-            statusMessage = "Syncing calendar…"
-        }
-        var allEvents: [CalendarEventSummary] = []
-
-        let apiAccounts = oauthAccounts
-        if !apiAccounts.isEmpty {
-            allEvents.append(
-                contentsOf: await CalendarSyncEngine.sync(
-                    accounts: apiAccounts,
-                    accessTokenProvider: { accountID in
-                        try await AccountSessionStore.shared.validAccessToken(accountID: accountID)
-                    }
-                )
-            )
-        }
-
-        for account in accounts where account.authMode == .webSession {
-            let cookies = await GmailWebSessionStore.cookies(for: account.id)
-            let authUserIndex = CalendarWebAuthIndexStore.index(for: account.id)
-            let icalEvents = await CalendarWebSessionClient.sync(
-                account: account,
-                cookies: cookies,
-                authUserIndex: authUserIndex
-            )
-            if icalEvents.isEmpty {
-                allEvents.append(contentsOf: webReportedCalendarEvents[account.id] ?? [])
-            } else {
-                allEvents.append(contentsOf: icalEvents)
-            }
-        }
-
-        calendarEvents = allEvents.sorted { $0.startDate < $1.startDate }
-        let context = ModelContext(modelContainer)
-        try? CalendarRepository.replaceEvents(calendarEvents, context: context)
-        if rescheduleNotifications {
-            await scheduleMeetingReminders(for: calendarEvents)
-        }
-        if !isSyncingCalendar {
-            statusMessage = statusMessageForCurrentState()
-        }
-    }
-
     func filteredClipboardEntries() -> [ClipboardEntry] {
         ClipboardSearch.rank(clipboardEntries, query: clipboardSearchQuery)
     }
@@ -817,11 +627,6 @@ final class AppViewModel: ObservableObject {
                 subject: subject
             )
         }
-    }
-
-    private func scheduleMeetingReminders(for events: [CalendarEventSummary]) async {
-        let reminders = MeetingReminderPlanner.reminders(for: events)
-        await NucleusNotificationService.shared.rescheduleMeetingReminders(reminders)
     }
 
     private func appendActivity(_ item: ActivityItem) throws {

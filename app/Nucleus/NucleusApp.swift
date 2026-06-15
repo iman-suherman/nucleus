@@ -41,7 +41,6 @@ struct NucleusApp: App {
                 .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
                     viewModel.checkForUpdatesWhenEligible()
                     viewModel.refreshMailUnreadNow()
-                    viewModel.refreshCalendarEventsNow()
                 }
         }
         .defaultSize(width: 1320, height: 880)
@@ -81,7 +80,6 @@ struct ContentView: View {
     var body: some View {
         ZStack {
             VStack(spacing: 0) {
-                UpcomingEventsBar()
                 NavigationSplitView {
                     sidebar
                         .navigationSplitViewColumnWidth(min: 260, ideal: 280, max: 340)
@@ -94,11 +92,6 @@ struct ContentView: View {
                                     mailUnreadCount: viewModel.totalUnread,
                                     chatUnreadCount: viewModel.totalChatUnread
                                 )
-                            }
-                            ToolbarItem(placement: .automatic) {
-                                if case .workspace(.calendar) = viewModel.sidebarSelection {
-                                    CalendarSyncButton()
-                                }
                             }
                             ToolbarItem(placement: .automatic) {
                                 Button {
@@ -131,7 +124,6 @@ struct ContentView: View {
 
             ForEach(viewModel.webSessionAccounts) { account in
                 GmailUnreadPoller(accountID: account.id, accountEmail: account.email)
-                CalendarWebPoller(accountID: account.id, accountEmail: account.email)
                 ChatUnreadPoller(accountID: account.id, accountEmail: account.email)
             }
         }
@@ -211,8 +203,6 @@ struct ContentView: View {
             NucleusCountBadge(count: viewModel.totalUnread, kind: .mail)
         case .chat where viewModel.totalChatUnread > 0:
             NucleusCountBadge(count: viewModel.totalChatUnread, kind: .chat)
-        case .calendar where viewModel.todaysUpcomingMeetingCount > 0:
-            NucleusCountBadge(count: viewModel.todaysUpcomingMeetingCount)
         case .clipboard where !viewModel.clipboardEntries.isEmpty:
             NucleusCountBadge(count: viewModel.clipboardEntries.count)
         default:
