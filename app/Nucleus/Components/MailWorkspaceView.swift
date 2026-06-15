@@ -346,7 +346,6 @@ struct MailWorkspaceView: View {
                         .nucleusAccountTab(isSelected: false)
                 }
                 .buttonStyle(.plain)
-                .disabled(GoogleOAuthCoordinator.shared.isAuthenticating)
             }
         }
     }

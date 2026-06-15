@@ -48,7 +48,7 @@ final class AppViewModel: ObservableObject {
     @Published var statusMessage = "Ready"
     @Published var isSyncingCalendar = false
     @Published var quickReplyContext: QuickReplyContext?
-    @Published var oauthError: String?
+    @Published var accountError: String?
 
     let modelContainer: ModelContainer
     private let mailSyncService = MailSyncService()
@@ -232,7 +232,6 @@ final class AppViewModel: ObservableObject {
         completeStartupStep(.database)
 
         await beginStartupStep(.accounts, message: "Restoring Google accounts…")
-        await AccountSessionStore.shared.updateConfiguration(settings.oauthConfiguration)
         completeStartupStep(.accounts)
 
         await beginStartupStep(.clipboard, message: "Starting clipboard monitor…")
@@ -293,23 +292,26 @@ final class AppViewModel: ObservableObject {
         guard accounts.isEmpty else { return }
 
         sidebarSelection = .workspace(.accounts)
-        statusMessage = "Add a Google account to begin"
+        statusMessage = "Add a Gmail account to begin"
     }
 
     func isAccountConnected(_ account: GoogleAccount) -> Bool {
-        switch account.authMode {
-        case .oauth:
-            return hasStoredTokens(for: account.id)
-        case .webSession:
-            return true
-        }
+        account.authMode == .webSession
     }
 
     func purgeUnauthenticatedAccounts() {
+        let context = ModelContext(modelContainer)
+
+        for account in accounts where account.authMode == .oauth {
+            KeychainTokenStore.shared.deleteTokens(accountID: account.id)
+            try? AccountRepository.delete(id: account.id, context: context)
+        }
+
+        reloadLocalData()
+
         let stale = accounts.filter { !isAccountConnected($0) }
         guard !stale.isEmpty else { return }
 
-        let context = ModelContext(modelContainer)
         for account in stale {
             try? AccountRepository.delete(id: account.id, context: context)
         }
@@ -346,7 +348,7 @@ final class AppViewModel: ObservableObject {
 
     private func statusMessageForCurrentState() -> String {
         if accounts.isEmpty {
-            return "Add a Google account to begin"
+            return "Add a Gmail account to begin"
         }
         if totalUnread > 0 {
             return "\(totalUnread) unread messages"
@@ -450,16 +452,16 @@ final class AppViewModel: ObservableObject {
     }
 
     func addWebGmailAccount(email: String, categoryName: String) {
-        oauthError = nil
+        accountError = nil
 
         let trimmedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         guard trimmedEmail.contains("@") else {
-            oauthError = "Enter a valid Gmail address."
+            accountError = "Enter a valid Gmail address."
             return
         }
 
         if accounts.contains(where: { $0.email.lowercased() == trimmedEmail }) {
-            oauthError = "That Gmail address is already added."
+            accountError = "That Gmail address is already added."
             if let existing = accounts.first(where: { $0.email.lowercased() == trimmedEmail }) {
                 AppSettings.shared.selectedMailAccountID = existing.id
                 AppSettings.shared.selectedCalendarAccountID = existing.id
@@ -488,52 +490,6 @@ final class AppViewModel: ObservableObject {
         AppSettings.shared.selectedChatAccountID = account.id
         sidebarSelection = .workspace(.inbox)
         statusMessage = "Sign in to Gmail for \(trimmedEmail)"
-    }
-
-    func addGoogleAccount(settings: AppSettings, categoryName: String? = nil) async {
-        oauthError = nil
-
-        do {
-            let (tokens, profile) = try await GoogleOAuthCoordinator.shared.signIn(
-                configuration: settings.oauthConfiguration,
-                clientSecret: nil
-            )
-
-            let trimmedCategory = categoryName?.trimmingCharacters(in: .whitespacesAndNewlines)
-            let resolvedName = trimmedCategory?.isEmpty == false ? trimmedCategory! : profile.name
-
-            let account = GoogleAccount(
-                email: profile.email,
-                displayName: resolvedName,
-                avatarURL: profile.picture ?? "",
-                isPrimary: accounts.isEmpty,
-                isPrimaryNotesAccount: accounts.isEmpty
-            )
-
-            try KeychainTokenStore.shared.saveTokens(tokens, accountID: account.id)
-
-            let context = ModelContext(modelContainer)
-            try AccountRepository.upsert(account, context: context)
-            reloadLocalData()
-            AppSettings.shared.selectedMailAccountID = account.id
-            AppSettings.shared.selectedCalendarAccountID = account.id
-            AppSettings.shared.selectedChatAccountID = account.id
-            sidebarSelection = .workspace(.inbox)
-            await syncMail()
-            await syncCalendar()
-
-            try appendActivity(
-                ActivityItem(
-                    title: "Account connected",
-                    detail: profile.email,
-                    source: .gmail
-                )
-            )
-            statusMessage = "Connected \(profile.email)"
-        } catch {
-            oauthError = error.localizedDescription
-            statusMessage = "Sign-in failed"
-        }
     }
 
     func removeAccount(_ account: GoogleAccount) {

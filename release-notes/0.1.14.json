@@ -1,0 +1,14 @@
+{
+  "version": "0.1.14",
+  "summary": "Remove OAuth API sign-in and use web Gmail sessions only.",
+  "releaseNotes": {
+    "changed": [
+      "Account Center now uses Add Gmail (Web Sign-In) only — the OAuth API sign-in button and built-in Client ID are removed",
+      "Legacy OAuth/API accounts are cleared on launch; Gmail, Chat, and Calendar run through isolated web sessions",
+      "README and website copy updated to describe web sign-in instead of OAuth setup"
+    ],
+    "removed": [
+      "Add Google Account (API) sign-in flow and embedded Google OAuth credentials"
+    ]
+  }
+}

@@ -1,4 +1,3 @@
-import AccountKit
 import Combine
 import Foundation
 import SwiftUI
@@ -6,9 +5,6 @@ import SwiftUI
 @MainActor
 final class AppSettings: ObservableObject {
     static let shared = AppSettings()
-
-    static let googleOAuthClientID =
-        "303349212787-nu4b5rmmgpaa9ps9nfuts1r15jtco63d.apps.googleusercontent.com"
 
     private enum Keys {
         static let mailSyncInterval = "nucleus.settings.mailSyncInterval"
@@ -82,9 +78,5 @@ final class AppSettings: ObservableObject {
         } else {
             selectedChatAccountID = nil
         }
-    }
-
-    var oauthConfiguration: GoogleOAuthConfiguration {
-        GoogleOAuthConfiguration(clientID: Self.googleOAuthClientID)
     }
 }

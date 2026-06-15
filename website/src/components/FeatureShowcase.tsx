@@ -48,7 +48,7 @@ const features = [
   {
     title: "Native macOS workspace",
     description:
-      "SwiftUI shell with OAuth and web-session sign-in, Sparkle auto-updates, Keychain token storage, and a refreshed Nucleus app icon.",
+      "SwiftUI shell with web Gmail sign-in, Sparkle auto-updates, and a refreshed Nucleus app icon.",
     icon: "🖥️",
   },
 ];

@@ -33,7 +33,6 @@
 		92F3296DC4AFB5C4A78EF11D /* ClipboardPasteController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F73321C16D7956F50F538A6E /* ClipboardPasteController.swift */; };
 		9B0DCC0F8A21372D7F8D82F1 /* WorkspaceStatusBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95F9299FA19C03821267F616 /* WorkspaceStatusBadge.swift */; };
 		9DD421879CE8E2380986DE94 /* GmailWebSessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C19EFA3DE919CAF339A8D6E /* GmailWebSessionStore.swift */; };
-		B20F50C768EE29A5A27E9276 /* GoogleOAuthCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = C55529D4C35CB4895D85F0EF /* GoogleOAuthCoordinator.swift */; };
 		B9E2844DD110DC0608825A91 /* AppViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9169DE152DD2077D9F7C4DB3 /* AppViewModel.swift */; };
 		C0DBC257A8BAB9C658468527 /* NucleusApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2698972D63EAE12C5F050DE /* NucleusApp.swift */; };
 		C442A46B050B3F01536FCC47 /* DockBadgeController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 035D0E9FC4A418A7C52523C6 /* DockBadgeController.swift */; };
@@ -81,7 +80,6 @@
 		B6238A17B183A8059CB7A2C0 /* SparkleUpdater.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SparkleUpdater.swift; sourceTree = "<group>"; };
 		BF4B3460305D779B31B79D8C /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		C2698972D63EAE12C5F050DE /* NucleusApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NucleusApp.swift; sourceTree = "<group>"; };
-		C55529D4C35CB4895D85F0EF /* GoogleOAuthCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoogleOAuthCoordinator.swift; sourceTree = "<group>"; };
 		C643F64124025FA6F196C435 /* ClipboardWorkspaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardWorkspaceView.swift; sourceTree = "<group>"; };
 		E4CEADA0142869F8949F55DD /* SupportViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupportViews.swift; sourceTree = "<group>"; };
 		F73321C16D7956F50F538A6E /* ClipboardPasteController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardPasteController.swift; sourceTree = "<group>"; };
@@ -163,7 +161,6 @@
 				F73321C16D7956F50F538A6E /* ClipboardPasteController.swift */,
 				035D0E9FC4A418A7C52523C6 /* DockBadgeController.swift */,
 				7C19EFA3DE919CAF339A8D6E /* GmailWebSessionStore.swift */,
-				C55529D4C35CB4895D85F0EF /* GoogleOAuthCoordinator.swift */,
 				7A0BFA8EFB82901232FB9B24 /* NotificationUserInfo.swift */,
 				584F84F9AF029CC4D8800A01 /* NucleusNotificationService.swift */,
 			);
@@ -304,7 +301,6 @@
 				194D73C14442409686DEF2AE /* ClipboardWorkspaceView.swift in Sources */,
 				C442A46B050B3F01536FCC47 /* DockBadgeController.swift in Sources */,
 				9DD421879CE8E2380986DE94 /* GmailWebSessionStore.swift in Sources */,
-				B20F50C768EE29A5A27E9276 /* GoogleOAuthCoordinator.swift in Sources */,
 				68F673476FAE5D0CA8204F89 /* MailWorkspaceView.swift in Sources */,
 				51EAB3CEA8190FEC48F1F8B8 /* NotesWorkspaceView.swift in Sources */,
 				3D175EB1F440C6B0D9078FA6 /* NotificationCenterView.swift in Sources */,

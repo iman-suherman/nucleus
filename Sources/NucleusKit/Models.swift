@@ -21,7 +21,7 @@ public struct GoogleAccount: Identifiable, Codable, Hashable, Sendable {
         avatarURL: String = "",
         isPrimary: Bool = false,
         isPrimaryNotesAccount: Bool = false,
-        authMode: GoogleAccountAuthMode = .oauth
+        authMode: GoogleAccountAuthMode = .webSession
     ) {
         self.id = id
         self.email = email

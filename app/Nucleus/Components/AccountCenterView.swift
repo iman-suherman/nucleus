@@ -1,4 +1,3 @@
-import AccountKit
 import NucleusKit
 import SwiftUI
 
@@ -35,22 +34,14 @@ struct AccountCenterView: View {
                     Label("Add Gmail (Web Sign-In)", systemImage: "globe")
                 }
                 .buttonStyle(.borderedProminent)
-
-                Button {
-                    Task { await viewModel.addGoogleAccount(settings: settings) }
-                } label: {
-                    Label("Add Google Account (API)", systemImage: "key.fill")
-                }
-                .buttonStyle(.bordered)
-                .disabled(GoogleOAuthCoordinator.shared.isAuthenticating)
             }
 
-            Text("Use Web Sign-In for work or school accounts that block third-party apps. Use API sign-in for personal Gmail with calendar sync, notifications, and Drive notes.")
+            Text("Sign in to Gmail inside Inbox for each category. Web sign-in works for personal, work, and school Google accounts.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
-            if let oauthError = viewModel.oauthError {
-                Text(oauthError)
+            if let accountError = viewModel.accountError {
+                Text(accountError)
                     .font(.caption)
                     .foregroundStyle(.red)
             }

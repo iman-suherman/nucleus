@@ -12,7 +12,7 @@ Built for professionals who manage multiple Google accounts, Nucleus is a unifie
 
 ### Mail & accounts
 - Multi-account Gmail with category tabs (Personal, Work, Client, and more)
-- Web-session sign-in with isolated cookies per account, or Google OAuth API sync
+- Web sign-in with isolated cookies per account — works for personal, work, and school Google accounts
 - Unread badges on sidebar, account tabs, toolbar, and the macOS dock
 - Per-message email notifications with sender, account, and subject
 - Direct inbox loading when already signed in (no login flash)
@@ -29,7 +29,7 @@ Built for professionals who manage multiple Google accounts, Nucleus is a unifie
 - Upcoming meetings list across accounts with join links
 - Upcoming meetings bar at the top of the app with quick Join actions
 - Manual **Sync Calendar** button to refresh events and meeting reminders
-- Calendar sync from OAuth API, iCal feeds, and the embedded calendar web view
+- Calendar sync from iCal feeds and the embedded calendar web view
 - Funky alert sound for upcoming meeting reminders
 - Sidebar badge for today’s upcoming meetings
 
@@ -43,7 +43,7 @@ Built for professionals who manage multiple Google accounts, Nucleus is a unifie
 - Custom Funky alert sound for mail, chat, and calendar reminders
 - Background mail, chat, and calendar pollers keep counts and alerts current
 - Sparkle auto-updates with signed and notarized releases
-- OAuth tokens stored in the Apple Keychain
+- Web sessions stored locally in isolated cookie jars on your Mac
 - Refreshed Nucleus app icon
 
 ## Stack
@@ -54,8 +54,8 @@ Built for professionals who manage multiple Google accounts, Nucleus is a unifie
 | UI | SwiftUI + AppKit |
 | Web | WKWebView (Gmail, Chat, Calendar) |
 | Database | SwiftData + SQLite |
-| Auth | Google OAuth 2.0 + web session |
-| Secrets | Apple Keychain |
+| Auth | Google web sign-in (WKWebView sessions) |
+| Secrets | Apple Keychain (legacy API tokens, if any) |
 | Notifications | UserNotifications |
 
 ## Repository layout
@@ -79,8 +79,8 @@ nucleus/
 
 ## Core modules
 
-- **AccountKit** — Google OAuth, token refresh, multi-account management
-- **MailKit** — Gmail API sync, web-session unread detection, quick reply
+- **AccountKit** — account persistence and legacy token storage
+- **MailKit** — web-session unread detection and Gmail feed sync
 - **CalendarKit** — unified timeline, iCal sync, meeting reminders
 - **ClipboardKit** — clipboard history, search, pinning
 - **NotesKit** — Markdown notes on Google Drive
@@ -116,26 +116,20 @@ npm run xcode            # build app + open Xcode
 npm run run:app          # launch Nucleus.app only
 ```
 
-### Google OAuth setup
+### Add a Gmail account
 
-1. Create a Google Cloud OAuth client (Desktop app type)
-2. Open **Nucleus → Settings → Google OAuth**
-3. Enter your Client ID
-4. Add accounts from **Account Center**
+1. Open **Accounts** in the sidebar
+2. Click **Add Gmail (Web Sign-In)**
+3. Enter the Gmail address and category name
+4. Open **Inbox** and sign in to Gmail for that account
 
-Required scopes:
-
-- `https://www.googleapis.com/auth/gmail.readonly`
-- `https://www.googleapis.com/auth/gmail.send`
-- `https://www.googleapis.com/auth/gmail.modify`
-- `https://www.googleapis.com/auth/calendar.readonly`
-- `https://www.googleapis.com/auth/drive.file`
+Each account gets its own isolated web session for Gmail, Chat, and Calendar.
 
 ## Releases
 
 Download the latest build from the [Nucleus website](https://nucleus.suherman.net) or check **Nucleus → Check for Updates** in the app.
 
-Current release: **0.1.12**
+Current release: **0.1.13**
 
 ## Phase roadmap
 

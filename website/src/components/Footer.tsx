@@ -8,7 +8,7 @@ export function Footer() {
         <p className="max-w-5xl text-sm leading-6 text-slate-400">
           {BRAND_NAME} is a native macOS personal operating system for Gmail, Google Chat, calendar,
           clipboard, notes, and Funky alerts.
-          Your Google OAuth tokens stay in the Apple Keychain on your Mac. Contributions and issue reports are welcome on{" "}
+          Your Google web sessions stay in isolated cookie stores on your Mac. Contributions and issue reports are welcome on{" "}
           <a
             href={GITHUB_REPO_URL}
             className="text-brand-blue transition hover:text-[#3395ff]"
