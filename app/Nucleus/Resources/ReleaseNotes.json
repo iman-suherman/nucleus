@@ -1,13 +1,11 @@
 {
-  "version": "0.2.7",
-  "summary": "Per-account mail notification sounds with consistent playback in foreground and background.",
+  "version": "0.2.8",
+  "summary": "Gmail web view keeps your place when switching apps or sidebar panes.",
   "releaseNotes": {
-    "added": [
-      "Choose a different mail notification sound for each email account in Settings",
-      "Set a default sound for newly added accounts"
-    ],
     "fixed": [
-      "Background mail alerts now use the same Nucleus sound playback as foreground instead of the macOS notification ding"
+      "Gmail no longer reloads when you switch to another app and return to Nucleus",
+      "Mail, calendar, and chat web views are kept alive instead of recreated when changing sidebar sections",
+      "Each mail account tab preserves its own inbox position when switching between accounts"
     ]
   }
 }

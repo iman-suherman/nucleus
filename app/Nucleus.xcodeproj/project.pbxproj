@@ -30,6 +30,7 @@
 		8489DED1153909B55543B5E4 /* ChatWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68D014822AC55CF805FF2873 /* ChatWorkspaceView.swift */; };
 		86A2EDB6E47C37FFBA5DE437 /* CalendarWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F58A8AC449384291C26E26C /* CalendarWorkspaceView.swift */; };
 		89DD2F6A9B7E342945B2F792 /* NotificationUserInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A0BFA8EFB82901232FB9B24 /* NotificationUserInfo.swift */; };
+		8AA22D21D12A34FDC718D87B /* EmbeddedWebViewRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D37475DD0560D594BCD02DC /* EmbeddedWebViewRegistry.swift */; };
 		8D3E706DCBFA8683B8315E2E /* entitlements.mac.plist in Resources */ = {isa = PBXBuildFile; fileRef = 12805D482D496E9FAF46F5A6 /* entitlements.mac.plist */; };
 		914183577EE397F3EA7C0EF7 /* WhatsNewOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31C5C1AF3794BF5FF1456573 /* WhatsNewOverlay.swift */; };
 		92F3296DC4AFB5C4A78EF11D /* ClipboardPasteController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F73321C16D7956F50F538A6E /* ClipboardPasteController.swift */; };
@@ -71,6 +72,7 @@
 		7A0BFA8EFB82901232FB9B24 /* NotificationUserInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationUserInfo.swift; sourceTree = "<group>"; };
 		7C19EFA3DE919CAF339A8D6E /* GmailWebSessionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GmailWebSessionStore.swift; sourceTree = "<group>"; };
 		8D1B19E37F9DEE038DE32B26 /* ClipboardMonitorService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardMonitorService.swift; sourceTree = "<group>"; };
+		8D37475DD0560D594BCD02DC /* EmbeddedWebViewRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmbeddedWebViewRegistry.swift; sourceTree = "<group>"; };
 		9169DE152DD2077D9F7C4DB3 /* AppViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppViewModel.swift; sourceTree = "<group>"; };
 		927BBCFD3EA8B38DF2FC4788 /* AccountCategoryEditorSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountCategoryEditorSheet.swift; sourceTree = "<group>"; };
 		948AE221487288E373756BDD /* MailWorkspaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MailWorkspaceView.swift; sourceTree = "<group>"; };
@@ -173,6 +175,7 @@
 				8D1B19E37F9DEE038DE32B26 /* ClipboardMonitorService.swift */,
 				F73321C16D7956F50F538A6E /* ClipboardPasteController.swift */,
 				035D0E9FC4A418A7C52523C6 /* DockBadgeController.swift */,
+				8D37475DD0560D594BCD02DC /* EmbeddedWebViewRegistry.swift */,
 				7C19EFA3DE919CAF339A8D6E /* GmailWebSessionStore.swift */,
 				7A0BFA8EFB82901232FB9B24 /* NotificationUserInfo.swift */,
 				584F84F9AF029CC4D8800A01 /* NucleusNotificationService.swift */,
@@ -316,6 +319,7 @@
 				E45F6E0F6660F34010CFDEBE /* ClipboardPickerView.swift in Sources */,
 				194D73C14442409686DEF2AE /* ClipboardWorkspaceView.swift in Sources */,
 				C442A46B050B3F01536FCC47 /* DockBadgeController.swift in Sources */,
+				8AA22D21D12A34FDC718D87B /* EmbeddedWebViewRegistry.swift in Sources */,
 				9DD421879CE8E2380986DE94 /* GmailWebSessionStore.swift in Sources */,
 				68F673476FAE5D0CA8204F89 /* MailWorkspaceView.swift in Sources */,
 				51EAB3CEA8190FEC48F1F8B8 /* NotesWorkspaceView.swift in Sources */,
@@ -461,14 +465,14 @@
 				CODE_SIGN_ENTITLEMENTS = Nucleus/entitlements.mac.plist;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 2007;
+				CURRENT_PROJECT_VERSION = 2008;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = Nucleus/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.2.7;
+				MARKETING_VERSION = 0.2.8;
 				PRODUCT_BUNDLE_IDENTIFIER = net.suherman.nucleus;
 				SDKROOT = macosx;
 				SPARKLE_FEED_URL = "http://127.0.0.1:3000/appcast.xml";
@@ -483,14 +487,14 @@
 				CODE_SIGN_ENTITLEMENTS = Nucleus/entitlements.mac.plist;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 2007;
+				CURRENT_PROJECT_VERSION = 2008;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = Nucleus/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.2.7;
+				MARKETING_VERSION = 0.2.8;
 				PRODUCT_BUNDLE_IDENTIFIER = net.suherman.nucleus;
 				SDKROOT = macosx;
 				SPARKLE_FEED_URL = "https://nucleus-registry.suherman.net/appcast.xml";
