@@ -12,6 +12,7 @@ extension Notification.Name {
 struct GmailWebView: NSViewRepresentable {
     let accountID: UUID
     let accountEmail: String
+    var isActive: Bool = true
 
     func makeNSView(context: Context) -> WKWebView {
         let webView = EmbeddedWebViewRegistry.webView(accountID: accountID, surface: .mail)
@@ -21,7 +22,7 @@ struct GmailWebView: NSViewRepresentable {
         context.coordinator.accountEmail = accountEmail
         if !EmbeddedWebViewRegistry.hasLoadedContent(webView) {
             loadInbox(into: webView, email: accountEmail)
-        } else {
+        } else if isActive {
             context.coordinator.resumeUnreadPollingIfNeeded(in: webView)
         }
         return webView
@@ -30,6 +31,12 @@ struct GmailWebView: NSViewRepresentable {
     func updateNSView(_ webView: WKWebView, context: Context) {
         context.coordinator.accountID = accountID
         context.coordinator.accountEmail = accountEmail
+
+        if isActive {
+            context.coordinator.resumeUnreadPollingIfNeeded(in: webView)
+        } else {
+            context.coordinator.stopUnreadPolling()
+        }
     }
 
     func makeCoordinator() -> Coordinator {
@@ -38,6 +45,7 @@ struct GmailWebView: NSViewRepresentable {
 
     static func pollUnreadCount(accountID: UUID) {
         guard let webView = EmbeddedWebViewRegistry.existingWebView(accountID: accountID, surface: .mail),
+              webView.window != nil,
               webView.url?.absoluteString.contains("mail.google.com/mail") == true else { return }
 
         webView.evaluateJavaScript(unreadCountScript) { result, _ in
@@ -90,7 +98,7 @@ struct GmailWebView: NSViewRepresentable {
         private var pollNowObserver: NSObjectProtocol?
 
         deinit {
-            unreadPollTimer?.invalidate()
+            stopUnreadPolling()
         }
 
         func webView(
@@ -171,8 +179,8 @@ struct GmailWebView: NSViewRepresentable {
         private func startUnreadPolling(in webView: WKWebView) {
             stopUnreadPolling()
             reportUnreadCount(from: webView)
-            let timer = Timer(timeInterval: 15, repeats: true) { [weak self, weak webView] _ in
-                guard let webView else { return }
+            let timer = Timer(timeInterval: 30, repeats: true) { [weak self, weak webView] _ in
+                guard let webView, webView.window != nil else { return }
                 self?.reportUnreadCount(from: webView)
             }
             RunLoop.main.add(timer, forMode: .common)
@@ -183,12 +191,12 @@ struct GmailWebView: NSViewRepresentable {
                 object: nil,
                 queue: .main
             ) { [weak self, weak webView] _ in
-                guard let webView else { return }
+                guard let webView, webView.window != nil else { return }
                 self?.reportUnreadCount(from: webView)
             }
         }
 
-        private func stopUnreadPolling() {
+        func stopUnreadPolling() {
             unreadPollTimer?.invalidate()
             unreadPollTimer = nil
             if let pollNowObserver {
@@ -253,12 +261,6 @@ private extension GmailWebView {
         }
       }
 
-      for (const node of document.querySelectorAll('[aria-label]')) {
-        const label = node.getAttribute('aria-label') || '';
-        const match = label.match(/(\\d+)\\s+unread/i);
-        if (match) return parseInt(match[1], 10);
-      }
-
       return 0;
     })();
     """
@@ -282,6 +284,7 @@ struct GmailUnreadPoller: View {
 struct MailWorkspaceView: View {
     @EnvironmentObject private var viewModel: AppViewModel
     @EnvironmentObject private var settings: AppSettings
+    var isActive: Bool = true
 
     @State private var renamingAccount: GoogleAccount?
     @State private var renameDraft = ""
@@ -302,18 +305,20 @@ struct MailWorkspaceView: View {
                     systemImage: "tray",
                     description: Text("Add a category and sign in with Google to begin.")
                 )
-            } else {
-                ZStack {
-                    ForEach(viewModel.accounts) { account in
-                        GmailWebView(accountID: account.id, accountEmail: account.email)
-                            .opacity(selectedAccount?.id == account.id ? 1 : 0)
-                            .allowsHitTesting(selectedAccount?.id == account.id)
-                            .accessibilityHidden(selectedAccount?.id != account.id)
-                    }
-                }
+            } else if isActive, let account = selectedAccount {
+                GmailWebView(
+                    accountID: account.id,
+                    accountEmail: account.email,
+                    isActive: true
+                )
+                .id(account.id)
                 .clipShape(RoundedRectangle(cornerRadius: 12))
                 .padding(.horizontal, 16)
                 .padding(.bottom, 16)
+            } else {
+                Color.clear
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 16)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

@@ -137,7 +137,7 @@ struct ContentView: View {
     @ViewBuilder
     private var detailContent: some View {
         ZStack {
-            MailWorkspaceView()
+            MailWorkspaceView(isActive: isWorkspace(.inbox))
                 .opacity(isWorkspace(.inbox) ? 1 : 0)
                 .allowsHitTesting(isWorkspace(.inbox))
                 .accessibilityHidden(!isWorkspace(.inbox))

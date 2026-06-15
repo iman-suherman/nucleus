@@ -12,6 +12,8 @@ enum EmbeddedWebViewRegistry {
     private static let safariUserAgent =
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15"
 
+    private static let sharedProcessPool = WKProcessPool()
+
     private struct CacheKey: Hashable {
         let accountID: UUID
         let surface: Surface
@@ -26,9 +28,11 @@ enum EmbeddedWebViewRegistry {
         }
 
         let configuration = WKWebViewConfiguration()
+        configuration.processPool = sharedProcessPool
         configuration.defaultWebpagePreferences.allowsContentJavaScript = true
         configuration.websiteDataStore = GmailWebSessionStore.dataStore(for: accountID)
         configuration.preferences.isElementFullscreenEnabled = true
+        configuration.mediaTypesRequiringUserActionForPlayback = .all
 
         let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.customUserAgent = safariUserAgent
