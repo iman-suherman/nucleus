@@ -54,8 +54,7 @@ public enum NucleusDatabase {
     }
 
     private static var isCloudKitAvailable: Bool {
-        guard FileManager.default.ubiquityIdentityToken != nil else { return false }
-        return FileManager.default.url(forUbiquityContainerIdentifier: "iCloud.net.suherman.nucleus") != nil
+        FileManager.default.ubiquityIdentityToken != nil
     }
 
     private static func makeCloudKitContainer() throws -> ModelContainer {

@@ -1,3 +1,4 @@
+import CloudKit
 import Combine
 import CoreData
 import Foundation
@@ -61,7 +62,7 @@ public final class CloudKitSyncService: ObservableObject {
     public func refreshAccountStatus() async {
         status = .checking
 
-        guard ubiquityContainerIdentifier != nil else {
+        guard let containerID = ubiquityContainerIdentifier else {
             status = .unavailable
             return
         }
@@ -71,13 +72,24 @@ public final class CloudKitSyncService: ObservableObject {
             return
         }
 
-        if let containerID = ubiquityContainerIdentifier,
-           FileManager.default.url(forUbiquityContainerIdentifier: containerID) == nil {
-            status = .temporarilyUnavailable
-            return
+        let container = CKContainer(identifier: containerID)
+        do {
+            let accountStatus = try await container.accountStatus()
+            switch accountStatus {
+            case .available:
+                status = .available
+            case .noAccount:
+                status = .noAccount
+            case .restricted:
+                status = .restricted
+            case .couldNotDetermine, .temporarilyUnavailable:
+                status = .temporarilyUnavailable
+            @unknown default:
+                status = .temporarilyUnavailable
+            }
+        } catch {
+            status = .error(error.localizedDescription)
         }
-
-        status = .available
     }
 
     private func observeRemoteChanges() {
