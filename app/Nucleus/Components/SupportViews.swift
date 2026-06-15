@@ -246,7 +246,7 @@ struct AppSettingsView: View {
     }
 }
 
-private enum SettingsTab: String, CaseIterable, Identifiable {
+enum SettingsTab: String, CaseIterable, Identifiable {
     case iCloud
     case keychain
     case notifications
