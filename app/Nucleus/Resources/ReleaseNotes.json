@@ -1,15 +1,14 @@
 {
-  "version": "0.3.17",
-  "summary": "Fixes the window header layout that broke in v0.3.13.",
+  "version": "0.3.18",
+  "summary": "Fixes Gmail web content bleeding over the window header.",
   "releaseNotes": {
     "fixed": [
-      "Sidebar and toolbar no longer draw under the macOS traffic lights",
-      "Restores the compact single-line toolbar status badge from v0.3.12 — the multi-line badge added in v0.3.13 broke unified toolbar layout",
-      "Toolbar moved to the split view level so both sidebar and detail panes respect title bar spacing",
-      "Window chrome disables full-size content view so content stays below the title bar"
+      "Gmail, Chat, and Calendar web views no longer render over the title bar when switching to Accounts, Settings, or other panes",
+      "WKWebView ignores SwiftUI opacity — embedded web views are now explicitly hidden when their workspace is inactive",
+      "Restores the v0.3.12 window toolbar layout that keeps the sidebar header visible"
     ],
     "changed": [
-      "Hover the toolbar status badge to see per-account unread breakdown in a tooltip"
+      "Toolbar status badge stays compact; hover for per-account unread breakdown"
     ]
   }
 }
