@@ -1,14 +1,12 @@
 {
-  "version": "0.3.19",
-  "summary": "Fixes Inbox header overlap and rounds the Settings sidebar border.",
+  "version": "0.3.20",
+  "summary": "Fixes Inbox layout by replacing the detail toolbar with a shared chrome bar.",
   "releaseNotes": {
     "fixed": [
-      "Inbox no longer breaks the header — only the active account's Gmail web view is shown instead of all cached mail web views",
-      "Embedded web views are clipped in an AppKit container so Gmail content cannot paint over the toolbar",
-      "Switching away from Inbox, Chat, or Calendar hides web views without re-showing every cached view on the active pane"
-    ],
-    "changed": [
-      "Settings sidebar menu has a rounded outer border"
+      "Inbox no longer breaks the header — status bar spans the full window above the sidebar and detail panes",
+      "Sidebar brand and Inbox menu stay visible below the traffic lights instead of drawing under the title bar",
+      "Only the active workspace is mounted, so Gmail web views cannot bleed through from hidden panes",
+      "Removed duplicate Nucleus title from the Inbox header that overlapped the toolbar area"
     ]
   }
 }
