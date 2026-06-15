@@ -54,11 +54,6 @@ struct AppSettingsView: View {
                 }
             }
 
-            Section("Google OAuth") {
-                TextField("Client ID", text: $settings.googleClientID)
-                SecureField("Client Secret", text: $settings.googleClientSecret)
-            }
-
             Section("About") {
                 LabeledContent("Version", value: AppSettings.currentAppVersion)
                 LabeledContent("Tagline", value: "Personal Operating System for macOS")

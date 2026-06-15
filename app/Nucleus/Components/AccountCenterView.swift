@@ -15,7 +15,6 @@ struct AccountCenterView: View {
             VStack(alignment: .leading, spacing: 24) {
                 header
                 accountsList
-                oauthSettings
             }
             .padding(24)
             .frame(maxWidth: .infinity, alignment: .topLeading)
@@ -43,7 +42,7 @@ struct AccountCenterView: View {
                     Label("Add Google Account (API)", systemImage: "key.fill")
                 }
                 .buttonStyle(.bordered)
-                .disabled(GoogleOAuthCoordinator.shared.isAuthenticating || !settings.oauthConfiguration.isConfigured)
+                .disabled(GoogleOAuthCoordinator.shared.isAuthenticating)
             }
 
             Text("Use Web Sign-In for work or school accounts that block third-party apps. Use API sign-in for personal Gmail with calendar sync, notifications, and Drive notes.")
@@ -89,20 +88,6 @@ struct AccountCenterView: View {
                     )
                 }
             }
-        }
-    }
-
-    private var oauthSettings: some View {
-        GroupBox("Google OAuth") {
-            VStack(alignment: .leading, spacing: 12) {
-                TextField("Client ID", text: $settings.googleClientID)
-                SecureField("Client Secret (optional for desktop OAuth)", text: $settings.googleClientSecret)
-                Text("Create an iOS OAuth client in Google Cloud Console with Bundle ID net.suherman.nucleus, then paste the Client ID here. Not required for Web Sign-In accounts.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            .textFieldStyle(.roundedBorder)
-            .padding(8)
         }
     }
 }

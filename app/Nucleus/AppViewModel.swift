@@ -71,10 +71,7 @@ final class AppViewModel: ObservableObject {
         completeStartupStep(.database)
 
         await beginStartupStep(.accounts, message: "Restoring Google accounts…")
-        await AccountSessionStore.shared.updateConfiguration(
-            settings.oauthConfiguration,
-            clientSecret: settings.googleClientSecret.nilIfEmpty
-        )
+        await AccountSessionStore.shared.updateConfiguration(settings.oauthConfiguration)
         completeStartupStep(.accounts)
 
         await beginStartupStep(.clipboard, message: "Starting clipboard monitor…")
@@ -249,16 +246,11 @@ final class AppViewModel: ObservableObject {
 
     func addGoogleAccount(settings: AppSettings, categoryName: String? = nil) async {
         oauthError = nil
-        guard settings.oauthConfiguration.isConfigured else {
-            oauthError = "Enter your Google OAuth Client ID in Settings first."
-            sidebarSelection = .workspace(.accounts)
-            return
-        }
 
         do {
             let (tokens, profile) = try await GoogleOAuthCoordinator.shared.signIn(
                 configuration: settings.oauthConfiguration,
-                clientSecret: settings.googleClientSecret.nilIfEmpty
+                clientSecret: nil
             )
 
             let trimmedCategory = categoryName?.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -298,6 +290,9 @@ final class AppViewModel: ObservableObject {
 
     func removeAccount(_ account: GoogleAccount) {
         KeychainTokenStore.shared.deleteTokens(accountID: account.id)
+        if account.authMode == .webSession {
+            GmailWebSessionStore.clear(for: account.id)
+        }
         let context = ModelContext(modelContainer)
         try? AccountRepository.delete(id: account.id, context: context)
         reloadLocalData()

@@ -1,0 +1,13 @@
+{
+  "version": "0.1.5",
+  "summary": "Isolate web Gmail sessions and ship built-in Google OAuth.",
+  "releaseNotes": {
+    "introduced": [
+      "Each web Gmail category now keeps its own sign-in session, so adding a new category prompts for login instead of reusing the first account"
+    ],
+    "changed": [
+      "Google OAuth Client ID is built into the app — no manual setup in Settings",
+      "Removed Client ID and Client Secret fields from Account Center and Settings"
+    ]
+  }
+}

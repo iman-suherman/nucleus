@@ -4,21 +4,25 @@ import SwiftUI
 import WebKit
 
 struct GmailWebView: NSViewRepresentable {
+    let accountID: UUID
     let accountEmail: String
 
     func makeNSView(context: Context) -> WKWebView {
         let configuration = WKWebViewConfiguration()
         configuration.defaultWebpagePreferences.allowsContentJavaScript = true
-        configuration.websiteDataStore = .default()
+        configuration.websiteDataStore = GmailWebSessionStore.dataStore(for: accountID)
         let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.navigationDelegate = context.coordinator
         webView.customUserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15"
+        context.coordinator.accountID = accountID
+        context.coordinator.accountEmail = accountEmail
+        loadSignIn(into: webView, email: accountEmail)
         return webView
     }
 
     func updateNSView(_ webView: WKWebView, context: Context) {
-        guard context.coordinator.loadedEmail != accountEmail else { return }
-        context.coordinator.loadedEmail = accountEmail
+        guard context.coordinator.accountEmail != accountEmail else { return }
+        context.coordinator.accountEmail = accountEmail
         context.coordinator.hasReachedInbox = false
         loadSignIn(into: webView, email: accountEmail)
     }
@@ -35,6 +39,7 @@ struct GmailWebView: NSViewRepresentable {
             URLQueryItem(name: "continue", value: continueTarget),
             URLQueryItem(name: "Email", value: email),
             URLQueryItem(name: "flowName", value: "GlifWebSignIn"),
+            URLQueryItem(name: "flowEntry", value: "ServiceLogin"),
         ]
         return components?.url
     }
@@ -50,7 +55,8 @@ struct GmailWebView: NSViewRepresentable {
     }
 
     final class Coordinator: NSObject, WKNavigationDelegate {
-        var loadedEmail: String?
+        var accountID: UUID?
+        var accountEmail: String?
         var hasReachedInbox = false
 
         func webView(
@@ -69,7 +75,7 @@ struct GmailWebView: NSViewRepresentable {
         }
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-            guard let email = loadedEmail, let url = webView.url else { return }
+            guard let email = accountEmail, let url = webView.url else { return }
             let path = url.absoluteString
 
             if path.contains("mail.google.com/mail") {
@@ -110,7 +116,8 @@ struct MailWorkspaceView: View {
                 .padding(.bottom, 8)
 
             if let account = selectedAccount {
-                GmailWebView(accountEmail: account.email)
+                GmailWebView(accountID: account.id, accountEmail: account.email)
+                    .id(account.id)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                     .padding(.horizontal, 16)
                     .padding(.bottom, 16)

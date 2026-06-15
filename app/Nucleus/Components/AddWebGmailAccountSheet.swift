@@ -43,7 +43,7 @@ struct AddWebGmailAccountSheet: View {
                 .textFieldStyle(.roundedBorder)
                 .focused($focusedField, equals: .category)
 
-            Text("Examples: Work, Qantas, Personal")
+            Text("Examples: Work, Client, Personal")
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
