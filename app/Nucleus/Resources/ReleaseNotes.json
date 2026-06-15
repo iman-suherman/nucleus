@@ -1,12 +1,13 @@
 {
-  "version": "0.3.21",
-  "summary": "Fixes Inbox layout so Gmail stays within the detail pane like Chat and Calendar.",
+  "version": "0.3.22",
+  "summary": "Moves status controls into the title bar and prefills email on Google sign-in.",
   "releaseNotes": {
+    "changed": [
+      "Ready status and Check for Updates now live in the title bar alongside the traffic lights, removing the extra row below",
+      "Gmail account tabs show a pointer cursor and tooltip explaining they return you to that account's mail list"
+    ],
     "fixed": [
-      "Inbox uses the same layout as Chat and Calendar — account tabs plus a clipped web view below the chrome bar",
-      "Gmail no longer expands to fill the entire window after loading; the web view respects the detail pane bounds",
-      "Embedded web view containers ignore Gmail's intrinsic content size so SwiftUI layout stays stable",
-      "Removed the extra Inbox header caption that added height above the account tabs"
+      "Adding a Gmail account now prefills your email on Google's sign-in page from the address you entered in Nucleus"
     ]
   }
 }
