@@ -20,6 +20,8 @@ final class SettingsSyncBridge {
     private var remoteChangeObserver: AnyCancellable?
     private var isApplyingRemote = false
     private var pushTask: Task<Void, Never>?
+    private var lastAppliedRemoteUpdatedAt: Date = .distantPast
+    private var lastLocalPushAt: Date = .distantPast
 
     private init() {}
 
@@ -42,6 +44,7 @@ final class SettingsSyncBridge {
         let context = ModelContext(modelContainer)
         let configuration = makeConfiguration(from: settings, context: context)
         try? SyncedSettingsRepository.upsert(configuration, context: context)
+        lastLocalPushAt = configuration.updatedAt
     }
 
     func applyRemote(into settings: AppSettings) {
@@ -49,6 +52,15 @@ final class SettingsSyncBridge {
         let context = ModelContext(modelContainer)
         guard let remote = try? SyncedSettingsRepository.fetch(context: context) else { return }
 
+        guard remote.updatedAt > lastAppliedRemoteUpdatedAt else { return }
+
+        // Ignore CloudKit echo notifications immediately after this device pushed.
+        if remote.updatedAt <= lastLocalPushAt,
+           Date().timeIntervalSince(lastLocalPushAt) < 2 {
+            return
+        }
+
+        lastAppliedRemoteUpdatedAt = remote.updatedAt
         isApplyingRemote = true
         settings.apply(remoteConfiguration: remote)
         layoutDelegate?.applySyncedLayout(from: settings)
@@ -66,13 +78,16 @@ final class SettingsSyncBridge {
                 settings.apply(remoteConfiguration: remote)
                 layoutDelegate?.applySyncedLayout(from: settings)
                 isApplyingRemote = false
+                lastAppliedRemoteUpdatedAt = remote.updatedAt
             } else {
                 try? SyncedSettingsRepository.upsert(localConfiguration, context: context)
+                lastLocalPushAt = localConfiguration.updatedAt
             }
             return
         }
 
         try? SyncedSettingsRepository.upsert(localConfiguration, context: context)
+        lastLocalPushAt = localConfiguration.updatedAt
         layoutDelegate?.applySyncedLayout(from: settings)
     }
 
@@ -116,9 +131,6 @@ final class SettingsSyncBridge {
             mailSyncInterval: settings.mailSyncInterval,
             mailNotificationSound: settings.mailNotificationSound.rawValue,
             mailNotificationSoundByAccount: overrides,
-            selectedMailAccountID: settings.selectedMailAccountID?.uuidString,
-            selectedCalendarAccountID: settings.selectedCalendarAccountID?.uuidString,
-            selectedChatAccountID: settings.selectedChatAccountID?.uuidString,
             emailNotificationsEnabled: settings.emailNotificationsEnabled,
             calendarNotificationsEnabled: settings.calendarNotificationsEnabled,
             selectedWorkspacePane: settings.selectedWorkspacePane,
@@ -146,9 +158,7 @@ extension AppSettings {
         }
         replaceMailNotificationSoundOverrides(overrides)
 
-        selectedMailAccountID = remoteConfiguration.selectedMailAccountID.flatMap(UUID.init(uuidString:))
-        selectedCalendarAccountID = remoteConfiguration.selectedCalendarAccountID.flatMap(UUID.init(uuidString:))
-        selectedChatAccountID = remoteConfiguration.selectedChatAccountID.flatMap(UUID.init(uuidString:))
+        // Selected inbox/calendar/chat tabs stay on this Mac only.
         emailNotificationsEnabled = remoteConfiguration.emailNotificationsEnabled
         calendarNotificationsEnabled = remoteConfiguration.calendarNotificationsEnabled
         selectedWorkspacePane = remoteConfiguration.selectedWorkspacePane
