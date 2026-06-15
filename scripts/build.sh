@@ -38,12 +38,24 @@ case "$CONFIGURATION" in
 esac
 
 echo "==> Building Nucleus.app ($XCODE_CONFIG)"
-if ! xcodebuild \
-  -project Nucleus.xcodeproj \
-  -scheme Nucleus \
-  -configuration "$XCODE_CONFIG" \
-  -derivedDataPath "$ROOT_DIR/.build/DerivedData" \
-  build; then
+XCODEBUILD_ARGS=(
+  -project Nucleus.xcodeproj
+  -scheme Nucleus
+  -configuration "$XCODE_CONFIG"
+  -derivedDataPath "$ROOT_DIR/.build/DerivedData"
+)
+
+if [[ "$XCODE_CONFIG" == "Release" ]]; then
+  # Build unsigned; release signing + iCloud entitlements happen in scripts/sign.sh.
+  XCODEBUILD_ARGS+=(
+    CODE_SIGNING_ALLOWED=NO
+    CODE_SIGN_ENTITLEMENTS=
+  )
+fi
+
+XCODEBUILD_ARGS+=(build)
+
+if ! xcodebuild "${XCODEBUILD_ARGS[@]}"; then
   echo "xcodebuild failed. If this is a fresh Xcode install, run: npm run setup:xcode"
   exit 1
 fi
