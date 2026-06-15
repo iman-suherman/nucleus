@@ -1,12 +1,12 @@
 {
-  "version": "0.3.20",
-  "summary": "Fixes Inbox layout by replacing the detail toolbar with a shared chrome bar.",
+  "version": "0.3.21",
+  "summary": "Fixes Inbox layout so Gmail stays within the detail pane like Chat and Calendar.",
   "releaseNotes": {
     "fixed": [
-      "Inbox no longer breaks the header — status bar spans the full window above the sidebar and detail panes",
-      "Sidebar brand and Inbox menu stay visible below the traffic lights instead of drawing under the title bar",
-      "Only the active workspace is mounted, so Gmail web views cannot bleed through from hidden panes",
-      "Removed duplicate Nucleus title from the Inbox header that overlapped the toolbar area"
+      "Inbox uses the same layout as Chat and Calendar — account tabs plus a clipped web view below the chrome bar",
+      "Gmail no longer expands to fill the entire window after loading; the web view respects the detail pane bounds",
+      "Embedded web view containers ignore Gmail's intrinsic content size so SwiftUI layout stays stable",
+      "Removed the extra Inbox header caption that added height above the account tabs"
     ]
   }
 }
