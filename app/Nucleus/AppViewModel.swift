@@ -219,6 +219,7 @@ final class AppViewModel: ObservableObject {
         }
         NucleusNotificationService.shared.onMeetingReminder = nil
         await NucleusNotificationService.shared.rescheduleMeetingReminders([])
+        MailNotificationSound.prepareNotificationSounds()
         completeStartupStep(.notifications)
 
         await beginStartupStep(.mailSync, message: "Syncing mail…")

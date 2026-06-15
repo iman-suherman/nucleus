@@ -1,0 +1,11 @@
+{
+  "version": "0.2.5",
+  "summary": "Mail notification sounds match your Settings choice in preview and live alerts.",
+  "releaseNotes": {
+    "fixed": [
+      "Settings preview and live mail alerts now play the same sound for Nucleus Mail, Funky, and System default",
+      "Custom sounds are installed into Application Support so macOS can play them for background notifications",
+      "System default uses the macOS Hero alert instead of a generic beep"
+    ]
+  }
+}

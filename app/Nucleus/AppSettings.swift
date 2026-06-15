@@ -24,6 +24,7 @@ enum MailNotificationSound: String, CaseIterable, Identifiable {
     var notificationSound: UNNotificationSound? {
         switch self {
         case .funky, .nucleusMail:
+            installInNotificationSupportIfNeeded()
             return UNNotificationSound(named: UNNotificationSoundName(rawValue))
         case .system:
             return .default
@@ -46,11 +47,26 @@ enum MailNotificationSound: String, CaseIterable, Identifiable {
         case .silent:
             return
         case .system:
-            NSSound.beep()
+            NSSound(named: NSSound.Name("Hero"))?.play()
         case .funky, .nucleusMail:
             guard let url = bundleSoundURL else { return }
-            NSSound(contentsOf: url, byReference: true)?.play()
+            NSSound(contentsOf: url, byReference: false)?.play()
         }
+    }
+
+    static func prepareNotificationSounds() {
+        funky.installInNotificationSupportIfNeeded()
+        nucleusMail.installInNotificationSupportIfNeeded()
+    }
+
+    private func installInNotificationSupportIfNeeded() {
+        guard let source = bundleSoundURL else { return }
+        let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+            .appendingPathComponent("Nucleus/Library/Sounds", isDirectory: true)
+        try? FileManager.default.createDirectory(at: support, withIntermediateDirectories: true)
+        let destination = support.appendingPathComponent("\(rawValue).caf")
+        guard !FileManager.default.fileExists(atPath: destination.path) else { return }
+        try? FileManager.default.copyItem(at: source, to: destination)
     }
 }
 

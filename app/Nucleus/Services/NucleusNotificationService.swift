@@ -37,7 +37,7 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
         } else {
             content.body = "\(message.subject)\n\(message.snippet)"
         }
-        content.sound = Self.mailSound
+        content.sound = mailNotificationSound()
         content.categoryIdentifier = "NUCLEUS_MAIL"
         content.userInfo = [
             "messageID": message.id,
@@ -66,7 +66,7 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
         content.title = delta == 1 ? "New Email" : "\(delta) New Emails"
         content.subtitle = accountName
         content.body = unreadCount == 1 ? "1 unread message in your inbox" : "\(unreadCount) unread messages in your inbox"
-        content.sound = Self.mailSound
+        content.sound = mailNotificationSound()
         content.categoryIdentifier = "NUCLEUS_MAIL"
 
         let request = UNNotificationRequest(
@@ -93,11 +93,11 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
         UNUserNotificationCenter.current().add(request)
     }
 
-    private static var mailSound: UNNotificationSound? {
+    private static let chatSound = UNNotificationSound(named: UNNotificationSoundName("Funky"))
+
+    private func mailNotificationSound() -> UNNotificationSound? {
         AppSettings.shared.mailNotificationSound.notificationSound
     }
-
-    private static let chatSound = UNNotificationSound(named: UNNotificationSoundName("Funky"))
 
     func rescheduleMeetingReminders(_ reminders: [MeetingReminderPlanner.Reminder]) async {
         let center = UNUserNotificationCenter.current()
@@ -189,9 +189,15 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
         switch notification.request.content.categoryIdentifier {
         case "NUCLEUS_MAIL":
             let sound = AppSettings.shared.mailNotificationSound
-            guard sound != .silent else { return false }
-            sound.playAlert()
-            return true
+            switch sound {
+            case .silent:
+                return false
+            case .system:
+                return false
+            case .funky, .nucleusMail:
+                sound.playAlert()
+                return true
+            }
         case "NUCLEUS_CHAT":
             MailNotificationSound.funky.playAlert()
             return true
