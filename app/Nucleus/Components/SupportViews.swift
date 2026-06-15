@@ -48,60 +48,110 @@ struct AppSettingsView: View {
     @ObservedObject var viewModel: AppViewModel
     var accounts: [GoogleAccount]
 
+    @State private var selectedTab: SettingsTab = .iCloud
+
     var body: some View {
-        Form {
-            Section("iCloud Sync") {
-                LabeledContent("Status") {
-                    HStack(spacing: 8) {
-                        Image(systemName: syncService.status.isAvailable ? "checkmark.icloud" : "icloud.slash")
-                            .foregroundStyle(syncService.status.isAvailable ? .green : .secondary)
-                        Text(syncService.status.label)
-                            .foregroundStyle(.secondary)
-                    }
-                }
+        TabView(selection: $selectedTab) {
+            settingsTab(.iCloud) {
+                iCloudSyncSection
+            }
 
-                if let lastRemoteChangeAt = syncService.lastRemoteChangeAt {
-                    LabeledContent("Last update") {
-                        Text(lastRemoteChangeAt, style: .relative)
-                            .foregroundStyle(.secondary)
-                    }
-                }
+            settingsTab(.keychain) {
+                iCloudKeychainSection
+            }
 
-                Text("Accounts, notes, clipboard history, window layout, and preferences sync through iCloud. Gmail web sessions still require sign-in inside Inbox on each Mac.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+            settingsTab(.notifications) {
+                notificationsSection
+            }
 
-                Toggle("Sync clipboard history", isOn: $settings.clipboardSyncEnabled)
+            settingsTab(.mail) {
+                mailSection
+            }
 
-                Toggle("Save clipboard to Notes", isOn: $settings.clipboardSaveToNotesEnabled)
-                    .disabled(!settings.clipboardSyncEnabled)
+            settingsTab(.about) {
+                aboutSection
+            }
+        }
+        .padding(.horizontal, 24)
+    }
 
-                Text("When enabled, each copied item is kept in the Clipboard Notes folder (synced via iCloud) so it is not lost when history is trimmed.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+    private func settingsTab<Content: View>(
+        _ tab: SettingsTab,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        ScrollView {
+            Form {
+                content()
+            }
+            .formStyle(.grouped)
+            .frame(maxWidth: 560, alignment: .leading)
+        }
+        .tabItem {
+            Label(tab.title, systemImage: tab.systemImage)
+        }
+        .tag(tab)
+    }
 
-                Button("Refresh iCloud Status") {
-                    Task { await syncService.refreshAccountStatus() }
+    private var iCloudSyncSection: some View {
+        Section("iCloud Sync") {
+            LabeledContent("Status") {
+                HStack(spacing: 8) {
+                    Image(systemName: syncService.status.isAvailable ? "checkmark.icloud" : "icloud.slash")
+                        .foregroundStyle(syncService.status.isAvailable ? .green : .secondary)
+                    Text(syncService.status.label)
+                        .foregroundStyle(.secondary)
                 }
             }
 
-            Section("iCloud Keychain") {
-                Toggle("Sync Google OAuth tokens", isOn: $settings.iCloudKeychainTokenSyncEnabled)
-
-                Text("When enabled, Google refresh tokens sync through iCloud Keychain for automatic API reconnection on new Macs. Requires iCloud Keychain in System Settings.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-
-                Button("Refresh Credentials") {
-                    Task { await viewModel.autoReconnectAccounts(settings: settings) }
+            if let lastRemoteChangeAt = syncService.lastRemoteChangeAt {
+                LabeledContent("Last update") {
+                    Text(lastRemoteChangeAt, style: .relative)
+                        .foregroundStyle(.secondary)
                 }
             }
 
-            Section("Notifications") {
-                Toggle("Email notifications", isOn: $settings.emailNotificationsEnabled)
-                Toggle("Calendar notifications", isOn: $settings.calendarNotificationsEnabled)
-            }
+            Text("Accounts, notes, clipboard history, window layout, and preferences sync through iCloud. Gmail web sessions still require sign-in inside Inbox on each Mac.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
 
+            Toggle("Sync clipboard history", isOn: $settings.clipboardSyncEnabled)
+
+            Toggle("Save clipboard to Notes", isOn: $settings.clipboardSaveToNotesEnabled)
+                .disabled(!settings.clipboardSyncEnabled)
+
+            Text("When enabled, each copied item is kept in the Clipboard Notes folder (synced via iCloud) so it is not lost when history is trimmed.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            Button("Refresh iCloud Status") {
+                Task { await syncService.refreshAccountStatus() }
+            }
+        }
+    }
+
+    private var iCloudKeychainSection: some View {
+        Section("iCloud Keychain") {
+            Toggle("Sync Google OAuth tokens", isOn: $settings.iCloudKeychainTokenSyncEnabled)
+
+            Text("When enabled, Google refresh tokens sync through iCloud Keychain for automatic API reconnection on new Macs. Requires iCloud Keychain in System Settings.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            Button("Refresh Credentials") {
+                Task { await viewModel.autoReconnectAccounts(settings: settings) }
+            }
+        }
+    }
+
+    private var notificationsSection: some View {
+        Section("Notifications") {
+            Toggle("Email notifications", isOn: $settings.emailNotificationsEnabled)
+            Toggle("Calendar notifications", isOn: $settings.calendarNotificationsEnabled)
+        }
+    }
+
+    private var mailSection: some View {
+        Group {
             Section("Mail notifications") {
                 if accounts.isEmpty {
                     Text("Add a mail account to choose notification sounds.")
@@ -124,13 +174,14 @@ struct AppSettingsView: View {
                     Text("Mail sync every \(Int(settings.mailSyncInterval))s")
                 }
             }
-
-            Section("About") {
-                LabeledContent("Version", value: AppSettings.currentAppVersion)
-                LabeledContent("Tagline", value: "Personal Operating System for macOS")
-            }
         }
-        .formStyle(.grouped)
+    }
+
+    private var aboutSection: some View {
+        Section("About") {
+            LabeledContent("Version", value: AppSettings.currentAppVersion)
+            LabeledContent("Tagline", value: "Personal Operating System for macOS")
+        }
     }
 
     private func mailSoundRow(for account: GoogleAccount) -> some View {
@@ -154,30 +205,59 @@ struct AppSettingsView: View {
     }
 }
 
+private enum SettingsTab: String, CaseIterable, Identifiable {
+    case iCloud
+    case keychain
+    case notifications
+    case mail
+    case about
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .iCloud: return "iCloud"
+        case .keychain: return "Keychain"
+        case .notifications: return "Notifications"
+        case .mail: return "Mail"
+        case .about: return "About"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .iCloud: return "icloud"
+        case .keychain: return "key"
+        case .notifications: return "bell"
+        case .mail: return "envelope"
+        case .about: return "info.circle"
+        }
+    }
+}
+
 struct SettingsWorkspaceView: View {
     @EnvironmentObject private var settings: AppSettings
     @EnvironmentObject private var viewModel: AppViewModel
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Settings")
-                        .font(.title2.bold())
-                    Text("Configure iCloud sync, notification preferences, clipboard sync, and mail sounds.")
-                        .foregroundStyle(.secondary)
-                }
-
-                AppSettingsView(
-                    settings: settings,
-                    syncService: viewModel.syncService,
-                    viewModel: viewModel,
-                    accounts: viewModel.accounts
-                )
-                    .frame(maxWidth: 560, alignment: .leading)
+        VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Settings")
+                    .font(.title2.bold())
+                Text("Configure sync, notifications, and app preferences.")
+                    .foregroundStyle(.secondary)
             }
-            .padding(24)
-            .frame(maxWidth: .infinity, alignment: .topLeading)
+            .padding(.horizontal, 24)
+            .padding(.top, 24)
+            .padding(.bottom, 12)
+
+            AppSettingsView(
+                settings: settings,
+                syncService: viewModel.syncService,
+                viewModel: viewModel,
+                accounts: viewModel.accounts
+            )
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
     }
 }

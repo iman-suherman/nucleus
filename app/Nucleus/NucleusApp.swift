@@ -76,16 +76,27 @@ struct NucleusApp: App {
 struct ContentView: View {
     @EnvironmentObject private var viewModel: AppViewModel
     @EnvironmentObject private var appSettings: AppSettings
+    @State private var sidebarVisibility: NavigationSplitViewVisibility = .all
+
+    private var isSidebarVisible: Bool {
+        sidebarVisibility != .detailOnly
+    }
 
     var body: some View {
         ZStack {
             VStack(spacing: 0) {
-                NavigationSplitView {
+                NavigationSplitView(columnVisibility: $sidebarVisibility) {
                     sidebar
                         .navigationSplitViewColumnWidth(min: 260, ideal: appSettings.sidebarWidth, max: 340)
                 } detail: {
                     detailContent
                         .toolbar {
+                            ToolbarItem(placement: .navigation) {
+                                if !isSidebarVisible {
+                                    NucleusBrandMark(logoSize: 32, showText: true)
+                                        .transition(.opacity.combined(with: .move(edge: .leading)))
+                                }
+                            }
                             ToolbarItem(placement: .principal) {
                                 WorkspaceStatusBadge(
                                     message: viewModel.statusMessage,
@@ -129,6 +140,7 @@ struct ContentView: View {
         }
         .animation(.easeInOut(duration: 0.22), value: viewModel.isStartingUp)
         .animation(.easeInOut(duration: 0.22), value: viewModel.showWhatsNew)
+        .animation(.easeInOut(duration: 0.22), value: sidebarVisibility)
         .onChange(of: viewModel.sidebarSelection) { _, selection in
             viewModel.sidebarSelectionDidChange(selection)
         }
@@ -178,17 +190,8 @@ struct ContentView: View {
     private var sidebar: some View {
         List(selection: $viewModel.sidebarSelection) {
             Section {
-                HStack(alignment: .center, spacing: 10) {
-                    NucleusAppLogo(size: 28, cornerRadius: 7)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Nucleus")
-                            .font(.title2.bold())
-                        Text("Personal Operating System")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                .padding(.vertical, 4)
+                NucleusBrandMark(logoSize: 44, showText: false)
+                    .padding(.vertical, 4)
             }
 
             Section("Workspace") {

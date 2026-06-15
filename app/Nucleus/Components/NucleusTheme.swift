@@ -25,6 +25,34 @@ struct NucleusAppLogo: View {
     }
 }
 
+struct NucleusBrandMark: View {
+    var logoSize: CGFloat = 36
+    var cornerRadius: CGFloat?
+    var showText: Bool = true
+
+    private var resolvedCornerRadius: CGFloat {
+        cornerRadius ?? max(8, logoSize * 0.25)
+    }
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 10) {
+            NucleusAppLogo(size: logoSize, cornerRadius: resolvedCornerRadius)
+
+            if showText {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Nucleus")
+                        .font(.title2.bold())
+                    Text("Personal Operating System")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Nucleus, Personal Operating System")
+    }
+}
+
 enum NucleusBadgeKind {
     case mail
     case chat
