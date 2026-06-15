@@ -83,16 +83,8 @@ struct ChatWebView: NSViewRepresentable {
     }
 
     private static func signInURL(for email: String) -> URL? {
-        guard let continueTarget = chatURL(for: email)?.absoluteString else { return nil }
-        var components = URLComponents(string: "https://accounts.google.com/v3/signin/identifier")
-        components?.queryItems = [
-            URLQueryItem(name: "service", value: "chat"),
-            URLQueryItem(name: "continue", value: continueTarget),
-            URLQueryItem(name: "Email", value: email),
-            URLQueryItem(name: "flowName", value: "GlifWebSignIn"),
-            URLQueryItem(name: "flowEntry", value: "ServiceLogin"),
-        ]
-        return components?.url
+        guard let continueTarget = chatURL(for: email) else { return nil }
+        return GoogleWebSignInURL.signInURL(email: email, continue: continueTarget, service: .chat)
     }
 
     private func loadChat(into webView: WKWebView, email: String) {

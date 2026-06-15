@@ -49,16 +49,8 @@ struct CalendarWebView: NSViewRepresentable {
     }
 
     private static func signInURL(for email: String) -> URL? {
-        guard let continueTarget = calendarURL(for: email)?.absoluteString else { return nil }
-        var components = URLComponents(string: "https://accounts.google.com/v3/signin/identifier")
-        components?.queryItems = [
-            URLQueryItem(name: "service", value: "cl"),
-            URLQueryItem(name: "continue", value: continueTarget),
-            URLQueryItem(name: "Email", value: email),
-            URLQueryItem(name: "flowName", value: "GlifWebSignIn"),
-            URLQueryItem(name: "flowEntry", value: "ServiceLogin"),
-        ]
-        return components?.url
+        guard let continueTarget = calendarURL(for: email) else { return nil }
+        return GoogleWebSignInURL.signInURL(email: email, continue: continueTarget, service: .calendar)
     }
 
     private func loadCalendar(into webView: WKWebView, email: String) {

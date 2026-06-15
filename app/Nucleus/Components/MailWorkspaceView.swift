@@ -24,7 +24,7 @@ struct GmailWebView: NSViewRepresentable {
         container.embed(webView)
         applyVisibility(to: container)
         if !EmbeddedWebViewRegistry.hasLoadedContent(webView) {
-            loadInbox(into: webView, email: accountEmail)
+            loadInbox(into: webView, email: accountEmail, preferSignIn: true)
         } else {
             context.coordinator.resumeUnreadPollingIfNeeded(in: webView)
         }
@@ -92,22 +92,22 @@ struct GmailWebView: NSViewRepresentable {
     }
 
     private static func signInURL(for email: String) -> URL? {
-        guard let continueTarget = inboxURL(for: email)?.absoluteString else { return nil }
-        var components = URLComponents(string: "https://accounts.google.com/v3/signin/identifier")
-        components?.queryItems = [
-            URLQueryItem(name: "service", value: "mail"),
-            URLQueryItem(name: "continue", value: continueTarget),
-            URLQueryItem(name: "Email", value: email),
-            URLQueryItem(name: "flowName", value: "GlifWebSignIn"),
-            URLQueryItem(name: "flowEntry", value: "ServiceLogin"),
-        ]
-        return components?.url
+        guard let continueTarget = inboxURL(for: email) else { return nil }
+        return GoogleWebSignInURL.signInURL(email: email, continue: continueTarget, service: .mail)
     }
 
-    private func loadInbox(into webView: WKWebView, email: String) {
+    private func loadInbox(into webView: WKWebView, email: String, preferSignIn: Bool = false) {
+        if preferSignIn, let url = Self.signInURL(for: email) {
+            webView.load(URLRequest(url: url))
+            return
+        }
         if let url = Self.inboxURL(for: email) {
             webView.load(URLRequest(url: url))
         }
+    }
+
+    private static func prefillSignInEmail(in webView: WKWebView, email: String) {
+        webView.evaluateJavaScript(GoogleWebSignInURL.prefillEmailScript(email: email), completionHandler: nil)
     }
 
     final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate {
@@ -174,8 +174,13 @@ struct GmailWebView: NSViewRepresentable {
                 || path.contains("google.com/gmail/about")
                 || path.contains("google.com/intl/")
 
-            if needsSignIn, let signInURL = GmailWebView.signInURL(for: email) {
-                webView.load(URLRequest(url: signInURL))
+            if needsSignIn {
+                if GoogleWebSignInURL.isGoogleSignInPage(path),
+                   path.contains("signin/identifier") {
+                    GmailWebView.prefillSignInEmail(in: webView, email: email)
+                } else if let signInURL = GmailWebView.signInURL(for: email) {
+                    webView.load(URLRequest(url: signInURL))
+                }
             }
         }
 
@@ -405,6 +410,8 @@ struct MailWorkspaceView: View {
                         .nucleusAccountTab(isSelected: selectedAccount?.id == account.id)
                     }
                     .buttonStyle(.plain)
+                    .pointerCursor()
+                    .help(mailAccountTabTooltip(for: account))
                     .contextMenu {
                         Button("Rename Category…") {
                             renameDraft = account.displayName
@@ -433,5 +440,12 @@ struct MailWorkspaceView: View {
     private func selectAccountTab(_ account: GoogleAccount) {
         settings.selectedMailAccountID = account.id
         GmailWebView.navigateToInbox(accountID: account.id, email: account.email)
+    }
+
+    private func mailAccountTabTooltip(for account: GoogleAccount) -> String {
+        if selectedAccount?.id == account.id {
+            return "Return to \(account.displayName) inbox"
+        }
+        return "Switch to \(account.displayName) and open the mail list"
     }
 }

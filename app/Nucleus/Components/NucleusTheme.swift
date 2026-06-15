@@ -106,4 +106,14 @@ extension View {
                 in: Capsule()
             )
     }
+
+    func pointerCursor() -> some View {
+        onHover { hovering in
+            if hovering {
+                NSCursor.pointingHand.push()
+            } else {
+                NSCursor.pop()
+            }
+        }
+    }
 }
