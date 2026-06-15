@@ -83,15 +83,21 @@ final class AppViewModel: ObservableObject {
                   let json = notification.userInfo?["entriesJSON"] as? String,
                   let data = json.data(using: .utf8),
                   let entries = try? JSONDecoder().decode([CalendarWebEventParser.Entry].self, from: data) else { return }
-            self?.applyWebCalendarEvents(accountID: accountID, entries: entries)
+            let icsText = notification.userInfo?["icsText"] as? String
+            self?.applyWebCalendarEvents(accountID: accountID, entries: entries, icsText: icsText)
         }
     }
 
-    func applyWebCalendarEvents(accountID: UUID, entries: [CalendarWebEventParser.Entry]) {
+    func applyWebCalendarEvents(accountID: UUID, entries: [CalendarWebEventParser.Entry], icsText: String? = nil) {
         guard let account = accounts.first(where: { $0.id == accountID }) else { return }
-        let events = CalendarWebEventParser.parse(entries: entries, account: account)
-        guard !events.isEmpty else { return }
-        webReportedCalendarEvents[accountID] = events
+        var merged: [CalendarEventSummary] = []
+        if let icsText, !icsText.isEmpty {
+            merged = CalendarWebSessionClient.parseICS(icsText, account: account)
+        }
+        let domEvents = CalendarWebEventParser.parse(entries: entries, account: account)
+        merged = CalendarWebSessionClient.mergeEvents(icalEvents: merged, webEvents: domEvents)
+        guard !merged.isEmpty else { return }
+        webReportedCalendarEvents[accountID] = merged
         Task { await syncCalendar() }
     }
 
@@ -340,8 +346,8 @@ final class AppViewModel: ObservableObject {
                 isSyncingCalendar = false
                 statusMessage = statusMessageForCurrentState()
             }
-            // Give embedded calendar web views time to report visible events.
-            try? await Task.sleep(nanoseconds: 1_500_000_000)
+            // Give embedded calendar web views time to report visible events and fetch ICS.
+            try? await Task.sleep(nanoseconds: 2_500_000_000)
             await syncCalendar(rescheduleNotifications: true)
         }
     }

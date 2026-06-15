@@ -85,7 +85,7 @@ public enum CalendarWebEventParser {
               let match = regex.firstMatch(in: trimmed, range: NSRange(trimmed.startIndex..., in: trimmed)),
               let startRange = Range(match.range(at: 1), in: trimmed),
               let endRange = Range(match.range(at: 2), in: trimmed) else {
-            return nil
+            return parseAllDayLabel(trimmed, now: now, horizon: horizon)
         }
 
         let startText = String(trimmed[startRange])
@@ -98,6 +98,29 @@ public enum CalendarWebEventParser {
         return ParsedEvent(title: title, startDate: startDate, endDate: endDate)
     }
 
+    private static func parseAllDayLabel(_ label: String, now: Date, horizon: Date) -> ParsedEvent? {
+        let trimmed = label.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.count >= 3 else { return nil }
+
+        let title = extractAllDayTitle(from: trimmed)
+        guard !title.isEmpty else { return nil }
+
+        let dayDate = parseDayDate(in: trimmed, reference: now)
+        let calendar = Calendar.current
+        let startDate = calendar.startOfDay(for: dayDate)
+        guard let endDate = calendar.date(byAdding: .day, value: 1, to: startDate) else { return nil }
+        guard endDate > now, startDate <= horizon else { return nil }
+        return ParsedEvent(title: title, startDate: startDate, endDate: endDate)
+    }
+
+    private static func extractAllDayTitle(from label: String) -> String {
+        let trimmed = label.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let comma = trimmed.firstIndex(of: ",") {
+            return String(trimmed[..<comma]).trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        return trimmed
+    }
+
     private static func extractTitle(from label: String, beforeTime startText: String) -> String {
         let trimmed = label.trimmingCharacters(in: .whitespacesAndNewlines)
         if let range = trimmed.range(of: startText, options: [.caseInsensitive]) {
@@ -105,6 +128,12 @@ public enum CalendarWebEventParser {
                 .trimmingCharacters(in: .whitespacesAndNewlines)
                 .trimmingCharacters(in: CharacterSet(charactersIn: ", "))
             if !prefix.isEmpty {
+                if let first = prefix.split(separator: ",").first {
+                    let title = String(first).trimmingCharacters(in: .whitespacesAndNewlines)
+                    if !title.isEmpty {
+                        return title
+                    }
+                }
                 return prefix
             }
         }
@@ -150,11 +179,11 @@ public enum CalendarWebEventParser {
             formatter.dateFormat = format
             for part in label.split(separator: ",").map({ String($0).trimmingCharacters(in: .whitespaces) }) {
                 if let date = formatter.date(from: part) {
-                    return calendar.startOfDay(for: date)
+                    return normalizedDayDate(from: date, format: format, reference: reference)
                 }
             }
             if let date = formatter.date(from: label) {
-                return calendar.startOfDay(for: date)
+                return normalizedDayDate(from: date, format: format, reference: reference)
             }
         }
 
@@ -171,6 +200,30 @@ public enum CalendarWebEventParser {
         }
 
         return calendar.startOfDay(for: reference)
+    }
+
+    private static func normalizedDayDate(from parsed: Date, format: String, reference: Date) -> Date {
+        let calendar = Calendar.current
+        if format.contains("yyyy") {
+            return calendar.startOfDay(for: parsed)
+        }
+
+        var components = calendar.dateComponents([.month, .day], from: parsed)
+        components.year = calendar.component(.year, from: reference)
+        guard var candidate = calendar.date(from: components) else {
+            return calendar.startOfDay(for: reference)
+        }
+
+        let referenceDay = calendar.startOfDay(for: reference)
+        if candidate < calendar.date(byAdding: .day, value: -180, to: referenceDay)! {
+            components.year = (components.year ?? 0) + 1
+            candidate = calendar.date(from: components) ?? candidate
+        } else if candidate > calendar.date(byAdding: .day, value: 180, to: referenceDay)! {
+            components.year = (components.year ?? 0) - 1
+            candidate = calendar.date(from: components) ?? candidate
+        }
+
+        return calendar.startOfDay(for: candidate)
     }
 
     private static func combine(day: Date, time: String) -> Date? {

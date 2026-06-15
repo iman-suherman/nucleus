@@ -1,0 +1,15 @@
+{
+  "version": "0.1.15",
+  "summary": "Fix Google Calendar sync for web session accounts.",
+  "releaseNotes": {
+    "fixed": [
+      "Calendar Sync now pulls events for web sign-in accounts — Upcoming no longer stays empty when the calendar grid shows Home, Office, or Out of Office blocks",
+      "Embedded calendar fetches the private iCal feed using your active browser session instead of relying on copied cookies alone",
+      "All-day and working-location events are parsed correctly, including labels like \"Home, Monday, June 16\"",
+      "Date parsing no longer assigns year 2000 to month/day labels, which previously filtered every event as past"
+    ],
+    "changed": [
+      "Sync Calendar waits slightly longer for the embedded web view to report events before merging results"
+    ]
+  }
+}

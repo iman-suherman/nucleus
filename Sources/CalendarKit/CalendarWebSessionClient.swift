@@ -24,6 +24,11 @@ public enum CalendarWebSessionClient {
         return []
     }
 
+    public static func parseICS(_ text: String, account: GoogleAccount) -> [CalendarEventSummary] {
+        guard text.contains("BEGIN:VCALENDAR") else { return [] }
+        return parseICSEvents(text, account: account)
+    }
+
     public static func mergeEvents(
         icalEvents: [CalendarEventSummary],
         webEvents: [CalendarEventSummary]
@@ -64,7 +69,7 @@ public enum CalendarWebSessionClient {
             guard let text = String(data: data, encoding: .utf8), text.contains("BEGIN:VCALENDAR") else {
                 return nil
             }
-            let events = parseICS(text, account: account)
+            let events = parseICSEvents(text, account: account)
             return events.isEmpty ? nil : events
         } catch {
             return nil
@@ -85,11 +90,12 @@ public enum CalendarWebSessionClient {
             "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15",
             forHTTPHeaderField: "User-Agent"
         )
+        request.setValue("https://calendar.google.com/", forHTTPHeaderField: "Referer")
 
         return try await URLSession(configuration: config).data(for: request)
     }
 
-    private static func parseICS(_ text: String, account: GoogleAccount) -> [CalendarEventSummary] {
+    private static func parseICSEvents(_ text: String, account: GoogleAccount) -> [CalendarEventSummary] {
         let unfolded = unfoldICS(text)
         let now = Date()
         let horizon = Calendar.current.date(byAdding: .day, value: 7, to: now) ?? now

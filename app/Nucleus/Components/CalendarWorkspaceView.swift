@@ -154,62 +154,102 @@ struct CalendarWebView: NSViewRepresentable {
         }
 
         private func reportEvents(from webView: WKWebView) {
-            guard let accountID else { return }
-            webView.evaluateJavaScript(CalendarWebView.eventExtractionScript, completionHandler: { result, _ in
+            guard let accountID, let accountEmail else { return }
+            let script = CalendarWebView.eventSyncScript(for: accountEmail)
+            webView.evaluateJavaScript(script, completionHandler: { result, _ in
                 guard let payload = result as? String,
                       let data = payload.data(using: .utf8),
-                      let entries = try? JSONDecoder().decode([CalendarWebEventParser.Entry].self, from: data),
-                      !entries.isEmpty else { return }
+                      let syncPayload = try? JSONDecoder().decode(CalendarWebSyncPayload.self, from: data) else { return }
+                guard !syncPayload.entries.isEmpty || !(syncPayload.ics?.isEmpty ?? true) else { return }
+
+                var userInfo: [String: Any] = [
+                    "accountID": accountID.uuidString,
+                    "entriesJSON": (try? String(data: JSONEncoder().encode(syncPayload.entries), encoding: .utf8)) ?? "[]",
+                ]
+                if let ics = syncPayload.ics, !ics.isEmpty {
+                    userInfo["icsText"] = ics
+                }
 
                 NotificationCenter.default.post(
                     name: .calendarWebEventsDidChange,
                     object: nil,
-                    userInfo: [
-                        "accountID": accountID.uuidString,
-                        "entriesJSON": payload,
-                    ]
+                    userInfo: userInfo
                 )
             })
         }
     }
 }
 
+private struct CalendarWebSyncPayload: Decodable {
+    let entries: [CalendarWebEventParser.Entry]
+    let ics: String?
+}
+
 private extension CalendarWebView {
-    static let eventExtractionScript = """
-    (function() {
-      const entries = [];
-      const seen = new Set();
-      const timePattern = /(\\d{1,2}(?::\\d{2})?\\s*(?:AM|PM|am|pm)?)\\s*(?:–|-|—|to)\\s*(\\d{1,2}(?::\\d{2})?\\s*(?:AM|PM|am|pm)?)/i;
+    static func eventSyncScript(for email: String) -> String {
+        let escapedEmail = email
+            .replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "'", with: "\\'")
+        return """
+        (function() {
+          const authEmail = '\(escapedEmail)';
+          const entries = [];
+          const seen = new Set();
+          const timePattern = /(\\d{1,2}(?::\\d{2})?\\s*(?:AM|PM|am|pm)?)\\s*(?:–|-|—|to)\\s*(\\d{1,2}(?::\\d{2})?\\s*(?:AM|PM|am|pm)?)/i;
+          const datePattern = /(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)/i;
 
-      function addLabel(label) {
-        const trimmed = (label || '').trim();
-        if (!trimmed || trimmed.length < 4 || seen.has(trimmed)) return;
-        seen.add(trimmed);
-        const match = trimmed.match(timePattern);
-        entries.push({
-          label: trimmed,
-          start: match ? match[1].trim() : null,
-          end: match ? match[2].trim() : null
-        });
-      }
+          function addLabel(label) {
+            const trimmed = (label || '').trim();
+            if (!trimmed || trimmed.length < 2 || seen.has(trimmed)) return;
+            if (!timePattern.test(trimmed) && !datePattern.test(trimmed) && !trimmed.includes(',')) return;
+            seen.add(trimmed);
+            const match = trimmed.match(timePattern);
+            entries.push({
+              label: trimmed,
+              start: match ? match[1].trim() : null,
+              end: match ? match[2].trim() : null
+            });
+          }
 
-      document.querySelectorAll('[data-eventid], [data-eventchip], [data-event-id]').forEach(function(node) {
-        addLabel(node.getAttribute('aria-label'));
-      });
+          document.querySelectorAll('[data-eventid], [data-eventchip], [data-event-id]').forEach(function(node) {
+            addLabel(node.getAttribute('aria-label'));
+          });
 
-      document.querySelectorAll('[role="button"][aria-label], [role="link"][aria-label]').forEach(function(node) {
-        const label = node.getAttribute('aria-label') || '';
-        if (timePattern.test(label)) addLabel(label);
-      });
+          document.querySelectorAll('[role="button"][aria-label], [role="link"][aria-label]').forEach(function(node) {
+            addLabel(node.getAttribute('aria-label'));
+          });
 
-      document.querySelectorAll('[aria-label]').forEach(function(node) {
-        const label = node.getAttribute('aria-label') || '';
-        if (timePattern.test(label) && label.includes(',')) addLabel(label);
-      });
+          document.querySelectorAll('[aria-label]').forEach(function(node) {
+            const label = node.getAttribute('aria-label') || '';
+            if (label.includes(',') && (timePattern.test(label) || datePattern.test(label))) {
+              addLabel(label);
+            }
+          });
 
-      return JSON.stringify(entries.slice(0, 60));
-    })();
-    """
+          return (async function() {
+            let ics = null;
+            const authuser = encodeURIComponent(authEmail);
+            const paths = [
+              '/calendar/u/0/ical/primary/basic.ics?authuser=' + authuser,
+              '/calendar/ical/primary/basic.ics?authuser=' + authuser,
+              '/calendar/feed/ical/primary?authuser=' + authuser,
+            ];
+            for (const path of paths) {
+              try {
+                const resp = await fetch('https://calendar.google.com' + path, { credentials: 'include' });
+                if (!resp.ok) continue;
+                const text = await resp.text();
+                if (text.includes('BEGIN:VCALENDAR')) {
+                  ics = text;
+                  break;
+                }
+              } catch (e) {}
+            }
+            return JSON.stringify({ entries: entries.slice(0, 80), ics: ics });
+          })();
+        })();
+        """
+    }
 }
 
 struct CalendarWebPoller: View {
