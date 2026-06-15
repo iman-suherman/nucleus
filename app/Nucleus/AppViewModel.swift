@@ -113,13 +113,11 @@ final class AppViewModel: ObservableObject {
                 webEvents: merged
             )
         }
-        if merged.isEmpty {
-            let domEvents = CalendarWebEventParser.parse(entries: entries, account: account)
-            merged = domEvents
+        let hasStructuredSources = !apiPayloads.isEmpty || !(icsText?.isEmpty ?? true)
+        if merged.isEmpty, !hasStructuredSources {
+            merged = CalendarWebEventParser.parse(entries: entries, account: account)
         }
-        if !merged.isEmpty {
-            webReportedCalendarEvents[accountID] = merged
-        }
+        webReportedCalendarEvents[accountID] = merged
         Task { await syncCalendar() }
     }
 

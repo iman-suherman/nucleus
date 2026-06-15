@@ -45,4 +45,15 @@ final class CalendarEventParserTests: XCTestCase {
 
         XCTAssertNil(CalendarEventParser.parse(payload, account: account))
     }
+
+    func testSkipsChangeWorkingLocationChromeTitles() {
+        let payload: [String: Any] = [
+            "id": "junk456",
+            "summary": "Change working location",
+            "start": ["dateTime": "2026-06-16T00:00:00+10:00"],
+            "end": ["dateTime": "2026-06-16T01:00:00+10:00"],
+        ]
+
+        XCTAssertNil(CalendarEventParser.parse(payload, account: account))
+    }
 }

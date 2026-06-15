@@ -1,0 +1,12 @@
+{
+  "version": "0.1.20",
+  "summary": "Filter working-location UI from calendar Upcoming and stop DOM junk fallback.",
+  "releaseNotes": {
+    "fixed": [
+      "Upcoming no longer shows “Change working location” or “Working location: Home” prompts scraped from the calendar grid",
+      "Calendar junk filter now checks the title before the first comma, matching Google Calendar aria-labels",
+      "DOM scraping skips data-is-picker UI controls and is only used when both API and iCal sync are unavailable",
+      "When the session API responds but only working-location events are returned, stale DOM junk is not merged back in"
+    ]
+  }
+}

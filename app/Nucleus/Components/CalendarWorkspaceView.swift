@@ -248,12 +248,31 @@ private extension CalendarWebView {
             }
           }
 
-          function isChromeTitle(title) {
+          function isChromeSegment(title) {
             const lower = (title || '').trim().toLowerCase();
             if (!lower) return true;
             if (lower.startsWith('add a ') && lower.includes('location')) return true;
             if (lower.startsWith('add ') && lower.endsWith(' location')) return true;
-            return /^(add a working location|add working location|add location|add title|create event|create meeting|create task|add note|more options|join with google meet)$/.test(lower);
+            if (lower.startsWith('change ') && lower.includes('location')) return true;
+            if (lower.startsWith('working location')) return true;
+            return /^(add a working location|add working location|add location|change working location|change work location|add title|create event|create meeting|create task|add note|more options|join with google meet)$/.test(lower);
+          }
+
+          function isChromeTitle(title) {
+            const trimmed = (title || '').trim();
+            if (!trimmed) return true;
+            if (isChromeSegment(trimmed)) return true;
+            const comma = trimmed.indexOf(',');
+            if (comma > 0) {
+              return isChromeSegment(trimmed.slice(0, comma));
+            }
+            return false;
+          }
+
+          function isPickerNode(node) {
+            if (!node) return false;
+            if (node.getAttribute('data-is-picker') === 'true') return true;
+            return node.closest('[data-is-picker="true"]') != null;
           }
 
           function addLabel(label) {
@@ -270,14 +289,16 @@ private extension CalendarWebView {
 
           function collectEventLabels() {
             document.querySelectorAll('[data-eventid], [data-eventchip], [data-event-id]').forEach(function(node) {
+              if (isPickerNode(node)) return;
               addLabel(node.getAttribute('aria-label'));
               const nested = node.querySelector('[aria-label]');
-              if (nested) addLabel(nested.getAttribute('aria-label'));
+              if (nested && !isPickerNode(nested)) addLabel(nested.getAttribute('aria-label'));
             });
 
             document.querySelectorAll('[role="gridcell"]').forEach(function(cell) {
               const dayHint = (cell.getAttribute('aria-label') || '').trim();
               cell.querySelectorAll('[data-eventid], [data-eventchip], [data-event-id]').forEach(function(node) {
+                if (isPickerNode(node)) return;
                 const label = node.getAttribute('aria-label');
                 if (label && dayHint && !label.includes(',')) {
                   addLabel(label + ', ' + dayHint);

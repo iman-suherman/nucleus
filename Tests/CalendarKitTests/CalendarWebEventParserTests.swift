@@ -50,6 +50,8 @@ final class CalendarWebEventParserTests: XCTestCase {
             labels: [
                 "Add a working location",
                 "Add location, Monday, June 16",
+                "Change working location, Suherman, 15 June 2026. Current location is Home",
+                "Working location: Home, Suherman, 15 – 16 June 2026",
                 "Work (Qantas)",
             ],
             account: account,
