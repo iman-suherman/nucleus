@@ -1,4 +1,5 @@
 import Foundation
+import NucleusKit
 import WebKit
 
 @MainActor
@@ -54,6 +55,21 @@ enum EmbeddedWebViewRegistry {
         for surface in [Surface.mail, .chat, .calendar] {
             let key = CacheKey(accountID: accountID, surface: surface)
             webViews.removeValue(forKey: key)?.stopLoading()
+        }
+    }
+
+    static func syncVisibility(activePane: WorkspacePane?) {
+        for (key, webView) in webViews {
+            let visible: Bool
+            switch key.surface {
+            case .mail:
+                visible = activePane == .inbox
+            case .chat:
+                visible = activePane == .chat
+            case .calendar:
+                visible = activePane == .calendar
+            }
+            webView.setEmbeddedVisibility(visible)
         }
     }
 }

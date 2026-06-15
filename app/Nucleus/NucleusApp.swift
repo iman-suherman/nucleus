@@ -50,7 +50,6 @@ struct NucleusApp: App {
         }
         .defaultSize(width: 1320, height: 880)
         .windowStyle(.automatic)
-        .windowToolbarStyle(.unified(showsTitle: false))
         .commands {
             CommandGroup(replacing: .newItem) {}
             CommandGroup(after: .appInfo) {
@@ -77,51 +76,40 @@ struct NucleusApp: App {
     }
 }
 
-private struct WindowToolbarChromeModifier: ViewModifier {
-    func body(content: Content) -> some View {
-        if #available(macOS 15.0, *) {
-            content
-                .toolbarBackground(.regularMaterial, for: .windowToolbar)
-                .toolbarBackgroundVisibility(.visible, for: .windowToolbar)
-        } else {
-            content
-        }
-    }
-}
-
 struct ContentView: View {
     @EnvironmentObject private var viewModel: AppViewModel
     @EnvironmentObject private var appSettings: AppSettings
 
     var body: some View {
         ZStack {
-            NavigationSplitView {
-                sidebar
-                    .navigationSplitViewColumnWidth(min: 260, ideal: appSettings.sidebarWidth, max: 340)
-            } detail: {
-                detailContent
-            }
-            .toolbar {
-                ToolbarItem(placement: .principal) {
-                    WorkspaceStatusBadge(
-                        message: viewModel.statusMessage,
-                        mailUnreadCount: viewModel.totalUnread,
-                        chatUnreadCount: viewModel.totalChatUnread,
-                        mailAccounts: viewModel.unreadBreakdown(for: viewModel.unreadByAccount),
-                        chatAccounts: viewModel.unreadBreakdown(for: viewModel.chatUnreadByAccount)
-                    )
+            VStack(spacing: 0) {
+                NavigationSplitView {
+                    sidebar
+                        .navigationSplitViewColumnWidth(min: 260, ideal: appSettings.sidebarWidth, max: 340)
+                } detail: {
+                    detailContent
+                        .toolbar {
+                            ToolbarItem(placement: .principal) {
+                                WorkspaceStatusBadge(
+                                    message: viewModel.statusMessage,
+                                    mailUnreadCount: viewModel.totalUnread,
+                                    chatUnreadCount: viewModel.totalChatUnread,
+                                    mailAccounts: viewModel.unreadBreakdown(for: viewModel.unreadByAccount),
+                                    chatAccounts: viewModel.unreadBreakdown(for: viewModel.chatUnreadByAccount)
+                                )
+                            }
+                            ToolbarItem(placement: .automatic) {
+                                Button {
+                                    SparkleUpdaterController.shared.checkForUpdates()
+                                } label: {
+                                    Label("Check for Updates…", systemImage: "arrow.down.circle")
+                                        .labelStyle(.titleAndIcon)
+                                }
+                                .buttonStyle(.bordered)
+                            }
+                        }
                 }
-                ToolbarItem(placement: .automatic) {
-                    Button {
-                        SparkleUpdaterController.shared.checkForUpdates()
-                    } label: {
-                        Label("Check for Updates…", systemImage: "arrow.down.circle")
-                            .labelStyle(.titleAndIcon)
-                    }
-                    .buttonStyle(.bordered)
-                }
             }
-            .modifier(WindowToolbarChromeModifier())
 
             if viewModel.isStartingUp {
                 StartupSplashOverlay(
@@ -148,56 +136,50 @@ struct ContentView: View {
         .animation(.easeInOut(duration: 0.22), value: viewModel.showWhatsNew)
         .onChange(of: viewModel.sidebarSelection) { _, selection in
             viewModel.sidebarSelectionDidChange(selection)
+            EmbeddedWebViewRegistry.syncVisibility(activePane: activeWorkspacePane(from: selection))
         }
     }
 
     @ViewBuilder
     private var detailContent: some View {
         ZStack {
-            MailWorkspaceView(isActive: isWorkspace(.inbox))
-                .opacity(isWorkspace(.inbox) ? 1 : 0)
-                .allowsHitTesting(isWorkspace(.inbox))
-                .accessibilityHidden(!isWorkspace(.inbox))
-            CalendarWorkspaceView()
-                .opacity(isWorkspace(.calendar) ? 1 : 0)
-                .allowsHitTesting(isWorkspace(.calendar))
-                .accessibilityHidden(!isWorkspace(.calendar))
-            ChatWorkspaceView()
-                .opacity(isWorkspace(.chat) ? 1 : 0)
-                .allowsHitTesting(isWorkspace(.chat))
-                .accessibilityHidden(!isWorkspace(.chat))
+            MailWorkspaceView(
+                isActive: isWorkspace(.inbox),
+                isVisible: isWorkspace(.inbox)
+            )
+            CalendarWorkspaceView(isVisible: isWorkspace(.calendar))
+            ChatWorkspaceView(isVisible: isWorkspace(.chat))
             ClipboardWorkspaceView()
                 .opacity(isWorkspace(.clipboard) ? 1 : 0)
                 .allowsHitTesting(isWorkspace(.clipboard))
-                .accessibilityHidden(!isWorkspace(.clipboard))
             NotesWorkspaceView()
                 .opacity(isWorkspace(.notes) ? 1 : 0)
                 .allowsHitTesting(isWorkspace(.notes))
-                .accessibilityHidden(!isWorkspace(.notes))
             AccountCenterView()
                 .opacity(isWorkspace(.accounts) ? 1 : 0)
                 .allowsHitTesting(isWorkspace(.accounts))
-                .accessibilityHidden(!isWorkspace(.accounts))
             SettingsWorkspaceView()
                 .opacity(isWorkspace(.settings) ? 1 : 0)
                 .allowsHitTesting(isWorkspace(.settings))
-                .accessibilityHidden(!isWorkspace(.settings))
         }
     }
 
     private func isWorkspace(_ pane: WorkspacePane) -> Bool {
-        if case .workspace(let selected) = viewModel.sidebarSelection {
-            return selected == pane
+        activeWorkspacePane(from: viewModel.sidebarSelection) == pane
+    }
+
+    private func activeWorkspacePane(from selection: SidebarSelection) -> WorkspacePane? {
+        if case .workspace(let pane) = selection {
+            return pane
         }
-        return false
+        return nil
     }
 
     private var sidebar: some View {
         List(selection: $viewModel.sidebarSelection) {
             Section {
                 NucleusBrandMark(logoSize: 44, showText: true)
-                    .padding(.top, 8)
-                    .padding(.bottom, 4)
+                    .padding(.vertical, 4)
             }
 
             Section("Workspace") {

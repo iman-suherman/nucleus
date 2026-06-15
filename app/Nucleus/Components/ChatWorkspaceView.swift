@@ -10,6 +10,7 @@ extension Notification.Name {
 struct ChatWebView: NSViewRepresentable {
     let accountID: UUID
     let accountEmail: String
+    var isVisible: Bool = true
 
     func makeNSView(context: Context) -> WKWebView {
         let webView = EmbeddedWebViewRegistry.webView(accountID: accountID, surface: .chat)
@@ -17,6 +18,7 @@ struct ChatWebView: NSViewRepresentable {
         webView.uiDelegate = context.coordinator
         context.coordinator.accountID = accountID
         context.coordinator.accountEmail = accountEmail
+        webView.setEmbeddedVisibility(isVisible)
         if !EmbeddedWebViewRegistry.hasLoadedContent(webView) {
             loadChat(into: webView, email: accountEmail)
         } else {
@@ -28,6 +30,11 @@ struct ChatWebView: NSViewRepresentable {
     func updateNSView(_ webView: WKWebView, context: Context) {
         context.coordinator.accountID = accountID
         context.coordinator.accountEmail = accountEmail
+        webView.setEmbeddedVisibility(isVisible)
+    }
+
+    static func dismantleNSView(_ webView: WKWebView, coordinator: Coordinator) {
+        webView.setEmbeddedVisibility(false)
     }
 
     func makeCoordinator() -> Coordinator {
@@ -249,8 +256,21 @@ private extension ChatWebView {
 struct ChatWorkspaceView: View {
     @EnvironmentObject private var viewModel: AppViewModel
     @EnvironmentObject private var settings: AppSettings
+    var isVisible: Bool = true
 
     var body: some View {
+        Group {
+            if isVisible {
+                chatContent
+            } else {
+                Color.clear
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var chatContent: some View {
         VStack(spacing: 0) {
             accountTabs
                 .padding(.horizontal, 20)
@@ -258,11 +278,15 @@ struct ChatWorkspaceView: View {
                 .padding(.bottom, 8)
 
             if let account = selectedAccount {
-                ChatWebView(accountID: account.id, accountEmail: account.email)
-                    .id(account.id)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 16)
+                ChatWebView(
+                    accountID: account.id,
+                    accountEmail: account.email,
+                    isVisible: isVisible
+                )
+                .id(account.id)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .padding(.horizontal, 16)
+                .padding(.bottom, 16)
             } else {
                 ContentUnavailableView(
                     "No chat account selected",
@@ -271,7 +295,6 @@ struct ChatWorkspaceView: View {
                 )
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var selectedAccount: GoogleAccount? {

@@ -13,6 +13,7 @@ struct GmailWebView: NSViewRepresentable {
     let accountID: UUID
     let accountEmail: String
     var isActive: Bool = true
+    var isVisible: Bool = true
 
     func makeNSView(context: Context) -> WKWebView {
         let webView = EmbeddedWebViewRegistry.webView(accountID: accountID, surface: .mail)
@@ -20,6 +21,7 @@ struct GmailWebView: NSViewRepresentable {
         webView.uiDelegate = context.coordinator
         context.coordinator.accountID = accountID
         context.coordinator.accountEmail = accountEmail
+        webView.setEmbeddedVisibility(isVisible)
         if !EmbeddedWebViewRegistry.hasLoadedContent(webView) {
             loadInbox(into: webView, email: accountEmail)
         } else if isActive {
@@ -31,12 +33,17 @@ struct GmailWebView: NSViewRepresentable {
     func updateNSView(_ webView: WKWebView, context: Context) {
         context.coordinator.accountID = accountID
         context.coordinator.accountEmail = accountEmail
+        webView.setEmbeddedVisibility(isVisible)
 
         if isActive {
             context.coordinator.resumeUnreadPollingIfNeeded(in: webView)
         } else {
             context.coordinator.stopUnreadPolling()
         }
+    }
+
+    static func dismantleNSView(_ webView: WKWebView, coordinator: Coordinator) {
+        webView.setEmbeddedVisibility(false)
     }
 
     func makeCoordinator() -> Coordinator {
@@ -291,6 +298,7 @@ struct MailWorkspaceView: View {
     @EnvironmentObject private var viewModel: AppViewModel
     @EnvironmentObject private var settings: AppSettings
     var isActive: Bool = true
+    var isVisible: Bool = true
 
     @State private var renamingAccount: GoogleAccount?
     @State private var renameDraft = ""
@@ -299,36 +307,12 @@ struct MailWorkspaceView: View {
     @State private var newCategoryEmail = ""
 
     var body: some View {
-        VStack(spacing: 0) {
-            mailHeader
-                .padding(.horizontal, 20)
-                .padding(.top, 12)
-                .padding(.bottom, 4)
-
-            accountTabs
-                .padding(.horizontal, 20)
-                .padding(.bottom, 8)
-
-            if viewModel.accounts.isEmpty {
-                ContentUnavailableView(
-                    "No Gmail account selected",
-                    systemImage: "tray",
-                    description: Text("Add a Gmail account and sign in with Google to begin.")
-                )
-            } else if isActive, let account = selectedAccount {
-                GmailWebView(
-                    accountID: account.id,
-                    accountEmail: account.email,
-                    isActive: true
-                )
-                .id(account.id)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-                .padding(.horizontal, 16)
-                .padding(.bottom, 16)
+        Group {
+            if isVisible {
+                mailContent
             } else {
                 Color.clear
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 16)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -354,6 +338,42 @@ struct MailWorkspaceView: View {
                 },
                 onCancel: { isAddingCategory = false }
             )
+        }
+    }
+
+    private var mailContent: some View {
+        VStack(spacing: 0) {
+            mailHeader
+                .padding(.horizontal, 20)
+                .padding(.top, 12)
+                .padding(.bottom, 4)
+
+            accountTabs
+                .padding(.horizontal, 20)
+                .padding(.bottom, 8)
+
+            if viewModel.accounts.isEmpty {
+                ContentUnavailableView(
+                    "No Gmail account selected",
+                    systemImage: "tray",
+                    description: Text("Add a Gmail account and sign in with Google to begin.")
+                )
+            } else if isActive, let account = selectedAccount {
+                GmailWebView(
+                    accountID: account.id,
+                    accountEmail: account.email,
+                    isActive: true,
+                    isVisible: isVisible
+                )
+                .id(account.id)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .padding(.horizontal, 16)
+                .padding(.bottom, 16)
+            } else {
+                Color.clear
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 16)
+            }
         }
     }
 

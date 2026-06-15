@@ -5,12 +5,14 @@ import WebKit
 struct CalendarWebView: NSViewRepresentable {
     let accountID: UUID
     let accountEmail: String
+    var isVisible: Bool = true
 
     func makeNSView(context: Context) -> WKWebView {
         let webView = EmbeddedWebViewRegistry.webView(accountID: accountID, surface: .calendar)
         webView.navigationDelegate = context.coordinator
         webView.uiDelegate = context.coordinator
         context.coordinator.accountEmail = accountEmail
+        webView.setEmbeddedVisibility(isVisible)
         if !EmbeddedWebViewRegistry.hasLoadedContent(webView) {
             loadCalendar(into: webView, email: accountEmail)
         }
@@ -19,6 +21,11 @@ struct CalendarWebView: NSViewRepresentable {
 
     func updateNSView(_ webView: WKWebView, context: Context) {
         context.coordinator.accountEmail = accountEmail
+        webView.setEmbeddedVisibility(isVisible)
+    }
+
+    static func dismantleNSView(_ webView: WKWebView, coordinator: Coordinator) {
+        webView.setEmbeddedVisibility(false)
     }
 
     func makeCoordinator() -> Coordinator {
@@ -113,8 +120,21 @@ struct CalendarWebView: NSViewRepresentable {
 struct CalendarWorkspaceView: View {
     @EnvironmentObject private var viewModel: AppViewModel
     @EnvironmentObject private var settings: AppSettings
+    var isVisible: Bool = true
 
     var body: some View {
+        Group {
+            if isVisible {
+                calendarContent
+            } else {
+                Color.clear
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var calendarContent: some View {
         VStack(spacing: 0) {
             accountTabs
                 .padding(.horizontal, 12)
@@ -123,11 +143,15 @@ struct CalendarWorkspaceView: View {
 
             if let account = selectedAccount {
                 if account.authMode == .webSession {
-                    CalendarWebView(accountID: account.id, accountEmail: account.email)
-                        .id("calendar-\(account.id)")
-                        .padding(.horizontal, 12)
-                        .padding(.bottom, 12)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                    CalendarWebView(
+                        accountID: account.id,
+                        accountEmail: account.email,
+                        isVisible: isVisible
+                    )
+                    .id("calendar-\(account.id)")
+                    .padding(.horizontal, 12)
+                    .padding(.bottom, 12)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
                 } else {
                     ContentUnavailableView(
                         "Calendar preview unavailable",
@@ -143,7 +167,6 @@ struct CalendarWorkspaceView: View {
                 )
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var selectedAccount: GoogleAccount? {

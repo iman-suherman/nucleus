@@ -4,7 +4,7 @@ import NucleusKit
 import SwiftUI
 
 @MainActor
-final class WindowLayoutController: NSObject, NSWindowDelegate {
+final class WindowLayoutController {
     static let shared = WindowLayoutController()
 
     private var resizeObserver: NSObjectProtocol?
@@ -14,9 +14,7 @@ final class WindowLayoutController: NSObject, NSWindowDelegate {
     private var hasRestoredInitialFrame = false
     private var isApplyingProgrammatically = false
 
-    private override init() {
-        super.init()
-    }
+    private init() {}
 
     func startTracking(onChange: @escaping (WindowLayoutState) -> Void) {
         onLayoutChange = onChange
@@ -26,8 +24,6 @@ final class WindowLayoutController: NSObject, NSWindowDelegate {
         guard let window, trackedWindow !== window else { return }
         detachObservers()
         trackedWindow = window
-        window.delegate = self
-        configureWindowChrome(window)
         resizeObserver = NotificationCenter.default.addObserver(
             forName: NSWindow.didResizeNotification,
             object: window,
@@ -43,11 +39,6 @@ final class WindowLayoutController: NSObject, NSWindowDelegate {
             self?.publishCurrentLayout()
         }
         restoreSavedFrameOnce(from: AppSettings.shared.windowLayout)
-    }
-
-    func reapplyWindowChrome() {
-        guard let window = trackedWindow else { return }
-        configureWindowChrome(window)
     }
 
     /// Restores saved frame once at launch. Frame is never re-applied after user interaction.
@@ -75,26 +66,6 @@ final class WindowLayoutController: NSObject, NSWindowDelegate {
         isApplyingProgrammatically = true
         window.setFrame(constrained, display: true)
         isApplyingProgrammatically = false
-        configureWindowChrome(window)
-    }
-
-    private func configureWindowChrome(_ window: NSWindow) {
-        window.title = "Nucleus"
-        window.titleVisibility = .hidden
-        window.styleMask.remove(.fullSizeContentView)
-        window.titlebarAppearsTransparent = false
-        window.isMovableByWindowBackground = false
-        window.toolbarStyle = .unified
-    }
-
-    func windowDidBecomeKey(_ notification: Notification) {
-        guard let window = notification.object as? NSWindow, window === trackedWindow else { return }
-        configureWindowChrome(window)
-    }
-
-    func windowDidResize(_ notification: Notification) {
-        guard let window = notification.object as? NSWindow, window === trackedWindow else { return }
-        configureWindowChrome(window)
     }
 
     private func frameConstrainedToVisibleScreen(
@@ -210,9 +181,6 @@ struct WindowLayoutAccessor: NSViewRepresentable {
             guard let window, attachedWindow !== window else { return }
             attachedWindow = window
             onWindowReady(window)
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                WindowLayoutController.shared.reapplyWindowChrome()
-            }
         }
     }
 }

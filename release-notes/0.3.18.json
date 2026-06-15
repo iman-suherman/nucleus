@@ -1,0 +1,14 @@
+{
+  "version": "0.3.18",
+  "summary": "Fixes Gmail web content bleeding over the window header.",
+  "releaseNotes": {
+    "fixed": [
+      "Gmail, Chat, and Calendar web views no longer render over the title bar when switching to Accounts, Settings, or other panes",
+      "WKWebView ignores SwiftUI opacity — embedded web views are now explicitly hidden when their workspace is inactive",
+      "Restores the v0.3.12 window toolbar layout that keeps the sidebar header visible"
+    ],
+    "changed": [
+      "Toolbar status badge stays compact; hover for per-account unread breakdown"
+    ]
+  }
+}
