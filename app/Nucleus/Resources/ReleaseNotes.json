@@ -1,21 +1,19 @@
 {
-  "version": "0.3.13",
-  "summary": "Better inbox navigation, redesigned Settings, and configurable chat notifications.",
+  "version": "0.3.14",
+  "summary": "Fixes the clipped header and shows detailed What's New after updates.",
   "releaseNotes": {
     "introduced": [
-      "Settings → Chat tab with per-account notification sounds separate from mail (default: Funky)",
-      "Dual-color Dock badges — blue for mail unread, green for chat unread",
-      "Toolbar status bar shows detailed mail and chat unread counts per account"
+      "What's New overlay on first launch after an update — full release notes with grouped sections like the website",
+      "Nucleus menu → What's New in This Version to reopen release notes anytime",
+      "Release notes fetched from the registry when bundled notes are missing or outdated"
     ],
     "changed": [
-      "Click a Gmail account tab anytime to return to that account's inbox",
-      "Add Gmail Account button replaces Add Category in the inbox header",
-      "Settings redesigned with a left sidebar instead of floating top tabs",
-      "Chat notifications include account name and unread count in the alert message"
+      "Status bar moved out of the window toolbar into a dedicated top bar so unread badges and Ready status are no longer clipped",
+      "Check for Updates button lives in the status bar beside mail and chat unread counts"
     ],
     "fixed": [
-      "Settings screen compiles correctly in release builds",
-      "Toolbar unread counts no longer get clipped beside the Ready status"
+      "Correct release notes content (no longer shows unrelated DiskWise copy)",
+      "Release notes generator uses Nucleus-specific change detection"
     ]
   }
 }
