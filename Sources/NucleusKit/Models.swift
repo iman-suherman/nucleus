@@ -43,7 +43,6 @@ public enum WorkspacePane: String, CaseIterable, Identifiable, Sendable {
     case chat
     case clipboard
     case notes
-    case notifications
     case accounts
 
     public var id: String { rawValue }
@@ -55,7 +54,6 @@ public enum WorkspacePane: String, CaseIterable, Identifiable, Sendable {
         case .chat: return "Chat"
         case .clipboard: return "Clipboard"
         case .notes: return "Notes"
-        case .notifications: return "Notifications"
         case .accounts: return "Accounts"
         }
     }
@@ -67,7 +65,6 @@ public enum WorkspacePane: String, CaseIterable, Identifiable, Sendable {
         case .chat: return "Google Chat messages"
         case .clipboard: return "Recent clips and templates"
         case .notes: return "Markdown knowledge base"
-        case .notifications: return "Activity feed"
         case .accounts: return "Google identities"
         }
     }
@@ -79,13 +76,12 @@ public enum WorkspacePane: String, CaseIterable, Identifiable, Sendable {
         case .chat: return "message"
         case .clipboard: return "doc.on.clipboard"
         case .notes: return "note.text"
-        case .notifications: return "bell"
         case .accounts: return "person.crop.circle.badge.plus"
         }
     }
 
     public static let primaryWorkspaces: [WorkspacePane] = [.inbox, .calendar, .chat, .clipboard]
-    public static let utilityWorkspaces: [WorkspacePane] = [.notifications, .accounts]
+    public static let utilityWorkspaces: [WorkspacePane] = [.accounts]
 }
 
 public enum ActivitySource: String, Codable, Sendable {

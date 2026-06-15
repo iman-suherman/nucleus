@@ -144,8 +144,6 @@ struct ContentView: View {
             ClipboardWorkspaceView()
         case .workspace(.notes):
             NotesWorkspaceView()
-        case .workspace(.notifications):
-            NotificationCenterView()
         case .workspace(.accounts):
             AccountCenterView()
         }

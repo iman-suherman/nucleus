@@ -1,0 +1,11 @@
+{
+  "version": "0.2.1",
+  "summary": "Remove the Notifications activity feed workspace.",
+  "releaseNotes": {
+    "changed": [
+      "Removed the Notifications sidebar pane and in-app activity feed",
+      "Stopped logging email and note events to the activity stream",
+      "Mail and chat macOS push notifications are unchanged"
+    ]
+  }
+}

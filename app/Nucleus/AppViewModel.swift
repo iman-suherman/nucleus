@@ -29,7 +29,6 @@ final class AppViewModel: ObservableObject {
     @Published var sidebarSelection: SidebarSelection = .workspace(.inbox)
     @Published var accounts: [GoogleAccount] = []
     @Published var clipboardEntries: [ClipboardEntry] = []
-    @Published var activityFeed: [ActivityItem] = []
     @Published var notes: [NoteDocument] = []
     @Published var mailMessages: [MailMessageSummary] = []
     @Published var unreadByAccount: [UUID: Int] = [:]
@@ -124,14 +123,6 @@ final class AppViewModel: ObservableObject {
             NucleusNotificationService.shared.notifyNewMail(message, accountName: accountName)
             notifiedMessageIDs.insert(message.id)
             delivered += 1
-            try? appendActivity(
-                ActivityItem(
-                    title: "New Email",
-                    detail: "\(message.fromName): \(message.subject)",
-                    source: .gmail,
-                    accountEmail: accounts.first(where: { $0.id == accountID })?.email
-                )
-            )
         }
 
         return delivered
@@ -332,7 +323,6 @@ final class AppViewModel: ObservableObject {
         let context = ModelContext(modelContainer)
         accounts = (try? AccountRepository.fetchAll(context: context)) ?? []
         clipboardEntries = (try? ClipboardRepository.fetchRecent(context: context)) ?? []
-        activityFeed = (try? ActivityRepository.fetchRecent(context: context)) ?? []
         notes = (try? NoteRepository.fetchAll(context: context)) ?? []
         totalUnread = (try? MailRepository.unreadCount(context: context)) ?? 0
 
@@ -556,14 +546,6 @@ final class AppViewModel: ObservableObject {
         try? NoteRepository.upsert(updated, context: context)
         reloadLocalData()
         selectedNoteID = updated.id
-
-        try? appendActivity(
-            ActivityItem(
-                title: "Note saved",
-                detail: updated.title,
-                source: .notes
-            )
-        )
     }
 
     func createNote(in folder: NoteFolder) async {
@@ -627,12 +609,6 @@ final class AppViewModel: ObservableObject {
                 subject: subject
             )
         }
-    }
-
-    private func appendActivity(_ item: ActivityItem) throws {
-        let context = ModelContext(modelContainer)
-        try ActivityRepository.append(item, context: context)
-        activityFeed.insert(item, at: 0)
     }
 }
 
