@@ -246,9 +246,29 @@ public enum NoteFolder: String, Codable, CaseIterable, Sendable {
     case dailyNotes = "Daily Notes"
     case meetingNotes = "Meeting Notes"
     case clipboardNotes = "Clipboard Notes"
+    case passwords = "Passwords"
+    case credentials = "Credentials"
 
     public var drivePath: String {
         "/Nucleus/\(rawValue)"
+    }
+
+    public var systemImage: String {
+        switch self {
+        case .notes: return "note.text"
+        case .dailyNotes: return "calendar"
+        case .meetingNotes: return "person.3"
+        case .clipboardNotes: return "doc.on.clipboard"
+        case .passwords: return "key"
+        case .credentials: return "lock.shield"
+        }
+    }
+
+    public var isSensitive: Bool {
+        switch self {
+        case .passwords, .credentials: return true
+        default: return false
+        }
     }
 }
 
@@ -296,6 +316,7 @@ public struct NucleusSyncedConfiguration: Codable, Hashable, Sendable {
     public var selectedWorkspacePane: String?
     public var windowLayout: WindowLayoutState?
     public var clipboardSyncEnabled: Bool
+    public var clipboardSaveToNotesEnabled: Bool
     public var iCloudKeychainTokenSyncEnabled: Bool
     public var updatedAt: Date
 
@@ -313,6 +334,7 @@ public struct NucleusSyncedConfiguration: Codable, Hashable, Sendable {
         selectedWorkspacePane: String? = nil,
         windowLayout: WindowLayoutState? = nil,
         clipboardSyncEnabled: Bool = true,
+        clipboardSaveToNotesEnabled: Bool = true,
         iCloudKeychainTokenSyncEnabled: Bool = true,
         updatedAt: Date = Date()
     ) {
@@ -329,6 +351,7 @@ public struct NucleusSyncedConfiguration: Codable, Hashable, Sendable {
         self.selectedWorkspacePane = selectedWorkspacePane
         self.windowLayout = windowLayout
         self.clipboardSyncEnabled = clipboardSyncEnabled
+        self.clipboardSaveToNotesEnabled = clipboardSaveToNotesEnabled
         self.iCloudKeychainTokenSyncEnabled = iCloudKeychainTokenSyncEnabled
         self.updatedAt = updatedAt
     }
@@ -348,6 +371,7 @@ public struct NucleusSyncedConfiguration: Codable, Hashable, Sendable {
         selectedWorkspacePane = try container.decodeIfPresent(String.self, forKey: .selectedWorkspacePane)
         windowLayout = try container.decodeIfPresent(WindowLayoutState.self, forKey: .windowLayout)
         clipboardSyncEnabled = try container.decodeIfPresent(Bool.self, forKey: .clipboardSyncEnabled) ?? true
+        clipboardSaveToNotesEnabled = try container.decodeIfPresent(Bool.self, forKey: .clipboardSaveToNotesEnabled) ?? true
         iCloudKeychainTokenSyncEnabled = try container.decodeIfPresent(Bool.self, forKey: .iCloudKeychainTokenSyncEnabled) ?? true
         updatedAt = try container.decodeIfPresent(Date.self, forKey: .updatedAt) ?? Date()
     }

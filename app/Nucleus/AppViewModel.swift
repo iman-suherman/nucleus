@@ -713,20 +713,28 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
 
     func toggleClipboardPin(_ entry: ClipboardEntry) {
         let context = ModelContext(modelContainer)
-        try? ClipboardRepository.setPinned(id: entry.id, pinned: !entry.isPinned, context: context)
+        let pinning = !entry.isPinned
+        try? ClipboardRepository.setPinned(id: entry.id, pinned: pinning, context: context)
         reloadLocalData()
+        if pinning, AppSettings.shared.clipboardSaveToNotesEnabled {
+            Task { await saveClipboardToNote(entry, selectNote: false) }
+        }
     }
 
-    func saveClipboardToNote(_ entry: ClipboardEntry) async {
+    func saveClipboardToNote(_ entry: ClipboardEntry, selectNote: Bool = true) async {
         let note = NoteDocument(
-            title: "Clipboard \(NucleusFormatters.time.string(from: Date()))",
-            markdown: NotesMarkdown.clipboardNoteTemplate(from: entry.content, source: entry.sourceApplication),
+            title: "Clipboard \(NucleusFormatters.time.string(from: entry.capturedAt))",
+            markdown: NotesMarkdown.clipboardNoteTemplate(
+                from: entry.content,
+                source: entry.sourceApplication,
+                capturedAt: entry.capturedAt
+            ),
             folder: .clipboardNotes
         )
-        await saveNote(note)
+        await saveNote(note, selectNote: selectNote)
     }
 
-    func saveNote(_ note: NoteDocument) async {
+    func saveNote(_ note: NoteDocument, selectNote: Bool = true) async {
         let context = ModelContext(modelContainer)
         var updated = note
         updated.updatedAt = Date()
@@ -744,15 +752,27 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
 
         try? NoteRepository.upsert(updated, context: context)
         reloadLocalData()
-        selectedNoteID = updated.id
+        if selectNote {
+            selectedNoteID = updated.id
+        }
     }
 
     func createNote(in folder: NoteFolder) async {
-        let note = NoteDocument(
-            title: "Untitled",
-            markdown: "# Untitled\n",
-            folder: folder
-        )
+        let note: NoteDocument
+        if folder.isSensitive {
+            let title = "New Entry"
+            note = NoteDocument(
+                title: title,
+                markdown: NotesMarkdown.credentialNoteTemplate(title: title, folder: folder),
+                folder: folder
+            )
+        } else {
+            note = NoteDocument(
+                title: "Untitled",
+                markdown: "# Untitled\n",
+                folder: folder
+            )
+        }
         await saveNote(note)
     }
 
@@ -791,6 +811,9 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         let context = ModelContext(modelContainer)
         try? ClipboardRepository.insert(entry, context: context)
         reloadLocalData()
+        if AppSettings.shared.clipboardSaveToNotesEnabled {
+            Task { await saveClipboardToNote(entry, selectNote: false) }
+        }
     }
 
     private func handleMailNotificationAction(_ action: NucleusNotificationService.MailNotificationAction) {

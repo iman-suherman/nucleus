@@ -73,6 +73,13 @@ struct AppSettingsView: View {
 
                 Toggle("Sync clipboard history", isOn: $settings.clipboardSyncEnabled)
 
+                Toggle("Save clipboard to Notes", isOn: $settings.clipboardSaveToNotesEnabled)
+                    .disabled(!settings.clipboardSyncEnabled)
+
+                Text("When enabled, each copied item is kept in the Clipboard Notes folder (synced via iCloud) so it is not lost when history is trimmed.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
                 Button("Refresh iCloud Status") {
                     Task { await syncService.refreshAccountStatus() }
                 }

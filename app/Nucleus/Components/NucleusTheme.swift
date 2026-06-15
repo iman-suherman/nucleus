@@ -1,4 +1,29 @@
+import AppKit
 import SwiftUI
+
+struct NucleusAppLogo: View {
+    var size: CGFloat = 28
+    var cornerRadius: CGFloat = 7
+
+    var body: some View {
+        Group {
+            if let iconURL = Bundle.main.url(forResource: "AppIcon", withExtension: "icns"),
+               let image = NSImage(contentsOf: iconURL) {
+                Image(nsImage: image)
+                    .resizable()
+                    .interpolation(.high)
+            } else {
+                Image(systemName: "atom")
+                    .font(.system(size: size * 0.55, weight: .semibold))
+                    .foregroundStyle(.blue)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Color.accentColor.opacity(0.12))
+            }
+        }
+        .frame(width: size, height: size)
+        .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+    }
+}
 
 enum NucleusBadgeKind {
     case mail

@@ -136,6 +136,7 @@ final class SettingsSyncBridge {
             selectedWorkspacePane: settings.selectedWorkspacePane,
             windowLayout: settings.windowLayout,
             clipboardSyncEnabled: settings.clipboardSyncEnabled,
+            clipboardSaveToNotesEnabled: settings.clipboardSaveToNotesEnabled,
             iCloudKeychainTokenSyncEnabled: settings.iCloudKeychainTokenSyncEnabled,
             updatedAt: Date()
         )
@@ -164,6 +165,7 @@ extension AppSettings {
         selectedWorkspacePane = remoteConfiguration.selectedWorkspacePane
         windowLayout = remoteConfiguration.windowLayout
         clipboardSyncEnabled = remoteConfiguration.clipboardSyncEnabled
+        clipboardSaveToNotesEnabled = remoteConfiguration.clipboardSaveToNotesEnabled
         iCloudKeychainTokenSyncEnabled = remoteConfiguration.iCloudKeychainTokenSyncEnabled
     }
 }

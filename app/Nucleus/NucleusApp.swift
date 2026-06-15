@@ -181,12 +181,17 @@ struct ContentView: View {
     private var sidebar: some View {
         List(selection: $viewModel.sidebarSelection) {
             Section {
-                Text("Nucleus")
-                    .font(.title2.bold())
-                    .padding(.vertical, 4)
-                Text("Personal Operating System")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                HStack(alignment: .center, spacing: 10) {
+                    NucleusAppLogo(size: 28, cornerRadius: 7)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Nucleus")
+                            .font(.title2.bold())
+                        Text("Personal Operating System")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .padding(.vertical, 4)
             }
 
             Section("Workspace") {

@@ -27,16 +27,41 @@ public enum NotesMarkdown {
         """
     }
 
-    public static func clipboardNoteTemplate(from content: String, source: String) -> String {
+    public static func clipboardNoteTemplate(from content: String, source: String, capturedAt: Date = Date()) -> String {
         """
         # Clipboard Note
         Copied from: \(source)
-        Date: \(NucleusFormatters.dayHeader.string(from: Date()))
+        Date: \(NucleusFormatters.dayHeader.string(from: capturedAt))
 
         ```
         \(content)
         ```
         """
+    }
+
+    public static func credentialNoteTemplate(title: String, folder: NoteFolder) -> String {
+        switch folder {
+        case .passwords:
+            return """
+            # \(title)
+            Service:
+            Username:
+            Password:
+            URL:
+            Notes:
+            """
+        case .credentials:
+            return """
+            # \(title)
+            Label:
+            Username / ID:
+            Secret:
+            Expires:
+            Notes:
+            """
+        default:
+            return "# \(title)\n"
+        }
     }
 }
 

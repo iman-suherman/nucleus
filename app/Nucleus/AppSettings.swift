@@ -85,6 +85,7 @@ final class AppSettings: ObservableObject {
         static let emailNotificationsEnabled = "nucleus.settings.emailNotificationsEnabled"
         static let calendarNotificationsEnabled = "nucleus.settings.calendarNotificationsEnabled"
         static let clipboardSyncEnabled = "nucleus.settings.clipboardSyncEnabled"
+        static let clipboardSaveToNotesEnabled = "nucleus.settings.clipboardSaveToNotesEnabled"
         static let iCloudKeychainTokenSyncEnabled = "nucleus.settings.iCloudKeychainTokenSyncEnabled"
         static let selectedWorkspacePane = "nucleus.settings.selectedWorkspacePane"
         static let windowLayout = "nucleus.settings.windowLayout"
@@ -144,6 +145,10 @@ final class AppSettings: ObservableObject {
 
     @Published var clipboardSyncEnabled: Bool {
         didSet { UserDefaults.standard.set(clipboardSyncEnabled, forKey: Keys.clipboardSyncEnabled) }
+    }
+
+    @Published var clipboardSaveToNotesEnabled: Bool {
+        didSet { UserDefaults.standard.set(clipboardSaveToNotesEnabled, forKey: Keys.clipboardSaveToNotesEnabled) }
     }
 
     @Published var iCloudKeychainTokenSyncEnabled: Bool {
@@ -241,6 +246,12 @@ final class AppSettings: ObservableObject {
             clipboardSyncEnabled = UserDefaults.standard.bool(forKey: Keys.clipboardSyncEnabled)
         } else {
             clipboardSyncEnabled = true
+        }
+
+        if UserDefaults.standard.object(forKey: Keys.clipboardSaveToNotesEnabled) != nil {
+            clipboardSaveToNotesEnabled = UserDefaults.standard.bool(forKey: Keys.clipboardSaveToNotesEnabled)
+        } else {
+            clipboardSaveToNotesEnabled = true
         }
 
         if UserDefaults.standard.object(forKey: Keys.iCloudKeychainTokenSyncEnabled) != nil {

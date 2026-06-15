@@ -5,6 +5,7 @@ struct NotesWorkspaceView: View {
     @EnvironmentObject private var viewModel: AppViewModel
     @EnvironmentObject private var appSettings: AppSettings
     @State private var editorText = ""
+    @State private var listFilter: NoteFolder?
 
     var body: some View {
         HSplitView {
@@ -26,10 +27,26 @@ struct NotesWorkspaceView: View {
                 Text("Notes")
                     .font(.headline)
                 Spacer()
+                Menu {
+                    Button("All categories") { listFilter = nil }
+                    Divider()
+                    ForEach(NoteFolder.allCases, id: \.self) { folder in
+                        Button {
+                            listFilter = folder
+                        } label: {
+                            Label(folder.rawValue, systemImage: folder.systemImage)
+                        }
+                    }
+                } label: {
+                    Label(listFilter?.rawValue ?? "All", systemImage: listFilter?.systemImage ?? "line.3.horizontal.decrease.circle")
+                        .font(.subheadline)
+                }
                 Menu("New") {
                     ForEach(NoteFolder.allCases, id: \.self) { folder in
-                        Button(folder.rawValue) {
+                        Button {
                             Task { await viewModel.createNote(in: folder) }
+                        } label: {
+                            Label(folder.rawValue, systemImage: folder.systemImage)
                         }
                     }
                 }
@@ -38,13 +55,21 @@ struct NotesWorkspaceView: View {
             .padding(.top, 16)
 
             List(selection: $viewModel.selectedNoteID) {
-                ForEach(viewModel.notes) { note in
+                ForEach(filteredNotes) { note in
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(note.title)
-                            .font(.subheadline.weight(.semibold))
-                        Text(note.folder.rawValue)
+                        HStack(spacing: 6) {
+                            if note.folder.isSensitive {
+                                Image(systemName: note.folder.systemImage)
+                                    .font(.caption2)
+                                    .foregroundStyle(.orange)
+                            }
+                            Text(note.title)
+                                .font(.subheadline.weight(.semibold))
+                        }
+                        Label(note.folder.rawValue, systemImage: note.folder.systemImage)
                             .font(.caption2)
                             .foregroundStyle(.secondary)
+                            .labelStyle(.titleAndIcon)
                     }
                     .tag(Optional(note.id))
                 }
@@ -68,9 +93,19 @@ struct NotesWorkspaceView: View {
                     .font(.title3.bold())
                     .textFieldStyle(.plain)
 
-                Text("Folder: \(note.folder.rawValue)")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                Picker("Category", selection: bindingFolder(for: note)) {
+                    ForEach(NoteFolder.allCases, id: \.self) { folder in
+                        Label(folder.rawValue, systemImage: folder.systemImage)
+                            .tag(folder)
+                    }
+                }
+                .pickerStyle(.menu)
+
+                if note.folder.isSensitive {
+                    Text("Stored in \(note.folder.rawValue). Syncs via iCloud — avoid sharing this device while unlocked.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
 
                 TextEditor(text: $editorText)
                     .font(.body.monospaced())
@@ -84,6 +119,7 @@ struct NotesWorkspaceView: View {
                             var updated = note
                             updated.markdown = editorText
                             updated.title = titleFromMarkdown(editorText, fallback: note.title)
+                            updated.folder = bindingFolder(for: note).wrappedValue
                             await viewModel.saveNote(updated)
                         }
                     }
@@ -105,6 +141,11 @@ struct NotesWorkspaceView: View {
         return viewModel.notes.first(where: { $0.id == id })
     }
 
+    private var filteredNotes: [NoteDocument] {
+        guard let listFilter else { return viewModel.notes }
+        return viewModel.notes.filter { $0.folder == listFilter }
+    }
+
     private func loadSelectedNote() {
         editorText = selectedNote?.markdown ?? ""
     }
@@ -115,6 +156,19 @@ struct NotesWorkspaceView: View {
             set: { newValue in
                 if let index = viewModel.notes.firstIndex(where: { $0.id == note.id }) {
                     viewModel.notes[index].title = newValue
+                }
+            }
+        )
+    }
+
+    private func bindingFolder(for note: NoteDocument) -> Binding<NoteFolder> {
+        Binding(
+            get: {
+                viewModel.notes.first(where: { $0.id == note.id })?.folder ?? note.folder
+            },
+            set: { newValue in
+                if let index = viewModel.notes.firstIndex(where: { $0.id == note.id }) {
+                    viewModel.notes[index].folder = newValue
                 }
             }
         )
