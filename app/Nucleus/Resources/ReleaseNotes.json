@@ -1,10 +1,11 @@
 {
-  "version": "0.2.4",
-  "summary": "Mail notification sounds play reliably when Nucleus is in the foreground.",
+  "version": "0.2.5",
+  "summary": "Mail notification sounds match your Settings choice in preview and live alerts.",
   "releaseNotes": {
     "fixed": [
-      "Mail alerts now play your chosen notification sound when the banner appears while Nucleus is open",
-      "Custom sounds use the correct macOS bundle filename so background notifications can play Nucleus Mail and Funky"
+      "Settings preview and live mail alerts now play the same sound for Nucleus Mail, Funky, and System default",
+      "Custom sounds are installed into Application Support so macOS can play them for background notifications",
+      "System default uses the macOS Hero alert instead of a generic beep"
     ]
   }
 }
