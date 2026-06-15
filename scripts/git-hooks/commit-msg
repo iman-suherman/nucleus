@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Block commits that still contain forbidden attribution or email references.
+set -euo pipefail
+
+MSG_FILE=${1:?}
+
+if grep -qE '^Co-authored-by: Cursor <cursoragent@cursor.com>$' "$MSG_FILE"; then
+  echo "commit-msg: remove Co-authored-by: Cursor before committing" >&2
+  exit 1
+fi
+
+if grep -qi 'suherman@qantas' "$MSG_FILE"; then
+  echo "commit-msg: do not reference suherman@qantas.com.au in commit messages" >&2
+  exit 1
+fi

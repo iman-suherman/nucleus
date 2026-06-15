@@ -5,11 +5,10 @@ MSG="$(python3 - <<'PY'
 import subprocess
 
 msg = subprocess.check_output(["git", "log", "-1", "--format=%B"], text=True)
-lines = [
-    line
-    for line in msg.splitlines()
-    if line != "Co-authored-by: Cursor <cursoragent@cursor.com>"
-]
+blocked = (
+    "Co-authored-by: Cursor <cursoragent@cursor.com>",
+)
+lines = [line for line in msg.splitlines() if line.strip() not in blocked and not line.startswith("Co-authored-by: Cursor")]
 while lines and not lines[-1].strip():
     lines.pop()
 print("\n".join(lines), end="" if lines else "")

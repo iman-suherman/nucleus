@@ -1,19 +1,26 @@
 ---
-description: Git commit author identity for this repository
+description: Enforce git author identity and ban Cursor co-author trailers
 alwaysApply: true
 ---
 
-# Git Commit Identity
+# Git Commit Identity (required)
 
-When creating git commits in this repository:
+Every commit in this repository must use:
 
 - **Author**: `Iman Suherman <iman.suherman@gmail.com>`
 - **Committer**: `Iman Suherman <iman.suherman@gmail.com>`
-- **Never** add `Co-authored-by` trailers or any other co-author attribution unless the user explicitly requests it.
-- **Never** add `Co-authored-by: Cursor <cursoragent@cursor.com>` or any Cursor/agent attribution.
-- **Never** use, reference, or leave traces of `suherman@qantas.com` in commit messages, author fields, or trailers.
 
-Always pass explicit author and committer env vars on every commit. Do not rely on the environment default identity and do not run `git config` to change identity.
+## Forbidden
+
+- `Co-authored-by: Cursor <cursoragent@cursor.com>` or any Cursor/agent co-author trailer
+- Any other `Co-authored-by` line unless the user explicitly asks for co-authorship
+- `suherman@qantas.com.au` or `suherman@qantas` anywhere in author, committer, or message
+- Running `git config` to change user.name or user.email
+
+## When creating commits
+
+1. Install hooks once per clone if missing: `bash scripts/install-git-hooks.sh`
+2. Prefer `bash scripts/git-commit.sh "$(cat <<'EOF' ... EOF)"` or explicit env vars:
 
 ```bash
 GIT_COMMITTER_NAME="Iman Suherman" \
@@ -25,10 +32,36 @@ EOF
 )"
 ```
 
-Before finishing any task that creates commits, verify the latest commit message does not contain `Co-authored-by`.
-
-If history needs cleaning, run:
+3. After **every** commit you create, run:
 
 ```bash
-GIT_SEQUENCE_EDITOR=true git rebase --root --exec 'bash scripts/rewrite-commit-identity.sh'
+bash scripts/rewrite-commit-identity.sh
+git log -1 --format='%an <%ae>%n%ce%n%B'
 ```
+
+4. Confirm the output shows only `iman.suherman@gmail.com` and no `Co-authored-by` lines.
+
+## Enforcement
+
+Git hooks in `scripts/git-hooks/` (installed by `scripts/install-git-hooks.sh`):
+
+- **prepare-commit-msg** — strips Cursor co-author before commit completes
+- **commit-msg** — rejects Cursor co-author and qantas email references
+- **post-commit** — auto-runs `scripts/rewrite-commit-identity.sh` if identity or message is wrong
+
+Do not skip hooks (`--no-verify`) unless the user explicitly requests it.
+
+## History cleanup
+
+```bash
+bash scripts/install-git-hooks.sh
+bash scripts/rewrite-commit-identity.sh   # latest commit only
+```
+
+For full history:
+
+```bash
+git filter-repo --force --env-filter '...' --message-callback '...'
+```
+
+Only rewrite and force-push when the user explicitly asks.

@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Normalize author identity and strip Cursor co-author trailers after every commit.
+set -euo pipefail
+
+ROOT="$(git rev-parse --show-toplevel)"
+AUTHOR="$(git log -1 --format=%ae)"
+COMMITTER="$(git log -1 --format=%ce)"
+MSG="$(git log -1 --format=%B)"
+
+if [[ "$AUTHOR" != "iman.suherman@gmail.com" ]] \
+  || [[ "$COMMITTER" != "iman.suherman@gmail.com" ]] \
+  || grep -qE '^Co-authored-by: Cursor <cursoragent@cursor.com>$' <<<"$MSG"; then
+  bash "$ROOT/scripts/rewrite-commit-identity.sh"
+fi

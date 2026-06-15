@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Remove Cursor co-author trailers before the commit message is finalized.
+set -euo pipefail
+
+MSG_FILE=${1:?}
+
+python3 - "$MSG_FILE" <<'PY'
+import pathlib
+import sys
+
+path = pathlib.Path(sys.argv[1])
+text = path.read_text(encoding="utf-8")
+lines = [
+    line
+    for line in text.splitlines()
+    if line.strip() != "Co-authored-by: Cursor <cursoragent@cursor.com>"
+]
+while lines and not lines[-1].strip():
+    lines.pop()
+path.write_text(("\n".join(lines) + "\n") if lines else "", encoding="utf-8")
+PY
