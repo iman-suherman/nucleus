@@ -1,0 +1,17 @@
+{
+  "version": "0.1.9",
+  "summary": "Custom mail alerts, calendar sync from web view, Google Chat, and toolbar polish.",
+  "releaseNotes": {
+    "introduced": [
+      "Google Chat embedded below the calendar for each web sign-in account",
+      "Custom Nucleus chime for new email notifications, distinct from the default macOS alert"
+    ],
+    "changed": [
+      "Calendar events sync from the signed-in Gmail session and from the calendar week view for the upcoming list",
+      "Toolbar status pill now combines the mail icon with unread count in one enlarged badge"
+    ],
+    "fixed": [
+      "New email notifications fire when unread count increases for web Gmail accounts"
+    ]
+  }
+}

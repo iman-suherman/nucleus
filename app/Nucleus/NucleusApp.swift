@@ -87,12 +87,10 @@ struct ContentView: View {
                     detailContent
                         .toolbar {
                             ToolbarItem(placement: .principal) {
-                                WorkspaceStatusBadge(message: viewModel.statusMessage)
-                            }
-                            if viewModel.totalUnread > 0 {
-                                ToolbarItem(placement: .automatic) {
-                                    Label("\(viewModel.totalUnread)", systemImage: "envelope.badge")
-                                }
+                                WorkspaceStatusBadge(
+                                    message: viewModel.statusMessage,
+                                    unreadCount: viewModel.totalUnread
+                                )
                             }
                             ToolbarItem(placement: .automatic) {
                                 Button {

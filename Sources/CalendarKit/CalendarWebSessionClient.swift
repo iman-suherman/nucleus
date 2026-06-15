@@ -5,9 +5,12 @@ public enum CalendarWebSessionClient {
     public static func sync(account: GoogleAccount, cookies: [HTTPCookie]) async -> [CalendarEventSummary] {
         guard !cookies.isEmpty else { return [] }
 
+        let encodedEmail = account.email.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? account.email
         let candidates = [
             icalURL(path: "primary/basic.ics", email: account.email),
-            icalURL(path: "\(account.email)/public/basic.ics", email: account.email),
+            icalURL(path: "primary/public/basic.ics", email: account.email),
+            URL(string: "https://calendar.google.com/calendar/u/0/ical/primary/basic.ics?authuser=\(account.email.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? account.email)")!,
+            URL(string: "https://calendar.google.com/calendar/ical/\(encodedEmail)/public/basic.ics?authuser=\(account.email.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? account.email)")!,
         ]
 
         for url in candidates {
@@ -17,6 +20,25 @@ public enum CalendarWebSessionClient {
         }
 
         return []
+    }
+
+    public static func mergeEvents(
+        icalEvents: [CalendarEventSummary],
+        webEvents: [CalendarEventSummary]
+    ) -> [CalendarEventSummary] {
+        guard !webEvents.isEmpty else { return icalEvents }
+        guard !icalEvents.isEmpty else { return webEvents }
+
+        var merged = icalEvents
+        let existingTitles = Set(icalEvents.map { normalizedKey($0) })
+        for event in webEvents where !existingTitles.contains(normalizedKey(event)) {
+            merged.append(event)
+        }
+        return merged.sorted { $0.startDate < $1.startDate }
+    }
+
+    private static func normalizedKey(_ event: CalendarEventSummary) -> String {
+        "\(event.title.lowercased())-\(Int(event.startDate.timeIntervalSince1970 / 60))"
     }
 
     private static func icalURL(path: String, email: String) -> URL {
@@ -66,12 +88,13 @@ public enum CalendarWebSessionClient {
     }
 
     private static func parseICS(_ text: String, account: GoogleAccount) -> [CalendarEventSummary] {
+        let unfolded = unfoldICS(text)
         let now = Date()
         let horizon = Calendar.current.date(byAdding: .day, value: 7, to: now) ?? now
         var events: [CalendarEventSummary] = []
         var current: [String: String] = [:]
 
-        for rawLine in text.components(separatedBy: .newlines) {
+        for rawLine in unfolded.components(separatedBy: .newlines) {
             let line = rawLine.trimmingCharacters(in: .whitespacesAndNewlines)
             if line == "BEGIN:VEVENT" {
                 current = [:]
@@ -94,6 +117,18 @@ public enum CalendarWebSessionClient {
         return events.sorted { $0.startDate < $1.startDate }
     }
 
+    private static func unfoldICS(_ text: String) -> String {
+        var lines: [String] = []
+        for line in text.components(separatedBy: .newlines) {
+            if line.hasPrefix(" ") || line.hasPrefix("\t"), !lines.isEmpty {
+                lines[lines.count - 1] += line.dropFirst()
+            } else {
+                lines.append(String(line))
+            }
+        }
+        return lines.joined(separator: "\n")
+    }
+
     private static func makeEvent(
         from fields: [String: String],
         account: GoogleAccount,
@@ -102,9 +137,9 @@ public enum CalendarWebSessionClient {
     ) -> CalendarEventSummary? {
         guard let uid = fields["UID"], let summary = fields["SUMMARY"] else { return nil }
         guard let startDate = parseICSDate(fields["DTSTART"]) else { return nil }
-        guard startDate >= now, startDate <= horizon else { return nil }
-
         let endDate = parseICSDate(fields["DTEND"]) ?? startDate.addingTimeInterval(3600)
+        guard endDate > now, startDate <= horizon else { return nil }
+
         let location = fields["LOCATION"] ?? ""
         let description = fields["DESCRIPTION"]?.replacingOccurrences(of: "\\n", with: "\n") ?? ""
         let meetingLink = extractMeetingLink(description: description, location: location)

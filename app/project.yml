@@ -26,6 +26,7 @@ targets:
           - Assets/AppIconSource.raw.png
     resources:
       - path: Nucleus/Assets/AppIcon.icns
+      - path: Nucleus/Assets/Sounds
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: net.suherman.nucleus

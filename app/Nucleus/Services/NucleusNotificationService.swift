@@ -30,7 +30,7 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
         content.title = "New Email"
         content.subtitle = message.fromName
         content.body = message.subject
-        content.sound = .default
+        content.sound = Self.mailSound
         content.categoryIdentifier = "NUCLEUS_MAIL"
         content.userInfo = [
             "messageID": message.id,
@@ -47,6 +47,24 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
         )
         UNUserNotificationCenter.current().add(request)
     }
+
+    func notifyIncomingMail(unreadCount: Int, delta: Int, accountName: String) {
+        let content = UNMutableNotificationContent()
+        content.title = delta == 1 ? "New Email" : "\(delta) New Emails"
+        content.subtitle = accountName
+        content.body = unreadCount == 1 ? "1 unread message in your inbox" : "\(unreadCount) unread messages in your inbox"
+        content.sound = Self.mailSound
+        content.categoryIdentifier = "NUCLEUS_MAIL"
+
+        let request = UNNotificationRequest(
+            identifier: "mail-unread-\(UUID().uuidString)",
+            content: content,
+            trigger: nil
+        )
+        UNUserNotificationCenter.current().add(request)
+    }
+
+    private static let mailSound = UNNotificationSound(named: UNNotificationSoundName("NucleusMail.caf"))
 
     func rescheduleMeetingReminders(_ reminders: [MeetingReminderPlanner.Reminder]) async {
         let center = UNUserNotificationCenter.current()

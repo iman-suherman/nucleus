@@ -52,6 +52,8 @@ final class AppViewModel: ObservableObject {
     private let calendarSyncService = CalendarSyncService()
     private var knownMessageIDs = Set<String>()
     private var webReportedUnread: [UUID: Int] = [:]
+    private var unreadBaselineEstablished = Set<UUID>()
+    private var webReportedCalendarEvents: [UUID: [CalendarEventSummary]] = [:]
 
     init() {
         modelContainer = (try? NucleusDatabase.makeContainer()) ?? {
@@ -60,6 +62,27 @@ final class AppViewModel: ObservableObject {
         AppViewModel.current = self
         observeGmailWebSignIn()
         observeGmailWebUnreadCount()
+        observeCalendarWebEvents()
+    }
+
+    private func observeCalendarWebEvents() {
+        NotificationCenter.default.addObserver(
+            forName: .calendarWebEventsDidChange,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            guard let accountID = notification.userInfo?["accountID"] as? UUID,
+                  let labels = notification.userInfo?["labels"] as? [String] else { return }
+            self?.applyWebCalendarEvents(accountID: accountID, labels: labels)
+        }
+    }
+
+    func applyWebCalendarEvents(accountID: UUID, labels: [String]) {
+        guard let account = accounts.first(where: { $0.id == accountID }) else { return }
+        let events = CalendarWebEventParser.parse(labels: labels, account: account)
+        guard !events.isEmpty else { return }
+        webReportedCalendarEvents[accountID] = events
+        Task { await syncCalendar() }
     }
 
     private func observeGmailWebUnreadCount() {
@@ -75,11 +98,24 @@ final class AppViewModel: ObservableObject {
     }
 
     func applyWebUnreadCount(accountID: UUID, count: Int) {
+        let previous = webReportedUnread[accountID] ?? 0
         webReportedUnread[accountID] = max(0, count)
         unreadByAccount[accountID] = max(0, count)
         totalUnread = unreadByAccount.values.reduce(0, +)
         DockBadgeController.update(unreadCount: totalUnread)
         statusMessage = statusMessageForCurrentState()
+
+        if unreadBaselineEstablished.contains(accountID), count > previous {
+            let account = accounts.first(where: { $0.id == accountID })
+            NucleusNotificationService.shared.notifyIncomingMail(
+                unreadCount: count,
+                delta: count - previous,
+                accountName: account?.displayName ?? account?.email ?? "Inbox"
+            )
+        }
+        unreadBaselineEstablished.insert(accountID)
+
+        Task { await syncCalendar() }
     }
 
     private func observeGmailWebSignIn() {
@@ -490,8 +526,11 @@ final class AppViewModel: ObservableObject {
 
         for account in accounts where account.authMode == .webSession {
             let cookies = await GmailWebSessionStore.cookies(for: account.id)
-            let events = await CalendarWebSessionClient.sync(account: account, cookies: cookies)
-            allEvents.append(contentsOf: events)
+            let icalEvents = await CalendarWebSessionClient.sync(account: account, cookies: cookies)
+            let webEvents = webReportedCalendarEvents[account.id] ?? []
+            allEvents.append(
+                contentsOf: CalendarWebSessionClient.mergeEvents(icalEvents: icalEvents, webEvents: webEvents)
+            )
         }
 
         calendarEvents = allEvents.sorted { $0.startDate < $1.startDate }
