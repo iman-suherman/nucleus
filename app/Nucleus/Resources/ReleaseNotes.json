@@ -1,14 +1,14 @@
 {
-  "version": "0.3.18",
-  "summary": "Fixes Gmail web content bleeding over the window header.",
+  "version": "0.3.19",
+  "summary": "Fixes Inbox header overlap and rounds the Settings sidebar border.",
   "releaseNotes": {
     "fixed": [
-      "Gmail, Chat, and Calendar web views no longer render over the title bar when switching to Accounts, Settings, or other panes",
-      "WKWebView ignores SwiftUI opacity — embedded web views are now explicitly hidden when their workspace is inactive",
-      "Restores the v0.3.12 window toolbar layout that keeps the sidebar header visible"
+      "Inbox no longer breaks the header — only the active account's Gmail web view is shown instead of all cached mail web views",
+      "Embedded web views are clipped in an AppKit container so Gmail content cannot paint over the toolbar",
+      "Switching away from Inbox, Chat, or Calendar hides web views without re-showing every cached view on the active pane"
     ],
     "changed": [
-      "Toolbar status badge stays compact; hover for per-account unread breakdown"
+      "Settings sidebar menu has a rounded outer border"
     ]
   }
 }
