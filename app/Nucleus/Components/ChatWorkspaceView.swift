@@ -12,29 +12,43 @@ struct ChatWebView: NSViewRepresentable {
     let accountEmail: String
     var isVisible: Bool = true
 
-    func makeNSView(context: Context) -> WKWebView {
+    func makeNSView(context: Context) -> EmbeddedWebViewContainer {
+        let container = EmbeddedWebViewContainer()
         let webView = EmbeddedWebViewRegistry.webView(accountID: accountID, surface: .chat)
         webView.navigationDelegate = context.coordinator
         webView.uiDelegate = context.coordinator
         context.coordinator.accountID = accountID
         context.coordinator.accountEmail = accountEmail
-        webView.setEmbeddedVisibility(isVisible)
+        container.embed(webView)
+        applyVisibility(to: container)
         if !EmbeddedWebViewRegistry.hasLoadedContent(webView) {
             loadChat(into: webView, email: accountEmail)
         } else {
             context.coordinator.resumeUnreadPollingIfNeeded(in: webView)
         }
-        return webView
+        return container
     }
 
-    func updateNSView(_ webView: WKWebView, context: Context) {
+    func updateNSView(_ container: EmbeddedWebViewContainer, context: Context) {
         context.coordinator.accountID = accountID
         context.coordinator.accountEmail = accountEmail
-        webView.setEmbeddedVisibility(isVisible)
+        applyVisibility(to: container)
+        if isVisible, let webView = container.embeddedWebView {
+            context.coordinator.resumeUnreadPollingIfNeeded(in: webView)
+        }
     }
 
-    static func dismantleNSView(_ webView: WKWebView, coordinator: Coordinator) {
-        webView.setEmbeddedVisibility(false)
+    private func applyVisibility(to container: EmbeddedWebViewContainer) {
+        if isVisible {
+            EmbeddedWebViewRegistry.hideSurfaceWebViews(.chat, except: accountID)
+            container.setEmbeddedVisibility(true)
+        } else {
+            container.setEmbeddedVisibility(false)
+        }
+    }
+
+    static func dismantleNSView(_ container: EmbeddedWebViewContainer, coordinator: Coordinator) {
+        container.setEmbeddedVisibility(false)
     }
 
     func makeCoordinator() -> Coordinator {

@@ -60,16 +60,30 @@ enum EmbeddedWebViewRegistry {
 
     static func syncVisibility(activePane: WorkspacePane?) {
         for (key, webView) in webViews {
-            let visible: Bool
+            let pane: WorkspacePane
             switch key.surface {
             case .mail:
-                visible = activePane == .inbox
+                pane = .inbox
             case .chat:
-                visible = activePane == .chat
+                pane = .chat
             case .calendar:
-                visible = activePane == .calendar
+                pane = .calendar
             }
-            webView.setEmbeddedVisibility(visible)
+            if activePane != pane {
+                webView.setEmbeddedVisibility(false)
+            }
+        }
+    }
+
+    static func hideMailWebViews(except accountID: UUID? = nil) {
+        hideSurfaceWebViews(.mail, except: accountID)
+    }
+
+    static func hideSurfaceWebViews(_ surface: Surface, except accountID: UUID? = nil) {
+        for (key, webView) in webViews where key.surface == surface {
+            if accountID == nil || key.accountID != accountID {
+                webView.setEmbeddedVisibility(false)
+            }
         }
     }
 }

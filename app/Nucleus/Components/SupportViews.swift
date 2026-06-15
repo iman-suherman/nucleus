@@ -336,10 +336,19 @@ struct SettingsWorkspaceView: View {
                     settingsSidebarRow(for: tab)
                 }
             }
-            .padding(12)
+            .padding(8)
         }
         .frame(width: 220)
-        .background(Color(nsColor: .controlBackgroundColor).opacity(0.35))
+        .background(
+            Color(nsColor: .controlBackgroundColor).opacity(0.35),
+            in: RoundedRectangle(cornerRadius: 12, style: .continuous)
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(Color.primary.opacity(0.08), lineWidth: 1)
+        }
+        .padding(.leading, 12)
+        .padding(.vertical, 12)
     }
 
     private func settingsSidebarRow(for tab: SettingsTab) -> some View {

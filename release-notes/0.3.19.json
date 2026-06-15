@@ -1,0 +1,14 @@
+{
+  "version": "0.3.19",
+  "summary": "Fixes Inbox header overlap and rounds the Settings sidebar border.",
+  "releaseNotes": {
+    "fixed": [
+      "Inbox no longer breaks the header — only the active account's Gmail web view is shown instead of all cached mail web views",
+      "Embedded web views are clipped in an AppKit container so Gmail content cannot paint over the toolbar",
+      "Switching away from Inbox, Chat, or Calendar hides web views without re-showing every cached view on the active pane"
+    ],
+    "changed": [
+      "Settings sidebar menu has a rounded outer border"
+    ]
+  }
+}

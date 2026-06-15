@@ -15,25 +15,28 @@ struct GmailWebView: NSViewRepresentable {
     var isActive: Bool = true
     var isVisible: Bool = true
 
-    func makeNSView(context: Context) -> WKWebView {
+    func makeNSView(context: Context) -> EmbeddedWebViewContainer {
+        let container = EmbeddedWebViewContainer()
         let webView = EmbeddedWebViewRegistry.webView(accountID: accountID, surface: .mail)
         webView.navigationDelegate = context.coordinator
         webView.uiDelegate = context.coordinator
         context.coordinator.accountID = accountID
         context.coordinator.accountEmail = accountEmail
-        webView.setEmbeddedVisibility(isVisible)
+        container.embed(webView)
+        applyVisibility(to: container, webView: webView)
         if !EmbeddedWebViewRegistry.hasLoadedContent(webView) {
             loadInbox(into: webView, email: accountEmail)
         } else if isActive {
             context.coordinator.resumeUnreadPollingIfNeeded(in: webView)
         }
-        return webView
+        return container
     }
 
-    func updateNSView(_ webView: WKWebView, context: Context) {
+    func updateNSView(_ container: EmbeddedWebViewContainer, context: Context) {
         context.coordinator.accountID = accountID
         context.coordinator.accountEmail = accountEmail
-        webView.setEmbeddedVisibility(isVisible)
+        guard let webView = container.embeddedWebView else { return }
+        applyVisibility(to: container, webView: webView)
 
         if isActive {
             context.coordinator.resumeUnreadPollingIfNeeded(in: webView)
@@ -42,8 +45,17 @@ struct GmailWebView: NSViewRepresentable {
         }
     }
 
-    static func dismantleNSView(_ webView: WKWebView, coordinator: Coordinator) {
-        webView.setEmbeddedVisibility(false)
+    private func applyVisibility(to container: EmbeddedWebViewContainer, webView: WKWebView) {
+        if isVisible {
+            EmbeddedWebViewRegistry.hideMailWebViews(except: accountID)
+            container.setEmbeddedVisibility(true)
+        } else {
+            container.setEmbeddedVisibility(false)
+        }
+    }
+
+    static func dismantleNSView(_ container: EmbeddedWebViewContainer, coordinator: Coordinator) {
+        container.setEmbeddedVisibility(false)
     }
 
     func makeCoordinator() -> Coordinator {
