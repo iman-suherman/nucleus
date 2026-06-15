@@ -1,13 +1,10 @@
 {
-  "version": "0.2.2",
-  "summary": "Reliable new-mail alerts with a configurable notification sound.",
+  "version": "0.2.3",
+  "summary": "Settings in the sidebar System section.",
   "releaseNotes": {
-    "introduced": [
-      "Settings → Mail → Notification sound — choose Nucleus Mail, Funky, System default, or Silent, with a play preview"
-    ],
-    "fixed": [
-      "New email alerts now fire when unread count increases even if Gmail message details are not synced yet",
-      "Per-message notifications still show sender, subject, and snippet when the mail feed provides them"
+    "changed": [
+      "Settings now appears under System in the left sidebar — mail notification sound, sync interval, and app info open in the main panel",
+      "⌘, opens Settings in the sidebar instead of a separate window"
     ]
   }
 }
