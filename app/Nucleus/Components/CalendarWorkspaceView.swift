@@ -163,111 +163,6 @@ struct CalendarWebView: NSViewRepresentable {
     }
 }
 
-struct ChatWebView: NSViewRepresentable {
-    let accountID: UUID
-    let accountEmail: String
-
-    private static let safariUserAgent =
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15"
-
-    func makeNSView(context: Context) -> WKWebView {
-        let configuration = WKWebViewConfiguration()
-        configuration.defaultWebpagePreferences.allowsContentJavaScript = true
-        configuration.websiteDataStore = GmailWebSessionStore.dataStore(for: accountID)
-        configuration.preferences.isElementFullscreenEnabled = true
-
-        let webView = WKWebView(frame: .zero, configuration: configuration)
-        webView.navigationDelegate = context.coordinator
-        webView.uiDelegate = context.coordinator
-        webView.customUserAgent = Self.safariUserAgent
-        context.coordinator.accountEmail = accountEmail
-        loadChat(into: webView, email: accountEmail)
-        return webView
-    }
-
-    func updateNSView(_ webView: WKWebView, context: Context) {
-        guard context.coordinator.accountEmail != accountEmail else { return }
-        context.coordinator.accountEmail = accountEmail
-        loadChat(into: webView, email: accountEmail)
-    }
-
-    func makeCoordinator() -> Coordinator {
-        Coordinator()
-    }
-
-    private static func chatURL(for email: String) -> URL? {
-        let encoded = email.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? email
-        return URL(string: "https://mail.google.com/chat/u/0/?authuser=\(encoded)")
-    }
-
-    private static func signInURL(for email: String) -> URL? {
-        guard let continueTarget = chatURL(for: email)?.absoluteString else { return nil }
-        var components = URLComponents(string: "https://accounts.google.com/v3/signin/identifier")
-        components?.queryItems = [
-            URLQueryItem(name: "service", value: "chat"),
-            URLQueryItem(name: "continue", value: continueTarget),
-            URLQueryItem(name: "Email", value: email),
-            URLQueryItem(name: "flowName", value: "GlifWebSignIn"),
-            URLQueryItem(name: "flowEntry", value: "ServiceLogin"),
-        ]
-        return components?.url
-    }
-
-    private func loadChat(into webView: WKWebView, email: String) {
-        if let url = Self.chatURL(for: email) {
-            webView.load(URLRequest(url: url))
-        }
-    }
-
-    final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate {
-        var accountEmail: String?
-
-        func webView(
-            _ webView: WKWebView,
-            decidePolicyFor navigationAction: WKNavigationAction,
-            decisionHandler: @escaping (WKNavigationActionPolicy) -> Void
-        ) {
-            if let url = navigationAction.request.url,
-               navigationAction.navigationType == .linkActivated,
-               ExternalLinkPolicy.shouldOpenExternally(url: url) {
-                ChromeLauncher.open(url: url)
-                decisionHandler(.cancel)
-                return
-            }
-            decisionHandler(.allow)
-        }
-
-        func webView(
-            _ webView: WKWebView,
-            createWebViewWith configuration: WKWebViewConfiguration,
-            for navigationAction: WKNavigationAction,
-            windowFeatures: WKWindowFeatures
-        ) -> WKWebView? {
-            if navigationAction.targetFrame == nil {
-                webView.load(navigationAction.request)
-            }
-            return nil
-        }
-
-        func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-            guard let email = accountEmail, let url = webView.url else { return }
-            let path = url.absoluteString
-            if path.contains("mail.google.com/chat") || path.contains("chat.google.com") {
-                return
-            }
-
-            let needsSignIn =
-                path.contains("accounts.google.com")
-                || path.contains("workspace.google.com")
-                || path.contains("google.com/chat/about")
-
-            if needsSignIn, let signInURL = ChatWebView.signInURL(for: email) {
-                webView.load(URLRequest(url: signInURL))
-            }
-        }
-    }
-}
-
 private extension CalendarWebView {
     static let eventExtractionScript = """
     (function() {
@@ -304,18 +199,6 @@ struct CalendarWorkspaceView: View {
                                 .id("calendar-\(account.id)")
                                 .frame(minHeight: 420)
                                 .clipShape(RoundedRectangle(cornerRadius: 12))
-
-                            VStack(alignment: .leading, spacing: 10) {
-                                Text("Google Chat")
-                                    .font(.title3.bold())
-                                Text("Messages for \(account.displayName).")
-                                    .foregroundStyle(.secondary)
-                                    .font(.subheadline)
-                                ChatWebView(accountID: account.id, accountEmail: account.email)
-                                    .id("chat-\(account.id)")
-                                    .frame(minHeight: 360)
-                                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                            }
                         }
 
                         upcomingEvents(for: account)

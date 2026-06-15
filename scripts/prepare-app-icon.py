@@ -18,7 +18,46 @@ except ImportError:
 
 # Slightly tighter than the usual 8% inset so Nucleus matches peer icon visual weight.
 DEFAULT_PADDING_RATIO = 0.05
-DEFAULT_INNER_TRIM = 12
+DEFAULT_INNER_TRIM = 0
+DEFAULT_WHITE_THRESHOLD = 235
+
+
+def remove_near_white_background(
+    image: Image.Image,
+    threshold: int = DEFAULT_WHITE_THRESHOLD,
+) -> Image.Image:
+    """Flood-fill near-white matte and drop shadow from corners; keeps enclosed artwork (e.g. white letterforms)."""
+    rgba = image.convert("RGBA")
+    width, height = rgba.size
+    pixels = rgba.load()
+
+    def is_background(red: int, green: int, blue: int) -> bool:
+        luminance = (red * 299 + green * 587 + blue * 114) // 1000
+        return luminance >= threshold
+
+    visited = [[False] * width for _ in range(height)]
+    queue: list[tuple[int, int]] = []
+
+    for x, y in ((0, 0), (width - 1, 0), (0, height - 1), (width - 1, height - 1)):
+        red, green, blue, _alpha = pixels[x, y]
+        if is_background(red, green, blue):
+            visited[y][x] = True
+            queue.append((x, y))
+
+    while queue:
+        x, y = queue.pop()
+        pixels[x, y] = (0, 0, 0, 0)
+        for next_x, next_y in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
+            if not (0 <= next_x < width and 0 <= next_y < height):
+                continue
+            if visited[next_y][next_x]:
+                continue
+            red, green, blue, _alpha = pixels[next_x, next_y]
+            if is_background(red, green, blue):
+                visited[next_y][next_x] = True
+                queue.append((next_x, next_y))
+
+    return rgba
 
 
 def remove_black_background(image: Image.Image, threshold: int = 35) -> Image.Image:
@@ -31,6 +70,28 @@ def remove_black_background(image: Image.Image, threshold: int = 35) -> Image.Im
         content_mask = ImageChops.multiply(content_mask, alpha)
     rgba.putalpha(content_mask)
     return rgba
+
+
+def detect_background_mode(image: Image.Image) -> str:
+    """Choose matte removal based on corner luminance."""
+    rgba = image.convert("RGBA")
+    width, height = rgba.size
+    corners = (
+        rgba.getpixel((0, 0)),
+        rgba.getpixel((width - 1, 0)),
+        rgba.getpixel((0, height - 1)),
+        rgba.getpixel((width - 1, height - 1)),
+    )
+    average_luminance = sum(
+        (red * 299 + green * 587 + blue * 114) // 1000 for red, green, blue, _alpha in corners
+    ) // len(corners)
+    return "white" if average_luminance >= 128 else "black"
+
+
+def remove_matte_background(image: Image.Image, *, threshold: int = 35) -> Image.Image:
+    if detect_background_mode(image) == "white":
+        return remove_near_white_background(image, threshold=max(threshold, DEFAULT_WHITE_THRESHOLD))
+    return remove_black_background(image, threshold=threshold)
 
 
 def trim_transparent_bounds(
@@ -86,7 +147,7 @@ def prepare_icon(
     inner_trim: int = DEFAULT_INNER_TRIM,
 ) -> None:
     source = Image.open(source_path)
-    cleaned = remove_black_background(source, threshold=threshold)
+    cleaned = remove_matte_background(source, threshold=threshold)
     trimmed = trim_transparent_bounds(cleaned, margin=0, inner_trim=inner_trim)
     prepared = fit_to_dock_canvas(trimmed, size=size, padding_ratio=padding_ratio)
 
@@ -142,7 +203,7 @@ def main() -> None:
         "--inner-trim",
         type=int,
         default=DEFAULT_INNER_TRIM,
-        help="Pixels to crop inside the outer matte bezel (default: 12)",
+        help="Pixels to crop inside the outer matte bezel (default: 0)",
     )
     args = parser.parse_args()
 

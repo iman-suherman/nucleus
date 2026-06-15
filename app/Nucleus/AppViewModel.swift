@@ -35,7 +35,9 @@ final class AppViewModel: ObservableObject {
     @Published var notes: [NoteDocument] = []
     @Published var mailMessages: [MailMessageSummary] = []
     @Published var unreadByAccount: [UUID: Int] = [:]
+    @Published var chatUnreadByAccount: [UUID: Int] = [:]
     @Published var totalUnread = 0
+    @Published var totalChatUnread = 0
     @Published var clipboardSearchQuery = ""
     @Published var selectedNoteID: UUID?
     @Published var isStartingUp = true
@@ -53,6 +55,8 @@ final class AppViewModel: ObservableObject {
     private var knownMessageIDs = Set<String>()
     private var webReportedUnread: [UUID: Int] = [:]
     private var unreadBaselineEstablished = Set<UUID>()
+    private var webReportedChatUnread: [UUID: Int] = [:]
+    private var chatUnreadBaselineEstablished = Set<UUID>()
     private var webReportedCalendarEvents: [UUID: [CalendarEventSummary]] = [:]
 
     init() {
@@ -62,6 +66,7 @@ final class AppViewModel: ObservableObject {
         AppViewModel.current = self
         observeGmailWebSignIn()
         observeGmailWebUnreadCount()
+        observeChatWebUnreadCount()
         observeCalendarWebEvents()
     }
 
@@ -116,6 +121,35 @@ final class AppViewModel: ObservableObject {
         unreadBaselineEstablished.insert(accountID)
 
         Task { await syncCalendar() }
+    }
+
+    private func observeChatWebUnreadCount() {
+        NotificationCenter.default.addObserver(
+            forName: .chatWebUnreadCountDidChange,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            guard let accountID = notification.userInfo?["accountID"] as? UUID,
+                  let count = notification.userInfo?["count"] as? Int else { return }
+            self?.applyWebChatUnreadCount(accountID: accountID, count: count)
+        }
+    }
+
+    func applyWebChatUnreadCount(accountID: UUID, count: Int) {
+        let previous = webReportedChatUnread[accountID] ?? 0
+        webReportedChatUnread[accountID] = max(0, count)
+        chatUnreadByAccount[accountID] = max(0, count)
+        totalChatUnread = chatUnreadByAccount.values.reduce(0, +)
+
+        if chatUnreadBaselineEstablished.contains(accountID), count > previous {
+            let account = accounts.first(where: { $0.id == accountID })
+            NucleusNotificationService.shared.notifyIncomingChat(
+                unreadCount: count,
+                delta: count - previous,
+                accountName: account?.displayName ?? account?.email ?? "Chat"
+            )
+        }
+        chatUnreadBaselineEstablished.insert(accountID)
     }
 
     private func observeGmailWebSignIn() {
@@ -281,6 +315,7 @@ final class AppViewModel: ObservableObject {
         if let primary = accounts.first(where: { $0.isPrimary }) ?? accounts.first {
             AppSettings.shared.selectedMailAccountID = primary.id
             AppSettings.shared.selectedCalendarAccountID = primary.id
+            AppSettings.shared.selectedChatAccountID = primary.id
         }
     }
 
@@ -298,6 +333,14 @@ final class AppViewModel: ObservableObject {
             .map { $0 }
     }
 
+    var todaysUpcomingMeetingCount: Int {
+        let calendar = Calendar.current
+        let now = Date()
+        return calendarEvents.filter { event in
+            calendar.isDateInToday(event.startDate) && event.endDate > now
+        }.count
+    }
+
     func accountDisplayName(for accountID: UUID) -> String {
         accounts.first(where: { $0.id == accountID })?.displayName ?? calendarEvents.first(where: { $0.accountID == accountID })?.accountEmail ?? "Calendar"
     }
@@ -307,12 +350,21 @@ final class AppViewModel: ObservableObject {
         sidebarSelection = .workspace(.calendar)
     }
 
+    func openChat(for accountID: UUID) {
+        AppSettings.shared.selectedChatAccountID = accountID
+        sidebarSelection = .workspace(.chat)
+    }
+
     func hasStoredTokens(for accountID: UUID) -> Bool {
         KeychainTokenStore.shared.hasTokens(accountID: accountID)
     }
 
     var oauthAccounts: [GoogleAccount] {
         accounts.filter(\.usesOAuthAPI)
+    }
+
+    var webSessionAccounts: [GoogleAccount] {
+        accounts.filter { $0.authMode == .webSession }
     }
 
     func addWebGmailAccount(email: String, categoryName: String) {
@@ -329,6 +381,7 @@ final class AppViewModel: ObservableObject {
             if let existing = accounts.first(where: { $0.email.lowercased() == trimmedEmail }) {
                 AppSettings.shared.selectedMailAccountID = existing.id
                 AppSettings.shared.selectedCalendarAccountID = existing.id
+                AppSettings.shared.selectedChatAccountID = existing.id
                 sidebarSelection = .workspace(.inbox)
             }
             return
@@ -350,6 +403,7 @@ final class AppViewModel: ObservableObject {
         reloadLocalData()
         AppSettings.shared.selectedMailAccountID = account.id
         AppSettings.shared.selectedCalendarAccountID = account.id
+        AppSettings.shared.selectedChatAccountID = account.id
         sidebarSelection = .workspace(.inbox)
         statusMessage = "Sign in to Gmail for \(trimmedEmail)"
     }
@@ -381,6 +435,7 @@ final class AppViewModel: ObservableObject {
             reloadLocalData()
             AppSettings.shared.selectedMailAccountID = account.id
             AppSettings.shared.selectedCalendarAccountID = account.id
+            AppSettings.shared.selectedChatAccountID = account.id
             sidebarSelection = .workspace(.inbox)
             await syncMail()
             await syncCalendar()
@@ -416,6 +471,7 @@ final class AppViewModel: ObservableObject {
         try? AccountRepository.setPrimary(id: account.id, context: context)
         AppSettings.shared.selectedMailAccountID = account.id
         AppSettings.shared.selectedCalendarAccountID = account.id
+        AppSettings.shared.selectedChatAccountID = account.id
         reloadLocalData()
     }
 

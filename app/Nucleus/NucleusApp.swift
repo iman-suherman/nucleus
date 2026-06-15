@@ -114,6 +114,10 @@ struct ContentView: View {
                     progressFraction: viewModel.startupProgressFraction
                 )
             }
+
+            ForEach(viewModel.webSessionAccounts) { account in
+                ChatUnreadPoller(accountID: account.id, accountEmail: account.email)
+            }
         }
         .animation(.easeInOut(duration: 0.22), value: viewModel.isStartingUp)
     }
@@ -125,6 +129,8 @@ struct ContentView: View {
             MailWorkspaceView()
         case .workspace(.calendar):
             CalendarWorkspaceView()
+        case .workspace(.chat):
+            ChatWorkspaceView()
         case .workspace(.clipboard):
             ClipboardWorkspaceView()
         case .workspace(.notes):
@@ -185,26 +191,23 @@ struct ContentView: View {
     private func badge(for pane: WorkspacePane) -> some View {
         switch pane {
         case .inbox where viewModel.totalUnread > 0:
-            Text("\(viewModel.totalUnread)")
-                .font(.caption2.weight(.bold))
-                .padding(.horizontal, 6)
-                .padding(.vertical, 2)
-                .background(.blue.opacity(0.85), in: Capsule())
-                .foregroundStyle(.white)
+            sidebarCountBadge(viewModel.totalUnread)
+        case .chat where viewModel.totalChatUnread > 0:
+            sidebarCountBadge(viewModel.totalChatUnread)
+        case .calendar where viewModel.todaysUpcomingMeetingCount > 0:
+            sidebarCountBadge(viewModel.todaysUpcomingMeetingCount)
         case .clipboard where !viewModel.clipboardEntries.isEmpty:
-            Text("\(viewModel.clipboardEntries.count)")
-                .font(.caption2.weight(.bold))
-                .padding(.horizontal, 6)
-                .padding(.vertical, 2)
-                .background(.secondary.opacity(0.2), in: Capsule())
-        case .calendar where !viewModel.calendarEvents.isEmpty:
-            Text("\(viewModel.calendarEvents.count)")
-                .font(.caption2.weight(.bold))
-                .padding(.horizontal, 6)
-                .padding(.vertical, 2)
-                .background(.orange.opacity(0.2), in: Capsule())
+            sidebarCountBadge(viewModel.clipboardEntries.count)
         default:
             EmptyView()
         }
+    }
+
+    private func sidebarCountBadge(_ count: Int) -> some View {
+        Text("\(count)")
+            .font(.caption2.weight(.bold))
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(.secondary.opacity(0.2), in: Capsule())
     }
 }

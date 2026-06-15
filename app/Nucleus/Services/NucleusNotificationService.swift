@@ -30,7 +30,7 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
         content.title = "New Email"
         content.subtitle = message.fromName
         content.body = message.subject
-        content.sound = Self.mailSound
+        content.sound = Self.alertSound
         content.categoryIdentifier = "NUCLEUS_MAIL"
         content.userInfo = [
             "messageID": message.id,
@@ -53,7 +53,7 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
         content.title = delta == 1 ? "New Email" : "\(delta) New Emails"
         content.subtitle = accountName
         content.body = unreadCount == 1 ? "1 unread message in your inbox" : "\(unreadCount) unread messages in your inbox"
-        content.sound = Self.mailSound
+        content.sound = Self.alertSound
         content.categoryIdentifier = "NUCLEUS_MAIL"
 
         let request = UNNotificationRequest(
@@ -64,7 +64,23 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
         UNUserNotificationCenter.current().add(request)
     }
 
-    private static let mailSound = UNNotificationSound(named: UNNotificationSoundName("NucleusMail.caf"))
+    func notifyIncomingChat(unreadCount: Int, delta: Int, accountName: String) {
+        let content = UNMutableNotificationContent()
+        content.title = delta == 1 ? "New Chat Message" : "\(delta) New Chat Messages"
+        content.subtitle = accountName
+        content.body = unreadCount == 1 ? "1 unread message in Google Chat" : "\(unreadCount) unread messages in Google Chat"
+        content.sound = Self.alertSound
+        content.categoryIdentifier = "NUCLEUS_CHAT"
+
+        let request = UNNotificationRequest(
+            identifier: "chat-unread-\(UUID().uuidString)",
+            content: content,
+            trigger: nil
+        )
+        UNUserNotificationCenter.current().add(request)
+    }
+
+    private static let alertSound = UNNotificationSound(named: UNNotificationSoundName("Funky.caf"))
 
     func rescheduleMeetingReminders(_ reminders: [MeetingReminderPlanner.Reminder]) async {
         let center = UNUserNotificationCenter.current()
@@ -113,7 +129,7 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
             content.body = event.title
             content.categoryIdentifier = event.meetingLink == nil ? "NUCLEUS_MEETING" : "NUCLEUS_MEETING_JOIN"
         }
-        content.sound = .default
+        content.sound = Self.alertSound
         content.userInfo = [
             "eventID": event.id,
             "eventTitle": event.title,
@@ -137,8 +153,9 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
         let join = UNNotificationAction(identifier: "JOIN", title: "Join Meeting", options: [.foreground])
         let joinCategory = UNNotificationCategory(identifier: "NUCLEUS_MEETING_JOIN", actions: [join], intentIdentifiers: [])
         let meetingCategory = UNNotificationCategory(identifier: "NUCLEUS_MEETING", actions: [], intentIdentifiers: [])
+        let chatCategory = UNNotificationCategory(identifier: "NUCLEUS_CHAT", actions: [open], intentIdentifiers: [])
 
-        UNUserNotificationCenter.current().setNotificationCategories([mailCategory, joinCategory, meetingCategory])
+        UNUserNotificationCenter.current().setNotificationCategories([mailCategory, joinCategory, meetingCategory, chatCategory])
     }
 
     nonisolated func userNotificationCenter(

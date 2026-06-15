@@ -40,6 +40,7 @@ public struct GoogleAccount: Identifiable, Codable, Hashable, Sendable {
 public enum WorkspacePane: String, CaseIterable, Identifiable, Sendable {
     case inbox
     case calendar
+    case chat
     case clipboard
     case notes
     case notifications
@@ -51,6 +52,7 @@ public enum WorkspacePane: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .inbox: return "Inbox"
         case .calendar: return "Calendar"
+        case .chat: return "Chat"
         case .clipboard: return "Clipboard"
         case .notes: return "Notes"
         case .notifications: return "Notifications"
@@ -62,6 +64,7 @@ public enum WorkspacePane: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .inbox: return "Gmail across all accounts"
         case .calendar: return "Unified meetings timeline"
+        case .chat: return "Google Chat messages"
         case .clipboard: return "Recent clips and templates"
         case .notes: return "Markdown knowledge base"
         case .notifications: return "Activity feed"
@@ -73,6 +76,7 @@ public enum WorkspacePane: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .inbox: return "tray.full"
         case .calendar: return "calendar"
+        case .chat: return "message"
         case .clipboard: return "doc.on.clipboard"
         case .notes: return "note.text"
         case .notifications: return "bell"
@@ -80,7 +84,7 @@ public enum WorkspacePane: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
-    public static let primaryWorkspaces: [WorkspacePane] = [.inbox, .calendar, .clipboard]
+    public static let primaryWorkspaces: [WorkspacePane] = [.inbox, .calendar, .chat, .clipboard]
     public static let utilityWorkspaces: [WorkspacePane] = [.notifications, .accounts]
 }
 

@@ -23,6 +23,7 @@ enum AuthStateMigration {
 
         AppSettings.shared.selectedMailAccountID = nil
         AppSettings.shared.selectedCalendarAccountID = nil
+        AppSettings.shared.selectedChatAccountID = nil
 
         UserDefaults.standard.set(true, forKey: completedKey)
     }

@@ -1,0 +1,17 @@
+{
+  "version": "0.1.10",
+  "summary": "Standalone Chat workspace, Funky alerts, sidebar counts, and a refreshed app icon.",
+  "releaseNotes": {
+    "introduced": [
+      "Google Chat as its own sidebar workspace with per-account tabs and unread badges",
+      "Funky alert sound for new email, chat messages, and upcoming calendar reminders"
+    ],
+    "changed": [
+      "Sidebar now shows unread counts for Inbox and Chat, plus today’s upcoming meetings on Calendar",
+      "App and website icons updated to the new Nucleus mark with transparent background"
+    ],
+    "fixed": [
+      "Chat notifications continue in the background via hidden unread pollers when Chat is not open"
+    ]
+  }
+}
