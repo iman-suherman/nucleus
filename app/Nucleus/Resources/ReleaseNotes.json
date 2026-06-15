@@ -1,22 +1,11 @@
 {
-  "version": "0.3.0",
-  "summary": "Sync accounts, notes, clipboard, settings, and window layout across Macs via iCloud.",
+  "version": "0.3.1",
+  "summary": "Fix startup crash that prevented Nucleus 0.3.0 from opening.",
   "releaseNotes": {
-    "introduced": [
-      "iCloud sync for Google account metadata, notes, notification preferences, and app settings",
-      "Clipboard history sync across Macs signed into the same Apple ID",
-      "Window size, sidebar workspace, and notes pane layout restore on each Mac",
-      "iCloud Keychain sync for Google OAuth refresh tokens with automatic API reconnection",
-      "Settings panel shows iCloud sync status and credential refresh controls",
-      "Account Center shows reconnect status and iCloud Keychain connection per account"
-    ],
-    "changed": [
-      "New Mac setup restores accounts and preferences from iCloud — only Gmail web sign-in may be needed per device",
-      "Account metadata no longer deleted when a local web session is missing"
-    ],
-    "updated": [
-      "SwiftData uses separate CloudKit-backed and local-only stores for synced vs cached Google data",
-      "OAuth tokens stored with iCloud Keychain synchronizable attributes when enabled"
+    "fixed": [
+      "Fix launch failure on startup caused by CloudKit container initialization",
+      "Fall back to local-only storage when iCloud is unavailable or not yet configured",
+      "Notarize the app bundle before Sparkle ZIP packaging"
     ]
   }
 }
