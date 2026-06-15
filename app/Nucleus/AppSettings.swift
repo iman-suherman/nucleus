@@ -77,6 +77,7 @@ final class AppSettings: ObservableObject {
     private enum Keys {
         static let mailSyncInterval = "nucleus.settings.mailSyncInterval"
         static let mailNotificationSound = "nucleus.settings.mailNotificationSound"
+        static let mailNotificationSoundByAccount = "nucleus.settings.mailNotificationSoundByAccount"
         static let selectedMailAccountID = "nucleus.settings.selectedMailAccountID"
         static let selectedCalendarAccountID = "nucleus.settings.selectedCalendarAccountID"
         static let selectedChatAccountID = "nucleus.settings.selectedChatAccountID"
@@ -90,6 +91,10 @@ final class AppSettings: ObservableObject {
 
     @Published var mailNotificationSound: MailNotificationSound {
         didSet { UserDefaults.standard.set(mailNotificationSound.rawValue, forKey: Keys.mailNotificationSound) }
+    }
+
+    @Published private(set) var mailNotificationSoundOverrides: [UUID: MailNotificationSound] = [:] {
+        didSet { persistMailNotificationSoundOverrides() }
     }
 
     @Published var selectedMailAccountID: UUID? {
@@ -122,6 +127,18 @@ final class AppSettings: ObservableObject {
         }
     }
 
+    func mailNotificationSound(for accountID: UUID) -> MailNotificationSound {
+        mailNotificationSoundOverrides[accountID] ?? mailNotificationSound
+    }
+
+    func setMailNotificationSound(_ sound: MailNotificationSound, for accountID: UUID) {
+        mailNotificationSoundOverrides[accountID] = sound
+    }
+
+    func clearMailNotificationSound(for accountID: UUID) {
+        mailNotificationSoundOverrides.removeValue(forKey: accountID)
+    }
+
     private init() {
         mailSyncInterval = UserDefaults.standard.object(forKey: Keys.mailSyncInterval) as? TimeInterval ?? 60
         if let raw = UserDefaults.standard.string(forKey: Keys.mailNotificationSound),
@@ -130,6 +147,7 @@ final class AppSettings: ObservableObject {
         } else {
             mailNotificationSound = .nucleusMail
         }
+        mailNotificationSoundOverrides = Self.loadMailNotificationSoundOverrides()
 
         if let raw = UserDefaults.standard.string(forKey: Keys.selectedMailAccountID),
            let id = UUID(uuidString: raw) {
@@ -151,5 +169,26 @@ final class AppSettings: ObservableObject {
         } else {
             selectedChatAccountID = nil
         }
+    }
+
+    private func persistMailNotificationSoundOverrides() {
+        let encoded = Dictionary(
+            uniqueKeysWithValues: mailNotificationSoundOverrides.map { ($0.key.uuidString, $0.value.rawValue) }
+        )
+        UserDefaults.standard.set(encoded, forKey: Keys.mailNotificationSoundByAccount)
+    }
+
+    private static func loadMailNotificationSoundOverrides() -> [UUID: MailNotificationSound] {
+        guard let raw = UserDefaults.standard.dictionary(forKey: Keys.mailNotificationSoundByAccount) as? [String: String] else {
+            return [:]
+        }
+
+        var overrides: [UUID: MailNotificationSound] = [:]
+        for (accountIDRaw, soundRaw) in raw {
+            guard let accountID = UUID(uuidString: accountIDRaw),
+                  let sound = MailNotificationSound(rawValue: soundRaw) else { continue }
+            overrides[accountID] = sound
+        }
+        return overrides
     }
 }

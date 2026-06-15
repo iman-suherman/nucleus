@@ -43,19 +43,25 @@ struct QuickReplySheet: View {
 
 struct AppSettingsView: View {
     @ObservedObject var settings: AppSettings
+    var accounts: [GoogleAccount]
 
     var body: some View {
         Form {
-            Section("Mail") {
-                Picker("Notification sound", selection: $settings.mailNotificationSound) {
+            Section("Mail notifications") {
+                if accounts.isEmpty {
+                    Text("Add a mail account to choose notification sounds.")
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(accounts) { account in
+                        mailSoundRow(for: account)
+                    }
+                }
+
+                Picker("Default for new accounts", selection: $settings.mailNotificationSound) {
                     ForEach(MailNotificationSound.allCases) { sound in
                         Text(sound.label).tag(sound)
                     }
                 }
-                Button("Play preview") {
-                    previewMailNotificationSound(settings.mailNotificationSound)
-                }
-                .disabled(settings.mailNotificationSound == .silent)
             }
 
             Section("Sync") {
@@ -71,10 +77,31 @@ struct AppSettingsView: View {
         }
         .formStyle(.grouped)
     }
+
+    private func mailSoundRow(for account: GoogleAccount) -> some View {
+        let binding = Binding(
+            get: { settings.mailNotificationSound(for: account.id) },
+            set: { settings.setMailNotificationSound($0, for: account.id) }
+        )
+        let accountLabel = account.displayName.isEmpty ? account.email : account.displayName
+
+        return VStack(alignment: .leading, spacing: 8) {
+            Picker(accountLabel, selection: binding) {
+                ForEach(MailNotificationSound.allCases) { sound in
+                    Text(sound.label).tag(sound)
+                }
+            }
+            Button("Play preview") {
+                binding.wrappedValue.playAlert()
+            }
+            .disabled(binding.wrappedValue == .silent)
+        }
+    }
 }
 
 struct SettingsWorkspaceView: View {
     @EnvironmentObject private var settings: AppSettings
+    @EnvironmentObject private var viewModel: AppViewModel
 
     var body: some View {
         ScrollView {
@@ -82,19 +109,15 @@ struct SettingsWorkspaceView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Settings")
                         .font(.title2.bold())
-                    Text("Configure mail notifications, sync intervals, and app info.")
+                    Text("Configure per-account mail sounds, sync intervals, and app info.")
                         .foregroundStyle(.secondary)
                 }
 
-                AppSettingsView(settings: settings)
+                AppSettingsView(settings: settings, accounts: viewModel.accounts)
                     .frame(maxWidth: 560, alignment: .leading)
             }
             .padding(24)
             .frame(maxWidth: .infinity, alignment: .topLeading)
         }
     }
-}
-
-private func previewMailNotificationSound(_ sound: MailNotificationSound) {
-    sound.playAlert()
 }

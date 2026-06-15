@@ -38,7 +38,6 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
         } else {
             content.body = "\(message.subject)\n\(message.snippet)"
         }
-        applyMailSound(to: content)
         content.categoryIdentifier = "NUCLEUS_MAIL"
         content.userInfo = [
             "messageID": message.id,
@@ -48,12 +47,11 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
             "subject": "Re: \(message.subject)",
         ]
 
-        let request = UNNotificationRequest(
+        postMailNotification(
             identifier: "mail-\(message.id)",
             content: content,
-            trigger: nil
+            accountID: message.accountID
         )
-        UNUserNotificationCenter.current().add(request)
     }
 
     func notifyNewMailMessages(_ messages: [MailMessageSummary], accountName: String) {
@@ -62,20 +60,19 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
         }
     }
 
-    func notifyIncomingMail(unreadCount: Int, delta: Int, accountName: String) {
+    func notifyIncomingMail(unreadCount: Int, delta: Int, accountName: String, accountID: UUID) {
         let content = UNMutableNotificationContent()
         content.title = delta == 1 ? "New Email" : "\(delta) New Emails"
         content.subtitle = accountName
         content.body = unreadCount == 1 ? "1 unread message in your inbox" : "\(unreadCount) unread messages in your inbox"
-        applyMailSound(to: content)
         content.categoryIdentifier = "NUCLEUS_MAIL"
+        content.userInfo = ["accountID": accountID.uuidString]
 
-        let request = UNNotificationRequest(
+        postMailNotification(
             identifier: "mail-unread-\(UUID().uuidString)",
             content: content,
-            trigger: nil
+            accountID: accountID
         )
-        UNUserNotificationCenter.current().add(request)
     }
 
     func notifyIncomingChat(unreadCount: Int, delta: Int, accountName: String) {
@@ -102,14 +99,32 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
         NSApplication.shared.isActive
     }
 
-    private func mailNotificationSound() -> UNNotificationSound? {
-        AppSettings.shared.mailNotificationSound.notificationSound
+    private func postMailNotification(
+        identifier: String,
+        content: UNMutableNotificationContent,
+        accountID: UUID
+    ) {
+        content.sound = nil
+        let sound = AppSettings.shared.mailNotificationSound(for: accountID)
+        let request = UNNotificationRequest(identifier: identifier, content: content, trigger: nil)
+        UNUserNotificationCenter.current().add(request) { [weak self] _ in
+            Task { @MainActor in
+                guard let self, !self.isAppActive, sound != .silent else { return }
+                sound.playAlert()
+            }
+        }
     }
 
-    /// Background notifications use UNNotificationSound; foreground plays manually in `willPresent`.
-    private func applyMailSound(to content: UNMutableNotificationContent) {
-        guard !isAppActive else { return }
-        content.sound = mailNotificationSound()
+    private func mailSound(for notification: UNNotification) -> MailNotificationSound {
+        guard let accountID = accountID(from: notification) else {
+            return AppSettings.shared.mailNotificationSound
+        }
+        return AppSettings.shared.mailNotificationSound(for: accountID)
+    }
+
+    private func accountID(from notification: UNNotification) -> UUID? {
+        guard let raw = notification.request.content.userInfo["accountID"] as? String else { return nil }
+        return UUID(uuidString: raw)
     }
 
     func rescheduleMeetingReminders(_ reminders: [MeetingReminderPlanner.Reminder]) async {
@@ -200,15 +215,10 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
     private func foregroundPresentationOptions(for notification: UNNotification) -> UNNotificationPresentationOptions {
         switch notification.request.content.categoryIdentifier {
         case "NUCLEUS_MAIL":
-            switch AppSettings.shared.mailNotificationSound {
-            case .silent:
-                return [.banner]
-            case .system:
-                return [.banner, .sound]
-            case .funky, .nucleusMail:
-                AppSettings.shared.mailNotificationSound.playAlert()
-                return [.banner]
-            }
+            let sound = mailSound(for: notification)
+            guard sound != .silent else { return [.banner] }
+            sound.playAlert()
+            return [.banner]
         case "NUCLEUS_CHAT":
             MailNotificationSound.funky.playAlert()
             return [.banner]

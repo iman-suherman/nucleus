@@ -1,0 +1,13 @@
+{
+  "version": "0.2.7",
+  "summary": "Per-account mail notification sounds with consistent playback in foreground and background.",
+  "releaseNotes": {
+    "added": [
+      "Choose a different mail notification sound for each email account in Settings",
+      "Set a default sound for newly added accounts"
+    ],
+    "fixed": [
+      "Background mail alerts now use the same Nucleus sound playback as foreground instead of the macOS notification ding"
+    ]
+  }
+}

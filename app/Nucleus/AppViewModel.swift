@@ -137,7 +137,8 @@ final class AppViewModel: ObservableObject {
                 NucleusNotificationService.shared.notifyIncomingMail(
                     unreadCount: unreadByAccount[account.id] ?? delta,
                     delta: delta,
-                    accountName: accountName
+                    accountName: accountName,
+                    accountID: account.id
                 )
             }
             pendingMailNotificationDeltas.removeValue(forKey: account.id)
@@ -407,6 +408,7 @@ final class AppViewModel: ObservableObject {
         }
         let context = ModelContext(modelContainer)
         try? AccountRepository.delete(id: account.id, context: context)
+        AppSettings.shared.clearMailNotificationSound(for: account.id)
         reloadLocalData()
     }
 
