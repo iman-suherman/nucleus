@@ -1,3 +1,4 @@
+import AppKit
 import NucleusKit
 import SwiftUI
 
@@ -45,6 +46,18 @@ struct AppSettingsView: View {
 
     var body: some View {
         Form {
+            Section("Mail") {
+                Picker("Notification sound", selection: $settings.mailNotificationSound) {
+                    ForEach(MailNotificationSound.allCases) { sound in
+                        Text(sound.label).tag(sound)
+                    }
+                }
+                Button("Play preview") {
+                    previewMailNotificationSound(settings.mailNotificationSound)
+                }
+                .disabled(settings.mailNotificationSound == .silent)
+            }
+
             Section("Sync") {
                 Stepper(value: $settings.mailSyncInterval, in: 30...300, step: 30) {
                     Text("Mail sync every \(Int(settings.mailSyncInterval))s")
@@ -58,5 +71,15 @@ struct AppSettingsView: View {
         }
         .formStyle(.grouped)
         .padding(24)
+    }
+}
+
+private func previewMailNotificationSound(_ sound: MailNotificationSound) {
+    if let url = sound.previewBundleURL {
+        NSSound(contentsOf: url, byReference: true)?.play()
+        return
+    }
+    if sound == .system {
+        NSSound.beep()
     }
 }

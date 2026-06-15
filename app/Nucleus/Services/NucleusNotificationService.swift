@@ -37,7 +37,7 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
         } else {
             content.body = "\(message.subject)\n\(message.snippet)"
         }
-        content.sound = Self.alertSound
+        content.sound = Self.mailSound
         content.categoryIdentifier = "NUCLEUS_MAIL"
         content.userInfo = [
             "messageID": message.id,
@@ -66,7 +66,7 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
         content.title = delta == 1 ? "New Email" : "\(delta) New Emails"
         content.subtitle = accountName
         content.body = unreadCount == 1 ? "1 unread message in your inbox" : "\(unreadCount) unread messages in your inbox"
-        content.sound = Self.alertSound
+        content.sound = Self.mailSound
         content.categoryIdentifier = "NUCLEUS_MAIL"
 
         let request = UNNotificationRequest(
@@ -91,6 +91,10 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
             trigger: nil
         )
         UNUserNotificationCenter.current().add(request)
+    }
+
+    private static var mailSound: UNNotificationSound? {
+        AppSettings.shared.mailNotificationSound.notificationSound
     }
 
     private static let alertSound = UNNotificationSound(named: UNNotificationSoundName("Funky.caf"))

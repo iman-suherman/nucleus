@@ -1,0 +1,13 @@
+{
+  "version": "0.2.2",
+  "summary": "Reliable new-mail alerts with a configurable notification sound.",
+  "releaseNotes": {
+    "introduced": [
+      "Settings → Mail → Notification sound — choose Nucleus Mail, Funky, System default, or Silent, with a play preview"
+    ],
+    "fixed": [
+      "New email alerts now fire when unread count increases even if Gmail message details are not synced yet",
+      "Per-message notifications still show sender, subject, and snippet when the mail feed provides them"
+    ]
+  }
+}

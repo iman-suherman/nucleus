@@ -130,14 +130,17 @@ final class AppViewModel: ObservableObject {
 
     private func flushPendingMailNotifications() {
         for account in accounts {
-            guard var delta = pendingMailNotificationDeltas[account.id], delta > 0 else { continue }
+            guard let delta = pendingMailNotificationDeltas[account.id], delta > 0 else { continue }
             let delivered = deliverMailNotifications(accountID: account.id, limit: delta)
-            delta -= delivered
-            if delta > 0 {
-                pendingMailNotificationDeltas[account.id] = delta
-            } else {
-                pendingMailNotificationDeltas.removeValue(forKey: account.id)
+            if delivered == 0 {
+                let accountName = account.displayName.isEmpty ? account.email : account.displayName
+                NucleusNotificationService.shared.notifyIncomingMail(
+                    unreadCount: unreadByAccount[account.id] ?? delta,
+                    delta: delta,
+                    accountName: accountName
+                )
             }
+            pendingMailNotificationDeltas.removeValue(forKey: account.id)
         }
     }
 
