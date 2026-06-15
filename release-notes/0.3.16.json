@@ -1,0 +1,11 @@
+{
+  "version": "0.3.16",
+  "summary": "Restores the window title bar layout that regressed in v0.3.13.",
+  "releaseNotes": {
+    "fixed": [
+      "Status bar and sidebar header no longer draw under the macOS traffic lights",
+      "Reverts the v0.3.13–0.3.15 layout change that hid the window toolbar and shifted content upward",
+      "Toolbar status badge keeps per-account unread detail with single-line truncation to avoid clipping"
+    ]
+  }
+}

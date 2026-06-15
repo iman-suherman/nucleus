@@ -66,14 +66,15 @@ struct WorkspaceStatusBadge: View {
                     Text(unreadDetailMessage)
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.primary)
-                        .lineLimit(2)
-                        .fixedSize(horizontal: false, vertical: true)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
 
                     if showsOperationalMessage {
                         Text(message)
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
+                            .truncationMode(.tail)
                     }
                 }
             } else {
@@ -86,10 +87,10 @@ struct WorkspaceStatusBadge: View {
                     .lineLimit(1)
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .padding(.horizontal, 18)
+        .padding(.vertical, 10)
+        .frame(minWidth: 320, idealWidth: 480, maxWidth: 560)
+        .background(.thinMaterial, in: Capsule())
     }
 
     private func unreadPill(count: Int, icon: String, tint: Color) -> some View {
