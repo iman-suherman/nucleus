@@ -1,10 +1,13 @@
 {
-  "version": "0.2.6",
-  "summary": "Mail notifications play only one sound when Nucleus is in the foreground.",
+  "version": "0.2.7",
+  "summary": "Per-account mail notification sounds with consistent playback in foreground and background.",
   "releaseNotes": {
+    "added": [
+      "Choose a different mail notification sound for each email account in Settings",
+      "Set a default sound for newly added accounts"
+    ],
     "fixed": [
-      "Foreground mail alerts no longer play the macOS notification ding and your chosen sound at the same time",
-      "Custom sounds play once via Nucleus while the system sound is suppressed when the app is active"
+      "Background mail alerts now use the same Nucleus sound playback as foreground instead of the macOS notification ding"
     ]
   }
 }
