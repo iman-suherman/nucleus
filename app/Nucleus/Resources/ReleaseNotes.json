@@ -1,19 +1,14 @@
 {
-  "version": "0.3.14",
-  "summary": "Fixes the clipped header and shows detailed What's New after updates.",
+  "version": "0.3.15",
+  "summary": "Fixes the window header shifting under the title bar.",
   "releaseNotes": {
-    "introduced": [
-      "What's New overlay on first launch after an update — full release notes with grouped sections like the website",
-      "Nucleus menu → What's New in This Version to reopen release notes anytime",
-      "Release notes fetched from the registry when bundled notes are missing or outdated"
+    "fixed": [
+      "Status bar and sidebar no longer draw under the macOS traffic lights",
+      "Window content respects the title bar instead of using full-size content view",
+      "Status bar spans the full window width below the title bar on every workspace"
     ],
     "changed": [
-      "Status bar moved out of the window toolbar into a dedicated top bar so unread badges and Ready status are no longer clipped",
-      "Check for Updates button lives in the status bar beside mail and chat unread counts"
-    ],
-    "fixed": [
-      "Correct release notes content (no longer shows unrelated DiskWise copy)",
-      "Release notes generator uses Nucleus-specific change detection"
+      "Version history on nucleus.suherman.net shows detailed release notes for each release"
     ]
   }
 }
