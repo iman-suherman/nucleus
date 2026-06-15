@@ -1,0 +1,11 @@
+{
+  "version": "0.2.8",
+  "summary": "Gmail web view keeps your place when switching apps or sidebar panes.",
+  "releaseNotes": {
+    "fixed": [
+      "Gmail no longer reloads when you switch to another app and return to Nucleus",
+      "Mail, calendar, and chat web views are kept alive instead of recreated when changing sidebar sections",
+      "Each mail account tab preserves its own inbox position when switching between accounts"
+    ]
+  }
+}

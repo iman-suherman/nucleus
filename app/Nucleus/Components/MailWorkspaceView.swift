@@ -13,34 +13,49 @@ struct GmailWebView: NSViewRepresentable {
     let accountID: UUID
     let accountEmail: String
 
-    private static let safariUserAgent =
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15"
-
     func makeNSView(context: Context) -> WKWebView {
-        let configuration = WKWebViewConfiguration()
-        configuration.defaultWebpagePreferences.allowsContentJavaScript = true
-        configuration.websiteDataStore = GmailWebSessionStore.dataStore(for: accountID)
-        configuration.preferences.isElementFullscreenEnabled = true
-
-        let webView = WKWebView(frame: .zero, configuration: configuration)
+        let webView = EmbeddedWebViewRegistry.webView(accountID: accountID, surface: .mail)
         webView.navigationDelegate = context.coordinator
         webView.uiDelegate = context.coordinator
-        webView.customUserAgent = Self.safariUserAgent
         context.coordinator.accountID = accountID
         context.coordinator.accountEmail = accountEmail
-        loadInbox(into: webView, email: accountEmail)
+        if !EmbeddedWebViewRegistry.hasLoadedContent(webView) {
+            loadInbox(into: webView, email: accountEmail)
+        } else {
+            context.coordinator.resumeUnreadPollingIfNeeded(in: webView)
+        }
         return webView
     }
 
     func updateNSView(_ webView: WKWebView, context: Context) {
-        guard context.coordinator.accountEmail != accountEmail else { return }
+        context.coordinator.accountID = accountID
         context.coordinator.accountEmail = accountEmail
-        context.coordinator.hasReachedInbox = false
-        loadInbox(into: webView, email: accountEmail)
     }
 
     func makeCoordinator() -> Coordinator {
         Coordinator()
+    }
+
+    static func pollUnreadCount(accountID: UUID) {
+        guard let webView = EmbeddedWebViewRegistry.existingWebView(accountID: accountID, surface: .mail),
+              webView.url?.absoluteString.contains("mail.google.com/mail") == true else { return }
+
+        webView.evaluateJavaScript(unreadCountScript) { result, _ in
+            let count: Int
+            if let value = result as? Int {
+                count = value
+            } else if let value = result as? NSNumber {
+                count = value.intValue
+            } else {
+                count = 0
+            }
+
+            NotificationCenter.default.post(
+                name: .gmailWebUnreadCountDidChange,
+                object: nil,
+                userInfo: NotificationUserInfo.mailUnreadPayload(accountID: accountID, count: count)
+            )
+        }
     }
 
     static func inboxURL(for email: String) -> URL? {
@@ -134,6 +149,23 @@ struct GmailWebView: NSViewRepresentable {
             if needsSignIn, let signInURL = GmailWebView.signInURL(for: email) {
                 webView.load(URLRequest(url: signInURL))
             }
+        }
+
+        func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
+            if EmbeddedWebViewRegistry.hasLoadedContent(webView) {
+                webView.reload()
+                return
+            }
+            guard let email = accountEmail else { return }
+            if let url = GmailWebView.inboxURL(for: email) {
+                webView.load(URLRequest(url: url))
+            }
+        }
+
+        func resumeUnreadPollingIfNeeded(in webView: WKWebView) {
+            guard webView.url?.absoluteString.contains("mail.google.com/mail") == true else { return }
+            hasReachedInbox = true
+            startUnreadPolling(in: webView)
         }
 
         private func startUnreadPolling(in webView: WKWebView) {
@@ -234,13 +266,16 @@ private extension GmailWebView {
 
 struct GmailUnreadPoller: View {
     let accountID: UUID
-    let accountEmail: String
 
     var body: some View {
-        GmailWebView(accountID: accountID, accountEmail: accountEmail)
-            .frame(width: 1, height: 1)
-            .opacity(0.01)
-            .allowsHitTesting(false)
+        Color.clear
+            .frame(width: 0, height: 0)
+            .onAppear {
+                GmailWebView.pollUnreadCount(accountID: accountID)
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .gmailWebUnreadPollNow)) { _ in
+                GmailWebView.pollUnreadCount(accountID: accountID)
+            }
     }
 }
 
@@ -261,18 +296,24 @@ struct MailWorkspaceView: View {
                 .padding(.top, 16)
                 .padding(.bottom, 8)
 
-            if let account = selectedAccount {
-                GmailWebView(accountID: account.id, accountEmail: account.email)
-                    .id(account.id)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 16)
-            } else {
+            if viewModel.accounts.isEmpty {
                 ContentUnavailableView(
                     "No Gmail account selected",
                     systemImage: "tray",
                     description: Text("Add a category and sign in with Google to begin.")
                 )
+            } else {
+                ZStack {
+                    ForEach(viewModel.accounts) { account in
+                        GmailWebView(accountID: account.id, accountEmail: account.email)
+                            .opacity(selectedAccount?.id == account.id ? 1 : 0)
+                            .allowsHitTesting(selectedAccount?.id == account.id)
+                            .accessibilityHidden(selectedAccount?.id != account.id)
+                    }
+                }
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .padding(.horizontal, 16)
+                .padding(.bottom, 16)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

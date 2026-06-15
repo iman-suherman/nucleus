@@ -409,6 +409,7 @@ final class AppViewModel: ObservableObject {
         let context = ModelContext(modelContainer)
         try? AccountRepository.delete(id: account.id, context: context)
         AppSettings.shared.clearMailNotificationSound(for: account.id)
+        EmbeddedWebViewRegistry.remove(accountID: account.id)
         reloadLocalData()
     }
 

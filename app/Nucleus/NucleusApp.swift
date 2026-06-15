@@ -118,8 +118,8 @@ struct ContentView: View {
             }
 
             ForEach(viewModel.webSessionAccounts) { account in
-                GmailUnreadPoller(accountID: account.id, accountEmail: account.email)
-                ChatUnreadPoller(accountID: account.id, accountEmail: account.email)
+                GmailUnreadPoller(accountID: account.id)
+                ChatUnreadPoller(accountID: account.id)
             }
         }
         .animation(.easeInOut(duration: 0.22), value: viewModel.isStartingUp)
@@ -128,22 +128,43 @@ struct ContentView: View {
 
     @ViewBuilder
     private var detailContent: some View {
-        switch viewModel.sidebarSelection {
-        case .workspace(.inbox):
+        ZStack {
             MailWorkspaceView()
-        case .workspace(.calendar):
+                .opacity(isWorkspace(.inbox) ? 1 : 0)
+                .allowsHitTesting(isWorkspace(.inbox))
+                .accessibilityHidden(!isWorkspace(.inbox))
             CalendarWorkspaceView()
-        case .workspace(.chat):
+                .opacity(isWorkspace(.calendar) ? 1 : 0)
+                .allowsHitTesting(isWorkspace(.calendar))
+                .accessibilityHidden(!isWorkspace(.calendar))
             ChatWorkspaceView()
-        case .workspace(.clipboard):
+                .opacity(isWorkspace(.chat) ? 1 : 0)
+                .allowsHitTesting(isWorkspace(.chat))
+                .accessibilityHidden(!isWorkspace(.chat))
             ClipboardWorkspaceView()
-        case .workspace(.notes):
+                .opacity(isWorkspace(.clipboard) ? 1 : 0)
+                .allowsHitTesting(isWorkspace(.clipboard))
+                .accessibilityHidden(!isWorkspace(.clipboard))
             NotesWorkspaceView()
-        case .workspace(.accounts):
+                .opacity(isWorkspace(.notes) ? 1 : 0)
+                .allowsHitTesting(isWorkspace(.notes))
+                .accessibilityHidden(!isWorkspace(.notes))
             AccountCenterView()
-        case .workspace(.settings):
+                .opacity(isWorkspace(.accounts) ? 1 : 0)
+                .allowsHitTesting(isWorkspace(.accounts))
+                .accessibilityHidden(!isWorkspace(.accounts))
             SettingsWorkspaceView()
+                .opacity(isWorkspace(.settings) ? 1 : 0)
+                .allowsHitTesting(isWorkspace(.settings))
+                .accessibilityHidden(!isWorkspace(.settings))
         }
+    }
+
+    private func isWorkspace(_ pane: WorkspacePane) -> Bool {
+        if case .workspace(let selected) = viewModel.sidebarSelection {
+            return selected == pane
+        }
+        return false
     }
 
     private var sidebar: some View {

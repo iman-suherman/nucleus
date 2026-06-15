@@ -11,34 +11,49 @@ struct ChatWebView: NSViewRepresentable {
     let accountID: UUID
     let accountEmail: String
 
-    private static let safariUserAgent =
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15"
-
     func makeNSView(context: Context) -> WKWebView {
-        let configuration = WKWebViewConfiguration()
-        configuration.defaultWebpagePreferences.allowsContentJavaScript = true
-        configuration.websiteDataStore = GmailWebSessionStore.dataStore(for: accountID)
-        configuration.preferences.isElementFullscreenEnabled = true
-
-        let webView = WKWebView(frame: .zero, configuration: configuration)
+        let webView = EmbeddedWebViewRegistry.webView(accountID: accountID, surface: .chat)
         webView.navigationDelegate = context.coordinator
         webView.uiDelegate = context.coordinator
-        webView.customUserAgent = Self.safariUserAgent
         context.coordinator.accountID = accountID
         context.coordinator.accountEmail = accountEmail
-        loadChat(into: webView, email: accountEmail)
+        if !EmbeddedWebViewRegistry.hasLoadedContent(webView) {
+            loadChat(into: webView, email: accountEmail)
+        } else {
+            context.coordinator.resumeUnreadPollingIfNeeded(in: webView)
+        }
         return webView
     }
 
     func updateNSView(_ webView: WKWebView, context: Context) {
-        guard context.coordinator.accountEmail != accountEmail else { return }
         context.coordinator.accountID = accountID
         context.coordinator.accountEmail = accountEmail
-        loadChat(into: webView, email: accountEmail)
     }
 
     func makeCoordinator() -> Coordinator {
         Coordinator()
+    }
+
+    static func pollUnreadCount(accountID: UUID) {
+        guard let webView = EmbeddedWebViewRegistry.existingWebView(accountID: accountID, surface: .chat),
+              webView.url?.absoluteString.contains("chat") == true else { return }
+
+        webView.evaluateJavaScript(unreadCountScript) { result, _ in
+            let count: Int
+            if let value = result as? Int {
+                count = value
+            } else if let value = result as? NSNumber {
+                count = value.intValue
+            } else {
+                count = 0
+            }
+
+            NotificationCenter.default.post(
+                name: .chatWebUnreadCountDidChange,
+                object: nil,
+                userInfo: NotificationUserInfo.mailUnreadPayload(accountID: accountID, count: count)
+            )
+        }
     }
 
     static func chatURL(for email: String) -> URL? {
@@ -122,6 +137,23 @@ struct ChatWebView: NSViewRepresentable {
             }
         }
 
+        func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
+            if EmbeddedWebViewRegistry.hasLoadedContent(webView) {
+                webView.reload()
+                return
+            }
+            guard let email = accountEmail else { return }
+            if let url = ChatWebView.chatURL(for: email) {
+                webView.load(URLRequest(url: url))
+            }
+        }
+
+        func resumeUnreadPollingIfNeeded(in webView: WKWebView) {
+            guard webView.url?.absoluteString.contains("mail.google.com/chat") == true
+                || webView.url?.absoluteString.contains("chat.google.com") == true else { return }
+            startUnreadPolling(in: webView)
+        }
+
         private func startUnreadPolling(in webView: WKWebView) {
             stopUnreadPolling()
             reportUnreadCount(from: webView)
@@ -160,13 +192,13 @@ struct ChatWebView: NSViewRepresentable {
 
 struct ChatUnreadPoller: View {
     let accountID: UUID
-    let accountEmail: String
 
     var body: some View {
-        ChatWebView(accountID: accountID, accountEmail: accountEmail)
-            .frame(width: 1, height: 1)
-            .opacity(0.01)
-            .allowsHitTesting(false)
+        Color.clear
+            .frame(width: 0, height: 0)
+            .onAppear {
+                ChatWebView.pollUnreadCount(accountID: accountID)
+            }
     }
 }
 
