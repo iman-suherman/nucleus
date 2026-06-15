@@ -80,6 +80,7 @@ final class AppViewModel: ObservableObject {
         startupProgressFraction = 0
 
         await beginStartupStep(.database, message: "Loading workspace data…")
+        AuthStateMigration.resetStoredLoginIfNeeded(modelContainer: modelContainer)
         reloadLocalData()
         completeStartupStep(.database)
 
@@ -343,7 +344,9 @@ final class AppViewModel: ObservableObject {
     func removeAccount(_ account: GoogleAccount) {
         KeychainTokenStore.shared.deleteTokens(accountID: account.id)
         if account.authMode == .webSession {
-            GmailWebSessionStore.clear(for: account.id)
+            Task { @MainActor in
+                await GmailWebSessionStore.clear(for: account.id)
+            }
         }
         let context = ModelContext(modelContainer)
         try? AccountRepository.delete(id: account.id, context: context)

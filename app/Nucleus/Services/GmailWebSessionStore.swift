@@ -1,6 +1,7 @@
 import Foundation
 import WebKit
 
+@MainActor
 enum GmailWebSessionStore {
     static func dataStore(for accountID: UUID) -> WKWebsiteDataStore {
         WKWebsiteDataStore(forIdentifier: accountID)
@@ -14,9 +15,7 @@ enum GmailWebSessionStore {
         }
     }
 
-    static func clear(for accountID: UUID) {
-        Task {
-            try? await WKWebsiteDataStore.remove(forIdentifier: accountID)
-        }
+    static func clear(for accountID: UUID) async {
+        try? await WKWebsiteDataStore.remove(forIdentifier: accountID)
     }
 }

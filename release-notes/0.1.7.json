@@ -1,0 +1,13 @@
+{
+  "version": "0.1.7",
+  "summary": "Fix launch crash and reset stored sign-in on first update.",
+  "releaseNotes": {
+    "fixed": [
+      "Fixed a launch crash when syncing web Gmail or Calendar sessions",
+      "First launch on 0.1.7 clears previously stored accounts so you can sign in fresh"
+    ],
+    "changed": [
+      "Web session cookie access now runs on the main thread as required by WebKit"
+    ]
+  }
+}
