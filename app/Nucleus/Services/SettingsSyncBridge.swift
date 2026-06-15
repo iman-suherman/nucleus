@@ -124,6 +124,9 @@ final class SettingsSyncBridge {
         let overrides = Dictionary(
             uniqueKeysWithValues: settings.mailNotificationSoundOverrides.map { ($0.key.uuidString, $0.value.rawValue) }
         )
+        let chatOverrides = Dictionary(
+            uniqueKeysWithValues: settings.chatNotificationSoundOverrides.map { ($0.key.uuidString, $0.value.rawValue) }
+        )
 
         return NucleusSyncedConfiguration(
             version: NucleusSyncedConfiguration.currentVersion,
@@ -131,7 +134,10 @@ final class SettingsSyncBridge {
             mailSyncInterval: settings.mailSyncInterval,
             mailNotificationSound: settings.mailNotificationSound.rawValue,
             mailNotificationSoundByAccount: overrides,
+            chatNotificationSound: settings.chatNotificationSound.rawValue,
+            chatNotificationSoundByAccount: chatOverrides,
             emailNotificationsEnabled: settings.emailNotificationsEnabled,
+            chatNotificationsEnabled: settings.chatNotificationsEnabled,
             calendarNotificationsEnabled: settings.calendarNotificationsEnabled,
             selectedWorkspacePane: settings.selectedWorkspacePane,
             windowLayout: settings.windowLayout?.cloudKitColumnWidths(),
@@ -159,8 +165,21 @@ extension AppSettings {
         }
         replaceMailNotificationSoundOverrides(overrides)
 
+        if let raw = ChatNotificationSound(rawValue: remoteConfiguration.chatNotificationSound) {
+            chatNotificationSound = raw
+        }
+
+        var chatOverrides: [UUID: ChatNotificationSound] = [:]
+        for (accountIDRaw, soundRaw) in remoteConfiguration.chatNotificationSoundByAccount {
+            guard let accountID = UUID(uuidString: accountIDRaw),
+                  let sound = ChatNotificationSound(rawValue: soundRaw) else { continue }
+            chatOverrides[accountID] = sound
+        }
+        replaceChatNotificationSoundOverrides(chatOverrides)
+
         // Selected inbox/calendar/chat tabs stay on this Mac only.
         emailNotificationsEnabled = remoteConfiguration.emailNotificationsEnabled
+        chatNotificationsEnabled = remoteConfiguration.chatNotificationsEnabled
         calendarNotificationsEnabled = remoteConfiguration.calendarNotificationsEnabled
         selectedWorkspacePane = remoteConfiguration.selectedWorkspacePane
         if let remoteLayout = remoteConfiguration.windowLayout {

@@ -90,7 +90,9 @@ struct ContentView: View {
                                 WorkspaceStatusBadge(
                                     message: viewModel.statusMessage,
                                     mailUnreadCount: viewModel.totalUnread,
-                                    chatUnreadCount: viewModel.totalChatUnread
+                                    chatUnreadCount: viewModel.totalChatUnread,
+                                    mailAccounts: viewModel.unreadBreakdown(for: viewModel.unreadByAccount),
+                                    chatAccounts: viewModel.unreadBreakdown(for: viewModel.chatUnreadByAccount)
                                 )
                             }
                             ToolbarItem(placement: .automatic) {

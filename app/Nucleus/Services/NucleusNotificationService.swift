@@ -77,25 +77,50 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
         )
     }
 
-    func notifyIncomingChat(unreadCount: Int, delta: Int, accountName: String) {
+    func notifyIncomingChat(unreadCount: Int, delta: Int, accountName: String, accountID: UUID) {
+        guard AppSettings.shared.chatNotificationsEnabled else { return }
         let content = UNMutableNotificationContent()
         content.title = delta == 1 ? "New Chat Message" : "\(delta) New Chat Messages"
         content.subtitle = accountName
-        content.body = unreadCount == 1 ? "1 unread message in Google Chat" : "\(unreadCount) unread messages in Google Chat"
-        if !isAppActive {
-            content.sound = Self.chatSound
+        if delta == 1 {
+            content.body = unreadCount == 1
+                ? "You have 1 unread message in Google Chat for \(accountName)."
+                : "New message in Google Chat for \(accountName). \(unreadCount) unread messages waiting."
+        } else {
+            content.body = "\(delta) new messages in Google Chat for \(accountName). \(unreadCount) unread messages waiting."
         }
         content.categoryIdentifier = "NUCLEUS_CHAT"
+        content.userInfo = ["accountID": accountID.uuidString]
 
-        let request = UNNotificationRequest(
+        postChatNotification(
             identifier: "chat-unread-\(UUID().uuidString)",
             content: content,
-            trigger: nil
+            accountID: accountID
         )
-        UNUserNotificationCenter.current().add(request)
     }
 
-    private static let chatSound = UNNotificationSound(named: UNNotificationSoundName("Funky"))
+    private func postChatNotification(
+        identifier: String,
+        content: UNMutableNotificationContent,
+        accountID: UUID
+    ) {
+        content.sound = nil
+        let sound = AppSettings.shared.chatNotificationSound(for: accountID)
+        let request = UNNotificationRequest(identifier: identifier, content: content, trigger: nil)
+        UNUserNotificationCenter.current().add(request) { [weak self] _ in
+            Task { @MainActor in
+                guard let self, !self.isAppActive, sound != .silent else { return }
+                sound.playAlert()
+            }
+        }
+    }
+
+    private func chatSound(for notification: UNNotification) -> ChatNotificationSound {
+        guard let accountID = accountID(from: notification) else {
+            return AppSettings.shared.chatNotificationSound
+        }
+        return AppSettings.shared.chatNotificationSound(for: accountID)
+    }
 
     private var isAppActive: Bool {
         NSApplication.shared.isActive
@@ -178,7 +203,7 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
             content.body = event.title
             content.categoryIdentifier = event.meetingLink == nil ? "NUCLEUS_MEETING" : "NUCLEUS_MEETING_JOIN"
         }
-        content.sound = Self.chatSound
+        content.sound = Self.meetingSound
         content.userInfo = [
             "eventID": event.id,
             "eventTitle": event.title,
@@ -188,6 +213,8 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
         ]
         return content
     }
+
+    private static let meetingSound = UNNotificationSound(named: UNNotificationSoundName("Funky"))
 
     func registerCategories() {
         let open = UNNotificationAction(identifier: "OPEN", title: "Open", options: [.foreground])
@@ -224,7 +251,9 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
             sound.playAlert()
             return [.banner]
         case "NUCLEUS_CHAT":
-            MailNotificationSound.funky.playAlert()
+            let sound = chatSound(for: notification)
+            guard sound != .silent else { return [.banner] }
+            sound.playAlert()
             return [.banner]
         default:
             return [.banner, .sound]

@@ -323,7 +323,7 @@ public struct WindowLayoutState: Codable, Hashable, Sendable {
 
 /// Configuration synced via iCloud CloudKit. OAuth tokens sync separately via iCloud Keychain when enabled.
 public struct NucleusSyncedConfiguration: Codable, Hashable, Sendable {
-    public static let currentVersion = 2
+    public static let currentVersion = 3
     public static let singletonRecordID = UUID(uuidString: "00000000-0000-0000-0000-000000000001")!
 
     public var version: Int
@@ -331,10 +331,13 @@ public struct NucleusSyncedConfiguration: Codable, Hashable, Sendable {
     public var mailSyncInterval: TimeInterval
     public var mailNotificationSound: String
     public var mailNotificationSoundByAccount: [String: String]
+    public var chatNotificationSound: String
+    public var chatNotificationSoundByAccount: [String: String]
     public var selectedMailAccountID: String?
     public var selectedCalendarAccountID: String?
     public var selectedChatAccountID: String?
     public var emailNotificationsEnabled: Bool
+    public var chatNotificationsEnabled: Bool
     public var calendarNotificationsEnabled: Bool
     public var selectedWorkspacePane: String?
     public var windowLayout: WindowLayoutState?
@@ -349,10 +352,13 @@ public struct NucleusSyncedConfiguration: Codable, Hashable, Sendable {
         mailSyncInterval: TimeInterval = 60,
         mailNotificationSound: String = "NucleusMail",
         mailNotificationSoundByAccount: [String: String] = [:],
+        chatNotificationSound: String = "Funky",
+        chatNotificationSoundByAccount: [String: String] = [:],
         selectedMailAccountID: String? = nil,
         selectedCalendarAccountID: String? = nil,
         selectedChatAccountID: String? = nil,
         emailNotificationsEnabled: Bool = true,
+        chatNotificationsEnabled: Bool = true,
         calendarNotificationsEnabled: Bool = true,
         selectedWorkspacePane: String? = nil,
         windowLayout: WindowLayoutState? = nil,
@@ -366,10 +372,13 @@ public struct NucleusSyncedConfiguration: Codable, Hashable, Sendable {
         self.mailSyncInterval = mailSyncInterval
         self.mailNotificationSound = mailNotificationSound
         self.mailNotificationSoundByAccount = mailNotificationSoundByAccount
+        self.chatNotificationSound = chatNotificationSound
+        self.chatNotificationSoundByAccount = chatNotificationSoundByAccount
         self.selectedMailAccountID = selectedMailAccountID
         self.selectedCalendarAccountID = selectedCalendarAccountID
         self.selectedChatAccountID = selectedChatAccountID
         self.emailNotificationsEnabled = emailNotificationsEnabled
+        self.chatNotificationsEnabled = chatNotificationsEnabled
         self.calendarNotificationsEnabled = calendarNotificationsEnabled
         self.selectedWorkspacePane = selectedWorkspacePane
         self.windowLayout = windowLayout
@@ -386,10 +395,13 @@ public struct NucleusSyncedConfiguration: Codable, Hashable, Sendable {
         mailSyncInterval = try container.decodeIfPresent(TimeInterval.self, forKey: .mailSyncInterval) ?? 60
         mailNotificationSound = try container.decodeIfPresent(String.self, forKey: .mailNotificationSound) ?? "NucleusMail"
         mailNotificationSoundByAccount = try container.decodeIfPresent([String: String].self, forKey: .mailNotificationSoundByAccount) ?? [:]
+        chatNotificationSound = try container.decodeIfPresent(String.self, forKey: .chatNotificationSound) ?? "Funky"
+        chatNotificationSoundByAccount = try container.decodeIfPresent([String: String].self, forKey: .chatNotificationSoundByAccount) ?? [:]
         selectedMailAccountID = try container.decodeIfPresent(String.self, forKey: .selectedMailAccountID)
         selectedCalendarAccountID = try container.decodeIfPresent(String.self, forKey: .selectedCalendarAccountID)
         selectedChatAccountID = try container.decodeIfPresent(String.self, forKey: .selectedChatAccountID)
         emailNotificationsEnabled = try container.decodeIfPresent(Bool.self, forKey: .emailNotificationsEnabled) ?? true
+        chatNotificationsEnabled = try container.decodeIfPresent(Bool.self, forKey: .chatNotificationsEnabled) ?? true
         calendarNotificationsEnabled = try container.decodeIfPresent(Bool.self, forKey: .calendarNotificationsEnabled) ?? true
         selectedWorkspacePane = try container.decodeIfPresent(String.self, forKey: .selectedWorkspacePane)
         windowLayout = try container.decodeIfPresent(WindowLayoutState.self, forKey: .windowLayout)

@@ -71,6 +71,72 @@ enum MailNotificationSound: String, CaseIterable, Identifiable {
     }
 }
 
+enum ChatNotificationSound: String, CaseIterable, Identifiable {
+    case funky = "Funky"
+    case nucleusMail = "NucleusMail"
+    case system = "System"
+    case silent = "Silent"
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .funky: return "Funky"
+        case .nucleusMail: return "Nucleus Mail"
+        case .system: return "System default"
+        case .silent: return "Silent"
+        }
+    }
+
+    var notificationSound: UNNotificationSound? {
+        switch self {
+        case .funky, .nucleusMail:
+            installInNotificationSupportIfNeeded()
+            return UNNotificationSound(named: UNNotificationSoundName(rawValue))
+        case .system:
+            return .default
+        case .silent:
+            return nil
+        }
+    }
+
+    var bundleSoundURL: URL? {
+        switch self {
+        case .silent, .system:
+            return nil
+        case .funky, .nucleusMail:
+            return Bundle.main.url(forResource: rawValue, withExtension: "caf")
+        }
+    }
+
+    func playAlert() {
+        switch self {
+        case .silent:
+            return
+        case .system:
+            NSSound(named: NSSound.Name("Hero"))?.play()
+        case .funky, .nucleusMail:
+            guard let url = bundleSoundURL else { return }
+            NSSound(contentsOf: url, byReference: false)?.play()
+        }
+    }
+
+    static func prepareNotificationSounds() {
+        funky.installInNotificationSupportIfNeeded()
+        nucleusMail.installInNotificationSupportIfNeeded()
+    }
+
+    private func installInNotificationSupportIfNeeded() {
+        guard let source = bundleSoundURL else { return }
+        let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+            .appendingPathComponent("Nucleus/Library/Sounds", isDirectory: true)
+        try? FileManager.default.createDirectory(at: support, withIntermediateDirectories: true)
+        let destination = support.appendingPathComponent("\(rawValue).caf")
+        guard !FileManager.default.fileExists(atPath: destination.path) else { return }
+        try? FileManager.default.copyItem(at: source, to: destination)
+    }
+}
+
 @MainActor
 final class AppSettings: ObservableObject {
     static let shared = AppSettings()
@@ -79,10 +145,13 @@ final class AppSettings: ObservableObject {
         static let mailSyncInterval = "nucleus.settings.mailSyncInterval"
         static let mailNotificationSound = "nucleus.settings.mailNotificationSound"
         static let mailNotificationSoundByAccount = "nucleus.settings.mailNotificationSoundByAccount"
+        static let chatNotificationSound = "nucleus.settings.chatNotificationSound"
+        static let chatNotificationSoundByAccount = "nucleus.settings.chatNotificationSoundByAccount"
         static let selectedMailAccountID = "nucleus.settings.selectedMailAccountID"
         static let selectedCalendarAccountID = "nucleus.settings.selectedCalendarAccountID"
         static let selectedChatAccountID = "nucleus.settings.selectedChatAccountID"
         static let emailNotificationsEnabled = "nucleus.settings.emailNotificationsEnabled"
+        static let chatNotificationsEnabled = "nucleus.settings.chatNotificationsEnabled"
         static let calendarNotificationsEnabled = "nucleus.settings.calendarNotificationsEnabled"
         static let clipboardSyncEnabled = "nucleus.settings.clipboardSyncEnabled"
         static let clipboardSaveToNotesEnabled = "nucleus.settings.clipboardSaveToNotesEnabled"
@@ -103,6 +172,14 @@ final class AppSettings: ObservableObject {
 
     @Published private(set) var mailNotificationSoundOverrides: [UUID: MailNotificationSound] = [:] {
         didSet { persistMailNotificationSoundOverrides() }
+    }
+
+    @Published var chatNotificationSound: ChatNotificationSound {
+        didSet { UserDefaults.standard.set(chatNotificationSound.rawValue, forKey: Keys.chatNotificationSound) }
+    }
+
+    @Published private(set) var chatNotificationSoundOverrides: [UUID: ChatNotificationSound] = [:] {
+        didSet { persistChatNotificationSoundOverrides() }
     }
 
     @Published var selectedMailAccountID: UUID? {
@@ -137,6 +214,10 @@ final class AppSettings: ObservableObject {
 
     @Published var emailNotificationsEnabled: Bool {
         didSet { UserDefaults.standard.set(emailNotificationsEnabled, forKey: Keys.emailNotificationsEnabled) }
+    }
+
+    @Published var chatNotificationsEnabled: Bool {
+        didSet { UserDefaults.standard.set(chatNotificationsEnabled, forKey: Keys.chatNotificationsEnabled) }
     }
 
     @Published var calendarNotificationsEnabled: Bool {
@@ -199,6 +280,22 @@ final class AppSettings: ObservableObject {
         mailNotificationSoundOverrides = overrides
     }
 
+    func chatNotificationSound(for accountID: UUID) -> ChatNotificationSound {
+        chatNotificationSoundOverrides[accountID] ?? chatNotificationSound
+    }
+
+    func setChatNotificationSound(_ sound: ChatNotificationSound, for accountID: UUID) {
+        chatNotificationSoundOverrides[accountID] = sound
+    }
+
+    func clearChatNotificationSound(for accountID: UUID) {
+        chatNotificationSoundOverrides.removeValue(forKey: accountID)
+    }
+
+    func replaceChatNotificationSoundOverrides(_ overrides: [UUID: ChatNotificationSound]) {
+        chatNotificationSoundOverrides = overrides
+    }
+
     private init() {
         mailSyncInterval = UserDefaults.standard.object(forKey: Keys.mailSyncInterval) as? TimeInterval ?? 60
         if let raw = UserDefaults.standard.string(forKey: Keys.mailNotificationSound),
@@ -208,6 +305,14 @@ final class AppSettings: ObservableObject {
             mailNotificationSound = .nucleusMail
         }
         mailNotificationSoundOverrides = Self.loadMailNotificationSoundOverrides()
+
+        if let raw = UserDefaults.standard.string(forKey: Keys.chatNotificationSound),
+           let sound = ChatNotificationSound(rawValue: raw) {
+            chatNotificationSound = sound
+        } else {
+            chatNotificationSound = .funky
+        }
+        chatNotificationSoundOverrides = Self.loadChatNotificationSoundOverrides()
 
         if let raw = UserDefaults.standard.string(forKey: Keys.selectedMailAccountID),
            let id = UUID(uuidString: raw) {
@@ -234,6 +339,12 @@ final class AppSettings: ObservableObject {
             emailNotificationsEnabled = UserDefaults.standard.bool(forKey: Keys.emailNotificationsEnabled)
         } else {
             emailNotificationsEnabled = true
+        }
+
+        if UserDefaults.standard.object(forKey: Keys.chatNotificationsEnabled) != nil {
+            chatNotificationsEnabled = UserDefaults.standard.bool(forKey: Keys.chatNotificationsEnabled)
+        } else {
+            chatNotificationsEnabled = true
         }
 
         if UserDefaults.standard.object(forKey: Keys.calendarNotificationsEnabled) != nil {
@@ -286,6 +397,27 @@ final class AppSettings: ObservableObject {
         for (accountIDRaw, soundRaw) in raw {
             guard let accountID = UUID(uuidString: accountIDRaw),
                   let sound = MailNotificationSound(rawValue: soundRaw) else { continue }
+            overrides[accountID] = sound
+        }
+        return overrides
+    }
+
+    private func persistChatNotificationSoundOverrides() {
+        let encoded = Dictionary(
+            uniqueKeysWithValues: chatNotificationSoundOverrides.map { ($0.key.uuidString, $0.value.rawValue) }
+        )
+        UserDefaults.standard.set(encoded, forKey: Keys.chatNotificationSoundByAccount)
+    }
+
+    private static func loadChatNotificationSoundOverrides() -> [UUID: ChatNotificationSound] {
+        guard let raw = UserDefaults.standard.dictionary(forKey: Keys.chatNotificationSoundByAccount) as? [String: String] else {
+            return [:]
+        }
+
+        var overrides: [UUID: ChatNotificationSound] = [:]
+        for (accountIDRaw, soundRaw) in raw {
+            guard let accountID = UUID(uuidString: accountIDRaw),
+                  let sound = ChatNotificationSound(rawValue: soundRaw) else { continue }
             overrides[accountID] = sound
         }
         return overrides

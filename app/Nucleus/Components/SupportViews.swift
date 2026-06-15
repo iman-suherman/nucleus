@@ -47,49 +47,46 @@ struct AppSettingsView: View {
     @ObservedObject var syncService: CloudKitSyncService
     @ObservedObject var viewModel: AppViewModel
     var accounts: [GoogleAccount]
-
-    @State private var selectedTab: SettingsTab = .iCloud
+    let selectedTab: SettingsTab
 
     var body: some View {
-        TabView(selection: $selectedTab) {
-            settingsTab(.iCloud) {
-                iCloudSyncSection
-            }
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(selectedTab.title)
+                        .font(.title3.bold())
+                    Text(selectedTab.subtitle)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
 
-            settingsTab(.keychain) {
-                iCloudKeychainSection
+                Form {
+                    settingsContent(for: selectedTab)
+                }
+                .formStyle(.grouped)
             }
-
-            settingsTab(.notifications) {
-                notificationsSection
-            }
-
-            settingsTab(.mail) {
-                mailSection
-            }
-
-            settingsTab(.about) {
-                aboutSection
-            }
+            .padding(24)
+            .frame(maxWidth: 720, alignment: .leading)
         }
-        .padding(.horizontal, 24)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
-    private func settingsTab<Content: View>(
-        _ tab: SettingsTab,
-        @ViewBuilder content: () -> Content
-    ) -> some View {
-        ScrollView {
-            Form {
-                content()
-            }
-            .formStyle(.grouped)
-            .frame(maxWidth: 560, alignment: .leading)
+    @ViewBuilder
+    private func settingsContent(for tab: SettingsTab) -> some View {
+        switch tab {
+        case .iCloud:
+            iCloudSyncSection
+        case .keychain:
+            iCloudKeychainSection
+        case .notifications:
+            notificationsSection
+        case .mail:
+            mailSection
+        case .chat:
+            chatSection
+        case .about:
+            aboutSection
         }
-        .tabItem {
-            Label(tab.title, systemImage: tab.systemImage)
-        }
-        .tag(tab)
     }
 
     private var iCloudSyncSection: some View {
@@ -146,6 +143,7 @@ struct AppSettingsView: View {
     private var notificationsSection: some View {
         Section("Notifications") {
             Toggle("Email notifications", isOn: $settings.emailNotificationsEnabled)
+            Toggle("Chat notifications", isOn: $settings.chatNotificationsEnabled)
             Toggle("Calendar notifications", isOn: $settings.calendarNotificationsEnabled)
         }
     }
@@ -177,6 +175,29 @@ struct AppSettingsView: View {
         }
     }
 
+    private var chatSection: some View {
+        Section("Chat notifications") {
+            if accounts.isEmpty {
+                Text("Add a Gmail account to choose chat notification sounds.")
+                    .foregroundStyle(.secondary)
+            } else {
+                ForEach(accounts) { account in
+                    chatSoundRow(for: account)
+                }
+            }
+
+            Picker("Default for new accounts", selection: $settings.chatNotificationSound) {
+                ForEach(ChatNotificationSound.allCases) { sound in
+                    Text(sound.label).tag(sound)
+                }
+            }
+
+            Text("Chat uses a separate tone from mail. Notifications include the account name and unread count.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+    }
+
     private var aboutSection: some View {
         Section("About") {
             LabeledContent("Version", value: AppSettings.currentAppVersion)
@@ -203,6 +224,26 @@ struct AppSettingsView: View {
             .disabled(binding.wrappedValue == .silent)
         }
     }
+
+    private func chatSoundRow(for account: GoogleAccount) -> some View {
+        let binding = Binding(
+            get: { settings.chatNotificationSound(for: account.id) },
+            set: { settings.setChatNotificationSound($0, for: account.id) }
+        )
+        let accountLabel = account.displayName.isEmpty ? account.email : account.displayName
+
+        return VStack(alignment: .leading, spacing: 8) {
+            Picker(accountLabel, selection: binding) {
+                ForEach(ChatNotificationSound.allCases) { sound in
+                    Text(sound.label).tag(sound)
+                }
+            }
+            Button("Play preview") {
+                binding.wrappedValue.playAlert()
+            }
+            .disabled(binding.wrappedValue == .silent)
+        }
+    }
 }
 
 private enum SettingsTab: String, CaseIterable, Identifiable {
@@ -210,6 +251,7 @@ private enum SettingsTab: String, CaseIterable, Identifiable {
     case keychain
     case notifications
     case mail
+    case chat
     case about
 
     var id: String { rawValue }
@@ -220,6 +262,7 @@ private enum SettingsTab: String, CaseIterable, Identifiable {
         case .keychain: return "Keychain"
         case .notifications: return "Notifications"
         case .mail: return "Mail"
+        case .chat: return "Chat"
         case .about: return "About"
         }
     }
@@ -230,7 +273,25 @@ private enum SettingsTab: String, CaseIterable, Identifiable {
         case .keychain: return "key"
         case .notifications: return "bell"
         case .mail: return "envelope"
+        case .chat: return "message"
         case .about: return "info.circle"
+        }
+    }
+
+    var subtitle: String {
+        switch self {
+        case .iCloud:
+            return "Sync accounts, notes, clipboard, and preferences across your Macs."
+        case .keychain:
+            return "Keep Google OAuth tokens available for automatic reconnection."
+        case .notifications:
+            return "Choose which alerts Nucleus can send."
+        case .mail:
+            return "Notification sounds and background mail sync intervals."
+        case .chat:
+            return "Chat alert tones and per-account notification sounds."
+        case .about:
+            return "Version and app information."
         }
     }
 }
@@ -239,25 +300,76 @@ struct SettingsWorkspaceView: View {
     @EnvironmentObject private var settings: AppSettings
     @EnvironmentObject private var viewModel: AppViewModel
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Settings")
-                    .font(.title2.bold())
-                Text("Configure sync, notifications, and app preferences.")
-                    .foregroundStyle(.secondary)
-            }
-            .padding(.horizontal, 24)
-            .padding(.top, 24)
-            .padding(.bottom, 12)
+    @State private var selectedTab: SettingsTab = .iCloud
 
-            AppSettingsView(
-                settings: settings,
-                syncService: viewModel.syncService,
-                viewModel: viewModel,
-                accounts: viewModel.accounts
-            )
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    var body: some View {
+        VStack(spacing: 0) {
+            settingsHeader
+
+            Divider()
+
+            HStack(alignment: .top, spacing: 0) {
+                settingsSidebar
+                settingsDetail
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+        .background(Color(nsColor: .windowBackgroundColor))
+    }
+
+    private var settingsHeader: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Settings")
+                .font(.title2.bold())
+            Text("Configure sync, notifications, and app preferences.")
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 24)
+        .padding(.vertical, 20)
+    }
+
+    private var settingsSidebar: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 4) {
+                ForEach(SettingsTab.allCases) { tab in
+                    settingsSidebarRow(for: tab)
+                }
+            }
+            .padding(12)
+        }
+        .frame(width: 220)
+        .background(Color(nsColor: .controlBackgroundColor).opacity(0.35))
+    }
+
+    private func settingsSidebarRow(for tab: SettingsTab) -> some View {
+        let isSelected = selectedTab == tab
+
+        return Button {
+            selectedTab = tab
+        } label: {
+            Label(tab.title, systemImage: tab.systemImage)
+                .font(.subheadline.weight(isSelected ? .semibold : .regular))
+                .foregroundStyle(isSelected ? Color.accentColor : Color.primary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 9)
+                .background(
+                    isSelected ? Color.accentColor.opacity(0.14) : Color.clear,
+                    in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+                )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var settingsDetail: some View {
+        AppSettingsView(
+            settings: settings,
+            syncService: viewModel.syncService,
+            viewModel: viewModel,
+            accounts: viewModel.accounts,
+            selectedTab: selectedTab
+        )
+        .background(Color(nsColor: .textBackgroundColor).opacity(0.18))
     }
 }

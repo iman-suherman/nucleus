@@ -159,7 +159,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         webReportedUnread[accountID] = max(0, count)
         unreadByAccount[accountID] = max(0, count)
         totalUnread = unreadByAccount.values.reduce(0, +)
-        DockBadgeController.update(unreadCount: totalUnread)
+        DockBadgeController.update(mailUnread: totalUnread, chatUnread: totalChatUnread)
         statusMessage = statusMessageForCurrentState()
         unreadBaselineEstablished.insert(accountID)
 
@@ -235,13 +235,16 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         webReportedChatUnread[accountID] = max(0, count)
         chatUnreadByAccount[accountID] = max(0, count)
         totalChatUnread = chatUnreadByAccount.values.reduce(0, +)
+        DockBadgeController.update(mailUnread: totalUnread, chatUnread: totalChatUnread)
+        statusMessage = statusMessageForCurrentState()
 
         if chatUnreadBaselineEstablished.contains(accountID), count > previous {
             let account = accounts.first(where: { $0.id == accountID })
             NucleusNotificationService.shared.notifyIncomingChat(
                 unreadCount: count,
                 delta: count - previous,
-                accountName: account?.displayName ?? account?.email ?? "Chat"
+                accountName: account?.displayName ?? account?.email ?? "Chat",
+                accountID: accountID
             )
         }
         chatUnreadBaselineEstablished.insert(accountID)
@@ -315,6 +318,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         NucleusNotificationService.shared.onMeetingReminder = nil
         await NucleusNotificationService.shared.rescheduleMeetingReminders([])
         MailNotificationSound.prepareNotificationSounds()
+        ChatNotificationSound.prepareNotificationSounds()
         completeStartupStep(.notifications)
 
         await beginStartupStep(.mailSync, message: "Syncing mail…")
@@ -322,7 +326,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         await syncMail()
         completeStartupStep(.mailSync)
 
-        DockBadgeController.update(unreadCount: totalUnread)
+        DockBadgeController.update(mailUnread: totalUnread, chatUnread: totalChatUnread)
         startupMessage = "Nucleus is ready"
         startupProgressFraction = 1
         try? await Task.sleep(nanoseconds: 250_000_000)
@@ -459,10 +463,26 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         if accounts.isEmpty {
             return "Add a Gmail account to begin"
         }
+
+        var parts: [String] = []
         if totalUnread > 0 {
-            return "\(totalUnread) unread messages"
+            parts.append("\(totalUnread) unread email\(totalUnread == 1 ? "" : "s")")
+        }
+        if totalChatUnread > 0 {
+            parts.append("\(totalChatUnread) unread chat\(totalChatUnread == 1 ? "" : "s")")
+        }
+        if !parts.isEmpty {
+            return parts.joined(separator: " · ")
         }
         return "Ready"
+    }
+
+    func unreadBreakdown(for counts: [UUID: Int]) -> [UnreadAccountBreakdown] {
+        accounts.compactMap { account in
+            guard let count = counts[account.id], count > 0 else { return nil }
+            let name = account.displayName.isEmpty ? account.email : account.displayName
+            return UnreadAccountBreakdown(id: account.id, name: name, count: count)
+        }
     }
 
     private func beginStartupStep(_ step: StartupStep, message: String) async {
@@ -591,6 +611,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         let context = ModelContext(modelContainer)
         try? AccountRepository.delete(id: account.id, context: context)
         AppSettings.shared.clearMailNotificationSound(for: account.id)
+        AppSettings.shared.clearChatNotificationSound(for: account.id)
         EmbeddedWebViewRegistry.remove(accountID: account.id)
         reloadLocalData()
         pushSyncedConfiguration()
@@ -634,7 +655,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         guard !accounts.isEmpty else {
             totalUnread = 0
             unreadByAccount = [:]
-            DockBadgeController.update(unreadCount: 0)
+            DockBadgeController.update(mailUnread: 0, chatUnread: 0)
             return
         }
 
@@ -701,7 +722,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
 
         flushPendingMailNotifications()
 
-        DockBadgeController.update(unreadCount: totalUnread)
+        DockBadgeController.update(mailUnread: totalUnread, chatUnread: totalChatUnread)
         statusMessage = statusMessageForCurrentState()
     }
 

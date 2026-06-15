@@ -43,6 +43,12 @@ struct GmailWebView: NSViewRepresentable {
         Coordinator()
     }
 
+    static func navigateToInbox(accountID: UUID, email: String) {
+        guard let webView = EmbeddedWebViewRegistry.existingWebView(accountID: accountID, surface: .mail),
+              let url = inboxURL(for: email) else { return }
+        webView.load(URLRequest(url: url))
+    }
+
     static func pollUnreadCount(accountID: UUID) {
         guard let webView = EmbeddedWebViewRegistry.existingWebView(accountID: accountID, surface: .mail),
               webView.window != nil,
@@ -294,16 +300,20 @@ struct MailWorkspaceView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            accountTabs
+            mailHeader
                 .padding(.horizontal, 20)
                 .padding(.top, 16)
+                .padding(.bottom, 4)
+
+            accountTabs
+                .padding(.horizontal, 20)
                 .padding(.bottom, 8)
 
             if viewModel.accounts.isEmpty {
                 ContentUnavailableView(
                     "No Gmail account selected",
                     systemImage: "tray",
-                    description: Text("Add a category and sign in with Google to begin.")
+                    description: Text("Add a Gmail account and sign in with Google to begin.")
                 )
             } else if isActive, let account = selectedAccount {
                 GmailWebView(
@@ -354,12 +364,24 @@ struct MailWorkspaceView: View {
         return viewModel.accounts.first(where: { $0.isPrimary }) ?? viewModel.accounts.first
     }
 
+    private var mailHeader: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Nucleus")
+                .font(.title2.bold())
+            Text("Each tab is a Gmail account. Browse freely inside Gmail—click an account tab anytime to return to that inbox.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
     private var accountTabs: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
                 ForEach(viewModel.accounts) { account in
                     Button {
-                        settings.selectedMailAccountID = account.id
+                        selectAccountTab(account)
                     } label: {
                         HStack(spacing: 8) {
                             Text(account.displayName)
@@ -387,12 +409,17 @@ struct MailWorkspaceView: View {
                     newCategoryEmail = ""
                     isAddingCategory = true
                 } label: {
-                    Label("Add Category", systemImage: "plus")
+                    Label("Add Gmail Account", systemImage: "plus")
                         .font(.subheadline.weight(.semibold))
                         .nucleusAccountTab(isSelected: false)
                 }
                 .buttonStyle(.plain)
             }
         }
+    }
+
+    private func selectAccountTab(_ account: GoogleAccount) {
+        settings.selectedMailAccountID = account.id
+        GmailWebView.navigateToInbox(accountID: account.id, email: account.email)
     }
 }
