@@ -12,7 +12,6 @@ extension Notification.Name {
 struct GmailWebView: NSViewRepresentable {
     let accountID: UUID
     let accountEmail: String
-    var isActive: Bool = true
     var isVisible: Bool = true
 
     func makeNSView(context: Context) -> EmbeddedWebViewContainer {
@@ -23,10 +22,10 @@ struct GmailWebView: NSViewRepresentable {
         context.coordinator.accountID = accountID
         context.coordinator.accountEmail = accountEmail
         container.embed(webView)
-        applyVisibility(to: container, webView: webView)
+        applyVisibility(to: container)
         if !EmbeddedWebViewRegistry.hasLoadedContent(webView) {
             loadInbox(into: webView, email: accountEmail)
-        } else if isActive {
+        } else {
             context.coordinator.resumeUnreadPollingIfNeeded(in: webView)
         }
         return container
@@ -35,17 +34,13 @@ struct GmailWebView: NSViewRepresentable {
     func updateNSView(_ container: EmbeddedWebViewContainer, context: Context) {
         context.coordinator.accountID = accountID
         context.coordinator.accountEmail = accountEmail
-        guard let webView = container.embeddedWebView else { return }
-        applyVisibility(to: container, webView: webView)
-
-        if isActive {
+        applyVisibility(to: container)
+        if isVisible, let webView = container.embeddedWebView {
             context.coordinator.resumeUnreadPollingIfNeeded(in: webView)
-        } else {
-            context.coordinator.stopUnreadPolling()
         }
     }
 
-    private func applyVisibility(to container: EmbeddedWebViewContainer, webView: WKWebView) {
+    private func applyVisibility(to container: EmbeddedWebViewContainer) {
         if isVisible {
             EmbeddedWebViewRegistry.hideMailWebViews(except: accountID)
             container.setEmbeddedVisibility(true)
@@ -309,7 +304,6 @@ struct GmailUnreadPoller: View {
 struct MailWorkspaceView: View {
     @EnvironmentObject private var viewModel: AppViewModel
     @EnvironmentObject private var settings: AppSettings
-    var isActive: Bool = true
     var isVisible: Bool = true
 
     @State private var renamingAccount: GoogleAccount?
@@ -355,13 +349,9 @@ struct MailWorkspaceView: View {
 
     private var mailContent: some View {
         VStack(spacing: 0) {
-            mailHeader
-                .padding(.horizontal, 20)
-                .padding(.top, 12)
-                .padding(.bottom, 4)
-
             accountTabs
                 .padding(.horizontal, 20)
+                .padding(.top, 16)
                 .padding(.bottom, 8)
 
             if viewModel.accounts.isEmpty {
@@ -370,21 +360,23 @@ struct MailWorkspaceView: View {
                     systemImage: "tray",
                     description: Text("Add a Gmail account and sign in with Google to begin.")
                 )
-            } else if isActive, let account = selectedAccount {
+            } else if let account = selectedAccount {
                 GmailWebView(
                     accountID: account.id,
                     accountEmail: account.email,
-                    isActive: true,
                     isVisible: isVisible
                 )
                 .id(account.id)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .clipShape(RoundedRectangle(cornerRadius: 12))
                 .padding(.horizontal, 16)
                 .padding(.bottom, 16)
             } else {
-                Color.clear
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 16)
+                ContentUnavailableView(
+                    "No Gmail account selected",
+                    systemImage: "tray",
+                    description: Text("Add a Gmail account and sign in with Google to begin.")
+                )
             }
         }
     }
@@ -394,14 +386,6 @@ struct MailWorkspaceView: View {
             return viewModel.accounts.first(where: { $0.id == id })
         }
         return viewModel.accounts.first(where: { $0.isPrimary }) ?? viewModel.accounts.first
-    }
-
-    private var mailHeader: some View {
-        Text("Each tab is a Gmail account. Browse freely inside Gmail—click an account tab anytime to return to that inbox.")
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            .fixedSize(horizontal: false, vertical: true)
-            .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var accountTabs: some View {

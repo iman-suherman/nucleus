@@ -4,12 +4,13 @@ import WebKit
 /// Hosts a shared `WKWebView` with AppKit-level clipping so web content cannot paint over the toolbar.
 final class EmbeddedWebViewContainer: NSView {
     private(set) weak var embeddedWebView: WKWebView?
+    private var edgeConstraints: [NSLayoutConstraint] = []
 
     override var isFlipped: Bool { true }
 
-    override func layout() {
-        super.layout()
-        embeddedWebView?.frame = bounds
+    /// Prevent loaded web pages (especially Gmail) from expanding the SwiftUI layout beyond the detail pane.
+    override var intrinsicContentSize: NSSize {
+        NSSize(width: NSView.noIntrinsicMetric, height: NSView.noIntrinsicMetric)
     }
 
     func embed(_ webView: WKWebView) {
@@ -20,8 +21,15 @@ final class EmbeddedWebViewContainer: NSView {
         embeddedWebView = webView
         wantsLayer = true
         layer?.masksToBounds = true
-        webView.frame = bounds
-        webView.autoresizingMask = [.width, .height]
+        webView.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.deactivate(edgeConstraints)
+        edgeConstraints = [
+            webView.topAnchor.constraint(equalTo: topAnchor),
+            webView.bottomAnchor.constraint(equalTo: bottomAnchor),
+            webView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            webView.trailingAnchor.constraint(equalTo: trailingAnchor),
+        ]
+        NSLayoutConstraint.activate(edgeConstraints)
     }
 
     func setEmbeddedVisibility(_ visible: Bool) {

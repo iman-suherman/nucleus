@@ -157,7 +157,7 @@ struct ContentView: View {
         Group {
             switch activeWorkspacePane(from: viewModel.sidebarSelection) {
             case .inbox:
-                MailWorkspaceView(isActive: true, isVisible: true)
+                MailWorkspaceView(isVisible: true)
             case .calendar:
                 CalendarWorkspaceView(isVisible: true)
             case .chat:
@@ -171,7 +171,7 @@ struct ContentView: View {
             case .settings:
                 SettingsWorkspaceView()
             case .none:
-                MailWorkspaceView(isActive: true, isVisible: true)
+                MailWorkspaceView(isVisible: true)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
