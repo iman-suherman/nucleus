@@ -26,6 +26,7 @@ struct CalendarWebView: NSViewRepresentable {
         webView.navigationDelegate = context.coordinator
         webView.uiDelegate = context.coordinator
         webView.customUserAgent = Self.safariUserAgent
+        NucleusTheme.applyWebViewChrome(to: webView)
         context.coordinator.accountID = accountID
         context.coordinator.accountEmail = accountEmail
         loadCalendar(into: webView, email: accountEmail)
@@ -231,23 +232,23 @@ struct CalendarWorkspaceView: View {
     var body: some View {
         VStack(spacing: 0) {
             accountTabs
-                .padding(.horizontal, 20)
-                .padding(.top, 16)
+                .padding(.horizontal, 12)
+                .padding(.top, 8)
                 .padding(.bottom, 8)
+                .background(NucleusTheme.canvas)
 
             if let account = selectedAccount {
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 20) {
+                    VStack(alignment: .leading, spacing: 0) {
                         if account.authMode == .webSession {
                             CalendarWebView(accountID: account.id, accountEmail: account.email)
                                 .id("calendar-\(account.id)")
                                 .frame(minHeight: 420)
-                                .clipShape(RoundedRectangle(cornerRadius: 12))
                         }
 
                         upcomingEvents(for: account)
+                            .padding(16)
                     }
-                    .padding(24)
                     .frame(maxWidth: .infinity, alignment: .topLeading)
                 }
             } else {
@@ -258,7 +259,7 @@ struct CalendarWorkspaceView: View {
                 )
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .nucleusWorkspaceChrome()
     }
 
     private var selectedAccount: GoogleAccount? {
@@ -269,35 +270,34 @@ struct CalendarWorkspaceView: View {
     }
 
     private var accountTabs: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(viewModel.accounts) { account in
-                    Button {
-                        settings.selectedCalendarAccountID = account.id
-                    } label: {
-                        let eventCount = viewModel.calendarEvents(for: account.id).count
-                        HStack(spacing: 8) {
-                            Text(account.displayName)
-                                .font(.subheadline.weight(.semibold))
-                            if eventCount > 0 {
-                                Text("\(eventCount)")
-                                    .font(.caption2.weight(.bold))
-                                    .padding(.horizontal, 6)
-                                    .padding(.vertical, 2)
-                                    .background(.purple.opacity(0.85), in: Capsule())
-                                    .foregroundStyle(.white)
+        HStack(spacing: 8) {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(viewModel.accounts) { account in
+                        Button {
+                            settings.selectedCalendarAccountID = account.id
+                        } label: {
+                            let eventCount = viewModel.calendarEvents(for: account.id).count
+                            HStack(spacing: 8) {
+                                Text(account.displayName)
+                                    .font(.subheadline.weight(.semibold))
+                                if eventCount > 0 {
+                                    Text("\(eventCount)")
+                                        .font(.caption2.weight(.bold))
+                                        .padding(.horizontal, 6)
+                                        .padding(.vertical, 2)
+                                        .background(NucleusTheme.accent.opacity(0.25), in: Capsule())
+                                        .foregroundStyle(NucleusTheme.accent)
+                                }
                             }
+                            .nucleusAccountTab(isSelected: selectedAccount?.id == account.id)
                         }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background(
-                            selectedAccount?.id == account.id ? Color.accentColor.opacity(0.15) : Color.secondary.opacity(0.08),
-                            in: Capsule()
-                        )
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
                 }
             }
+
+            CalendarSyncButton()
         }
     }
 
@@ -306,12 +306,18 @@ struct CalendarWorkspaceView: View {
         let events = viewModel.calendarEvents(for: account.id)
 
         VStack(alignment: .leading, spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Upcoming")
-                    .font(.title3.bold())
-                Text("Meetings for \(account.displayName) in the next 7 days.")
-                    .foregroundStyle(.secondary)
-                    .font(.subheadline)
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Upcoming")
+                        .font(.title3.bold())
+                    Text("Meetings for \(account.displayName) in the next 7 days.")
+                        .foregroundStyle(NucleusTheme.textSecondary)
+                        .font(.subheadline)
+                }
+
+                Spacer()
+
+                CalendarSyncButton(compact: true)
             }
 
             if events.isEmpty {
@@ -320,7 +326,7 @@ struct CalendarWorkspaceView: View {
                     systemImage: "calendar.badge.clock",
                     description: Text(
                         account.authMode == .webSession
-                            ? "Events from your calendar above sync automatically for the upcoming list and meeting alerts."
+                            ? "Tap Sync to pull events from Google Calendar and refresh meeting alerts."
                             : "Your calendar will appear here after the next sync."
                     )
                 )
@@ -331,6 +337,32 @@ struct CalendarWorkspaceView: View {
                 }
             }
         }
+    }
+}
+
+struct CalendarSyncButton: View {
+    @EnvironmentObject private var viewModel: AppViewModel
+    var compact = false
+
+    var body: some View {
+        Button {
+            viewModel.syncCalendarNow()
+        } label: {
+            if viewModel.isSyncingCalendar {
+                ProgressView()
+                    .controlSize(.small)
+            } else if compact {
+                Label("Sync", systemImage: "arrow.triangle.2.circlepath")
+                    .font(.subheadline.weight(.semibold))
+            } else {
+                Label("Sync Calendar", systemImage: "arrow.triangle.2.circlepath")
+                    .font(.subheadline.weight(.semibold))
+            }
+        }
+        .buttonStyle(.plain)
+        .nucleusAccountTab(isSelected: false)
+        .disabled(viewModel.isSyncingCalendar)
+        .help("Sync Google Calendar and refresh meeting notifications")
     }
 }
 
@@ -380,6 +412,6 @@ private struct CalendarEventCard: View {
             Spacer()
         }
         .padding(16)
-        .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 14))
+        .background(NucleusTheme.surface, in: RoundedRectangle(cornerRadius: 14))
     }
 }

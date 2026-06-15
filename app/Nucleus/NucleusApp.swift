@@ -13,6 +13,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         DispatchQueue.main.async {
+            NSApp.appearance = NSAppearance(named: .darkAqua)
             _ = SparkleUpdaterController.shared
         }
     }
@@ -87,12 +88,19 @@ struct ContentView: View {
                         .navigationSplitViewColumnWidth(min: 260, ideal: 280, max: 340)
                 } detail: {
                     detailContent
+                        .nucleusCanvasBackground()
                         .toolbar {
                             ToolbarItem(placement: .principal) {
                                 WorkspaceStatusBadge(
                                     message: viewModel.statusMessage,
-                                    unreadCount: viewModel.totalUnread
+                                    mailUnreadCount: viewModel.totalUnread,
+                                    chatUnreadCount: viewModel.totalChatUnread
                                 )
+                            }
+                            ToolbarItem(placement: .automatic) {
+                                if case .workspace(.calendar) = viewModel.sidebarSelection {
+                                    CalendarSyncButton()
+                                }
                             }
                             ToolbarItem(placement: .automatic) {
                                 Button {
@@ -101,10 +109,15 @@ struct ContentView: View {
                                     Label("Check for Updates…", systemImage: "arrow.down.circle")
                                         .labelStyle(.titleAndIcon)
                                 }
-                                .buttonStyle(.bordered)
+                                .buttonStyle(.borderless)
+                                .foregroundStyle(NucleusTheme.textSecondary)
                             }
                         }
+                        .toolbarBackground(NucleusTheme.canvas, for: .windowToolbar)
+                        .toolbarBackground(.visible, for: .windowToolbar)
+                        .toolbarColorScheme(.dark, for: .windowToolbar)
                 }
+                .background(NucleusTheme.canvas)
             }
 
             if viewModel.isStartingUp {
@@ -124,6 +137,8 @@ struct ContentView: View {
             }
         }
         .animation(.easeInOut(duration: 0.22), value: viewModel.isStartingUp)
+        .preferredColorScheme(.dark)
+        .nucleusCanvasBackground()
     }
 
     @ViewBuilder
@@ -151,10 +166,11 @@ struct ContentView: View {
             Section {
                 Text("Nucleus")
                     .font(.title2.bold())
+                    .foregroundStyle(NucleusTheme.textPrimary)
                     .padding(.vertical, 4)
                 Text("Personal Operating System")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(NucleusTheme.textSecondary)
             }
 
             Section("Workspace") {
@@ -172,18 +188,21 @@ struct ContentView: View {
             }
         }
         .listStyle(.sidebar)
+        .nucleusSidebarListStyle()
+        .foregroundStyle(NucleusTheme.textPrimary)
     }
 
     private func sidebarRow(for pane: WorkspacePane) -> some View {
         HStack(spacing: 10) {
             Image(systemName: pane.icon)
                 .frame(width: 20)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(NucleusTheme.textSecondary)
             VStack(alignment: .leading, spacing: 2) {
                 Text(pane.title)
+                    .foregroundStyle(NucleusTheme.textPrimary)
                 Text(pane.subtitle)
                     .font(.caption2)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(NucleusTheme.textSecondary)
                     .lineLimit(1)
             }
             Spacer()
@@ -195,23 +214,15 @@ struct ContentView: View {
     private func badge(for pane: WorkspacePane) -> some View {
         switch pane {
         case .inbox where viewModel.totalUnread > 0:
-            sidebarCountBadge(viewModel.totalUnread)
+            NucleusCountBadge(count: viewModel.totalUnread, kind: .mail)
         case .chat where viewModel.totalChatUnread > 0:
-            sidebarCountBadge(viewModel.totalChatUnread)
+            NucleusCountBadge(count: viewModel.totalChatUnread, kind: .chat)
         case .calendar where viewModel.todaysUpcomingMeetingCount > 0:
-            sidebarCountBadge(viewModel.todaysUpcomingMeetingCount)
+            NucleusCountBadge(count: viewModel.todaysUpcomingMeetingCount)
         case .clipboard where !viewModel.clipboardEntries.isEmpty:
-            sidebarCountBadge(viewModel.clipboardEntries.count)
+            NucleusCountBadge(count: viewModel.clipboardEntries.count)
         default:
             EmptyView()
         }
-    }
-
-    private func sidebarCountBadge(_ count: Int) -> some View {
-        Text("\(count)")
-            .font(.caption2.weight(.bold))
-            .padding(.horizontal, 6)
-            .padding(.vertical, 2)
-            .background(.secondary.opacity(0.2), in: Capsule())
     }
 }

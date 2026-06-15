@@ -6,12 +6,19 @@ const config: Config = {
     extend: {
       colors: {
         brand: {
-          blue: "#007AFF",
-          blueDark: "#003366",
-          green: "#4CD964",
-          orange: "#FF9500",
-          purple: "#5856D6",
-          silver: "#E5E5E5",
+          navy: "#1a1e2b",
+          navyLight: "#232a3b",
+          navyElevated: "#2d3447",
+          accent: "#8da2fb",
+          accentHover: "#a4b4fc",
+          accentDark: "#5c72d6",
+          silver: "#b0b3b8",
+          silverLight: "#c8cad0",
+          // Aliases used across components
+          blue: "#8da2fb",
+          blueDark: "#232a3b",
+          purple: "#b0b3b8",
+          green: "#a4b4fc",
         },
       },
       boxShadow: {

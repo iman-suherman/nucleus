@@ -3,14 +3,14 @@ import { BRAND_NAME, GITHUB_ISSUES_URL, GITHUB_REPO_URL } from "@/lib/brand";
 
 export function Footer() {
   return (
-    <footer className="border-t border-white/10 bg-black/40">
+    <footer className="border-t border-white/10 bg-brand-navyLight/50">
       <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 sm:py-6">
         <p className="max-w-5xl text-sm leading-6 text-slate-400">
           {BRAND_NAME} is a native macOS personal operating system for Gmail, calendar, clipboard, and notes.
           Your Google OAuth tokens stay in the Apple Keychain on your Mac. Contributions and issue reports are welcome on{" "}
           <a
             href={GITHUB_REPO_URL}
-            className="text-brand-blue transition hover:text-[#3395ff]"
+            className="text-brand-accent transition hover:text-brand-accentHover"
             target="_blank"
             rel="noopener noreferrer"
           >
@@ -24,7 +24,7 @@ export function Footer() {
             © {new Date().getFullYear()} Iman Suherman. Open source on{" "}
             <a
               href={GITHUB_REPO_URL}
-              className="text-brand-blue transition hover:text-[#3395ff]"
+              className="text-brand-accent transition hover:text-brand-accentHover"
               target="_blank"
               rel="noopener noreferrer"
             >

@@ -1,0 +1,16 @@
+{
+  "version": "0.1.12",
+  "summary": "Gmail dark theme, calendar sync button, distinct mail and chat badges, and logo-aligned website.",
+  "releaseNotes": {
+    "introduced": [
+      "Calendar Sync button pulls Google Calendar events and refreshes meeting alerts on demand",
+      "Toolbar and sidebar show separate blue mail and green chat unread badges with counts side by side"
+    ],
+    "changed": [
+      "App UI blends with Gmail dark theme across sidebar, tabs, toolbars, and embedded web views",
+      "Inbox opens Gmail directly when signed in — no brief login screen flash",
+      "Website theme updated to match the Nucleus app icon navy and periwinkle palette"
+    ],
+    "fixed": []
+  }
+}

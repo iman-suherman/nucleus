@@ -24,6 +24,7 @@ struct ChatWebView: NSViewRepresentable {
         webView.navigationDelegate = context.coordinator
         webView.uiDelegate = context.coordinator
         webView.customUserAgent = Self.safariUserAgent
+        NucleusTheme.applyWebViewChrome(to: webView)
         context.coordinator.accountID = accountID
         context.coordinator.accountEmail = accountEmail
         loadChat(into: webView, email: accountEmail)
@@ -175,14 +176,41 @@ private extension ChatWebView {
     (function() {
       const titleMatch = document.title.match(/\\((\\d+)\\)/);
       if (titleMatch) return parseInt(titleMatch[1], 10);
-      let count = 0;
-      document.querySelectorAll('[aria-label]').forEach(function(node) {
+
+      let total = 0;
+      const selectors = [
+        '[aria-label*="unread"]',
+        '[data-tooltip*="unread"]',
+        'a[href*="/chat/"]',
+        'a[href*="chat.google.com"]'
+      ];
+
+      for (const selector of selectors) {
+        for (const node of document.querySelectorAll(selector)) {
+          const label = node.getAttribute('aria-label')
+            || node.getAttribute('data-tooltip')
+            || node.getAttribute('title')
+            || '';
+          const match = label.match(/(\\d+)\\s+unread/i);
+          if (match) {
+            total += parseInt(match[1], 10);
+            continue;
+          }
+          if (/unread message/i.test(label) && !/0 unread/i.test(label)) {
+            total += 1;
+          }
+        }
+      }
+
+      if (total > 0) return total;
+
+      for (const node of document.querySelectorAll('[aria-label]')) {
         const label = node.getAttribute('aria-label') || '';
         const match = label.match(/(\\d+)\\s+unread/i);
-        if (match) count += parseInt(match[1], 10);
-        else if (/unread message/i.test(label)) count += 1;
-      });
-      return count;
+        if (match) total += parseInt(match[1], 10);
+      }
+
+      return total;
     })();
     """
 }
@@ -194,16 +222,14 @@ struct ChatWorkspaceView: View {
     var body: some View {
         VStack(spacing: 0) {
             accountTabs
-                .padding(.horizontal, 20)
-                .padding(.top, 16)
+                .padding(.horizontal, 12)
+                .padding(.top, 8)
                 .padding(.bottom, 8)
+                .background(NucleusTheme.canvas)
 
             if let account = selectedAccount {
                 ChatWebView(accountID: account.id, accountEmail: account.email)
                     .id(account.id)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 16)
             } else {
                 ContentUnavailableView(
                     "No chat account selected",
@@ -212,7 +238,7 @@ struct ChatWorkspaceView: View {
                 )
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .nucleusWorkspaceChrome()
     }
 
     private var selectedAccount: GoogleAccount? {
@@ -233,20 +259,10 @@ struct ChatWorkspaceView: View {
                             Text(account.displayName)
                                 .font(.subheadline.weight(.semibold))
                             if let unread = viewModel.chatUnreadByAccount[account.id], unread > 0 {
-                                Text("\(unread)")
-                                    .font(.caption2.weight(.bold))
-                                    .padding(.horizontal, 6)
-                                    .padding(.vertical, 2)
-                                    .background(.green.opacity(0.85), in: Capsule())
-                                    .foregroundStyle(.white)
+                                NucleusCountBadge(count: unread, kind: .chat)
                             }
                         }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background(
-                            selectedAccount?.id == account.id ? Color.accentColor.opacity(0.15) : Color.secondary.opacity(0.08),
-                            in: Capsule()
-                        )
+                        .nucleusAccountTab(isSelected: selectedAccount?.id == account.id)
                     }
                     .buttonStyle(.plain)
                 }

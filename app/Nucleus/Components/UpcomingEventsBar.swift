@@ -11,7 +11,7 @@ struct UpcomingEventsBar: View {
     var body: some View {
         if !events.isEmpty {
             VStack(spacing: 0) {
-                Divider()
+                Divider().overlay(NucleusTheme.divider)
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 10) {
                         ForEach(Array(events.enumerated()), id: \.element.id) { index, event in
@@ -27,8 +27,8 @@ struct UpcomingEventsBar: View {
                     .padding(.horizontal, 16)
                     .padding(.vertical, 10)
                 }
-                .background(.ultraThinMaterial)
-                Divider()
+                .background(NucleusTheme.canvas)
+                Divider().overlay(NucleusTheme.divider)
             }
         }
     }
@@ -90,7 +90,7 @@ private struct UpcomingEventChip: View {
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
             .background(
-                isNext ? Color.orange.opacity(0.08) : Color.secondary.opacity(0.08),
+                isNext ? NucleusTheme.selected.opacity(0.85) : NucleusTheme.surface,
                 in: RoundedRectangle(cornerRadius: 12)
             )
         }

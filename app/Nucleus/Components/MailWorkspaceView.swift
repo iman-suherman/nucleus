@@ -26,9 +26,10 @@ struct GmailWebView: NSViewRepresentable {
         webView.navigationDelegate = context.coordinator
         webView.uiDelegate = context.coordinator
         webView.customUserAgent = Self.safariUserAgent
+        NucleusTheme.applyWebViewChrome(to: webView)
         context.coordinator.accountID = accountID
         context.coordinator.accountEmail = accountEmail
-        loadSignIn(into: webView, email: accountEmail)
+        loadInbox(into: webView, email: accountEmail)
         return webView
     }
 
@@ -36,16 +37,20 @@ struct GmailWebView: NSViewRepresentable {
         guard context.coordinator.accountEmail != accountEmail else { return }
         context.coordinator.accountEmail = accountEmail
         context.coordinator.hasReachedInbox = false
-        loadSignIn(into: webView, email: accountEmail)
+        loadInbox(into: webView, email: accountEmail)
     }
 
     func makeCoordinator() -> Coordinator {
         Coordinator()
     }
 
+    static func inboxURL(for email: String) -> URL? {
+        let encoded = email.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? email
+        return URL(string: "https://mail.google.com/mail/u/?authuser=\(encoded)")
+    }
+
     private static func signInURL(for email: String) -> URL? {
-        let continueTarget =
-            "https://mail.google.com/mail/u/?authuser=\(email.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? email)"
+        guard let continueTarget = inboxURL(for: email)?.absoluteString else { return nil }
         var components = URLComponents(string: "https://accounts.google.com/v3/signin/identifier")
         components?.queryItems = [
             URLQueryItem(name: "service", value: "mail"),
@@ -57,8 +62,8 @@ struct GmailWebView: NSViewRepresentable {
         return components?.url
     }
 
-    private func loadSignIn(into webView: WKWebView, email: String) {
-        if let url = Self.signInURL(for: email) {
+    private func loadInbox(into webView: WKWebView, email: String) {
+        if let url = Self.inboxURL(for: email) {
             webView.load(URLRequest(url: url))
         }
     }
@@ -121,13 +126,13 @@ struct GmailWebView: NSViewRepresentable {
 
             if hasReachedInbox { return }
 
-            let isMarketingLanding =
-                path.contains("workspace.google.com/gmail")
+            let needsSignIn =
+                path.contains("accounts.google.com")
+                || path.contains("workspace.google.com/gmail")
                 || path.contains("google.com/gmail/about")
                 || path.contains("google.com/intl/")
-                || (path.contains("google.com") && !path.contains("accounts.google.com") && !path.contains("mail.google.com"))
 
-            if isMarketingLanding, let signInURL = GmailWebView.signInURL(for: email) {
+            if needsSignIn, let signInURL = GmailWebView.signInURL(for: email) {
                 webView.load(URLRequest(url: signInURL))
             }
         }
@@ -253,16 +258,14 @@ struct MailWorkspaceView: View {
     var body: some View {
         VStack(spacing: 0) {
             accountTabs
-                .padding(.horizontal, 20)
-                .padding(.top, 16)
+                .padding(.horizontal, 12)
+                .padding(.top, 8)
                 .padding(.bottom, 8)
+                .background(NucleusTheme.canvas)
 
             if let account = selectedAccount {
                 GmailWebView(accountID: account.id, accountEmail: account.email)
                     .id(account.id)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 16)
             } else {
                 ContentUnavailableView(
                     "No Gmail account selected",
@@ -271,7 +274,7 @@ struct MailWorkspaceView: View {
                 )
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .nucleusWorkspaceChrome()
         .sheet(item: $renamingAccount) { account in
             AccountCategoryEditorSheet(
                 title: "Rename Category",
@@ -315,20 +318,10 @@ struct MailWorkspaceView: View {
                             Text(account.displayName)
                                 .font(.subheadline.weight(.semibold))
                             if let unread = viewModel.unreadByAccount[account.id], unread > 0 {
-                                Text("\(unread)")
-                                    .font(.caption2.weight(.bold))
-                                    .padding(.horizontal, 6)
-                                    .padding(.vertical, 2)
-                                    .background(.blue.opacity(0.85), in: Capsule())
-                                    .foregroundStyle(.white)
+                                NucleusCountBadge(count: unread, kind: .mail)
                             }
                         }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background(
-                            selectedAccount?.id == account.id ? Color.accentColor.opacity(0.15) : Color.secondary.opacity(0.08),
-                            in: Capsule()
-                        )
+                        .nucleusAccountTab(isSelected: selectedAccount?.id == account.id)
                     }
                     .buttonStyle(.plain)
                     .contextMenu {
@@ -349,9 +342,7 @@ struct MailWorkspaceView: View {
                 } label: {
                     Label("Add Category", systemImage: "plus")
                         .font(.subheadline.weight(.semibold))
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background(Color.secondary.opacity(0.08), in: Capsule())
+                        .nucleusAccountTab(isSelected: false)
                 }
                 .buttonStyle(.plain)
                 .disabled(GoogleOAuthCoordinator.shared.isAuthenticating)

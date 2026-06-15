@@ -46,6 +46,7 @@ final class AppViewModel: ObservableObject {
     @Published var startupActiveStep: StartupStep?
     @Published var startupProgressFraction: Double = 0
     @Published var statusMessage = "Ready"
+    @Published var isSyncingCalendar = false
     @Published var quickReplyContext: QuickReplyContext?
     @Published var oauthError: String?
 
@@ -324,8 +325,23 @@ final class AppViewModel: ObservableObject {
     }
 
     func refreshCalendarEventsNow() {
+        syncCalendarNow()
+    }
+
+    func syncCalendarNow() {
+        guard !isSyncingCalendar else { return }
         NotificationCenter.default.post(name: .calendarWebEventsPollNow, object: nil)
-        Task { await syncCalendar() }
+        Task {
+            isSyncingCalendar = true
+            statusMessage = "Syncing calendar…"
+            defer {
+                isSyncingCalendar = false
+                statusMessage = statusMessageForCurrentState()
+            }
+            // Give embedded calendar web views time to report visible events.
+            try? await Task.sleep(nanoseconds: 1_500_000_000)
+            await syncCalendar(rescheduleNotifications: true)
+        }
     }
 
     private func statusMessageForCurrentState() -> String {
@@ -634,14 +650,18 @@ final class AppViewModel: ObservableObject {
         statusMessage = statusMessageForCurrentState()
     }
 
-    func syncCalendar() async {
+    func syncCalendar(rescheduleNotifications: Bool = true) async {
         guard !accounts.isEmpty else {
             calendarEvents = []
-            await NucleusNotificationService.shared.rescheduleMeetingReminders([])
+            if rescheduleNotifications {
+                await NucleusNotificationService.shared.rescheduleMeetingReminders([])
+            }
             return
         }
 
-        statusMessage = "Syncing calendar…"
+        if !isSyncingCalendar {
+            statusMessage = "Syncing calendar…"
+        }
         var allEvents: [CalendarEventSummary] = []
 
         let apiAccounts = oauthAccounts
@@ -668,8 +688,12 @@ final class AppViewModel: ObservableObject {
         calendarEvents = allEvents.sorted { $0.startDate < $1.startDate }
         let context = ModelContext(modelContainer)
         try? CalendarRepository.replaceEvents(calendarEvents, context: context)
-        await scheduleMeetingReminders(for: calendarEvents)
-        statusMessage = statusMessageForCurrentState()
+        if rescheduleNotifications {
+            await scheduleMeetingReminders(for: calendarEvents)
+        }
+        if !isSyncingCalendar {
+            statusMessage = statusMessageForCurrentState()
+        }
     }
 
     func filteredClipboardEntries() -> [ClipboardEntry] {
