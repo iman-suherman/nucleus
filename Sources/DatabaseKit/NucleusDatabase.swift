@@ -39,10 +39,53 @@ public enum NucleusDatabase {
             return try ModelContainer(for: schema, configurations: [configuration])
         }
 
+        if enableCloudKit && isCloudKitAvailable {
+            do {
+                return try makeCloudKitContainer()
+            } catch {
+                return try makeLocalContainer()
+            }
+        }
+
+        return try makeLocalContainer()
+    }
+
+    private static var isCloudKitAvailable: Bool {
+        guard FileManager.default.ubiquityIdentityToken != nil else { return false }
+        return FileManager.default.url(forUbiquityContainerIdentifier: "iCloud.net.suherman.nucleus") != nil
+    }
+
+    private static func makeCloudKitContainer() throws -> ModelContainer {
         let syncedConfiguration = ModelConfiguration(
             "Synced",
             schema: syncedSchema,
-            cloudKitDatabase: enableCloudKit ? .automatic : .none
+            cloudKitDatabase: .automatic
+        )
+
+        let localConfiguration = ModelConfiguration(
+            "Local",
+            schema: localSchema,
+            cloudKitDatabase: .none
+        )
+
+        return try ModelContainer(
+            for: GoogleAccountRecord.self,
+            NoteRecord.self,
+            SyncedSettingsRecord.self,
+            ClipboardItemRecord.self,
+            CalendarEventRecord.self,
+            ActivityNotificationRecord.self,
+            MailMessageRecord.self,
+            configurations: syncedConfiguration,
+            localConfiguration
+        )
+    }
+
+    private static func makeLocalContainer() throws -> ModelContainer {
+        let syncedConfiguration = ModelConfiguration(
+            "Synced",
+            schema: syncedSchema,
+            cloudKitDatabase: .none
         )
 
         let localConfiguration = ModelConfiguration(

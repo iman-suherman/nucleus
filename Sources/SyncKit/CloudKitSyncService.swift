@@ -1,4 +1,3 @@
-import CloudKit
 import Combine
 import CoreData
 import Foundation
@@ -17,6 +16,7 @@ public final class CloudKitSyncService: ObservableObject {
         case noAccount
         case restricted
         case temporarilyUnavailable
+        case unavailable
         case error(String)
 
         public var isAvailable: Bool {
@@ -35,6 +35,8 @@ public final class CloudKitSyncService: ObservableObject {
                 return "iCloud access restricted"
             case .temporarilyUnavailable:
                 return "iCloud temporarily unavailable"
+            case .unavailable:
+                return "iCloud sync is not configured for this build"
             case .error(let message):
                 return message
             }
@@ -44,11 +46,11 @@ public final class CloudKitSyncService: ObservableObject {
     @Published public private(set) var status: SyncStatus = .checking
     @Published public private(set) var lastRemoteChangeAt: Date?
 
-    private let container: CKContainer
+    private let ubiquityContainerIdentifier: String?
     private var remoteChangeObserver: NSObjectProtocol?
 
-    public init(containerIdentifier: String = "iCloud.net.suherman.nucleus") {
-        container = CKContainer(identifier: containerIdentifier)
+    public init(ubiquityContainerIdentifier: String? = "iCloud.net.suherman.nucleus") {
+        self.ubiquityContainerIdentifier = ubiquityContainerIdentifier
     }
 
     public func start() {
@@ -58,25 +60,24 @@ public final class CloudKitSyncService: ObservableObject {
 
     public func refreshAccountStatus() async {
         status = .checking
-        do {
-            let accountStatus = try await container.accountStatus()
-            switch accountStatus {
-            case .available:
-                status = .available
-            case .noAccount:
-                status = .noAccount
-            case .restricted:
-                status = .restricted
-            case .couldNotDetermine:
-                status = .error("Could not determine iCloud status")
-            case .temporarilyUnavailable:
-                status = .temporarilyUnavailable
-            @unknown default:
-                status = .error("Unknown iCloud status")
-            }
-        } catch {
-            status = .error(error.localizedDescription)
+
+        guard ubiquityContainerIdentifier != nil else {
+            status = .unavailable
+            return
         }
+
+        if FileManager.default.ubiquityIdentityToken == nil {
+            status = .noAccount
+            return
+        }
+
+        if let containerID = ubiquityContainerIdentifier,
+           FileManager.default.url(forUbiquityContainerIdentifier: containerID) == nil {
+            status = .temporarilyUnavailable
+            return
+        }
+
+        status = .available
     }
 
     private func observeRemoteChanges() {

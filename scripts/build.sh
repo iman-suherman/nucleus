@@ -46,7 +46,7 @@ XCODEBUILD_ARGS=(
 )
 
 if [[ "$XCODE_CONFIG" == "Release" ]]; then
-  # Build unsigned; release signing + iCloud entitlements happen in scripts/sign.sh.
+  # Build unsigned; Developer ID signing + iCloud entitlements happen in scripts/sign.sh.
   XCODEBUILD_ARGS+=(
     CODE_SIGNING_ALLOWED=NO
     CODE_SIGN_ENTITLEMENTS=

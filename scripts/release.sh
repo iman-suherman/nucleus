@@ -18,6 +18,7 @@ mkdir -p "$(dirname "$OUTPUT_DMG")"
 
 bash "$ROOT_DIR/scripts/build.sh" release
 bash "$ROOT_DIR/scripts/sign.sh"
+bash "$ROOT_DIR/scripts/notarize-app.sh"
 bash "$ROOT_DIR/scripts/package.sh" "" "$OUTPUT_DMG"
 
 if [[ "${SPARKLE_LOCAL:-1}" == "1" ]]; then

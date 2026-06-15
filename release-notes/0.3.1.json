@@ -1,0 +1,11 @@
+{
+  "version": "0.3.1",
+  "summary": "Fix startup crash that prevented Nucleus 0.3.0 from opening.",
+  "releaseNotes": {
+    "fixed": [
+      "Fix launch failure on startup caused by CloudKit container initialization",
+      "Fall back to local-only storage when iCloud is unavailable or not yet configured",
+      "Notarize the app bundle before Sparkle ZIP packaging"
+    ]
+  }
+}
