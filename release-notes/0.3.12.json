@@ -1,0 +1,17 @@
+{
+  "version": "0.3.12",
+  "summary": "Faster Gmail when running multiple accounts at once.",
+  "releaseNotes": {
+    "introduced": [
+      "Only the selected inbox web view stays mounted — other accounts pause in the background"
+    ],
+    "changed": [
+      "Shared WebKit process pool across Gmail, Chat, and Calendar web views",
+      "Unread polling pauses when Inbox is hidden to reduce CPU and memory use",
+      "Lighter unread badge scraping with less JavaScript work per poll"
+    ],
+    "fixed": [
+      "Switching between Gmail account tabs no longer feels sluggish with four or more accounts"
+    ]
+  }
+}

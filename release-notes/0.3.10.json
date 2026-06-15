@@ -1,0 +1,14 @@
+{
+  "version": "0.3.10",
+  "summary": "Cleaner Notes toolbar, stable branding, and windows that open on-screen.",
+  "releaseNotes": {
+    "changed": [
+      "Save button sits beside Delete in the Notes editor for a clearer action row",
+      "Sidebar and main titles stay fixed when collapsing the navigation column"
+    ],
+    "fixed": [
+      "Restored window position is clamped to the visible screen so Nucleus never opens off-screen",
+      "Branding no longer shifts when toggling sidebar collapse"
+    ]
+  }
+}

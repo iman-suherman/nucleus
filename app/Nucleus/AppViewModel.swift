@@ -332,7 +332,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         try? await Task.sleep(nanoseconds: 250_000_000)
         isStartingUp = false
         statusMessage = statusMessageForCurrentState()
-        presentWhatsNewIfNeeded()
+        await presentWhatsNewIfNeeded()
         await promptSignInIfNeeded(settings: settings)
     }
 
@@ -342,9 +342,20 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         whatsNewRelease = nil
     }
 
-    private func presentWhatsNewIfNeeded() {
+    func presentCurrentReleaseNotes() async {
+        let release = await ReleaseNotesLoader.loadCurrentReleaseAsync()
+            ?? AppReleaseNotes(
+                version: AppSettings.currentAppVersion,
+                summary: "Nucleus \(AppSettings.currentAppVersion) is ready.",
+                releaseNotes: .init()
+            )
+        whatsNewRelease = release
+        showWhatsNew = true
+    }
+
+    private func presentWhatsNewIfNeeded() async {
         guard ReleaseNotesLoader.shouldPresentWhatsNew() else { return }
-        guard let release = ReleaseNotesLoader.loadCurrentRelease() else { return }
+        guard let release = await ReleaseNotesLoader.loadCurrentReleaseAsync() else { return }
         whatsNewRelease = release
         showWhatsNew = true
     }

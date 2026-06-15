@@ -12,41 +12,19 @@ struct WhatsNewOverlay: View {
             VStack(spacing: 0) {
                 header
                     .padding(.horizontal, 28)
-                    .padding(.top, 28)
-                    .padding(.bottom, 20)
+                    .padding(.top, 24)
+                    .padding(.bottom, 18)
+
+                Divider()
 
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 20) {
-                        Text(release.headline)
-                            .font(.title3.weight(.semibold))
-                            .frame(maxWidth: .infinity, alignment: .leading)
-
-                        if release.sections.isEmpty {
-                            Text("This update includes improvements and fixes across mail, calendar, and workspace sync.")
-                                .foregroundStyle(.secondary)
-                        } else {
-                            ForEach(release.sections) { section in
-                                VStack(alignment: .leading, spacing: 10) {
-                                    Text(section.title)
-                                        .font(.headline)
-                                    ForEach(section.items, id: \.self) { item in
-                                        HStack(alignment: .top, spacing: 10) {
-                                            Image(systemName: "checkmark.circle.fill")
-                                                .foregroundStyle(.green)
-                                                .font(.subheadline)
-                                                .padding(.top, 2)
-                                            Text(item)
-                                                .frame(maxWidth: .infinity, alignment: .leading)
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    .padding(.horizontal, 28)
-                    .padding(.bottom, 12)
+                    ReleaseNotesDetailView(release: release)
+                        .padding(.horizontal, 28)
+                        .padding(.vertical, 20)
                 }
-                .frame(maxHeight: 360)
+                .frame(maxHeight: 460)
+
+                Divider()
 
                 Button(action: onContinue) {
                     Text("Continue")
@@ -55,9 +33,9 @@ struct WhatsNewOverlay: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
-                .padding(28)
+                .padding(24)
             }
-            .frame(width: 520)
+            .frame(width: 620)
             .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
             .overlay {
                 RoundedRectangle(cornerRadius: 22, style: .continuous)
@@ -76,18 +54,18 @@ struct WhatsNewOverlay: View {
                 Image(nsImage: image)
                     .resizable()
                     .interpolation(.high)
-                    .frame(width: 64, height: 64)
-                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .frame(width: 56, height: 56)
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             } else {
                 Image(systemName: "sparkles")
-                    .font(.system(size: 28))
+                    .font(.system(size: 24))
                     .foregroundStyle(.blue)
-                    .frame(width: 64, height: 64)
+                    .frame(width: 56, height: 56)
             }
 
             VStack(alignment: .leading, spacing: 4) {
                 Text("What's New")
-                    .font(.title.bold())
+                    .font(.title2.bold())
                 Text("Nucleus \(release.version)")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)

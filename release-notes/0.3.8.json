@@ -1,0 +1,14 @@
+{
+  "version": "0.3.8",
+  "summary": "Notes in the sidebar, tabbed Settings, and clearer branding when the sidebar is collapsed.",
+  "releaseNotes": {
+    "introduced": [
+      "Notes workspace in the sidebar for your markdown knowledge base",
+      "Tabbed Settings for iCloud, Keychain, Notifications, Mail, and About"
+    ],
+    "changed": [
+      "Larger sidebar logo with full Nucleus branding when the sidebar is collapsed",
+      "Adaptive branding in the main toolbar when navigation space is tight"
+    ]
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "version": "0.3.9",
+  "summary": "Organize notes into Notes and Passwords, with synced titles from markdown headings.",
+  "releaseNotes": {
+    "introduced": [
+      "Note organizer with Notes and Passwords categories",
+      "Password entries with structured templates for credentials",
+      "Note titles stay in sync with the leading # heading in markdown"
+    ],
+    "changed": [
+      "Save clipboard clips as regular notes in your knowledge base",
+      "Delete and move notes between categories from the Notes workspace"
+    ]
+  }
+}

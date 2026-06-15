@@ -20,6 +20,12 @@ struct AppReleaseNotes: Decodable, Equatable {
     let summary: String?
     let releaseNotes: Sections
 
+    init(version: String, summary: String?, releaseNotes: Sections) {
+        self.version = version
+        self.summary = summary
+        self.releaseNotes = releaseNotes
+    }
+
     var sections: [Section] {
         [
             Section(id: "breaking", title: "Important changes", items: releaseNotes.breaking ?? []),
@@ -46,13 +52,26 @@ enum ReleaseNotesLoader {
     }
 
     static func loadCurrentRelease(currentVersion: String = AppSettings.currentAppVersion) -> AppReleaseNotes? {
-        guard let url = Bundle.main.url(forResource: "ReleaseNotes", withExtension: "json"),
-              let data = try? Data(contentsOf: url),
-              let release = try? JSONDecoder().decode(AppReleaseNotes.self, from: data),
-              release.version == currentVersion else {
-            return fallbackRelease(for: currentVersion)
+        loadBundledRelease(for: currentVersion) ?? fallbackRelease(for: currentVersion)
+    }
+
+    static func loadCurrentReleaseAsync(
+        currentVersion: String = AppSettings.currentAppVersion
+    ) async -> AppReleaseNotes? {
+        if let bundled = loadBundledRelease(for: currentVersion), bundled.hasDetailedNotes {
+            return bundled
         }
-        return release
+
+        if let remote = await RegistryReleaseNotesClient.fetchRelease(for: currentVersion),
+           remote.hasDetailedNotes {
+            return remote
+        }
+
+        if let bundled = loadBundledRelease(for: currentVersion) {
+            return bundled
+        }
+
+        return fallbackRelease(for: currentVersion)
     }
 
     static func markCurrentVersionSeen(currentVersion: String = AppSettings.currentAppVersion) {
@@ -63,6 +82,16 @@ enum ReleaseNotesLoader {
         UserDefaults.standard.string(forKey: lastSeenVersionKey)
     }
 
+    private static func loadBundledRelease(for version: String) -> AppReleaseNotes? {
+        guard let url = Bundle.main.url(forResource: "ReleaseNotes", withExtension: "json"),
+              let data = try? Data(contentsOf: url),
+              let release = try? JSONDecoder().decode(AppReleaseNotes.self, from: data),
+              release.version == version else {
+            return nil
+        }
+        return release
+    }
+
     private static func fallbackRelease(for version: String) -> AppReleaseNotes? {
         guard shouldPresentWhatsNew(currentVersion: version) else { return nil }
         return AppReleaseNotes(
@@ -70,5 +99,11 @@ enum ReleaseNotesLoader {
             summary: "Thanks for updating to Nucleus \(version).",
             releaseNotes: .init()
         )
+    }
+}
+
+private extension AppReleaseNotes {
+    var hasDetailedNotes: Bool {
+        !sections.isEmpty
     }
 }

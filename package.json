@@ -34,6 +34,7 @@
     "dev:website": "npm install --prefix website && npm run dev --prefix website",
     "deploy:website": "npm run prepare:website && node scripts/deploy-website.cjs",
     "deploy:registry": "node scripts/deploy-registry-api.cjs",
+    "republish:release-notes": "node scripts/republish-release-notes.cjs",
     "sparkle:setup-keys": "bash scripts/sparkle-setup-keys.sh",
     "sparkle:appcast": "node scripts/generate-appcast.cjs",
     "postinstall": "npm run info"

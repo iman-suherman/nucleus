@@ -180,38 +180,43 @@ function analyzeChanges(files) {
   const signals = [
     {
       category: "introduced",
-      match: /AppViewModel|ScanPhase|ActionBucket|DashboardView/,
-      text: "A clearer three-step flow: identify what's using space, analyze findings, then act on recommendations",
+      match: /MailWorkspaceView|GmailWebView|EmbeddedWebViewRegistry/,
+      text: "Faster Gmail with multiple accounts — only the active inbox stays live in memory",
     },
     {
       category: "introduced",
-      match: /MaintenanceKit|MaintenanceView|MaintenanceKind/,
-      text: "Individual Maintenance tools for caches, node_modules, installers, APFS snapshots, and more",
+      match: /ChatWorkspaceView|ChatNotificationSound/,
+      text: "Chat notification sounds and per-account alert tones separate from mail",
     },
     {
       category: "introduced",
-      match: /APFSSnapshot|APFS/,
-      text: "APFS Snapshot thinning when deleted files still don't free space",
+      match: /NotesWorkspaceView|PasswordNoteFields/,
+      text: "Notes workspace with password entries and organized categories",
     },
     {
       category: "introduced",
-      match: /IndexRebuildOverlay|needsIndexRebuild/,
-      text: "Option to rebuild your storage index after a major scan-model upgrade",
+      match: /DockBadgeController/,
+      text: "Separate mail and chat unread badges on the Dock icon",
     },
     {
       category: "changed",
-      match: /SparkleUpdater|schedulePostUpgradePresentation|WhatsNewTour/,
-      text: "Smoother first launch after updating — checks for updates, then shows What's New",
+      match: /SupportViews|SettingsWorkspaceView/,
+      text: "Redesigned Settings with a sidebar layout and dedicated Mail and Chat tabs",
     },
     {
       category: "changed",
-      match: /DuplicatesView|DuplicateEngine/,
-      text: "Duplicate detection runs from the Duplicates tab when you choose, not during every scan",
+      match: /WorkspaceStatusBadge/,
+      text: "Toolbar status shows detailed mail and chat unread counts per account",
+    },
+    {
+      category: "changed",
+      match: /WhatsNewOverlay|ReleaseNotesLoader/,
+      text: "What's New splash on first launch after each upgrade with release notes for that version",
     },
     {
       category: "fixed",
-      match: /fix|Fix|bug/,
-      text: null,
+      match: /WindowLayoutController/,
+      text: "Window size and position no longer snap back after you move or resize the app",
     },
   ];
 
@@ -232,9 +237,11 @@ function loadCuratedNotes(version) {
   if (!fs.existsSync(jsonPath)) return null;
 
   const raw = JSON.parse(fs.readFileSync(jsonPath, "utf8"));
+  const source =
+    raw.releaseNotes && typeof raw.releaseNotes === "object" ? raw.releaseNotes : raw;
   const notes = emptyReleaseNotes();
   for (const key of Object.keys(notes)) {
-    notes[key] = uniqueItems(raw[key] || []);
+    notes[key] = uniqueItems(source[key] || []);
   }
   return {
     summary: raw.summary?.trim() || null,
@@ -273,14 +280,14 @@ function buildSummary(displayName, version, releaseNotes, curatedSummary) {
   return `${displayName} ${version} — improvements and fixes.`;
 }
 
-function buildMarkdown(version, releaseNotes, previousTag, summary) {
+function buildMarkdown(version, releaseNotes, previousTag, summary, displayName = "Nucleus") {
   const previousVersion = previousTag ? previousTag.replace(/^v/, "") : null;
-  const lines = [`# DiskWise ${version}`, ""];
+  const lines = [`# ${displayName} ${version}`, ""];
 
   if (previousVersion) {
     lines.push(`What's new since **${previousVersion}**.`, "");
   } else {
-    lines.push(`What's new in DiskWise **${version}**.`, "");
+    lines.push(`What's new in ${displayName} **${version}**.`, "");
   }
 
   if (summary) {
@@ -324,7 +331,7 @@ function generateReleaseNotes(options = {}) {
   const version = options.version || packageJson.version;
   const pluginId =
     options.pluginId || process.env.DEFAULT_APP_ID?.trim() || packageJson.name;
-  const displayName = options.displayName || packageJson.displayName || "DiskWise";
+  const displayName = options.displayName || packageJson.displayName || "Nucleus";
 
   const parsed = assertSemver(version, "package.json version");
   const previousTag = options.previousTag ?? getPreviousReleaseTag(version);
@@ -382,7 +389,7 @@ function generateReleaseNotes(options = {}) {
     summary,
     releaseNotesMarkdown:
       overrideMarkdown ||
-      buildMarkdown(parsed.version, releaseNotes, previousTag, summary),
+      buildMarkdown(parsed.version, releaseNotes, previousTag, summary, displayName),
     generatedAt: new Date().toISOString(),
   };
 }

@@ -56,6 +56,9 @@ struct NucleusApp: App {
                 Button("Check for Updates…") {
                     SparkleUpdaterController.shared.checkForUpdates()
                 }
+                Button("What's New in This Version") {
+                    Task { await viewModel.presentCurrentReleaseNotes() }
+                }
             }
             CommandGroup(replacing: .appSettings) {
                 Button("Settings…") {
@@ -85,25 +88,8 @@ struct ContentView: View {
                         .navigationSplitViewColumnWidth(min: 260, ideal: appSettings.sidebarWidth, max: 340)
                 } detail: {
                     detailContent
-                        .toolbar {
-                            ToolbarItem(placement: .principal) {
-                                WorkspaceStatusBadge(
-                                    message: viewModel.statusMessage,
-                                    mailUnreadCount: viewModel.totalUnread,
-                                    chatUnreadCount: viewModel.totalChatUnread,
-                                    mailAccounts: viewModel.unreadBreakdown(for: viewModel.unreadByAccount),
-                                    chatAccounts: viewModel.unreadBreakdown(for: viewModel.chatUnreadByAccount)
-                                )
-                            }
-                            ToolbarItem(placement: .automatic) {
-                                Button {
-                                    SparkleUpdaterController.shared.checkForUpdates()
-                                } label: {
-                                    Label("Check for Updates…", systemImage: "arrow.down.circle")
-                                        .labelStyle(.titleAndIcon)
-                                }
-                                .buttonStyle(.bordered)
-                            }
+                        .safeAreaInset(edge: .top, spacing: 0) {
+                            workspaceStatusBar
                         }
                 }
             }
@@ -175,6 +161,34 @@ struct ContentView: View {
             return selected == pane
         }
         return false
+    }
+
+    private var workspaceStatusBar: some View {
+        VStack(spacing: 0) {
+            HStack(alignment: .center, spacing: 12) {
+                WorkspaceStatusBadge(
+                    message: viewModel.statusMessage,
+                    mailUnreadCount: viewModel.totalUnread,
+                    chatUnreadCount: viewModel.totalChatUnread,
+                    mailAccounts: viewModel.unreadBreakdown(for: viewModel.unreadByAccount),
+                    chatAccounts: viewModel.unreadBreakdown(for: viewModel.chatUnreadByAccount)
+                )
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                Button {
+                    SparkleUpdaterController.shared.checkForUpdates()
+                } label: {
+                    Label("Check for Updates…", systemImage: "arrow.down.circle")
+                        .labelStyle(.titleAndIcon)
+                }
+                .buttonStyle(.bordered)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+
+            Divider()
+        }
+        .background(.regularMaterial)
     }
 
     private var sidebar: some View {

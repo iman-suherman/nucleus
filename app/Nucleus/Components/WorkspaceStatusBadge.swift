@@ -86,10 +86,10 @@ struct WorkspaceStatusBadge: View {
                     .lineLimit(1)
             }
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 10)
-        .frame(minWidth: 360, idealWidth: 480, maxWidth: 560)
-        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 
     private func unreadPill(count: Int, icon: String, tint: Color) -> some View {

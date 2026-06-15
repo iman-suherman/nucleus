@@ -302,7 +302,7 @@ struct MailWorkspaceView: View {
         VStack(spacing: 0) {
             mailHeader
                 .padding(.horizontal, 20)
-                .padding(.top, 16)
+                .padding(.top, 12)
                 .padding(.bottom, 4)
 
             accountTabs
@@ -367,7 +367,7 @@ struct MailWorkspaceView: View {
     private var mailHeader: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text("Nucleus")
-                .font(.title2.bold())
+                .font(.title3.bold())
             Text("Each tab is a Gmail account. Browse freely inside Gmail—click an account tab anytime to return to that inbox.")
                 .font(.caption)
                 .foregroundStyle(.secondary)

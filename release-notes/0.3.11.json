@@ -1,0 +1,9 @@
+{
+  "version": "0.3.11",
+  "summary": "Remove the duplicate Nucleus title from the main toolbar.",
+  "releaseNotes": {
+    "changed": [
+      "Drop the custom navigation toolbar label so only the system title remains in the main section header"
+    ]
+  }
+}
