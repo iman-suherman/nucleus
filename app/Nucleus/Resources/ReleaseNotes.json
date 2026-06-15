@@ -1,16 +1,11 @@
 {
-  "version": "0.3.6",
-  "summary": "Save clipboard to Notes, secure note categories, and sidebar branding.",
+  "version": "0.3.7",
+  "summary": "Fix window move and resize snapping back to a saved position.",
   "releaseNotes": {
-    "introduced": [
-      "Save clipboard to Notes setting keeps copied items in the Clipboard Notes folder via iCloud",
-      "Passwords and Credentials note categories with structured templates",
-      "Note category picker and list filter in the Notes workspace",
-      "App logo in the sidebar header beside the Nucleus title"
-    ],
-    "changed": [
-      "Pinning a clipboard item also saves it to Notes when auto-save is enabled",
-      "Sensitive note categories show lock icons and storage reminders"
+    "fixed": [
+      "Window no longer snaps back when you move or resize it",
+      "Window size and position stay on each Mac instead of syncing via iCloud",
+      "Sidebar and Notes column widths still sync across devices"
     ]
   }
 }
