@@ -96,11 +96,5 @@ struct SettingsWorkspaceView: View {
 }
 
 private func previewMailNotificationSound(_ sound: MailNotificationSound) {
-    if let url = sound.previewBundleURL {
-        NSSound(contentsOf: url, byReference: true)?.play()
-        return
-    }
-    if sound == .system {
-        NSSound.beep()
-    }
+    sound.playAlert()
 }

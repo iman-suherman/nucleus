@@ -82,7 +82,7 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
         content.title = delta == 1 ? "New Chat Message" : "\(delta) New Chat Messages"
         content.subtitle = accountName
         content.body = unreadCount == 1 ? "1 unread message in Google Chat" : "\(unreadCount) unread messages in Google Chat"
-        content.sound = Self.alertSound
+        content.sound = Self.chatSound
         content.categoryIdentifier = "NUCLEUS_CHAT"
 
         let request = UNNotificationRequest(
@@ -97,7 +97,7 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
         AppSettings.shared.mailNotificationSound.notificationSound
     }
 
-    private static let alertSound = UNNotificationSound(named: UNNotificationSoundName("Funky.caf"))
+    private static let chatSound = UNNotificationSound(named: UNNotificationSoundName("Funky"))
 
     func rescheduleMeetingReminders(_ reminders: [MeetingReminderPlanner.Reminder]) async {
         let center = UNUserNotificationCenter.current()
@@ -146,7 +146,7 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
             content.body = event.title
             content.categoryIdentifier = event.meetingLink == nil ? "NUCLEUS_MEETING" : "NUCLEUS_MEETING_JOIN"
         }
-        content.sound = Self.alertSound
+        content.sound = Self.chatSound
         content.userInfo = [
             "eventID": event.id,
             "eventTitle": event.title,
@@ -179,8 +179,25 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
         _ center: UNUserNotificationCenter,
         willPresent notification: UNNotification
     ) async -> UNNotificationPresentationOptions {
+        let playedCustomSound = await playForegroundAlertIfNeeded(for: notification)
         await handleMeetingReminderPresentation(notification)
-        return [.banner, .sound]
+        return playedCustomSound ? [.banner] : [.banner, .sound]
+    }
+
+    @discardableResult
+    private func playForegroundAlertIfNeeded(for notification: UNNotification) async -> Bool {
+        switch notification.request.content.categoryIdentifier {
+        case "NUCLEUS_MAIL":
+            let sound = AppSettings.shared.mailNotificationSound
+            guard sound != .silent else { return false }
+            sound.playAlert()
+            return true
+        case "NUCLEUS_CHAT":
+            MailNotificationSound.funky.playAlert()
+            return true
+        default:
+            return false
+        }
     }
 
     nonisolated func userNotificationCenter(

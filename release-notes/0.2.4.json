@@ -1,0 +1,10 @@
+{
+  "version": "0.2.4",
+  "summary": "Mail notification sounds play reliably when Nucleus is in the foreground.",
+  "releaseNotes": {
+    "fixed": [
+      "Mail alerts now play your chosen notification sound when the banner appears while Nucleus is open",
+      "Custom sounds use the correct macOS bundle filename so background notifications can play Nucleus Mail and Funky"
+    ]
+  }
+}

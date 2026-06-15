@@ -1,6 +1,7 @@
 import Combine
 import Foundation
 import SwiftUI
+import AppKit
 import UserNotifications
 
 enum MailNotificationSound: String, CaseIterable, Identifiable {
@@ -22,10 +23,8 @@ enum MailNotificationSound: String, CaseIterable, Identifiable {
 
     var notificationSound: UNNotificationSound? {
         switch self {
-        case .funky:
-            return UNNotificationSound(named: UNNotificationSoundName("Funky.caf"))
-        case .nucleusMail:
-            return UNNotificationSound(named: UNNotificationSoundName("NucleusMail.caf"))
+        case .funky, .nucleusMail:
+            return UNNotificationSound(named: UNNotificationSoundName(rawValue))
         case .system:
             return .default
         case .silent:
@@ -33,13 +32,24 @@ enum MailNotificationSound: String, CaseIterable, Identifiable {
         }
     }
 
-    var previewBundleURL: URL? {
+    var bundleSoundURL: URL? {
         switch self {
         case .silent, .system:
             return nil
         case .funky, .nucleusMail:
-            return Bundle.main.url(forResource: rawValue, withExtension: "caf", subdirectory: "Sounds")
-                ?? Bundle.main.url(forResource: rawValue, withExtension: "caf")
+            return Bundle.main.url(forResource: rawValue, withExtension: "caf")
+        }
+    }
+
+    func playAlert() {
+        switch self {
+        case .silent:
+            return
+        case .system:
+            NSSound.beep()
+        case .funky, .nucleusMail:
+            guard let url = bundleSoundURL else { return }
+            NSSound(contentsOf: url, byReference: true)?.play()
         }
     }
 }
