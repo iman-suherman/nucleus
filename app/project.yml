@@ -38,8 +38,8 @@ targets:
         CODE_SIGN_ENTITLEMENTS: Nucleus/entitlements.mac.plist
         CODE_SIGN_STYLE: Automatic
         DEVELOPMENT_TEAM: Q3TXW887NM
-        CURRENT_PROJECT_VERSION: 3009
-        MARKETING_VERSION: 0.3.9
+        CURRENT_PROJECT_VERSION: 3010
+        MARKETING_VERSION: 0.3.10
         ENABLE_HARDENED_RUNTIME: YES
         SPARKLE_PUBLIC_ED_KEY: B6P7+AkeawAfMFk4f5j3+0diuQWorDuCYNrVX0vJeV0=
       configs:
