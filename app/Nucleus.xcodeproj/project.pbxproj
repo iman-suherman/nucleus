@@ -469,14 +469,14 @@
 				CODE_SIGN_ENTITLEMENTS = Nucleus/entitlements.mac.plist;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1019;
+				CURRENT_PROJECT_VERSION = 1020;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = Nucleus/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.1.19;
+				MARKETING_VERSION = 0.1.20;
 				PRODUCT_BUNDLE_IDENTIFIER = net.suherman.nucleus;
 				SDKROOT = macosx;
 				SPARKLE_FEED_URL = "http://127.0.0.1:3000/appcast.xml";
@@ -491,14 +491,14 @@
 				CODE_SIGN_ENTITLEMENTS = Nucleus/entitlements.mac.plist;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1019;
+				CURRENT_PROJECT_VERSION = 1020;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = Nucleus/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.1.19;
+				MARKETING_VERSION = 0.1.20;
 				PRODUCT_BUNDLE_IDENTIFIER = net.suherman.nucleus;
 				SDKROOT = macosx;
 				SPARKLE_FEED_URL = "https://nucleus-registry.suherman.net/appcast.xml";
