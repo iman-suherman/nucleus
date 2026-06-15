@@ -119,7 +119,7 @@ struct AppSettingsView: View {
             Toggle("Save clipboard to Notes", isOn: $settings.clipboardSaveToNotesEnabled)
                 .disabled(!settings.clipboardSyncEnabled)
 
-            Text("When enabled, each copied item is kept in the Clipboard Notes folder (synced via iCloud) so it is not lost when history is trimmed.")
+                Text("When enabled, each copied item is saved as a regular note (synced via iCloud) so it is not lost when history is trimmed.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
 

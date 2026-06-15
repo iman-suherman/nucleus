@@ -10,28 +10,11 @@ public enum NotesDrivePaths {
 }
 
 public enum NotesMarkdown {
-    public static func dailyNoteTitle(for date: Date = Date()) -> String {
-        NucleusFormatters.dayHeader.string(from: date)
-    }
-
-    public static func meetingNoteTemplate(title: String, date: Date = Date()) -> String {
-        """
-        # \(title)
-        Date: \(NucleusFormatters.dayHeader.string(from: date))
-
-        ## Discussion
-        -
-
-        ## Actions
-        -
-        """
-    }
-
     public static func clipboardNoteTemplate(from content: String, source: String, capturedAt: Date = Date()) -> String {
         """
-        # Clipboard Note
-        Copied from: \(source)
-        Date: \(NucleusFormatters.dayHeader.string(from: capturedAt))
+        # Clipboard \(NucleusFormatters.time.string(from: capturedAt))
+
+        Copied from \(source) on \(NucleusFormatters.dayHeader.string(from: capturedAt)).
 
         ```
         \(content)
@@ -39,29 +22,49 @@ public enum NotesMarkdown {
         """
     }
 
-    public static func credentialNoteTemplate(title: String, folder: NoteFolder) -> String {
-        switch folder {
-        case .passwords:
-            return """
-            # \(title)
-            Service:
-            Username:
-            Password:
-            URL:
-            Notes:
-            """
-        case .credentials:
-            return """
-            # \(title)
-            Label:
-            Username / ID:
-            Secret:
-            Expires:
-            Notes:
-            """
-        default:
-            return "# \(title)\n"
+    public static func passwordNoteTemplate(title: String = "New Entry") -> String {
+        PasswordNoteFields.empty(name: title).markdown()
+    }
+
+    public static func generalNoteTemplate(title: String = "Untitled") -> String {
+        "# \(title)\n"
+    }
+
+    public static func title(from markdown: String, fallback: String = "Untitled") -> String {
+        for line in markdown.split(separator: "\n", omittingEmptySubsequences: false) {
+            let trimmed = String(line).trimmingCharacters(in: .whitespacesAndNewlines)
+            guard trimmed.hasPrefix("#") else { continue }
+
+            let withoutHashes = trimmed.drop(while: { $0 == "#" })
+            let parsed = withoutHashes.drop(while: { $0 == " " })
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            if !parsed.isEmpty {
+                return parsed
+            }
         }
+        return fallback
+    }
+
+    public static func settingTitle(_ title: String, in markdown: String) -> String {
+        var lines = markdown.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
+        let heading = "# \(title)"
+        let headingIndex = lines.firstIndex(where: {
+            !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                && $0.trimmingCharacters(in: .whitespacesAndNewlines).hasPrefix("#")
+        })
+
+        if let headingIndex {
+            lines[headingIndex] = heading
+        } else if lines.isEmpty {
+            lines = [heading, ""]
+        } else {
+            lines.insert(heading, at: 0)
+            if lines.count > 1, !lines[1].isEmpty {
+                lines.insert("", at: 1)
+            }
+        }
+
+        return lines.joined(separator: "\n")
     }
 }
 

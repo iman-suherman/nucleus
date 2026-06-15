@@ -233,7 +233,7 @@ public final class NoteRecord {
     }
 
     public var folder: NoteFolder {
-        NoteFolder(rawValue: folderRaw) ?? .notes
+        NoteFolder.normalized(from: folderRaw)
     }
 
     public var document: NoteDocument {

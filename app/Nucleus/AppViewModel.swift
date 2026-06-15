@@ -727,9 +727,34 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
                 source: entry.sourceApplication,
                 capturedAt: entry.capturedAt
             ),
-            folder: .clipboardNotes
+            folder: .notes
         )
         await saveNote(note, selectNote: selectNote)
+    }
+
+    func deleteNote(_ note: NoteDocument) async {
+        let context = ModelContext(modelContainer)
+        try? NoteRepository.delete(id: note.id, context: context)
+        reloadLocalData()
+        if selectedNoteID == note.id {
+            selectedNoteID = notes.first?.id
+        }
+        statusMessage = "Deleted note"
+    }
+
+    func moveNote(_ note: NoteDocument, to folder: NoteFolder) async {
+        guard note.folder != folder else { return }
+
+        var updated = note
+        updated.folder = folder
+
+        if folder == .passwords, !note.folder.isSensitive {
+            let parsed = PasswordNoteFields.parse(from: note.markdown, fallbackTitle: note.title)
+            updated.markdown = parsed.markdown()
+            updated.title = NotesMarkdown.title(from: updated.markdown, fallback: note.title)
+        }
+
+        await saveNote(updated, selectNote: true)
     }
 
     func saveNote(_ note: NoteDocument, selectNote: Bool = true) async {
@@ -757,18 +782,18 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
 
     func createNote(in folder: NoteFolder) async {
         let note: NoteDocument
-        if folder.isSensitive {
+        if folder == .passwords {
             let title = "New Entry"
             note = NoteDocument(
                 title: title,
-                markdown: NotesMarkdown.credentialNoteTemplate(title: title, folder: folder),
-                folder: folder
+                markdown: NotesMarkdown.passwordNoteTemplate(title: title),
+                folder: .passwords
             )
         } else {
             note = NoteDocument(
                 title: "Untitled",
-                markdown: "# Untitled\n",
-                folder: folder
+                markdown: NotesMarkdown.generalNoteTemplate(title: "Untitled"),
+                folder: .notes
             )
         }
         await saveNote(note)

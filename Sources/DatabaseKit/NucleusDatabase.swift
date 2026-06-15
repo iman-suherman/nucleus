@@ -402,7 +402,22 @@ public enum NoteRepository {
         let descriptor = FetchDescriptor<NoteRecord>(
             sortBy: [SortDescriptor(\.updatedAt, order: .reverse)]
         )
-        return try context.fetch(descriptor).map(\.document)
+        let records = try context.fetch(descriptor)
+        var didMigrate = false
+
+        for record in records {
+            let normalized = NoteFolder.normalized(from: record.folderRaw)
+            if record.folderRaw != normalized.rawValue {
+                record.folderRaw = normalized.rawValue
+                didMigrate = true
+            }
+        }
+
+        if didMigrate {
+            try context.save()
+        }
+
+        return records.map(\.document)
     }
 
     public static func upsert(_ note: NoteDocument, context: ModelContext) throws {
@@ -429,6 +444,18 @@ public enum NoteRepository {
             ))
         }
         try context.save()
+    }
+
+    public static func delete(id: UUID, context: ModelContext) throws {
+        var descriptor = FetchDescriptor<NoteRecord>(
+            predicate: #Predicate { $0.id == id }
+        )
+        descriptor.fetchLimit = 1
+
+        if let existing = try context.fetch(descriptor).first {
+            context.delete(existing)
+            try context.save()
+        }
     }
 }
 

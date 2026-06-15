@@ -243,11 +243,7 @@ public struct NoteDocument: Identifiable, Codable, Hashable, Sendable {
 
 public enum NoteFolder: String, Codable, CaseIterable, Sendable {
     case notes = "Notes"
-    case dailyNotes = "Daily Notes"
-    case meetingNotes = "Meeting Notes"
-    case clipboardNotes = "Clipboard Notes"
     case passwords = "Passwords"
-    case credentials = "Credentials"
 
     public var drivePath: String {
         "/Nucleus/\(rawValue)"
@@ -256,18 +252,26 @@ public enum NoteFolder: String, Codable, CaseIterable, Sendable {
     public var systemImage: String {
         switch self {
         case .notes: return "note.text"
-        case .dailyNotes: return "calendar"
-        case .meetingNotes: return "person.3"
-        case .clipboardNotes: return "doc.on.clipboard"
         case .passwords: return "key"
-        case .credentials: return "lock.shield"
         }
     }
 
     public var isSensitive: Bool {
-        switch self {
-        case .passwords, .credentials: return true
-        default: return false
+        self == .passwords
+    }
+
+    public static func normalized(from rawValue: String) -> NoteFolder {
+        if let folder = NoteFolder(rawValue: rawValue) {
+            return folder
+        }
+
+        switch rawValue {
+        case "Daily Notes", "Meeting Notes", "Clipboard Notes":
+            return .notes
+        case "Credentials":
+            return .passwords
+        default:
+            return .notes
         }
     }
 }
