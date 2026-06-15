@@ -8,6 +8,7 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
     static let shared = NucleusNotificationService()
 
     var onMailAction: ((MailNotificationAction) -> Void)?
+    var onMeetingReminder: ((CalendarEventSummary, MeetingReminderPlanner.Reminder.Kind) -> Void)?
 
     enum MailNotificationAction {
         case open(messageID: String, accountID: UUID)
@@ -47,29 +48,62 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
         UNUserNotificationCenter.current().add(request)
     }
 
+    func rescheduleMeetingReminders(_ reminders: [MeetingReminderPlanner.Reminder]) async {
+        let center = UNUserNotificationCenter.current()
+        let pending = await center.pendingNotificationRequests()
+        let calendarIDs = pending.filter { $0.identifier.hasPrefix("calendar-") }.map(\.identifier)
+        center.removePendingNotificationRequests(withIdentifiers: calendarIDs)
+
+        for reminder in reminders {
+            let interval = reminder.fireDate.timeIntervalSinceNow
+            guard interval > 0 else { continue }
+
+            let content = meetingContent(for: reminder.event, kind: reminder.kind)
+            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: interval, repeats: false)
+            let identifier = "calendar-\(reminder.event.id)-\(reminder.kind.rawValue)"
+            let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
+            try? await center.add(request)
+        }
+    }
+
     func notifyMeetingReminder(_ event: CalendarEventSummary, kind: MeetingReminderPlanner.Reminder.Kind) {
+        let content = meetingContent(for: event, kind: kind)
+        let request = UNNotificationRequest(
+            identifier: "calendar-\(event.id)-\(kind.rawValue)-immediate",
+            content: content,
+            trigger: nil
+        )
+        UNUserNotificationCenter.current().add(request)
+    }
+
+    private func meetingContent(
+        for event: CalendarEventSummary,
+        kind: MeetingReminderPlanner.Reminder.Kind
+    ) -> UNMutableNotificationContent {
         let content = UNMutableNotificationContent()
         switch kind {
         case .tenMinutes:
             content.title = "Meeting starts in 10 minutes"
             content.body = event.title
+            content.categoryIdentifier = "NUCLEUS_MEETING"
         case .oneMinute:
             content.title = "Meeting starts in 1 minute"
             content.body = event.title
+            content.categoryIdentifier = event.meetingLink == nil ? "NUCLEUS_MEETING" : "NUCLEUS_MEETING_JOIN"
+        case .starting:
+            content.title = "Meeting starting now"
+            content.body = event.title
+            content.categoryIdentifier = event.meetingLink == nil ? "NUCLEUS_MEETING" : "NUCLEUS_MEETING_JOIN"
         }
         content.sound = .default
-        content.categoryIdentifier = kind == .oneMinute ? "NUCLEUS_MEETING_JOIN" : "NUCLEUS_MEETING"
         content.userInfo = [
             "eventID": event.id,
+            "eventTitle": event.title,
+            "accountEmail": event.accountEmail,
             "meetingLink": event.meetingLink ?? "",
+            "reminderKind": kind.rawValue,
         ]
-
-        let request = UNNotificationRequest(
-            identifier: "calendar-\(event.id)-\(kind.rawValue)",
-            content: content,
-            trigger: nil
-        )
-        UNUserNotificationCenter.current().add(request)
+        return content
     }
 
     func registerCategories() {
@@ -93,7 +127,8 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
         _ center: UNUserNotificationCenter,
         willPresent notification: UNNotification
     ) async -> UNNotificationPresentationOptions {
-        [.banner, .sound]
+        await handleMeetingReminderPresentation(notification)
+        return [.banner, .sound]
     }
 
     nonisolated func userNotificationCenter(
@@ -139,5 +174,24 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
                 break
             }
         }
+    }
+
+    private func handleMeetingReminderPresentation(_ notification: UNNotification) async {
+        guard notification.request.identifier.hasPrefix("calendar-") else { return }
+        let info = notification.request.content.userInfo
+        guard let title = info["eventTitle"] as? String,
+              let accountEmail = info["accountEmail"] as? String else { return }
+
+        onMeetingReminder?(
+            CalendarEventSummary(
+                id: info["eventID"] as? String ?? UUID().uuidString,
+                accountID: UUID(),
+                title: title,
+                startDate: Date(),
+                endDate: Date(),
+                accountEmail: accountEmail
+            ),
+            MeetingReminderPlanner.Reminder.Kind(rawValue: info["reminderKind"] as? String ?? "") ?? .starting
+        )
     }
 }

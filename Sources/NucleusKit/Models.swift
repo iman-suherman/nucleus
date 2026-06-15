@@ -80,7 +80,7 @@ public enum WorkspacePane: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
-    public static let primaryWorkspaces: [WorkspacePane] = [.inbox, .calendar, .clipboard, .notes]
+    public static let primaryWorkspaces: [WorkspacePane] = [.inbox, .calendar, .clipboard]
     public static let utilityWorkspaces: [WorkspacePane] = [.notifications, .accounts]
 }
 

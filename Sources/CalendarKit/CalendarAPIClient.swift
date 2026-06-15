@@ -142,6 +142,7 @@ public enum MeetingReminderPlanner {
         public enum Kind: String, Sendable {
             case tenMinutes
             case oneMinute
+            case starting
         }
     }
 
@@ -157,6 +158,7 @@ public enum MeetingReminderPlanner {
             if oneMinuteDate > now {
                 results.append(Reminder(event: event, fireDate: oneMinuteDate, kind: .oneMinute))
             }
+            results.append(Reminder(event: event, fireDate: event.startDate, kind: .starting))
         }
         return results
     }

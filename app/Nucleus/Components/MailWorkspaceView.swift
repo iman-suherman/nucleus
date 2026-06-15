@@ -3,17 +3,27 @@ import NucleusKit
 import SwiftUI
 import WebKit
 
+extension Notification.Name {
+    static let gmailWebSessionDidSignIn = Notification.Name("GmailWebSessionDidSignIn")
+}
+
 struct GmailWebView: NSViewRepresentable {
     let accountID: UUID
     let accountEmail: String
+
+    private static let safariUserAgent =
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15"
 
     func makeNSView(context: Context) -> WKWebView {
         let configuration = WKWebViewConfiguration()
         configuration.defaultWebpagePreferences.allowsContentJavaScript = true
         configuration.websiteDataStore = GmailWebSessionStore.dataStore(for: accountID)
+        configuration.preferences.isElementFullscreenEnabled = true
+
         let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.navigationDelegate = context.coordinator
-        webView.customUserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15"
+        webView.uiDelegate = context.coordinator
+        webView.customUserAgent = Self.safariUserAgent
         context.coordinator.accountID = accountID
         context.coordinator.accountEmail = accountEmail
         loadSignIn(into: webView, email: accountEmail)
@@ -32,8 +42,9 @@ struct GmailWebView: NSViewRepresentable {
     }
 
     private static func signInURL(for email: String) -> URL? {
-        let continueTarget = "https://mail.google.com/mail/u/?authuser=\(email.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? email)"
-        var components = URLComponents(string: "https://accounts.google.com/signin/v2/identifier")
+        let continueTarget =
+            "https://mail.google.com/mail/u/?authuser=\(email.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? email)"
+        var components = URLComponents(string: "https://accounts.google.com/v3/signin/identifier")
         components?.queryItems = [
             URLQueryItem(name: "service", value: "mail"),
             URLQueryItem(name: "continue", value: continueTarget),
@@ -44,17 +55,13 @@ struct GmailWebView: NSViewRepresentable {
         return components?.url
     }
 
-    private static func inboxURL(for email: String) -> URL? {
-        URL(string: "https://mail.google.com/mail/u/?authuser=\(email.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? email)")
-    }
-
     private func loadSignIn(into webView: WKWebView, email: String) {
         if let url = Self.signInURL(for: email) {
             webView.load(URLRequest(url: url))
         }
     }
 
-    final class Coordinator: NSObject, WKNavigationDelegate {
+    final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate {
         var accountID: UUID?
         var accountEmail: String?
         var hasReachedInbox = false
@@ -74,11 +81,29 @@ struct GmailWebView: NSViewRepresentable {
             decisionHandler(.allow)
         }
 
+        func webView(
+            _ webView: WKWebView,
+            createWebViewWith configuration: WKWebViewConfiguration,
+            for navigationAction: WKNavigationAction,
+            windowFeatures: WKWindowFeatures
+        ) -> WKWebView? {
+            if navigationAction.targetFrame == nil {
+                webView.load(navigationAction.request)
+            }
+            return nil
+        }
+
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             guard let email = accountEmail, let url = webView.url else { return }
             let path = url.absoluteString
 
             if path.contains("mail.google.com/mail") {
+                if !hasReachedInbox, let accountID {
+                    NotificationCenter.default.post(
+                        name: .gmailWebSessionDidSignIn,
+                        object: accountID
+                    )
+                }
                 hasReachedInbox = true
                 return
             }

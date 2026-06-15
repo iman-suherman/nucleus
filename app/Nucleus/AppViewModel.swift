@@ -51,13 +51,26 @@ final class AppViewModel: ObservableObject {
     private let mailSyncService = MailSyncService()
     private let calendarSyncService = CalendarSyncService()
     private var knownMessageIDs = Set<String>()
-    private var scheduledReminderKeys = Set<String>()
 
     init() {
         modelContainer = (try? NucleusDatabase.makeContainer()) ?? {
             fatalError("Failed to create Nucleus database container")
         }()
         AppViewModel.current = self
+        observeGmailWebSignIn()
+    }
+
+    private func observeGmailWebSignIn() {
+        NotificationCenter.default.addObserver(
+            forName: .gmailWebSessionDidSignIn,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                await self?.syncMail()
+                await self?.syncCalendar()
+            }
+        }
     }
 
     func bootstrap(settings: AppSettings) async {
@@ -90,6 +103,18 @@ final class AppViewModel: ObservableObject {
         NucleusNotificationService.shared.onMailAction = { [weak self] action in
             Task { @MainActor in
                 self?.handleMailNotificationAction(action)
+            }
+        }
+        NucleusNotificationService.shared.onMeetingReminder = { [weak self] event, _ in
+            Task { @MainActor in
+                try? self?.appendActivity(
+                    ActivityItem(
+                        title: "Meeting reminder",
+                        detail: event.title,
+                        source: .calendar,
+                        accountEmail: event.accountEmail
+                    )
+                )
             }
         }
         completeStartupStep(.notifications)
@@ -196,7 +221,31 @@ final class AppViewModel: ObservableObject {
         }
         if let primary = accounts.first(where: { $0.isPrimary }) ?? accounts.first {
             AppSettings.shared.selectedMailAccountID = primary.id
+            AppSettings.shared.selectedCalendarAccountID = primary.id
         }
+    }
+
+    func calendarEvents(for accountID: UUID?) -> [CalendarEventSummary] {
+        guard let accountID else { return calendarEvents }
+        return calendarEvents.filter { $0.accountID == accountID }
+    }
+
+    func upcomingEvents(limit: Int = 8) -> [CalendarEventSummary] {
+        let now = Date()
+        return calendarEvents
+            .filter { $0.endDate > now }
+            .sorted { $0.startDate < $1.startDate }
+            .prefix(limit)
+            .map { $0 }
+    }
+
+    func accountDisplayName(for accountID: UUID) -> String {
+        accounts.first(where: { $0.id == accountID })?.displayName ?? calendarEvents.first(where: { $0.accountID == accountID })?.accountEmail ?? "Calendar"
+    }
+
+    func openCalendar(for event: CalendarEventSummary) {
+        AppSettings.shared.selectedCalendarAccountID = event.accountID
+        sidebarSelection = .workspace(.calendar)
     }
 
     func hasStoredTokens(for accountID: UUID) -> Bool {
@@ -220,6 +269,7 @@ final class AppViewModel: ObservableObject {
             oauthError = "That Gmail address is already added."
             if let existing = accounts.first(where: { $0.email.lowercased() == trimmedEmail }) {
                 AppSettings.shared.selectedMailAccountID = existing.id
+                AppSettings.shared.selectedCalendarAccountID = existing.id
                 sidebarSelection = .workspace(.inbox)
             }
             return
@@ -240,6 +290,7 @@ final class AppViewModel: ObservableObject {
         try? AccountRepository.upsert(account, context: context)
         reloadLocalData()
         AppSettings.shared.selectedMailAccountID = account.id
+        AppSettings.shared.selectedCalendarAccountID = account.id
         sidebarSelection = .workspace(.inbox)
         statusMessage = "Sign in to Gmail for \(trimmedEmail)"
     }
@@ -270,6 +321,7 @@ final class AppViewModel: ObservableObject {
             try AccountRepository.upsert(account, context: context)
             reloadLocalData()
             AppSettings.shared.selectedMailAccountID = account.id
+            AppSettings.shared.selectedCalendarAccountID = account.id
             sidebarSelection = .workspace(.inbox)
             await syncMail()
             await syncCalendar()
@@ -302,6 +354,7 @@ final class AppViewModel: ObservableObject {
         let context = ModelContext(modelContainer)
         try? AccountRepository.setPrimary(id: account.id, context: context)
         AppSettings.shared.selectedMailAccountID = account.id
+        AppSettings.shared.selectedCalendarAccountID = account.id
         reloadLocalData()
     }
 
@@ -324,33 +377,55 @@ final class AppViewModel: ObservableObject {
     }
 
     func syncMail() async {
-        let apiAccounts = oauthAccounts
-        guard !apiAccounts.isEmpty else {
-            if accounts.allSatisfy({ $0.authMode == .webSession }) {
-                totalUnread = 0
-                DockBadgeController.update(unreadCount: 0)
-            }
+        guard !accounts.isEmpty else {
+            totalUnread = 0
+            unreadByAccount = [:]
+            DockBadgeController.update(unreadCount: 0)
             return
         }
 
         statusMessage = "Syncing mail…"
-        let result = await MailSyncEngine.sync(
-            accounts: apiAccounts,
-            knownMessageIDs: knownMessageIDs,
-            accessTokenProvider: { accountID in
-                try await AccountSessionStore.shared.validAccessToken(accountID: accountID)
-            }
-        )
+        var mergedUnread: [UUID: Int] = [:]
+        var mergedMessages: [MailMessageSummary] = []
+        var mergedNew: [MailMessageSummary] = []
 
-        unreadByAccount = result.unreadByAccount
-        totalUnread = result.totalUnread
-        mailMessages = result.messages
-        knownMessageIDs.formUnion(result.messages.map(\.id))
+        let apiAccounts = oauthAccounts
+        if !apiAccounts.isEmpty {
+            let result = await MailSyncEngine.sync(
+                accounts: apiAccounts,
+                knownMessageIDs: knownMessageIDs,
+                accessTokenProvider: { accountID in
+                    try await AccountSessionStore.shared.validAccessToken(accountID: accountID)
+                }
+            )
+            mergedUnread.merge(result.unreadByAccount) { _, new in new }
+            mergedMessages.append(contentsOf: result.messages)
+            mergedNew.append(contentsOf: result.newMessages)
+        }
+
+        for account in accounts where account.authMode == .webSession {
+            let cookies = await GmailWebSessionStore.cookies(for: account.id)
+            let result = await GmailWebSessionClient.sync(
+                account: account,
+                cookies: cookies,
+                knownMessageIDs: knownMessageIDs
+            )
+            if let unread = result.unreadByAccount[account.id] {
+                mergedUnread[account.id] = unread
+            }
+            mergedMessages.append(contentsOf: result.messages)
+            mergedNew.append(contentsOf: result.newMessages)
+        }
+
+        unreadByAccount = mergedUnread
+        totalUnread = mergedUnread.values.reduce(0, +)
+        mailMessages = mergedMessages.sorted { $0.receivedAt > $1.receivedAt }
+        knownMessageIDs.formUnion(mergedMessages.map(\.id))
 
         let context = ModelContext(modelContainer)
-        try? MailRepository.replaceMessages(result.messages, context: context)
+        try? MailRepository.replaceMessages(mergedMessages, context: context)
 
-        for message in result.newMessages {
+        for message in mergedNew.sorted(by: { $0.receivedAt > $1.receivedAt }) {
             NucleusNotificationService.shared.notifyNewMail(message)
             try? appendActivity(
                 ActivityItem(
@@ -367,21 +442,37 @@ final class AppViewModel: ObservableObject {
     }
 
     func syncCalendar() async {
-        let apiAccounts = oauthAccounts
-        guard !apiAccounts.isEmpty else { return }
+        guard !accounts.isEmpty else {
+            calendarEvents = []
+            await NucleusNotificationService.shared.rescheduleMeetingReminders([])
+            return
+        }
 
         statusMessage = "Syncing calendar…"
-        let events = await CalendarSyncEngine.sync(
-            accounts: apiAccounts,
-            accessTokenProvider: { accountID in
-                try await AccountSessionStore.shared.validAccessToken(accountID: accountID)
-            }
-        )
+        var allEvents: [CalendarEventSummary] = []
 
-        calendarEvents = events
+        let apiAccounts = oauthAccounts
+        if !apiAccounts.isEmpty {
+            allEvents.append(
+                contentsOf: await CalendarSyncEngine.sync(
+                    accounts: apiAccounts,
+                    accessTokenProvider: { accountID in
+                        try await AccountSessionStore.shared.validAccessToken(accountID: accountID)
+                    }
+                )
+            )
+        }
+
+        for account in accounts where account.authMode == .webSession {
+            let cookies = await GmailWebSessionStore.cookies(for: account.id)
+            let events = await CalendarWebSessionClient.sync(account: account, cookies: cookies)
+            allEvents.append(contentsOf: events)
+        }
+
+        calendarEvents = allEvents.sorted { $0.startDate < $1.startDate }
         let context = ModelContext(modelContainer)
-        try? CalendarRepository.replaceEvents(events, context: context)
-        scheduleMeetingReminders(for: events)
+        try? CalendarRepository.replaceEvents(calendarEvents, context: context)
+        await scheduleMeetingReminders(for: calendarEvents)
         statusMessage = statusMessageForCurrentState()
     }
 
@@ -496,28 +587,9 @@ final class AppViewModel: ObservableObject {
         }
     }
 
-    private func scheduleMeetingReminders(for events: [CalendarEventSummary]) {
+    private func scheduleMeetingReminders(for events: [CalendarEventSummary]) async {
         let reminders = MeetingReminderPlanner.reminders(for: events)
-        for reminder in reminders {
-            let key = "\(reminder.event.id)-\(reminder.kind.rawValue)"
-            guard !scheduledReminderKeys.contains(key) else { continue }
-            scheduledReminderKeys.insert(key)
-
-            let delay = reminder.fireDate.timeIntervalSinceNow
-            guard delay > 0 else { continue }
-
-            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
-                NucleusNotificationService.shared.notifyMeetingReminder(reminder.event, kind: reminder.kind)
-                try? self?.appendActivity(
-                    ActivityItem(
-                        title: "Meeting reminder",
-                        detail: reminder.event.title,
-                        source: .calendar,
-                        accountEmail: reminder.event.accountEmail
-                    )
-                )
-            }
-        }
+        await NucleusNotificationService.shared.rescheduleMeetingReminders(reminders)
     }
 
     private func appendActivity(_ item: ActivityItem) throws {

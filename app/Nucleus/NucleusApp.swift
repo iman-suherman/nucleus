@@ -78,30 +78,33 @@ struct ContentView: View {
 
     var body: some View {
         ZStack {
-            NavigationSplitView {
-                sidebar
-                    .navigationSplitViewColumnWidth(min: 260, ideal: 280, max: 340)
-            } detail: {
-                detailContent
-                    .toolbar {
-                        ToolbarItem(placement: .principal) {
-                            WorkspaceStatusBadge(message: viewModel.statusMessage)
-                        }
-                        if viewModel.totalUnread > 0 {
+            VStack(spacing: 0) {
+                UpcomingEventsBar()
+                NavigationSplitView {
+                    sidebar
+                        .navigationSplitViewColumnWidth(min: 260, ideal: 280, max: 340)
+                } detail: {
+                    detailContent
+                        .toolbar {
+                            ToolbarItem(placement: .principal) {
+                                WorkspaceStatusBadge(message: viewModel.statusMessage)
+                            }
+                            if viewModel.totalUnread > 0 {
+                                ToolbarItem(placement: .automatic) {
+                                    Label("\(viewModel.totalUnread)", systemImage: "envelope.badge")
+                                }
+                            }
                             ToolbarItem(placement: .automatic) {
-                                Label("\(viewModel.totalUnread)", systemImage: "envelope.badge")
+                                Button {
+                                    SparkleUpdaterController.shared.checkForUpdates()
+                                } label: {
+                                    Label("Check for Updates…", systemImage: "arrow.down.circle")
+                                        .labelStyle(.titleAndIcon)
+                                }
+                                .buttonStyle(.bordered)
                             }
                         }
-                        ToolbarItem(placement: .automatic) {
-                            Button {
-                                SparkleUpdaterController.shared.checkForUpdates()
-                            } label: {
-                                Label("Check for Updates…", systemImage: "arrow.down.circle")
-                                    .labelStyle(.titleAndIcon)
-                            }
-                            .buttonStyle(.bordered)
-                        }
-                    }
+                }
             }
 
             if viewModel.isStartingUp {

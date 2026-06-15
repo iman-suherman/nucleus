@@ -40,12 +40,14 @@
 		E45F6E0F6660F34010CFDEBE /* ClipboardPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D130F5FD244D81A8B8DBE22 /* ClipboardPickerView.swift */; };
 		E61500042BE1E8A2138B4EDD /* MailKit in Frameworks */ = {isa = PBXBuildFile; productRef = 05DB77AAF24A6898436A8A52 /* MailKit */; };
 		EDB250E352E4A3372A211D5C /* AddWebGmailAccountSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 015B76265392421D7C57E815 /* AddWebGmailAccountSheet.swift */; };
+		FE075ADEC4591B5017B6CAF2 /* UpcomingEventsBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 112B420029E08E6DBBC4BF67 /* UpcomingEventsBar.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		015B76265392421D7C57E815 /* AddWebGmailAccountSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddWebGmailAccountSheet.swift; sourceTree = "<group>"; };
 		035D0E9FC4A418A7C52523C6 /* DockBadgeController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DockBadgeController.swift; sourceTree = "<group>"; };
 		0E94FBF67AC3185DD7F65D61 /* nucleus */ = {isa = PBXFileReference; lastKnownFileType = folder; name = nucleus; path = ..; sourceTree = SOURCE_ROOT; };
+		112B420029E08E6DBBC4BF67 /* UpcomingEventsBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpcomingEventsBar.swift; sourceTree = "<group>"; };
 		12805D482D496E9FAF46F5A6 /* entitlements.mac.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = entitlements.mac.plist; sourceTree = "<group>"; };
 		2D130F5FD244D81A8B8DBE22 /* ClipboardPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardPickerView.swift; sourceTree = "<group>"; };
 		35B2C2677CC4B681656C62C2 /* Nucleus.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Nucleus.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -106,6 +108,7 @@
 				6D6623E78F744254448AB90A /* NotificationCenterView.swift */,
 				9F2DE343844F3EF7B493842C /* StartupSplashView.swift */,
 				E4CEADA0142869F8949F55DD /* SupportViews.swift */,
+				112B420029E08E6DBBC4BF67 /* UpcomingEventsBar.swift */,
 				95F9299FA19C03821267F616 /* WorkspaceStatusBadge.swift */,
 			);
 			path = Components;
@@ -272,6 +275,7 @@
 				68556500C668B7A54CCA4BA4 /* SparkleUpdater.swift in Sources */,
 				5E7C65A062AF7D911926A67F /* StartupSplashView.swift in Sources */,
 				DA24CFEA61CAC79C5A243DA0 /* SupportViews.swift in Sources */,
+				FE075ADEC4591B5017B6CAF2 /* UpcomingEventsBar.swift in Sources */,
 				9B0DCC0F8A21372D7F8D82F1 /* WorkspaceStatusBadge.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

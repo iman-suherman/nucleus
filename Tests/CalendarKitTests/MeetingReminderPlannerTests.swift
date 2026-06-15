@@ -15,8 +15,9 @@ final class MeetingReminderPlannerTests: XCTestCase {
         )
 
         let reminders = MeetingReminderPlanner.reminders(for: [event], now: Date())
-        XCTAssertEqual(reminders.count, 2)
+        XCTAssertEqual(reminders.count, 3)
         XCTAssertTrue(reminders.contains { $0.kind == .tenMinutes })
         XCTAssertTrue(reminders.contains { $0.kind == .oneMinute })
+        XCTAssertTrue(reminders.contains { $0.kind == .starting })
     }
 }

@@ -30,7 +30,7 @@ struct AddWebGmailAccountSheet: View {
             Text("Add Gmail (Web Sign-In)")
                 .font(.title3.bold())
 
-            Text("Use this for work or school Google accounts that block third-party apps. Nucleus opens Gmail in the app and you sign in with Google directly, like Mail+.")
+            Text("Use this for work or school Google accounts that block third-party apps. Sign in with your password or passkey when Google prompts you.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
 

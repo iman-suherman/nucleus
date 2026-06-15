@@ -1,0 +1,19 @@
+{
+  "version": "0.1.6",
+  "summary": "Per-account Google Calendar, upcoming events bar, and reliable meeting alerts.",
+  "releaseNotes": {
+    "introduced": [
+      "Per-account Google Calendar with account tabs and an embedded week view for web sign-in accounts",
+      "Upcoming events bar at the top of the app — see your next meetings from any workspace",
+      "Meeting alerts at 10 minutes, 1 minute, and when the meeting starts, scheduled through macOS notifications",
+      "Web Gmail notifications and dock badge for accounts signed in through the browser"
+    ],
+    "changed": [
+      "Calendar sync now works for web sign-in accounts via session cookies, not just OAuth",
+      "Passkey-friendly Gmail web sign-in with isolated cookie stores per account"
+    ],
+    "removed": [
+      "Notes removed from the sidebar workspace menu"
+    ]
+  }
+}

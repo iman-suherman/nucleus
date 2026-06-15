@@ -14,6 +14,7 @@ final class AppSettings: ObservableObject {
         static let mailSyncInterval = "nucleus.settings.mailSyncInterval"
         static let calendarSyncInterval = "nucleus.settings.calendarSyncInterval"
         static let selectedMailAccountID = "nucleus.settings.selectedMailAccountID"
+        static let selectedCalendarAccountID = "nucleus.settings.selectedCalendarAccountID"
     }
 
     static let currentAppVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.1.0"
@@ -36,6 +37,16 @@ final class AppSettings: ObservableObject {
         }
     }
 
+    @Published var selectedCalendarAccountID: UUID? {
+        didSet {
+            if let selectedCalendarAccountID {
+                UserDefaults.standard.set(selectedCalendarAccountID.uuidString, forKey: Keys.selectedCalendarAccountID)
+            } else {
+                UserDefaults.standard.removeObject(forKey: Keys.selectedCalendarAccountID)
+            }
+        }
+    }
+
     private init() {
         mailSyncInterval = UserDefaults.standard.object(forKey: Keys.mailSyncInterval) as? TimeInterval ?? 60
         calendarSyncInterval = UserDefaults.standard.object(forKey: Keys.calendarSyncInterval) as? TimeInterval ?? 300
@@ -45,6 +56,13 @@ final class AppSettings: ObservableObject {
             selectedMailAccountID = id
         } else {
             selectedMailAccountID = nil
+        }
+
+        if let raw = UserDefaults.standard.string(forKey: Keys.selectedCalendarAccountID),
+           let id = UUID(uuidString: raw) {
+            selectedCalendarAccountID = id
+        } else {
+            selectedCalendarAccountID = nil
         }
     }
 
