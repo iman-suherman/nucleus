@@ -248,9 +248,17 @@ private extension CalendarWebView {
             }
           }
 
+          function isChromeTitle(title) {
+            const lower = (title || '').trim().toLowerCase();
+            if (!lower) return true;
+            if (lower.startsWith('add a ') && lower.includes('location')) return true;
+            if (lower.startsWith('add ') && lower.endsWith(' location')) return true;
+            return /^(add a working location|add working location|add location|add title|create event|create meeting|create task|add note|more options|join with google meet)$/.test(lower);
+          }
+
           function addLabel(label) {
             const trimmed = (label || '').trim();
-            if (!trimmed || trimmed.length < 2 || seen.has(trimmed)) return;
+            if (!trimmed || trimmed.length < 2 || seen.has(trimmed) || isChromeTitle(trimmed)) return;
             seen.add(trimmed);
             const match = trimmed.match(timePattern);
             entries.push({
@@ -265,14 +273,12 @@ private extension CalendarWebView {
               addLabel(node.getAttribute('aria-label'));
               const nested = node.querySelector('[aria-label]');
               if (nested) addLabel(nested.getAttribute('aria-label'));
-              const text = (node.textContent || '').replace(/\\s+/g, ' ').trim();
-              if (text && text.length < 120) addLabel(text);
             });
 
             document.querySelectorAll('[role="gridcell"]').forEach(function(cell) {
               const dayHint = (cell.getAttribute('aria-label') || '').trim();
               cell.querySelectorAll('[data-eventid], [data-eventchip], [data-event-id]').forEach(function(node) {
-                const label = node.getAttribute('aria-label') || (node.textContent || '').replace(/\\s+/g, ' ').trim();
+                const label = node.getAttribute('aria-label');
                 if (label && dayHint && !label.includes(',')) {
                   addLabel(label + ', ' + dayHint);
                 } else {
@@ -296,13 +302,43 @@ private extension CalendarWebView {
             return 'SAPISIDHASH ' + t + '_' + hash;
           }
 
+          async function fetchCalendarList(authorization, authUser, headerAuthUser) {
+            const listHosts = [
+              'https://clients6.google.com/calendar/v3/users/me/calendarList',
+              'https://www.googleapis.com/calendar/v3/users/me/calendarList'
+            ];
+            for (const host of listHosts) {
+              const url = host + '?key=' + apiKey
+                + '&minAccessRole=reader&maxResults=250'
+                + '&authuser=' + encodeURIComponent(authUser);
+              try {
+                const resp = await fetch(url, {
+                  credentials: 'include',
+                  headers: {
+                    Authorization: authorization,
+                    'X-Goog-AuthUser': headerAuthUser
+                  }
+                });
+                if (!resp.ok) continue;
+                const json = await resp.json();
+                if (!json || !Array.isArray(json.items) || !json.items.length) continue;
+                const ids = json.items
+                  .filter(function(item) { return item.hidden !== true && item.selected !== false; })
+                  .map(function(item) { return item.id; })
+                  .filter(Boolean);
+                if (ids.length) return ids;
+              } catch (e) {}
+            }
+            return null;
+          }
+
           async function fetchApiItems() {
             const authorization = await authHeader();
             if (!authorization) return [];
             const timeMin = new Date().toISOString();
             const timeMax = new Date(Date.now() + 8 * 24 * 60 * 60 * 1000).toISOString();
             const authUsers = [String(authUserIndex), '0', '1', '2', '3', authEmail];
-            const calendarIds = ['primary', authEmail];
+            const fallbackCalendarIds = ['primary', authEmail];
             const hosts = [
               'https://clients6.google.com/calendar/v3/calendars',
               'https://www.googleapis.com/calendar/v3/calendars'
@@ -310,6 +346,9 @@ private extension CalendarWebView {
 
             for (const authUser of authUsers) {
               const headerAuthUser = /^\\d+$/.test(authUser) ? authUser : String(authUserIndex);
+              const calendarIds = await fetchCalendarList(authorization, authUser, headerAuthUser) || fallbackCalendarIds;
+              const allItems = [];
+              const seenIds = new Set();
               for (const calendarId of calendarIds) {
                 for (const host of hosts) {
                   const url = host + '/' + encodeURIComponent(calendarId) + '/events?key=' + apiKey
@@ -328,12 +367,17 @@ private extension CalendarWebView {
                     });
                     if (!resp.ok) continue;
                     const json = await resp.json();
-                    if (json && Array.isArray(json.items) && json.items.length) {
-                      return json.items;
-                    }
+                    if (!json || !Array.isArray(json.items)) continue;
+                    json.items.forEach(function(item) {
+                      if (item && item.id && !seenIds.has(item.id)) {
+                        seenIds.add(item.id);
+                        allItems.push(item);
+                      }
+                    });
                   } catch (e) {}
                 }
               }
+              if (allItems.length) return allItems;
             }
             return [];
           }

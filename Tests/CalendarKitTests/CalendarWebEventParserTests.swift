@@ -41,8 +41,40 @@ final class CalendarWebEventParserTests: XCTestCase {
             now: reference
         )
 
+        XCTAssertTrue(events.isEmpty)
+    }
+
+    func testRejectsCalendarChromeLabels() {
+        let reference = makeDate(year: 2026, month: 6, day: 15, hour: 8)
+        let events = CalendarWebEventParser.parse(
+            labels: [
+                "Add a working location",
+                "Add location, Monday, June 16",
+                "Work (Qantas)",
+            ],
+            account: account,
+            now: reference
+        )
+
+        XCTAssertTrue(events.isEmpty)
+    }
+
+    func testParsesSingleTimeEventLabel() {
+        let reference = makeDate(year: 2026, month: 6, day: 15, hour: 8)
+        let events = CalendarWebEventParser.parse(
+            entries: [
+                CalendarWebEventParser.Entry(
+                    label: "Tech Backlog review, Monday, June 16, 2:00 PM – 3:00 PM",
+                    start: "2:00 PM",
+                    end: "3:00 PM"
+                ),
+            ],
+            account: account,
+            now: reference
+        )
+
         XCTAssertEqual(events.count, 1)
-        XCTAssertEqual(events.first?.title, "Home")
+        XCTAssertEqual(events.first?.title, "Tech Backlog review")
     }
 
     private func makeDate(year: Int, month: Int, day: Int, hour: Int) -> Date {

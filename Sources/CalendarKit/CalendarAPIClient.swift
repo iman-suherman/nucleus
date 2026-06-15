@@ -34,13 +34,25 @@ public enum CalendarAPIClient {
 
 public enum CalendarEventParser {
     public static func parse(_ payload: [String: Any], account: GoogleAccount) -> CalendarEventSummary? {
+        if let status = payload["status"] as? String, status == "cancelled" {
+            return nil
+        }
+        if let eventType = payload["eventType"] as? String, eventType == "workingLocation" {
+            return nil
+        }
+
         guard let id = payload["id"] as? String else { return nil }
         let title = payload["summary"] as? String ?? "(Untitled meeting)"
-        let location = payload["location"] as? String ?? ""
+        guard !CalendarJunkFilter.isCalendarChromeTitle(title) else { return nil }
 
-        let startDate = parseEventDate(payload["start"] as? [String: Any], isEnd: false) ?? Date()
+        guard let startDate = parseEventDate(payload["start"] as? [String: Any], isEnd: false) else {
+            return nil
+        }
         let endDate = parseEventDate(payload["end"] as? [String: Any], isEnd: true)
             ?? startDate.addingTimeInterval(3600)
+        guard endDate > startDate else { return nil }
+
+        let location = payload["location"] as? String ?? ""
 
         var attendees: [String] = []
         if let attendeeItems = payload["attendees"] as? [[String: Any]] {
@@ -65,13 +77,7 @@ public enum CalendarEventParser {
     private static func parseEventDate(_ payload: [String: Any]?, isEnd: Bool) -> Date? {
         guard let payload else { return nil }
         if let dateTime = payload["dateTime"] as? String {
-            let formatter = ISO8601DateFormatter()
-            formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-            if let date = formatter.date(from: dateTime) {
-                return date
-            }
-            formatter.formatOptions = [.withInternetDateTime]
-            return formatter.date(from: dateTime)
+            return parseDateTimeString(dateTime)
         }
         if let date = payload["date"] as? String {
             let formatter = DateFormatter()
@@ -84,6 +90,36 @@ public enum CalendarEventParser {
                 return calendar.date(byAdding: .day, value: 1, to: startOfDay) ?? startOfDay
             }
             return startOfDay
+        }
+        return nil
+    }
+
+    private static func parseDateTimeString(_ value: String) -> Date? {
+        let isoOptions: [ISO8601DateFormatter.Options] = [
+            [.withInternetDateTime, .withFractionalSeconds],
+            [.withInternetDateTime],
+            [.withFullDate, .withFullTime, .withColonSeparatorInTimeZone],
+            [.withFullDate, .withFullTime, .withTimeZone],
+        ]
+        for options in isoOptions {
+            let formatter = ISO8601DateFormatter()
+            formatter.formatOptions = options
+            if let date = formatter.date(from: value) {
+                return date
+            }
+        }
+
+        let fallback = DateFormatter()
+        fallback.locale = Locale(identifier: "en_US_POSIX")
+        for format in [
+            "yyyy-MM-dd'T'HH:mm:ssXXXXX",
+            "yyyy-MM-dd'T'HH:mm:ssZ",
+            "yyyy-MM-dd'T'HH:mm:ss",
+        ] {
+            fallback.dateFormat = format
+            if let date = fallback.date(from: value) {
+                return date
+            }
         }
         return nil
     }

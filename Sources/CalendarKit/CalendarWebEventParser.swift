@@ -61,6 +61,9 @@ public enum CalendarWebEventParser {
         #"(?i)(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)\s*(?:–|-|—|to)\s*(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)"#
 
     private static func parseEntry(_ entry: Entry, now: Date, horizon: Date) -> ParsedEvent? {
+        let trimmedLabel = entry.label.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !CalendarJunkFilter.isCalendarChromeTitle(trimmedLabel) else { return nil }
+
         if let start = entry.start?.trimmingCharacters(in: .whitespacesAndNewlines),
            let end = entry.end?.trimmingCharacters(in: .whitespacesAndNewlines),
            !start.isEmpty,
@@ -71,6 +74,7 @@ public enum CalendarWebEventParser {
                endDate > now,
                startDate < horizon {
                 let title = extractTitle(from: entry.label, beforeTime: start)
+                guard !CalendarJunkFilter.isCalendarChromeTitle(title) else { return nil }
                 return ParsedEvent(title: title, startDate: startDate, endDate: endDate)
             }
         }
@@ -96,15 +100,17 @@ public enum CalendarWebEventParser {
         guard let startDate = combine(day: dayDate, time: startText),
               let endDate = combine(day: dayDate, time: endText) else { return nil }
         guard endDate > now, startDate < horizon else { return nil }
+        guard !CalendarJunkFilter.isCalendarChromeTitle(title) else { return nil }
         return ParsedEvent(title: title, startDate: startDate, endDate: endDate)
     }
 
     private static func parseAllDayLabel(_ label: String, now: Date, horizon: Date) -> ParsedEvent? {
         let trimmed = label.trimmingCharacters(in: .whitespacesAndNewlines)
         guard trimmed.count >= 3 else { return nil }
+        guard hasDateHint(in: trimmed) else { return nil }
 
         let title = extractAllDayTitle(from: trimmed)
-        guard !title.isEmpty else { return nil }
+        guard !title.isEmpty, !CalendarJunkFilter.isCalendarChromeTitle(title) else { return nil }
 
         let dayDate = parseDayDate(in: trimmed, reference: now)
         let calendar = Calendar.current
@@ -112,6 +118,24 @@ public enum CalendarWebEventParser {
         guard let endDate = calendar.date(byAdding: .day, value: 1, to: startDate) else { return nil }
         guard endDate > now, startDate < horizon else { return nil }
         return ParsedEvent(title: title, startDate: startDate, endDate: endDate)
+    }
+
+    private static func hasDateHint(in label: String) -> Bool {
+        let lower = label.lowercased()
+        if lower.contains("today") || lower.contains("tomorrow") { return true }
+
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        if formatter.weekdaySymbols.contains(where: { label.localizedCaseInsensitiveContains($0) }) {
+            return true
+        }
+        if formatter.monthSymbols.contains(where: { label.localizedCaseInsensitiveContains($0) }) {
+            return true
+        }
+        if formatter.shortMonthSymbols.contains(where: { label.localizedCaseInsensitiveContains($0) }) {
+            return true
+        }
+        return label.range(of: #"\b\d{1,2}\b"#, options: .regularExpression) != nil
     }
 
     private static func extractAllDayTitle(from label: String) -> String {

@@ -113,8 +113,10 @@ final class AppViewModel: ObservableObject {
                 webEvents: merged
             )
         }
-        let domEvents = CalendarWebEventParser.parse(entries: entries, account: account)
-        merged = CalendarWebSessionClient.mergeEvents(icalEvents: merged, webEvents: domEvents)
+        if merged.isEmpty {
+            let domEvents = CalendarWebEventParser.parse(entries: entries, account: account)
+            merged = domEvents
+        }
         if !merged.isEmpty {
             webReportedCalendarEvents[accountID] = merged
         }
@@ -690,10 +692,11 @@ final class AppViewModel: ObservableObject {
                 cookies: cookies,
                 authUserIndex: authUserIndex
             )
-            let webEvents = webReportedCalendarEvents[account.id] ?? []
-            allEvents.append(
-                contentsOf: CalendarWebSessionClient.mergeEvents(icalEvents: icalEvents, webEvents: webEvents)
-            )
+            if icalEvents.isEmpty {
+                allEvents.append(contentsOf: webReportedCalendarEvents[account.id] ?? [])
+            } else {
+                allEvents.append(contentsOf: icalEvents)
+            }
         }
 
         calendarEvents = allEvents.sorted { $0.startDate < $1.startDate }

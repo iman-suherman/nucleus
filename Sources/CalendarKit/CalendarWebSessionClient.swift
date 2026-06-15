@@ -44,9 +44,14 @@ public enum CalendarWebSessionClient {
     public static func parseAPIEventPayloads(_ payloads: [[String: Any]], account: GoogleAccount) -> [CalendarEventSummary] {
         let now = Date()
         let horizon = upcomingHorizon(from: now)
+        var seen = Set<String>()
         return payloads
             .compactMap { CalendarEventParser.parse($0, account: account) }
-            .filter { $0.endDate > now && $0.startDate < horizon }
+            .filter { event in
+                guard event.endDate > now, event.startDate < horizon else { return false }
+                let key = "\(event.title.lowercased())-\(Int(event.startDate.timeIntervalSince1970 / 60))"
+                return seen.insert(key).inserted
+            }
             .sorted { $0.startDate < $1.startDate }
     }
 
@@ -87,7 +92,16 @@ public enum CalendarWebSessionClient {
 
         for authUser in authUserCandidates {
             let headerAuthUser = Int(authUser).map(String.init) ?? authUserCandidates.first(where: { Int($0) != nil }) ?? "0"
-            for calendarID in calendarIDs {
+            let listedCalendarIDs = await fetchSelectedCalendarIDs(
+                cookies: cookies,
+                authorization: authorization,
+                authUser: authUser,
+                authUserHeader: headerAuthUser
+            )
+            let calendarsToQuery = listedCalendarIDs ?? calendarIDs
+            var aggregatedPayloads: [[String: Any]] = []
+
+            for calendarID in calendarsToQuery {
                 for host in hosts {
                     let encodedCalendarID = calendarID.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? calendarID
                     var components = URLComponents(string: "\(host)/\(encodedCalendarID)/events")!
@@ -108,17 +122,99 @@ public enum CalendarWebSessionClient {
                         cookies: cookies,
                         authorization: authorization,
                         authUserHeader: headerAuthUser
-                    ) {
-                        let events = parseAPIEventPayloads(payloads, account: account)
-                        if !events.isEmpty {
-                            return events
-                        }
+                    ), !payloads.isEmpty {
+                        aggregatedPayloads.append(contentsOf: payloads)
                     }
                 }
+            }
+
+            let events = parseAPIEventPayloads(aggregatedPayloads, account: account)
+            if !events.isEmpty {
+                return events
             }
         }
 
         return nil
+    }
+
+    private static func fetchSelectedCalendarIDs(
+        cookies: [HTTPCookie],
+        authorization: String,
+        authUser: String,
+        authUserHeader: String
+    ) async -> [String]? {
+        let hosts = [
+            "https://clients6.google.com/calendar/v3/users/me/calendarList",
+            "https://www.googleapis.com/calendar/v3/users/me/calendarList",
+        ]
+
+        for host in hosts {
+            var components = URLComponents(string: host)!
+            components.queryItems = [
+                URLQueryItem(name: "key", value: calendarWebAPIKey),
+                URLQueryItem(name: "minAccessRole", value: "reader"),
+                URLQueryItem(name: "maxResults", value: "250"),
+                URLQueryItem(name: "authuser", value: authUser),
+            ]
+            guard let url = components.url else { continue }
+            guard let json = await fetchAPIJSON(
+                url: url,
+                cookies: cookies,
+                authorization: authorization,
+                authUserHeader: authUserHeader
+            ) else { continue }
+            guard let items = json["items"] as? [[String: Any]], !items.isEmpty else { continue }
+
+            let calendarIDs = items.compactMap { item -> String? in
+                if item["hidden"] as? Bool == true { return nil }
+                if item["selected"] as? Bool == false { return nil }
+                return item["id"] as? String
+            }
+            if !calendarIDs.isEmpty {
+                return calendarIDs
+            }
+        }
+
+        return nil
+    }
+
+    private static func fetchAPIJSON(
+        url: URL,
+        cookies: [HTTPCookie],
+        authorization: String,
+        authUserHeader: String
+    ) async -> [String: Any]? {
+        do {
+            let storage = HTTPCookieStorage()
+            cookies.forEach { storage.setCookie($0) }
+
+            let config = URLSessionConfiguration.ephemeral
+            config.httpCookieStorage = storage
+            config.httpShouldSetCookies = true
+            config.timeoutIntervalForRequest = 25
+
+            var request = URLRequest(url: url)
+            request.setValue(authorization, forHTTPHeaderField: "Authorization")
+            request.setValue(authUserHeader, forHTTPHeaderField: "X-Goog-AuthUser")
+            let cookieHeader = GoogleSessionAuth.cookieHeader(from: cookies)
+            if !cookieHeader.isEmpty {
+                request.setValue(cookieHeader, forHTTPHeaderField: "Cookie")
+            }
+            request.setValue(
+                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15",
+                forHTTPHeaderField: "User-Agent"
+            )
+            request.setValue("https://calendar.google.com", forHTTPHeaderField: "Origin")
+            request.setValue("https://calendar.google.com/calendar/u/\(authUserHeader)/r/week", forHTTPHeaderField: "Referer")
+
+            let (data, response) = try await URLSession(configuration: config).data(for: request)
+            guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+                return nil
+            }
+            return try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        } catch {
+            return nil
+        }
     }
 
     private static func fetchAPIPayloads(
@@ -291,6 +387,7 @@ public enum CalendarWebSessionClient {
         horizon: Date
     ) -> CalendarEventSummary? {
         guard let uid = fields["UID"], let summary = fields["SUMMARY"] else { return nil }
+        guard !CalendarJunkFilter.isCalendarChromeTitle(summary) else { return nil }
         let startKey = fields.keys.first(where: { $0.hasPrefix("DTSTART") && $0.contains("TZID=") })
             ?? fields.keys.first(where: { $0.hasPrefix("DTSTART") })
             ?? "DTSTART"
