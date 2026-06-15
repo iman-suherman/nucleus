@@ -8,6 +8,7 @@ source "$ROOT_DIR/scripts/release-env.sh"
 APP_PATH="${1:-$ROOT_DIR/.build/DerivedData/Build/Products/Release/Nucleus.app}"
 IDENTITY="${DEVELOPER_ID_APPLICATION:-$MACOS_CODESIGN_IDENTITY}"
 ENTITLEMENTS="$ROOT_DIR/app/Nucleus/entitlements.mac.plist"
+PROVISIONING_PROFILE="${MACOS_DEVELOPER_ID_PROVISIONING_PROFILE:-$ROOT_DIR/app/Nucleus/Nucleus_DeveloperID.provisionprofile}"
 
 if [[ ! -d "$APP_PATH" ]]; then
   echo "App not found: $APP_PATH"
@@ -97,6 +98,18 @@ while IFS= read -r xpc; do
 done < <(find "$APP_PATH" -name "*.xpc")
 
 sign_sparkle_framework
+
+if [[ -f "$PROVISIONING_PROFILE" ]]; then
+  echo "    Embedding Developer ID provisioning profile"
+  cp "$PROVISIONING_PROFILE" "$APP_PATH/Contents/embedded.provisionprofile"
+else
+  if rg -q "icloud-services|icloud-container-identifiers" "$ENTITLEMENTS" 2>/dev/null; then
+    echo "    Warning: iCloud entitlements require Nucleus_DeveloperID.provisionprofile"
+    echo "             Download a Developer ID profile for net.suherman.nucleus and save it to:"
+    echo "             $PROVISIONING_PROFILE"
+  fi
+fi
+
 sign_binary "$APP_PATH" "$ENTITLEMENTS"
 codesign --verify --deep --strict --verbose=2 "$APP_PATH"
 echo "Signed successfully."

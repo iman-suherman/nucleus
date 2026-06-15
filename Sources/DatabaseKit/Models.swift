@@ -4,15 +4,15 @@ import SwiftData
 
 @Model
 public final class GoogleAccountRecord {
-    @Attribute(.unique) public var id: UUID
-    public var email: String
-    public var displayName: String
-    public var avatarURL: String
-    public var isPrimary: Bool
-    public var isPrimaryNotesAccount: Bool
+    public var id: UUID = UUID()
+    public var email: String = ""
+    public var displayName: String = ""
+    public var avatarURL: String = ""
+    public var isPrimary: Bool = false
+    public var isPrimaryNotesAccount: Bool = false
     public var authMode: String = GoogleAccountAuthMode.webSession.rawValue
     public var sortOrder: Int = 0
-    public var createdAt: Date
+    public var createdAt: Date = Date()
 
     public init(
         id: UUID = UUID(),
@@ -60,13 +60,13 @@ public final class GoogleAccountRecord {
 
 @Model
 public final class ClipboardItemRecord {
-    @Attribute(.unique) public var id: UUID
-    public var content: String
-    public var contentType: String
-    public var sourceApplication: String
-    public var tagsCSV: String
-    public var isPinned: Bool
-    public var capturedAt: Date
+    public var id: UUID = UUID()
+    public var content: String = ""
+    public var contentType: String = "text"
+    public var sourceApplication: String = "Unknown"
+    public var tagsCSV: String = ""
+    public var isPinned: Bool = false
+    public var capturedAt: Date = Date()
 
     public init(
         id: UUID = UUID(),
@@ -209,11 +209,11 @@ public final class ActivityNotificationRecord {
 
 @Model
 public final class NoteRecord {
-    @Attribute(.unique) public var id: UUID
-    public var title: String
-    public var markdown: String
-    public var folderRaw: String
-    public var updatedAt: Date
+    public var id: UUID = UUID()
+    public var title: String = ""
+    public var markdown: String = ""
+    public var folderRaw: String = NoteFolder.notes.rawValue
+    public var updatedAt: Date = Date()
     public var driveFileID: String?
 
     public init(
@@ -299,9 +299,9 @@ public final class MailMessageRecord {
 
 @Model
 public final class SyncedSettingsRecord {
-    @Attribute(.unique) public var id: UUID
-    public var payloadData: Data
-    public var updatedAt: Date
+    public var id: UUID = NucleusSyncedConfiguration.singletonRecordID
+    public var payloadData: Data = Data()
+    public var updatedAt: Date = Date()
 
     public init(id: UUID, payloadData: Data, updatedAt: Date) {
         self.id = id

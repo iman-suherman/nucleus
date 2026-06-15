@@ -63,6 +63,10 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
     private var pendingMailNotificationDeltas: [UUID: Int] = [:]
 
     init() {
+        if ProcessInfo.processInfo.environment["NUCLEUS_SEED_CLOUDKIT_SCHEMA"] == "1" {
+            NucleusDatabase.seedDevelopmentCloudKitSchemaIfNeeded(force: true)
+        }
+
         modelContainer = (try? NucleusDatabase.makeContainer()) ?? {
             fatalError("Failed to create Nucleus database container")
         }()

@@ -1,0 +1,74 @@
+DEFINE SCHEMA
+
+    RECORD TYPE CD_ClipboardItemRecord (
+        "___createTime" TIMESTAMP,
+        "___createdBy"  REFERENCE,
+        "___etag"       STRING,
+        "___modTime"    TIMESTAMP,
+        "___modifiedBy" REFERENCE,
+        "___recordID"   REFERENCE QUERYABLE,
+        CD_capturedAt   TIMESTAMP,
+        CD_content      STRING,
+        CD_contentType  STRING,
+        CD_id           STRING QUERYABLE,
+        CD_isPinned     INT64,
+        CD_sourceApplication STRING,
+        CD_tagsCSV      STRING,
+        GRANT WRITE TO "_creator",
+        GRANT CREATE TO "_icloud",
+        GRANT READ TO "_creator"
+    );
+
+    RECORD TYPE CD_GoogleAccountRecord (
+        "___createTime" TIMESTAMP,
+        "___createdBy"  REFERENCE,
+        "___etag"       STRING,
+        "___modTime"    TIMESTAMP,
+        "___modifiedBy" REFERENCE,
+        "___recordID"   REFERENCE QUERYABLE,
+        CD_authMode     STRING,
+        CD_avatarURL    STRING,
+        CD_createdAt    TIMESTAMP,
+        CD_displayName  STRING,
+        CD_email        STRING QUERYABLE,
+        CD_id           STRING QUERYABLE,
+        CD_isPrimary    INT64,
+        CD_isPrimaryNotesAccount INT64,
+        CD_sortOrder    INT64,
+        GRANT WRITE TO "_creator",
+        GRANT CREATE TO "_icloud",
+        GRANT READ TO "_creator"
+    );
+
+    RECORD TYPE CD_NoteRecord (
+        "___createTime" TIMESTAMP,
+        "___createdBy"  REFERENCE,
+        "___etag"       STRING,
+        "___modTime"    TIMESTAMP,
+        "___modifiedBy" REFERENCE,
+        "___recordID"   REFERENCE QUERYABLE,
+        CD_driveFileID  STRING,
+        CD_folderRaw    STRING,
+        CD_id           STRING QUERYABLE,
+        CD_markdown     STRING,
+        CD_title        STRING QUERYABLE,
+        CD_updatedAt    TIMESTAMP,
+        GRANT WRITE TO "_creator",
+        GRANT CREATE TO "_icloud",
+        GRANT READ TO "_creator"
+    );
+
+    RECORD TYPE CD_SyncedSettingsRecord (
+        "___createTime" TIMESTAMP,
+        "___createdBy"  REFERENCE,
+        "___etag"       STRING,
+        "___modTime"    TIMESTAMP,
+        "___modifiedBy" REFERENCE,
+        "___recordID"   REFERENCE QUERYABLE,
+        CD_id           STRING QUERYABLE,
+        CD_payloadData  BYTES,
+        CD_updatedAt    TIMESTAMP,
+        GRANT WRITE TO "_creator",
+        GRANT CREATE TO "_icloud",
+        GRANT READ TO "_creator"
+    );

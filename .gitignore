@@ -23,6 +23,7 @@ Nucleus.zip
 .env
 .env.local
 .env.release
+app/Nucleus/Nucleus_DeveloperID.provisionprofile
 node_modules/
 .venv/
 website/node_modules/

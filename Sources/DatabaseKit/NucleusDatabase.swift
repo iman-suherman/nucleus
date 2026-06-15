@@ -1,8 +1,11 @@
+import CoreData
 import Foundation
 import NucleusKit
 import SwiftData
 
 public enum NucleusDatabase {
+    private static let cloudKitContainerIdentifier = "iCloud.net.suherman.nucleus"
+    private static let developmentSchemaSeedDefaultsKey = "NucleusCloudKitDevelopmentSchemaSeeded"
     public static let syncedSchema = Schema([
         GoogleAccountRecord.self,
         NoteRecord.self,
@@ -115,6 +118,89 @@ public enum NucleusDatabase {
             create: true
         )
         return appSupport.appendingPathComponent("Nucleus/nucleus.store", isDirectory: false)
+    }
+
+    /// Uploads SwiftData model metadata to the CloudKit **Development** schema.
+    /// Invoke with `NUCLEUS_SEED_CLOUDKIT_SCHEMA=1` during local setup only.
+    public static func seedDevelopmentCloudKitSchemaIfNeeded(force: Bool = false) {
+        let shouldSeed = force || ProcessInfo.processInfo.environment["NUCLEUS_SEED_CLOUDKIT_SCHEMA"] == "1"
+        guard shouldSeed else { return }
+
+        if !force, UserDefaults.standard.bool(forKey: developmentSchemaSeedDefaultsKey) {
+            return
+        }
+
+        do {
+            try seedDevelopmentCloudKitSchema()
+            UserDefaults.standard.set(true, forKey: developmentSchemaSeedDefaultsKey)
+            NSLog("Nucleus: CloudKit Development schema initialized.")
+        } catch {
+            let nsError = error as NSError
+            NSLog(
+                "Nucleus: CloudKit Development schema init failed: %@ (%@ %ld) userInfo=%@",
+                nsError.localizedDescription,
+                nsError.domain,
+                nsError.code,
+                String(describing: nsError.userInfo)
+            )
+        }
+    }
+
+    private static func seedDevelopmentCloudKitSchema() throws {
+        let seedURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("nucleus-cloudkit-schema-seed.store")
+        try? FileManager.default.removeItem(at: seedURL)
+
+        let syncedModels: [any PersistentModel.Type] = [
+            GoogleAccountRecord.self,
+            NoteRecord.self,
+            SyncedSettingsRecord.self,
+            ClipboardItemRecord.self,
+        ]
+        guard let managedObjectModel = NSManagedObjectModel.makeManagedObjectModel(for: syncedModels) else {
+            throw NSError(domain: "NucleusDatabase", code: 1, userInfo: [
+                NSLocalizedDescriptionKey: "Failed to build Core Data model from SwiftData types.",
+            ])
+        }
+
+        let description = NSPersistentStoreDescription(url: seedURL)
+        description.cloudKitContainerOptions = NSPersistentCloudKitContainerOptions(
+            containerIdentifier: cloudKitContainerIdentifier
+        )
+        description.shouldAddStoreAsynchronously = false
+
+        let container = NSPersistentCloudKitContainer(
+            name: "Synced",
+            managedObjectModel: managedObjectModel
+        )
+        container.persistentStoreDescriptions = [description]
+
+        var loadError: Error?
+        container.loadPersistentStores { _, error in
+            loadError = error
+        }
+        if let loadError {
+            throw loadError
+        }
+
+        do {
+            try container.initializeCloudKitSchema()
+        } catch {
+            let nsError = error as NSError
+            throw NSError(
+                domain: nsError.domain,
+                code: nsError.code,
+                userInfo: nsError.userInfo.merging([
+                    NSLocalizedDescriptionKey: nsError.localizedDescription,
+                    "NSDetailedErrors": nsError.userInfo,
+                ]) { _, new in new }
+            )
+        }
+
+        if let store = container.persistentStoreCoordinator.persistentStores.first {
+            try container.persistentStoreCoordinator.remove(store)
+        }
+        try? FileManager.default.removeItem(at: seedURL)
     }
 }
 
