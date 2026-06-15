@@ -56,7 +56,7 @@ final class AppSettings: ObservableObject {
 
     private init() {
         mailSyncInterval = UserDefaults.standard.object(forKey: Keys.mailSyncInterval) as? TimeInterval ?? 60
-        calendarSyncInterval = UserDefaults.standard.object(forKey: Keys.calendarSyncInterval) as? TimeInterval ?? 300
+        calendarSyncInterval = UserDefaults.standard.object(forKey: Keys.calendarSyncInterval) as? TimeInterval ?? 120
 
         if let raw = UserDefaults.standard.string(forKey: Keys.selectedMailAccountID),
            let id = UUID(uuidString: raw) {

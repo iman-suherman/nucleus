@@ -33,6 +33,18 @@ final class CalendarWebEventParserTests: XCTestCase {
         XCTAssertEqual(events.first?.title, "Home")
     }
 
+    func testParsesBareWorkingLocationTitle() {
+        let reference = makeDate(year: 2026, month: 6, day: 15, hour: 8)
+        let events = CalendarWebEventParser.parse(
+            labels: ["Home"],
+            account: account,
+            now: reference
+        )
+
+        XCTAssertEqual(events.count, 1)
+        XCTAssertEqual(events.first?.title, "Home")
+    }
+
     private func makeDate(year: Int, month: Int, day: Int, hour: Int) -> Date {
         var components = DateComponents()
         components.year = year

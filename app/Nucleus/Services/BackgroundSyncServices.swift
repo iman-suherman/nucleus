@@ -34,12 +34,15 @@ final class CalendarSyncService {
     func start(viewModel: AppViewModel, interval: TimeInterval) {
         self.viewModel = viewModel
         stop()
-        timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
+        timer = Timer(timeInterval: interval, repeats: true) { [weak self] _ in
             Task { @MainActor in
-                await self?.viewModel?.syncCalendar()
+                await self?.viewModel?.syncCalendarAutomatically()
             }
         }
-        Task { await viewModel.syncCalendar() }
+        if let timer {
+            RunLoop.main.add(timer, forMode: .common)
+        }
+        Task { await viewModel.syncCalendarAutomatically() }
     }
 
     func stop() {

@@ -1,0 +1,15 @@
+{
+  "version": "0.1.16",
+  "summary": "Calendar syncs automatically in the background on a fixed schedule.",
+  "releaseNotes": {
+    "changed": [
+      "Calendar sync runs automatically every 2 minutes (configurable in settings), even when you are not on the Calendar tab",
+      "Background sync uses the same full pipeline as Sync Calendar — web session poll, iCal fetch, and merge — not cookies alone",
+      "Embedded calendar pollers refresh every 60 seconds while Nucleus is running"
+    ],
+    "fixed": [
+      "Working-location and all-day events sync without requiring a time range or weekday in the label",
+      "Bare titles like \"Home\" or \"Office\" are accepted and treated as today’s all-day entries"
+    ]
+  }
+}

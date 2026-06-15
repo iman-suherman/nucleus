@@ -96,8 +96,9 @@ final class AppViewModel: ObservableObject {
         }
         let domEvents = CalendarWebEventParser.parse(entries: entries, account: account)
         merged = CalendarWebSessionClient.mergeEvents(icalEvents: merged, webEvents: domEvents)
-        guard !merged.isEmpty else { return }
-        webReportedCalendarEvents[accountID] = merged
+        if !merged.isEmpty {
+            webReportedCalendarEvents[accountID] = merged
+        }
         Task { await syncCalendar() }
     }
 
@@ -279,7 +280,7 @@ final class AppViewModel: ObservableObject {
 
         await beginStartupStep(.calendarSync, message: "Syncing calendar…")
         calendarSyncService.start(viewModel: self, interval: settings.calendarSyncInterval)
-        await syncCalendar()
+        await syncCalendarAutomatically()
         completeStartupStep(.calendarSync)
 
         purgeUnauthenticatedAccounts()
@@ -338,7 +339,6 @@ final class AppViewModel: ObservableObject {
 
     func syncCalendarNow() {
         guard !isSyncingCalendar else { return }
-        NotificationCenter.default.post(name: .calendarWebEventsPollNow, object: nil)
         Task {
             isSyncingCalendar = true
             statusMessage = "Syncing calendar…"
@@ -346,10 +346,20 @@ final class AppViewModel: ObservableObject {
                 isSyncingCalendar = false
                 statusMessage = statusMessageForCurrentState()
             }
-            // Give embedded calendar web views time to report visible events and fetch ICS.
-            try? await Task.sleep(nanoseconds: 2_500_000_000)
-            await syncCalendar(rescheduleNotifications: true)
+            await performCalendarSync()
         }
+    }
+
+    func syncCalendarAutomatically() async {
+        guard !accounts.isEmpty, !isSyncingCalendar else { return }
+        await performCalendarSync()
+    }
+
+    private func performCalendarSync() async {
+        NotificationCenter.default.post(name: .calendarWebEventsPollNow, object: nil)
+        // Give embedded calendar web views time to fetch ICS and report visible events.
+        try? await Task.sleep(nanoseconds: 2_000_000_000)
+        await syncCalendar(rescheduleNotifications: true)
     }
 
     private func statusMessageForCurrentState() -> String {

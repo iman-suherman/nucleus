@@ -127,7 +127,7 @@ struct CalendarWebView: NSViewRepresentable {
         private func startEventPolling(in webView: WKWebView) {
             stopEventPolling()
             reportEvents(from: webView)
-            let timer = Timer(timeInterval: 30, repeats: true) { [weak self, weak webView] _ in
+            let timer = Timer(timeInterval: 60, repeats: true) { [weak self, weak webView] _ in
                 guard let webView else { return }
                 self?.reportEvents(from: webView)
             }
@@ -196,12 +196,10 @@ private extension CalendarWebView {
           const entries = [];
           const seen = new Set();
           const timePattern = /(\\d{1,2}(?::\\d{2})?\\s*(?:AM|PM|am|pm)?)\\s*(?:–|-|—|to)\\s*(\\d{1,2}(?::\\d{2})?\\s*(?:AM|PM|am|pm)?)/i;
-          const datePattern = /(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)/i;
 
           function addLabel(label) {
             const trimmed = (label || '').trim();
             if (!trimmed || trimmed.length < 2 || seen.has(trimmed)) return;
-            if (!timePattern.test(trimmed) && !datePattern.test(trimmed) && !trimmed.includes(',')) return;
             seen.add(trimmed);
             const match = trimmed.match(timePattern);
             entries.push({
@@ -213,17 +211,6 @@ private extension CalendarWebView {
 
           document.querySelectorAll('[data-eventid], [data-eventchip], [data-event-id]').forEach(function(node) {
             addLabel(node.getAttribute('aria-label'));
-          });
-
-          document.querySelectorAll('[role="button"][aria-label], [role="link"][aria-label]').forEach(function(node) {
-            addLabel(node.getAttribute('aria-label'));
-          });
-
-          document.querySelectorAll('[aria-label]').forEach(function(node) {
-            const label = node.getAttribute('aria-label') || '';
-            if (label.includes(',') && (timePattern.test(label) || datePattern.test(label))) {
-              addLabel(label);
-            }
           });
 
           return (async function() {
