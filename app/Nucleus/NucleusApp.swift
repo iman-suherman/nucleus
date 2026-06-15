@@ -86,11 +86,6 @@ struct ContentView: View {
                 } detail: {
                     detailContent
                         .toolbar {
-                            ToolbarItem(placement: .navigation) {
-                                Text("Nucleus")
-                                    .font(.title2.bold())
-                                    .frame(width: 120, alignment: .leading)
-                            }
                             ToolbarItem(placement: .principal) {
                                 WorkspaceStatusBadge(
                                     message: viewModel.statusMessage,
