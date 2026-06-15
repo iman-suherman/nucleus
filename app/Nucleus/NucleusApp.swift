@@ -54,7 +54,7 @@ struct NucleusApp: App {
             }
             CommandGroup(replacing: .appSettings) {
                 Button("Settings…") {
-                    viewModel.sidebarSelection = .workspace(.accounts)
+                    viewModel.sidebarSelection = .workspace(.settings)
                 }
                 .keyboardShortcut(",", modifiers: .command)
             }
@@ -64,11 +64,6 @@ struct NucleusApp: App {
                 }
                 .keyboardShortcut("v", modifiers: [.command, .shift])
             }
-        }
-
-        Settings {
-            AppSettingsView(settings: appSettings)
-                .frame(width: 520, height: 420)
         }
     }
 }
@@ -146,6 +141,8 @@ struct ContentView: View {
             NotesWorkspaceView()
         case .workspace(.accounts):
             AccountCenterView()
+        case .workspace(.settings):
+            SettingsWorkspaceView()
         }
     }
 

@@ -70,7 +70,28 @@ struct AppSettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .padding(24)
+    }
+}
+
+struct SettingsWorkspaceView: View {
+    @EnvironmentObject private var settings: AppSettings
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Settings")
+                        .font(.title2.bold())
+                    Text("Configure mail notifications, sync intervals, and app info.")
+                        .foregroundStyle(.secondary)
+                }
+
+                AppSettingsView(settings: settings)
+                    .frame(maxWidth: 560, alignment: .leading)
+            }
+            .padding(24)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
+        }
     }
 }
 
