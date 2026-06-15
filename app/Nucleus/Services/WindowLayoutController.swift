@@ -24,6 +24,7 @@ final class WindowLayoutController {
         guard let window, trackedWindow !== window else { return }
         detachObservers()
         trackedWindow = window
+        configureWindowChrome(window)
         resizeObserver = NotificationCenter.default.addObserver(
             forName: NSWindow.didResizeNotification,
             object: window,
@@ -66,6 +67,15 @@ final class WindowLayoutController {
         isApplyingProgrammatically = true
         window.setFrame(constrained, display: true)
         isApplyingProgrammatically = false
+        configureWindowChrome(window)
+    }
+
+    private func configureWindowChrome(_ window: NSWindow) {
+        window.title = "Nucleus"
+        window.titleVisibility = .hidden
+        window.styleMask.remove(.fullSizeContentView)
+        window.titlebarAppearsTransparent = false
+        window.isMovableByWindowBackground = false
     }
 
     private func frameConstrainedToVisibleScreen(

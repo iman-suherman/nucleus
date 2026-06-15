@@ -397,15 +397,11 @@ struct MailWorkspaceView: View {
     }
 
     private var mailHeader: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text("Nucleus")
-                .font(.title3.bold())
-            Text("Each tab is a Gmail account. Browse freely inside Gmail—click an account tab anytime to return to that inbox.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        Text("Each tab is a Gmail account. Browse freely inside Gmail—click an account tab anytime to return to that inbox.")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var accountTabs: some View {

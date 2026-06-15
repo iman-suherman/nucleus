@@ -83,31 +83,13 @@ struct ContentView: View {
     var body: some View {
         ZStack {
             VStack(spacing: 0) {
+                workspaceChromeBar
+
                 NavigationSplitView {
                     sidebar
                         .navigationSplitViewColumnWidth(min: 260, ideal: appSettings.sidebarWidth, max: 340)
                 } detail: {
                     detailContent
-                        .toolbar {
-                            ToolbarItem(placement: .principal) {
-                                WorkspaceStatusBadge(
-                                    message: viewModel.statusMessage,
-                                    mailUnreadCount: viewModel.totalUnread,
-                                    chatUnreadCount: viewModel.totalChatUnread,
-                                    mailAccounts: viewModel.unreadBreakdown(for: viewModel.unreadByAccount),
-                                    chatAccounts: viewModel.unreadBreakdown(for: viewModel.chatUnreadByAccount)
-                                )
-                            }
-                            ToolbarItem(placement: .automatic) {
-                                Button {
-                                    SparkleUpdaterController.shared.checkForUpdates()
-                                } label: {
-                                    Label("Check for Updates…", systemImage: "arrow.down.circle")
-                                        .labelStyle(.titleAndIcon)
-                                }
-                                .buttonStyle(.bordered)
-                            }
-                        }
                 }
             }
 
@@ -138,34 +120,61 @@ struct ContentView: View {
             viewModel.sidebarSelectionDidChange(selection)
             EmbeddedWebViewRegistry.syncVisibility(activePane: activeWorkspacePane(from: selection))
         }
+        .onAppear {
+            EmbeddedWebViewRegistry.syncVisibility(activePane: activeWorkspacePane(from: viewModel.sidebarSelection))
+        }
+    }
+
+    private var workspaceChromeBar: some View {
+        HStack(alignment: .center, spacing: 12) {
+            WorkspaceStatusBadge(
+                message: viewModel.statusMessage,
+                mailUnreadCount: viewModel.totalUnread,
+                chatUnreadCount: viewModel.totalChatUnread,
+                mailAccounts: viewModel.unreadBreakdown(for: viewModel.unreadByAccount),
+                chatAccounts: viewModel.unreadBreakdown(for: viewModel.chatUnreadByAccount)
+            )
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Button {
+                SparkleUpdaterController.shared.checkForUpdates()
+            } label: {
+                Label("Check for Updates…", systemImage: "arrow.down.circle")
+                    .labelStyle(.titleAndIcon)
+            }
+            .buttonStyle(.bordered)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(.regularMaterial)
+        .overlay(alignment: .bottom) {
+            Divider()
+        }
     }
 
     @ViewBuilder
     private var detailContent: some View {
-        ZStack {
-            MailWorkspaceView(
-                isActive: isWorkspace(.inbox),
-                isVisible: isWorkspace(.inbox)
-            )
-            CalendarWorkspaceView(isVisible: isWorkspace(.calendar))
-            ChatWorkspaceView(isVisible: isWorkspace(.chat))
-            ClipboardWorkspaceView()
-                .opacity(isWorkspace(.clipboard) ? 1 : 0)
-                .allowsHitTesting(isWorkspace(.clipboard))
-            NotesWorkspaceView()
-                .opacity(isWorkspace(.notes) ? 1 : 0)
-                .allowsHitTesting(isWorkspace(.notes))
-            AccountCenterView()
-                .opacity(isWorkspace(.accounts) ? 1 : 0)
-                .allowsHitTesting(isWorkspace(.accounts))
-            SettingsWorkspaceView()
-                .opacity(isWorkspace(.settings) ? 1 : 0)
-                .allowsHitTesting(isWorkspace(.settings))
+        Group {
+            switch activeWorkspacePane(from: viewModel.sidebarSelection) {
+            case .inbox:
+                MailWorkspaceView(isActive: true, isVisible: true)
+            case .calendar:
+                CalendarWorkspaceView(isVisible: true)
+            case .chat:
+                ChatWorkspaceView(isVisible: true)
+            case .clipboard:
+                ClipboardWorkspaceView()
+            case .notes:
+                NotesWorkspaceView()
+            case .accounts:
+                AccountCenterView()
+            case .settings:
+                SettingsWorkspaceView()
+            case .none:
+                MailWorkspaceView(isActive: true, isVisible: true)
+            }
         }
-    }
-
-    private func isWorkspace(_ pane: WorkspacePane) -> Bool {
-        activeWorkspacePane(from: viewModel.sidebarSelection) == pane
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private func activeWorkspacePane(from selection: SidebarSelection) -> WorkspacePane? {
