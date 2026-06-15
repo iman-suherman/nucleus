@@ -21,10 +21,12 @@ public enum GmailWebSessionClient {
                 return MailSyncResult(unreadByAccount: [account.id: 0], messages: [], newMessages: [])
             }
 
+            let feedUnread = parseFeedUnreadCount(xml)
             let messages = parseAtomFeed(xml, accountID: account.id)
+            let unreadCount = max(feedUnread, messages.filter(\.isUnread).count)
             let newMessages = messages.filter { !knownMessageIDs.contains($0.id) && $0.isUnread }
             return MailSyncResult(
-                unreadByAccount: [account.id: messages.filter(\.isUnread).count],
+                unreadByAccount: [account.id: unreadCount],
                 messages: messages,
                 newMessages: newMessages
             )
@@ -64,6 +66,15 @@ public enum GmailWebSessionClient {
         let parser = GmailAtomParser(accountID: accountID)
         parser.parse(xml)
         return parser.messages
+    }
+
+    private static func parseFeedUnreadCount(_ xml: String) -> Int {
+        guard let range = xml.range(of: "<fullcount>(\\d+)</fullcount>", options: .regularExpression) else {
+            return 0
+        }
+        let match = String(xml[range])
+        let digits = match.filter(\.isNumber)
+        return Int(digits) ?? 0
     }
 }
 

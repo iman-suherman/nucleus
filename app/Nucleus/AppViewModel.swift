@@ -51,6 +51,7 @@ final class AppViewModel: ObservableObject {
     private let mailSyncService = MailSyncService()
     private let calendarSyncService = CalendarSyncService()
     private var knownMessageIDs = Set<String>()
+    private var webReportedUnread: [UUID: Int] = [:]
 
     init() {
         modelContainer = (try? NucleusDatabase.makeContainer()) ?? {
@@ -58,6 +59,27 @@ final class AppViewModel: ObservableObject {
         }()
         AppViewModel.current = self
         observeGmailWebSignIn()
+        observeGmailWebUnreadCount()
+    }
+
+    private func observeGmailWebUnreadCount() {
+        NotificationCenter.default.addObserver(
+            forName: .gmailWebUnreadCountDidChange,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            guard let accountID = notification.userInfo?["accountID"] as? UUID,
+                  let count = notification.userInfo?["count"] as? Int else { return }
+            self?.applyWebUnreadCount(accountID: accountID, count: count)
+        }
+    }
+
+    func applyWebUnreadCount(accountID: UUID, count: Int) {
+        webReportedUnread[accountID] = max(0, count)
+        unreadByAccount[accountID] = max(0, count)
+        totalUnread = unreadByAccount.values.reduce(0, +)
+        DockBadgeController.update(unreadCount: totalUnread)
+        statusMessage = statusMessageForCurrentState()
     }
 
     private func observeGmailWebSignIn() {
@@ -413,9 +435,9 @@ final class AppViewModel: ObservableObject {
                 cookies: cookies,
                 knownMessageIDs: knownMessageIDs
             )
-            if let unread = result.unreadByAccount[account.id] {
-                mergedUnread[account.id] = unread
-            }
+            let atomUnread = result.unreadByAccount[account.id] ?? 0
+            let webUnread = webReportedUnread[account.id] ?? 0
+            mergedUnread[account.id] = max(atomUnread, webUnread)
             mergedMessages.append(contentsOf: result.messages)
             mergedNew.append(contentsOf: result.newMessages)
         }

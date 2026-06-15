@@ -1,0 +1,13 @@
+{
+  "version": "0.1.8",
+  "summary": "Dock badge now reflects Gmail unread counts for web sign-in accounts.",
+  "releaseNotes": {
+    "fixed": [
+      "Dock badge now shows unread mail for web Gmail accounts, matching the count in Gmail's inbox sidebar"
+    ],
+    "changed": [
+      "Unread counts are read from the signed-in Gmail web view and refreshed every 30 seconds",
+      "Atom feed sync now uses Gmail's fullcount when available for more accurate totals"
+    ]
+  }
+}

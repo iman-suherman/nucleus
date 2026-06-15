@@ -2,6 +2,7 @@ import NucleusKit
 import AppKit
 import Foundation
 
+@MainActor
 enum DockBadgeController {
     static func update(unreadCount: Int) {
         NSApp.dockTile.badgeLabel = unreadCount > 0 ? "\(unreadCount)" : nil

@@ -5,6 +5,7 @@ import WebKit
 
 extension Notification.Name {
     static let gmailWebSessionDidSignIn = Notification.Name("GmailWebSessionDidSignIn")
+    static let gmailWebUnreadCountDidChange = Notification.Name("GmailWebUnreadCountDidChange")
 }
 
 struct GmailWebView: NSViewRepresentable {
@@ -65,6 +66,11 @@ struct GmailWebView: NSViewRepresentable {
         var accountID: UUID?
         var accountEmail: String?
         var hasReachedInbox = false
+        private var unreadPollTimer: Timer?
+
+        deinit {
+            unreadPollTimer?.invalidate()
+        }
 
         func webView(
             _ webView: WKWebView,
@@ -105,8 +111,11 @@ struct GmailWebView: NSViewRepresentable {
                     )
                 }
                 hasReachedInbox = true
+                startUnreadPolling(in: webView)
                 return
             }
+
+            stopUnreadPolling()
 
             if hasReachedInbox { return }
 
@@ -120,7 +129,67 @@ struct GmailWebView: NSViewRepresentable {
                 webView.load(URLRequest(url: signInURL))
             }
         }
+
+        private func startUnreadPolling(in webView: WKWebView) {
+            stopUnreadPolling()
+            reportUnreadCount(from: webView)
+            unreadPollTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self, weak webView] _ in
+                guard let webView else { return }
+                self?.reportUnreadCount(from: webView)
+            }
+        }
+
+        private func stopUnreadPolling() {
+            unreadPollTimer?.invalidate()
+            unreadPollTimer = nil
+        }
+
+        private func reportUnreadCount(from webView: WKWebView) {
+            guard let accountID else { return }
+            webView.evaluateJavaScript(GmailWebView.unreadCountScript) { result, _ in
+                let count: Int
+                if let value = result as? Int {
+                    count = value
+                } else if let value = result as? NSNumber {
+                    count = value.intValue
+                } else {
+                    count = 0
+                }
+
+                NotificationCenter.default.post(
+                    name: .gmailWebUnreadCountDidChange,
+                    object: nil,
+                    userInfo: [
+                        "accountID": accountID,
+                        "count": count,
+                    ]
+                )
+            }
+        }
     }
+}
+
+private extension GmailWebView {
+    static let unreadCountScript = """
+    (function() {
+      const inboxLinks = document.querySelectorAll('a[href*="#inbox"], a[href*="inbox"]');
+      for (const link of inboxLinks) {
+        const label = link.getAttribute('aria-label') || '';
+        let match = label.match(/(\\d+)\\s+unread/i);
+        if (match) return parseInt(match[1], 10);
+        match = label.match(/inbox[,\\s]+(\\d+)/i);
+        if (match) return parseInt(match[1], 10);
+        const badge = link.querySelector('.bsU, .nu, .Ct, [class*="badge"]');
+        if (badge && badge.textContent) {
+          const parsed = parseInt(badge.textContent.trim(), 10);
+          if (!isNaN(parsed)) return parsed;
+        }
+      }
+      const titleMatch = document.title.match(/\\((\\d+)\\)/);
+      if (titleMatch) return parseInt(titleMatch[1], 10);
+      return 0;
+    })();
+    """
 }
 
 struct MailWorkspaceView: View {
