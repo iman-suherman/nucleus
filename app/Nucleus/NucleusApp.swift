@@ -45,8 +45,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 @main
 struct NucleusApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
-    @StateObject private var viewModel = AppViewModel()
-    @StateObject private var appSettings = AppSettings.shared
+    @State private var menuBarSceneVisible = false
     @AppStorage("nucleus.settings.menuBarEnabled") private var menuBarEnabled = true
 
     var body: some Scene {
@@ -56,35 +55,7 @@ struct NucleusApp: App {
 
     private var mainWindowScene: some Scene {
         WindowGroup {
-            ContentView()
-                .environmentObject(viewModel)
-                .environmentObject(appSettings)
-                .frame(minWidth: 1180, minHeight: 780)
-                .sheet(item: $viewModel.quickReplyContext) { context in
-                    QuickReplySheet(context: context)
-                        .environmentObject(viewModel)
-                }
-                .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
-                    viewModel.checkForUpdatesWhenEligible()
-                    viewModel.refreshMailUnreadNow()
-                }
-                .onOpenURL { url in
-                    Task { await viewModel.handleIncomingURL(url) }
-                }
-                .onReceive(NotificationCenter.default.publisher(for: .nucleusDidOpenURL)) { notification in
-                    guard let url = notification.object as? URL else { return }
-                    Task { await viewModel.handleIncomingURL(url) }
-                }
-                .background(
-                    WindowLayoutAccessor { window in
-                        WindowLayoutController.shared.attach(to: window)
-                    }
-                )
-                .onChange(of: menuBarEnabled) { _, enabled in
-                    if appSettings.menuBarEnabled != enabled {
-                        appSettings.menuBarEnabled = enabled
-                    }
-                }
+            AppRootView(menuBarSceneVisible: $menuBarSceneVisible)
         }
         .defaultSize(width: 1320, height: 880)
         .windowStyle(.automatic)
@@ -96,12 +67,12 @@ struct NucleusApp: App {
                     SparkleUpdaterController.shared.checkForUpdates()
                 }
                 Button("What's New in This Version") {
-                    Task { await viewModel.presentCurrentReleaseNotes() }
+                    Task { await AppViewModel.current?.presentCurrentReleaseNotes() }
                 }
             }
             CommandGroup(replacing: .appSettings) {
                 Button("Settings…") {
-                    viewModel.sidebarSelection = .workspace(.settings)
+                    AppViewModel.current?.sidebarSelection = .workspace(.settings)
                 }
                 .keyboardShortcut(",", modifiers: .command)
             }
@@ -114,20 +85,64 @@ struct NucleusApp: App {
         }
     }
 
-    @SceneBuilder
     private var menuBarScene: some Scene {
         MenuBarExtra(
             "Nucleus",
             systemImage: "doc.on.clipboard",
             isInserted: Binding(
-                get: { viewModel.showMenuBarScene && menuBarEnabled },
+                get: { menuBarSceneVisible && menuBarEnabled },
                 set: { menuBarEnabled = $0 }
             )
         ) {
-            MenuBarPopoverView(controller: viewModel.menuBarController)
-                .onAppear { viewModel.menuBarController.reload() }
+            if let controller = AppViewModel.current?.menuBarController {
+                MenuBarPopoverView(controller: controller)
+                    .onAppear { controller.reload() }
+            }
         }
         .menuBarExtraStyle(.window)
+    }
+}
+
+/// Hosts AppViewModel below the App scene layer so @Published updates during launch
+/// do not rebuild WindowGroup + MenuBarExtra scenes on every data reload.
+private struct AppRootView: View {
+    @Binding var menuBarSceneVisible: Bool
+    @AppStorage("nucleus.settings.menuBarEnabled") private var menuBarEnabled = true
+
+    @StateObject private var viewModel = AppViewModel()
+    @StateObject private var appSettings = AppSettings.shared
+
+    var body: some View {
+        ContentView()
+            .environmentObject(viewModel)
+            .environmentObject(appSettings)
+            .frame(minWidth: 1180, minHeight: 780)
+            .sheet(item: $viewModel.quickReplyContext) { context in
+                QuickReplySheet(context: context)
+                    .environmentObject(viewModel)
+            }
+            .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+                viewModel.checkForUpdatesWhenEligible()
+                viewModel.refreshMailUnreadNow()
+            }
+            .onOpenURL { url in
+                Task { await viewModel.handleIncomingURL(url) }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .nucleusDidOpenURL)) { notification in
+                guard let url = notification.object as? URL else { return }
+                Task { await viewModel.handleIncomingURL(url) }
+            }
+            .onChange(of: viewModel.showMenuBarScene) { _, visible in
+                menuBarSceneVisible = visible && menuBarEnabled
+            }
+            .onChange(of: menuBarEnabled) { _, enabled in
+                if appSettings.menuBarEnabled != enabled {
+                    appSettings.menuBarEnabled = enabled
+                }
+                if viewModel.showMenuBarScene {
+                    menuBarSceneVisible = enabled
+                }
+            }
     }
 }
 
@@ -208,6 +223,11 @@ struct ContentView: View {
                 ChatUnreadPoller(accountID: account.id)
             }
         }
+        .background(
+            WindowLayoutAccessor { window in
+                WindowLayoutController.shared.attach(to: window)
+            }
+        )
         .onChange(of: appSettings.menuBarEnabled) { _, enabled in
             viewModel.menuBarController.applySettings(appSettings)
             if enabled {

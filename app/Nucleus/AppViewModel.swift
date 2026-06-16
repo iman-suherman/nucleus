@@ -102,7 +102,6 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         observeMenuBarSettings()
         startWindowLayoutTracking()
         observeBillReminderSettings()
-        scheduleBootstrap(settings: AppSettings.shared)
     }
 
     private func runSynchronousLaunchPrep() {
@@ -127,10 +126,15 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         guard !hasFinishedBootstrap else { return }
         guard bootstrapTask == nil else { return }
         NSLog("Nucleus: bootstrap scheduled")
-        bootstrapTask = Task(priority: .userInitiated) { @MainActor [weak self] in
+        DispatchQueue.main.async { [weak self] in
             guard let self else { return }
-            await self.bootstrap(settings: settings)
-            self.bootstrapTask = nil
+            guard !self.hasFinishedBootstrap else { return }
+            guard self.bootstrapTask == nil else { return }
+            self.bootstrapTask = Task(priority: .userInitiated) { @MainActor [weak self] in
+                guard let self else { return }
+                await self.bootstrap(settings: settings)
+                self.bootstrapTask = nil
+            }
         }
     }
 
@@ -402,9 +406,6 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
 
         NSLog("Nucleus: bootstrap started")
         isStartingUp = true
-        startupCompletedSteps = []
-        startupActiveStep = nil
-        startupProgressFraction = 0
 
         if !startupCompletedSteps.contains(.database) {
             beginStartupStep(.database, message: "Loading workspace data…")

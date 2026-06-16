@@ -1,0 +1,16 @@
+{
+  "version": "0.5.20",
+  "summary": "Fix startup beachball by stopping launch data reloads from rebuilding the menu bar scene on every update.",
+  "releaseNotes": {
+    "introduced": [],
+    "changed": [
+      "Menu bar scene is created only after startup completes instead of on every launch data reload"
+    ],
+    "fixed": [
+      "Startup no longer hangs at 14% on “Loading workspace data” with a spinning beachball"
+    ],
+    "updated": [],
+    "removed": [],
+    "breaking": []
+  }
+}
