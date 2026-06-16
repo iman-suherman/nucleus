@@ -1,0 +1,17 @@
+{
+  "version": "0.5.21",
+  "summary": "Replace the SwiftUI menu bar scene with an AppKit status item so startup no longer hangs at 14%.",
+  "releaseNotes": {
+    "introduced": [],
+    "changed": [
+      "Menu bar uses an AppKit NSStatusItem (same pattern as DiskWise) instead of a separate SwiftUI MenuBarExtra scene",
+      "Menu bar icon appears only after startup completes; toggle it anytime in Settings → Menu bar"
+    ],
+    "fixed": [
+      "Startup no longer hangs at 14% on “Loading workspace data” caused by status-item scene registration during launch"
+    ],
+    "updated": [],
+    "removed": [],
+    "breaking": []
+  }
+}

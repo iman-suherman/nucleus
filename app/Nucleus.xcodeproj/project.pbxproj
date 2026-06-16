@@ -18,6 +18,7 @@
 		2A0B56C8E90F257BB66650C4 /* NucleusNotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 584F84F9AF029CC4D8800A01 /* NucleusNotificationService.swift */; };
 		2D9BBC35081BBFC740FBA05F /* MenuBarPopoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2ADEB9B8C248DDB0410D9749 /* MenuBarPopoverView.swift */; };
 		2E92D4BDB66A47E6E813E56B /* BackgroundSyncServices.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50537B36D31255DB7C3030C9 /* BackgroundSyncServices.swift */; };
+		31C2FB18B651A30B5F381A6F /* MenuBarStatusItemController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3040B14FCE7F0866274EF0E /* MenuBarStatusItemController.swift */; };
 		369B622F3177919D55C55827 /* DashboardWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F695044507986F1B738A6465 /* DashboardWorkspaceView.swift */; };
 		37A6CBA22087747F45F0F4F5 /* EmbeddedWebViewContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5971F41F5427FCE836471DA /* EmbeddedWebViewContainer.swift */; };
 		3F48A8BA617C1BF575B71A17 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BF4B3460305D779B31B79D8C /* Assets.xcassets */; };
@@ -28,6 +29,7 @@
 		4EDBD1DF9444754090238320 /* entitlements.mac.development.plist in Resources */ = {isa = PBXBuildFile; fileRef = 3730C4191445362A9101A48B /* entitlements.mac.development.plist */; };
 		4F9239E03B04C76F97BF4728 /* SettingsSyncBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18EF3BE5CDCDF196B18E0AAC /* SettingsSyncBridge.swift */; };
 		51EAB3CEA8190FEC48F1F8B8 /* NotesWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 953865571573F05622595783 /* NotesWorkspaceView.swift */; };
+		5239A1B7AB185A4515F4E005 /* MenuBarPopoverSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = D12215EBDC2CCD7294F9F071 /* MenuBarPopoverSession.swift */; };
 		54097C655AC0AD8DD2FCFDFC /* DashboardAnalysisService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5BDDEC8A6712481CBFAABBE /* DashboardAnalysisService.swift */; };
 		5AB3E566D34F7195E90F8AF2 /* NucleusTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FE025998DE849CA2FCBCC91 /* NucleusTheme.swift */; };
 		5C5D19FBE763E1524A4E831C /* RegistryReleaseNotesClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDFFBFACBD2632D34A43FC55 /* RegistryReleaseNotesClient.swift */; };
@@ -124,10 +126,12 @@
 		C643F64124025FA6F196C435 /* ClipboardWorkspaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardWorkspaceView.swift; sourceTree = "<group>"; };
 		C6C43800AFF7B02A1B95466D /* Nucleus_DeveloperID.provisionprofile */ = {isa = PBXFileReference; path = Nucleus_DeveloperID.provisionprofile; sourceTree = "<group>"; };
 		CDFFBFACBD2632D34A43FC55 /* RegistryReleaseNotesClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegistryReleaseNotesClient.swift; sourceTree = "<group>"; };
+		D12215EBDC2CCD7294F9F071 /* MenuBarPopoverSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarPopoverSession.swift; sourceTree = "<group>"; };
 		E4CEADA0142869F8949F55DD /* SupportViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupportViews.swift; sourceTree = "<group>"; };
 		E5971F41F5427FCE836471DA /* EmbeddedWebViewContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmbeddedWebViewContainer.swift; sourceTree = "<group>"; };
 		E79434496C370BC490D26F0A /* nucleus-bills-import-demo.csv */ = {isa = PBXFileReference; path = "nucleus-bills-import-demo.csv"; sourceTree = "<group>"; };
 		EBE67C288974FF5B2F8524E6 /* CloudKitStoreMigration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitStoreMigration.swift; sourceTree = "<group>"; };
+		F3040B14FCE7F0866274EF0E /* MenuBarStatusItemController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarStatusItemController.swift; sourceTree = "<group>"; };
 		F695044507986F1B738A6465 /* DashboardWorkspaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardWorkspaceView.swift; sourceTree = "<group>"; };
 		F73321C16D7956F50F538A6E /* ClipboardPasteController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardPasteController.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -234,6 +238,8 @@
 				046B650FCA89CA8C322D0A3B /* HourlyBeep.swift */,
 				68AD664CB4410FC8FBE21B1C /* HourlyBeepService.swift */,
 				97A7289328BE097836736716 /* MenuBarController.swift */,
+				D12215EBDC2CCD7294F9F071 /* MenuBarPopoverSession.swift */,
+				F3040B14FCE7F0866274EF0E /* MenuBarStatusItemController.swift */,
 				81F61F31E82EC125D210B051 /* NotesClipboardMigration.swift */,
 				7A0BFA8EFB82901232FB9B24 /* NotificationUserInfo.swift */,
 				584F84F9AF029CC4D8800A01 /* NucleusNotificationService.swift */,
@@ -399,7 +405,9 @@
 				AA2B9B165190FE2E23E7AD95 /* MailInboxLoadingPhase.swift in Sources */,
 				68F673476FAE5D0CA8204F89 /* MailWorkspaceView.swift in Sources */,
 				86F0B8E63AA373C254764688 /* MenuBarController.swift in Sources */,
+				5239A1B7AB185A4515F4E005 /* MenuBarPopoverSession.swift in Sources */,
 				2D9BBC35081BBFC740FBA05F /* MenuBarPopoverView.swift in Sources */,
+				31C2FB18B651A30B5F381A6F /* MenuBarStatusItemController.swift in Sources */,
 				CD6372D2C3B60CF249E70D00 /* NotesClipboardMigration.swift in Sources */,
 				51EAB3CEA8190FEC48F1F8B8 /* NotesWorkspaceView.swift in Sources */,
 				89DD2F6A9B7E342945B2F792 /* NotificationUserInfo.swift in Sources */,

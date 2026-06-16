@@ -58,8 +58,6 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
     @Published var webSessionStatus: [UUID: Bool] = [:]
     @Published var oauthConnectionStatus: [UUID: Bool] = [:]
     @Published private(set) var isMailBackgroundSyncInProgress = false
-    @Published private(set) var showMenuBarScene = false
-
     let modelContainer: ModelContainer
     let syncService = CloudKitSyncService.shared
     let menuBarController = MenuBarController()
@@ -433,7 +431,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         menuBarController.configure(modelContainer: modelContainer) { [weak self] in
             self?.reloadLocalData()
         }
-        menuBarController.applySettings(settings)
+        menuBarController.applySettings(settings, syncStatusItem: false)
         await syncService.refreshAccountStatus(includeDiagnostics: false, localOnly: true)
         reloadLocalData()
         reconcileSelectedAccounts(settings: settings)
@@ -478,7 +476,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         startupProgressFraction = 1
         try? await Task.sleep(nanoseconds: 250_000_000)
         isStartingUp = false
-        showMenuBarScene = true
+        MenuBarCoordinator.sync(settings: settings, controller: menuBarController)
         hasFinishedBootstrap = true
         sidebarSelection = .workspace(.dashboard)
         AppSettings.shared.selectedWorkspacePane = WorkspacePane.dashboard.rawValue

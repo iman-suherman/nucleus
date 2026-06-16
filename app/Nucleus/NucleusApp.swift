@@ -45,17 +45,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 @main
 struct NucleusApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
-    @State private var menuBarSceneVisible = false
-    @AppStorage("nucleus.settings.menuBarEnabled") private var menuBarEnabled = true
 
     var body: some Scene {
-        mainWindowScene
-        menuBarScene
-    }
-
-    private var mainWindowScene: some Scene {
         WindowGroup {
-            AppRootView(menuBarSceneVisible: $menuBarSceneVisible)
+            AppRootView()
         }
         .defaultSize(width: 1320, height: 880)
         .windowStyle(.automatic)
@@ -84,31 +77,11 @@ struct NucleusApp: App {
             }
         }
     }
-
-    private var menuBarScene: some Scene {
-        MenuBarExtra(
-            "Nucleus",
-            systemImage: "doc.on.clipboard",
-            isInserted: Binding(
-                get: { menuBarSceneVisible && menuBarEnabled },
-                set: { menuBarEnabled = $0 }
-            )
-        ) {
-            if let controller = AppViewModel.current?.menuBarController {
-                MenuBarPopoverView(controller: controller)
-                    .onAppear { controller.reload() }
-            }
-        }
-        .menuBarExtraStyle(.window)
-    }
 }
 
 /// Hosts AppViewModel below the App scene layer so @Published updates during launch
-/// do not rebuild WindowGroup + MenuBarExtra scenes on every data reload.
+/// do not rebuild the WindowGroup scene on every data reload.
 private struct AppRootView: View {
-    @Binding var menuBarSceneVisible: Bool
-    @AppStorage("nucleus.settings.menuBarEnabled") private var menuBarEnabled = true
-
     @StateObject private var viewModel = AppViewModel()
     @StateObject private var appSettings = AppSettings.shared
 
@@ -131,17 +104,6 @@ private struct AppRootView: View {
             .onReceive(NotificationCenter.default.publisher(for: .nucleusDidOpenURL)) { notification in
                 guard let url = notification.object as? URL else { return }
                 Task { await viewModel.handleIncomingURL(url) }
-            }
-            .onChange(of: viewModel.showMenuBarScene) { _, visible in
-                menuBarSceneVisible = visible && menuBarEnabled
-            }
-            .onChange(of: menuBarEnabled) { _, enabled in
-                if appSettings.menuBarEnabled != enabled {
-                    appSettings.menuBarEnabled = enabled
-                }
-                if viewModel.showMenuBarScene {
-                    menuBarSceneVisible = enabled
-                }
             }
     }
 }
@@ -228,11 +190,8 @@ struct ContentView: View {
                 WindowLayoutController.shared.attach(to: window)
             }
         )
-        .onChange(of: appSettings.menuBarEnabled) { _, enabled in
+        .onChange(of: appSettings.menuBarEnabled) { _, _ in
             viewModel.menuBarController.applySettings(appSettings)
-            if enabled {
-                viewModel.menuBarController.reload()
-            }
         }
         .onChange(of: viewModel.sidebarSelection) { _, selection in
             viewModel.sidebarSelectionDidChange(selection)

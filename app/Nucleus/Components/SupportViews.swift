@@ -281,7 +281,7 @@ struct AppSettingsView: View {
 
     private var menuBarSection: some View {
         Group {
-            Section("Menu bar companion") {
+            Section("Menu bar") {
                 Toggle("Show Nucleus in the menu bar", isOn: $settings.menuBarEnabled)
 
                 Text("When enabled, Nucleus shows a clipboard icon in the menu bar with recent clipboard items, saved passwords, and password-save prompts.")
@@ -296,7 +296,7 @@ struct AppSettingsView: View {
                 Toggle("Sync clipboard to iCloud", isOn: $settings.clipboardSyncEnabled)
                     .disabled(!settings.menuBarEnabled)
 
-                Text("Password prompts appear in the menu bar popover. Clipboard monitoring runs while Nucleus is open and the menu bar companion is enabled.")
+                Text("Password prompts appear in the menu bar popover. Clipboard monitoring runs while Nucleus is open and the menu bar item is enabled.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

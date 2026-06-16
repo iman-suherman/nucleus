@@ -25,13 +25,16 @@ final class MenuBarController: ObservableObject {
         self.onDataChanged = onDataChanged
     }
 
-    func applySettings(_ settings: AppSettings) {
+    func applySettings(_ settings: AppSettings, syncStatusItem: Bool = true) {
         if settings.menuBarEnabled {
             startMonitoring()
             reload()
         } else {
             stopMonitoring()
             pendingSuggestion = nil
+        }
+        if syncStatusItem {
+            MenuBarCoordinator.sync(settings: settings, controller: self)
         }
     }
 
