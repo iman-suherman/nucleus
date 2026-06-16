@@ -34,6 +34,18 @@ final class MenuBarPopoverSession: NSObject, NSPopoverDelegate {
             close()
             return
         }
+        present(anchoredTo: anchorView, contentSize: contentSize, content: content, onShow: onShow)
+    }
+
+    func present<V: View>(
+        anchoredTo anchorView: NSView,
+        contentSize: NSSize,
+        @ViewBuilder content: () -> V,
+        onShow: (() -> Void)? = nil
+    ) {
+        if isShown {
+            close()
+        }
 
         Self.activeSession?.close()
 

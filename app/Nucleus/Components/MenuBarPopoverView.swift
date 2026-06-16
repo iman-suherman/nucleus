@@ -95,21 +95,33 @@ struct MenuBarPopoverView: View {
         return VStack(alignment: .leading, spacing: 6) {
             Text(fields.name.isEmpty ? note.title : fields.name)
                 .font(.subheadline.weight(.semibold))
+            if !fields.username.isEmpty {
+                Text(fields.username)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
             if !fields.url.isEmpty {
                 Text(fields.url)
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
             }
-            HStack(spacing: 8) {
-                Button("Copy") { controller.copyPassword(note) }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-                if !fields.url.isEmpty {
-                    Button("Open URL") { controller.openPasswordURL(note) }
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 6) {
+                    Button("Copy username") { controller.copyUsername(note) }
                         .buttonStyle(.bordered)
                         .controlSize(.small)
+                        .disabled(fields.username.isEmpty)
+                    Button("Copy password") { controller.copyPassword(note) }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                        .disabled(fields.password.isEmpty)
                 }
+                Button("Open URL") { controller.openPasswordURL(note) }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .disabled(fields.url.isEmpty)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)

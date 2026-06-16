@@ -310,7 +310,7 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
         let savePassword = UNNotificationAction(
             identifier: "SAVE_PASSWORD",
             title: "Save to Passwords",
-            options: [.foreground]
+            options: []
         )
         let dismissPassword = UNNotificationAction(identifier: "DISMISS_PASSWORD", title: "Not Now")
         let clipboardPasswordCategory = UNNotificationCategory(
@@ -398,7 +398,7 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
             case "SAVE_PASSWORD":
                 if let entryIDRaw = info["entryID"] as? String,
                    let entryID = UUID(uuidString: entryIDRaw) {
-                    onClipboardPasswordAction?(.save(entryID: entryID))
+                    onClipboardPasswordAction?(.show(entryID: entryID))
                 }
             case "DISMISS_PASSWORD":
                 if let entryIDRaw = info["entryID"] as? String,

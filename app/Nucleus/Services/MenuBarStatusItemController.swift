@@ -86,6 +86,35 @@ final class MenuBarStatusItemController: NSObject {
             controller.reload()
         }
     }
+
+    func showPasswordSavePopover(entryID: UUID) {
+        guard AppSettings.shared.menuBarEnabled else { return }
+        guard let controller else { return }
+        guard controller.presentPasswordSuggestion(entryID: entryID) else { return }
+
+        if containerView == nil {
+            MenuBarCoordinator.sync(settings: AppSettings.shared, controller: controller)
+        }
+        guard let containerView else { return }
+        presentPasswordPopover(anchoredTo: containerView, controller: controller)
+    }
+
+    private func presentPasswordPopover(anchoredTo anchorView: NSView, controller: MenuBarController) {
+        let mainWindows = NSApp.windows.filter { $0.canBecomeMain && $0.isVisible }
+        NSApp.activate(ignoringOtherApps: true)
+
+        popoverSession.present(
+            anchoredTo: anchorView,
+            contentSize: NSSize(width: 680, height: 420)
+        ) {
+            MenuBarPopoverView(controller: controller)
+        } onShow: {
+            controller.reload()
+            for window in mainWindows where window.isVisible {
+                window.orderBack(nil)
+            }
+        }
+    }
 }
 
 @MainActor

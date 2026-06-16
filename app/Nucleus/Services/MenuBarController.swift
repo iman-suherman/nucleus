@@ -76,6 +76,12 @@ final class MenuBarController: ObservableObject {
         ClipboardMonitorService.copyToPasteboard(fields.password)
     }
 
+    func copyUsername(_ note: NoteDocument) {
+        let fields = PasswordNoteFields.parse(from: note.markdown, fallbackTitle: note.title)
+        guard !fields.username.isEmpty else { return }
+        ClipboardMonitorService.copyToPasteboard(fields.username)
+    }
+
     func openPasswordURL(_ note: NoteDocument) {
         let fields = PasswordNoteFields.parse(from: note.markdown, fallbackTitle: note.title)
         let trimmed = fields.url.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -93,6 +99,55 @@ final class MenuBarController: ObservableObject {
             NucleusMenuBarBridge.rememberDismissedPassword(pendingSuggestion.password)
         }
         pendingSuggestion = nil
+    }
+
+    @discardableResult
+    func presentPasswordSuggestion(entryID: UUID) -> Bool {
+        reload()
+        if pendingSuggestion?.entryID == entryID {
+            return true
+        }
+        guard let entry = clipboardEntries.first(where: { $0.id == entryID }),
+              let analysis = ClipboardPasswordAnalyzer.analyze(entry.content) else {
+            return false
+        }
+        applyPasswordSuggestion(
+            entry: entry,
+            password: analysis.extractedPassword,
+            reason: analysis.reason
+        )
+        return true
+    }
+
+    func dismissPasswordSuggestion(entryID: UUID) {
+        if pendingSuggestion?.entryID == entryID {
+            dismissSuggestion()
+            return
+        }
+        guard let entry = clipboardEntries.first(where: { $0.id == entryID }),
+              let analysis = ClipboardPasswordAnalyzer.analyze(entry.content) else {
+            return
+        }
+        NucleusMenuBarBridge.rememberDismissedPassword(analysis.extractedPassword)
+    }
+
+    private func applyPasswordSuggestion(
+        entry: ClipboardEntry,
+        password: String,
+        reason: String
+    ) {
+        pendingSuggestion = ClipboardPasswordSuggestionPayload(
+            entryID: entry.id,
+            password: password,
+            sourceApplication: entry.sourceApplication,
+            capturedAt: entry.capturedAt,
+            reason: reason
+        )
+        let fields = PasswordNoteFields.fromDetectedPassword(password, source: entry.sourceApplication)
+        passwordDraftName = fields.name
+        passwordDraftURL = fields.url
+        passwordDraftUsername = fields.username
+        passwordDraftEmail = fields.email
     }
 
     func saveSuggestion() {
@@ -136,22 +191,11 @@ final class MenuBarController: ObservableObject {
         guard let analysis = ClipboardPasswordAnalyzer.analyze(capture.content) else { return }
         guard !NucleusMenuBarBridge.isDismissedPassword(analysis.extractedPassword) else { return }
 
-        let payload = ClipboardPasswordSuggestionPayload(
-            entryID: entry.id,
+        applyPasswordSuggestion(
+            entry: entry,
             password: analysis.extractedPassword,
-            sourceApplication: capture.sourceApplication,
-            capturedAt: capture.capturedAt,
             reason: analysis.reason
         )
-        pendingSuggestion = payload
-        let fields = PasswordNoteFields.fromDetectedPassword(
-            analysis.extractedPassword,
-            source: capture.sourceApplication
-        )
-        passwordDraftName = fields.name
-        passwordDraftURL = fields.url
-        passwordDraftUsername = fields.username
-        passwordDraftEmail = fields.email
 
         NucleusNotificationService.shared.notifyClipboardPasswordSuggestion(
             ClipboardPasswordSuggestion(

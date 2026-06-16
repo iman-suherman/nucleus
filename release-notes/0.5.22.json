@@ -1,0 +1,17 @@
+{
+  "version": "0.5.22",
+  "summary": "Menu bar password actions and notification routing improvements, plus a cleaner dashboard passwords card.",
+  "releaseNotes": {
+    "introduced": [],
+    "changed": [
+      "Menu bar password entries now offer Copy username, Copy password, and Open URL actions",
+      "Save to Passwords on the clipboard notification opens the menu bar popover instead of the main window"
+    ],
+    "fixed": [],
+    "updated": [
+      "Passwords stored on the dashboard no longer uses the highlighted Vault styling"
+    ],
+    "removed": [],
+    "breaking": []
+  }
+}

@@ -66,7 +66,6 @@ struct DashboardWorkspaceView: View {
                 value: "\(snapshot.passwordCount)",
                 systemImage: "key.fill",
                 tint: .orange,
-                highlighted: true,
                 action: { viewModel.sidebarSelection = .workspace(.notes) }
             )
             SummaryMetricCard(

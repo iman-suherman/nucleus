@@ -455,6 +455,9 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
                 self?.handleMailNotificationAction(action)
             }
         }
+        NucleusNotificationService.shared.onClipboardPasswordAction = { [weak self] action in
+            self?.handleClipboardPasswordNotificationAction(action)
+        }
         NucleusNotificationService.shared.onMeetingReminder = nil
         await NucleusNotificationService.shared.rescheduleMeetingReminders([])
         await refreshBillReminders(settings: settings)
@@ -1454,45 +1457,11 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         _ action: NucleusNotificationService.ClipboardPasswordAction
     ) {
         switch action {
-        case .show(let entryID):
-            restoreClipboardPasswordSuggestion(entryID: entryID)
-        case .save(let entryID):
-            guard let entry = clipboardEntries.first(where: { $0.id == entryID }),
-                  let analysis = ClipboardPasswordAnalyzer.analyze(entry.content) else {
-                if let suggestion = clipboardPasswordSuggestion, suggestion.id == entryID {
-                    Task { await acceptClipboardPasswordSuggestion() }
-                }
-                return
-            }
-            clipboardPasswordSuggestion = nil
-            rememberDismissedPasswordSuggestion(analysis.extractedPassword)
-            Task {
-                await createPasswordNoteFromClipboard(
-                    password: analysis.extractedPassword,
-                    source: entry.sourceApplication
-                )
-            }
+        case .show(let entryID), .save(let entryID):
+            MenuBarStatusItemController.shared.showPasswordSavePopover(entryID: entryID)
         case .dismiss(let entryID):
-            if clipboardPasswordSuggestion?.id == entryID {
-                dismissClipboardPasswordSuggestion()
-            } else if let entry = clipboardEntries.first(where: { $0.id == entryID }),
-                      let analysis = ClipboardPasswordAnalyzer.analyze(entry.content) {
-                rememberDismissedPasswordSuggestion(analysis.extractedPassword)
-            }
+            menuBarController.dismissPasswordSuggestion(entryID: entryID)
         }
-    }
-
-    private func restoreClipboardPasswordSuggestion(entryID: UUID) {
-        guard let entry = clipboardEntries.first(where: { $0.id == entryID }),
-              let analysis = ClipboardPasswordAnalyzer.analyze(entry.content) else { return }
-
-        clipboardPasswordSuggestion = ClipboardPasswordSuggestion(
-            id: entry.id,
-            password: analysis.extractedPassword,
-            sourceApplication: entry.sourceApplication,
-            capturedAt: entry.capturedAt,
-            reason: analysis.reason
-        )
     }
 
     private func isNucleusSourceApplication(_ source: String) -> Bool {
