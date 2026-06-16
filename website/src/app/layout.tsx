@@ -9,7 +9,7 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: BRAND_NAME,
-  description: `${BRAND_TAGLINE}. Unify Gmail, Google Chat, Calendar, notes, clipboard intelligence, and Funky alerts across multiple Google accounts.`,
+  description: `${BRAND_TAGLINE}. Unify Gmail, Google Chat, Calendar, bills, notes, clipboard intelligence, and Funky alerts across multiple Google accounts — with a Dashboard at a glance.`,
   icons: {
     icon: "/app-icon.png",
     apple: "/app-icon.png",

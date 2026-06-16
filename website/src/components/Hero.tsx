@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { AppHeroIcon } from "@/components/AppHeroIcon";
-import { BRAND_NAME, BRAND_TAGLINE, GITHUB_REPO_URL } from "@/lib/brand";
+import { BRAND_NAME, BRAND_TAGLINE } from "@/lib/brand";
 import { DownloadButton } from "@/components/DownloadButton";
 import { useLatestVersion } from "@/hooks/useRegistry";
 import { flattenReleaseNotes, formatBytes, publishedAtToIso } from "@/lib/registry";
@@ -23,11 +23,12 @@ export function Hero() {
           </span>
           <h1 className="mt-4 max-w-4xl text-balance text-3xl font-bold leading-[1.15] tracking-tight text-slate-50 sm:mt-6 sm:text-4xl md:text-5xl lg:text-[3.25rem] xl:text-6xl">
             Your daily workspace for{" "}
-            <span className="gradient-text">mail, chat, calendar, notes, and clips.</span>
+            <span className="gradient-text">mail, chat, calendar, bills, and clips.</span>
           </h1>
           <p className="mt-4 max-w-3xl text-base leading-7 text-slate-400 sm:mt-6 sm:text-lg sm:leading-8 md:text-xl md:leading-9">
             Nucleus unifies Gmail, Google Chat, Calendar, clipboard intelligence, markdown notes,
-            and Funky alerts across multiple Google accounts in one native macOS workspace.
+            monthly bills, and Funky alerts across multiple Google accounts — with a Dashboard that
+            summarizes what needs attention before you dive in.
           </p>
 
           <div id="download" className="mt-6 flex flex-col gap-3 sm:mt-8">
@@ -56,10 +57,10 @@ export function Hero() {
           </div>
 
           <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm text-slate-500 sm:mt-8 sm:gap-x-8 sm:text-base">
+            <span>Dashboard</span>
             <span>Multi-account Gmail</span>
             <span>Google Chat</span>
-            <span>Calendar sync</span>
-            <span>Funky alerts</span>
+            <span>Monthly bills</span>
           </div>
         </div>
 

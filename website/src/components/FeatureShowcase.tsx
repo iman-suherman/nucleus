@@ -4,6 +4,18 @@ import { BRAND_NAME } from "@/lib/brand";
 
 const features = [
   {
+    title: "Dashboard",
+    description:
+      "Start with a workspace summary — unread mail and chat, Vault password totals, bills due soon, an intelligent activity summary, and a seven-day clipboard productivity chart.",
+    icon: "✨",
+  },
+  {
+    title: "Monthly bills",
+    description:
+      "Track bills, due dates, partial payments, and reminders. The Dashboard surfaces what's due in the next two weeks with quick links into the Bills workspace.",
+    icon: "💳",
+  },
+  {
     title: "Multi-account Gmail",
     description:
       "Category tabs for Personal, Work, and Client inboxes. Unread badges, per-message alerts, dock badge sync, and external links open in your browser.",
@@ -62,8 +74,8 @@ export function FeatureShowcase() {
         </h2>
         <p className="mt-4 text-lg text-slate-400">
           {BRAND_NAME} started as a unified Gmail and calendar cockpit and has grown into a daily
-          operating system for mail, chat, meetings, clipboard, notes, and alerts — all in one
-          native macOS app.
+          operating system with a Dashboard, mail, chat, bills, clipboard, notes, and alerts — all in
+          one native macOS app.
         </p>
       </div>
       <div className="mt-10 grid gap-6 md:grid-cols-2">

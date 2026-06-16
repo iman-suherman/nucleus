@@ -3,38 +3,14 @@ import { BRAND_NAME } from "@/lib/brand";
 
 const previews = [
   {
-    image: "/app-screenshot-overview.png",
-    width: 913,
-    height: 542,
-    alt: `${BRAND_NAME} storage overview with capacity cards, donut chart, and storage breakdown by file type`,
-    title: "Understand where your space goes",
-    headline: "Capacity, savings, and storage by type — all in one Overview.",
+    image: "/app-screenshot-dashboard.png",
+    width: 1024,
+    height: 829,
+    alt: `${BRAND_NAME} Dashboard showing unread counts, intelligent summary, upcoming bills, and clipboard productivity chart`,
+    title: "Dashboard",
+    headline: "Your workspace at a glance — before you open a single tab.",
     description:
-      "After a scan completes, the Overview shows total, used, and free capacity alongside indexed file counts and potential savings. A donut chart breaks usage into Development, Other, Backups, Documents, Media, Caches, and more — each with size, percentage, and file count so hotspots are obvious before you clean anything.",
-    imageFirst: true,
-    large: true,
-  },
-  {
-    image: "/app-screenshot-insights.png",
-    width: 920,
-    height: 511,
-    alt: `${BRAND_NAME} showing biggest space consumers, storage intelligence savings, and safe cleanup recommendations`,
-    title: "Act on safe cleanup suggestions",
-    headline: "Ranked hotspots, reclaimable space, and actions you control.",
-    description:
-      "DiskWise ranks your biggest folders — Library, Xcode, Application Support, and more — so you know what to inspect first. Storage Intelligence totals reclaimable space across caches, old DMGs, temporary exports, and stale files, then turns findings into recommended actions with plain-language guidance. Review each suggestion and move ahead only when it makes sense.",
-    imageFirst: false,
-    large: true,
-  },
-  {
-    image: "/app-screenshot-chat.png",
-    width: 930,
-    height: 534,
-    alt: `${BRAND_NAME} Ask DiskWise AI chat answering what is consuming the most disk space`,
-    title: "Ask DiskWise anything",
-    headline: "AI chat powered by your scan data — on your Mac.",
-    description:
-      "Open Ask DiskWise and get plain-language answers about your storage. Ask what is consuming the most space, which categories dominate, or where to start cleaning — responses are grounded in your latest scan, not generic advice. No cloud upload required; insights stay on-device.",
+      "The Dashboard summarizes unread email and chat, Vault password totals, and bills due in the next two weeks. An intelligent summary turns activity into plain-language status — inbox load, bill deadlines, and a productivity profile from your recent clipboard captures. A seven-day bar chart breaks clipboard usage into Development, Communication, Research, and more so you can see how your day actually flows.",
     imageFirst: true,
     large: true,
   },
@@ -54,11 +30,11 @@ export function AppPreview() {
           Native macOS app
         </p>
         <h2 className="mt-2 text-2xl font-bold text-slate-50 sm:text-3xl md:text-4xl">
-          From first scan to confident cleanup.
+          Open one cockpit every morning.
         </h2>
         <p className="mt-3 text-base leading-7 text-slate-400">
-          {BRAND_NAME} keeps scanning, analysis, safe cleanup suggestions, and AI chat in one
-          focused SwiftUI workspace — on your Mac, with your data.
+          {BRAND_NAME} keeps mail, chat, calendar, bills, clipboard, and notes in one SwiftUI
+          workspace — with a Dashboard that tells you what needs attention first.
         </p>
       </div>
 
