@@ -1,0 +1,14 @@
+{
+  "version": "0.3.33",
+  "summary": "Fix iCloud upload stuck on Waiting for CloudKit export.",
+  "releaseNotes": {
+    "introduced": [],
+    "changed": [
+      "Upload Notes to iCloud uses a reliable 30-second timeout and queries CloudKit to verify notes when no export event is received"
+    ],
+    "fixed": [
+      "Upload no longer hangs indefinitely on “Waiting for CloudKit export…”",
+      "Export wait timeout no longer deadlocks on the main thread during manual upload"
+    ]
+  }
+}

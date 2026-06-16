@@ -129,7 +129,7 @@ struct AppSettingsView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Button(uploadNotesButtonTitle) {
                         isUploadingNotesToCloudKit = true
-                        notesCloudKitMessage = "Waiting for CloudKit export…"
+                        notesCloudKitMessage = "Waiting for CloudKit export (up to 30s)…"
                         Task {
                             notesCloudKitMessage = await viewModel.pushNotesToCloudKit(force: true)
                             isUploadingNotesToCloudKit = false
