@@ -1,0 +1,22 @@
+{
+  "version": "0.5.5",
+  "summary": "Dedicated bill iCloud upload in Settings, improved sync logging, and CloudKit deploy tooling.",
+  "releaseNotes": {
+    "introduced": [
+      "Upload Bills to iCloud button in Settings with the same export wait and logging as notes"
+    ],
+    "changed": [
+      "Sync log now covers notes and bills uploads, including bill record counts from CloudKit",
+      "CloudKit schema deploy script reads CLOUDKIT_MANAGEMENT_TOKEN from .env automatically"
+    ],
+    "fixed": [],
+    "updated": [
+      "generate-env and seed-secrets scripts for GCP Secret Manager",
+      ".env.example template for local development"
+    ],
+    "removed": [
+      "Sync clipboard history toggle and the Bills sidebar Sync button"
+    ],
+    "breaking": []
+  }
+}

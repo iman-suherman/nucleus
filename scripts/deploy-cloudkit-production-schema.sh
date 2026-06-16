@@ -9,6 +9,11 @@ CONTAINER_ID="${NUCLEUS_ICLOUD_CONTAINER:-iCloud.net.suherman.nucleus}"
 CKTOOL="/Applications/Xcode.app/Contents/Developer/usr/bin/cktool"
 CONSOLE_URL="https://icloud.developer.apple.com/dashboard/database/teams/${TEAM_ID}/containers/iCloud.net.suherman.nucleus"
 
+if [[ -z "${CLOUDKIT_MANAGEMENT_TOKEN:-}" && -f "$ROOT_DIR/.env" ]]; then
+  CLOUDKIT_MANAGEMENT_TOKEN="$(grep -m1 '^CLOUDKIT_MANAGEMENT_TOKEN=' "$ROOT_DIR/.env" | cut -d= -f2-)"
+  export CLOUDKIT_MANAGEMENT_TOKEN
+fi
+
 REQUIRED_TYPES=(
   CD_NoteRecord
   CD_GoogleAccountRecord

@@ -50,7 +50,9 @@ struct AppSettingsView: View {
     var accounts: [GoogleAccount]
     let selectedTab: SettingsTab
     @State private var notesCloudKitMessage: String?
+    @State private var billsCloudKitMessage: String?
     @State private var isUploadingNotesToCloudKit = false
+    @State private var isUploadingBillsToCloudKit = false
 
     var body: some View {
         ScrollView {
@@ -113,6 +115,11 @@ struct AppSettingsView: View {
                     .foregroundStyle(.secondary)
             }
 
+            LabeledContent("Bills on this Mac") {
+                Text("\(viewModel.activeBills.count) bills, \(viewModel.billPayments.count) payments")
+                    .foregroundStyle(.secondary)
+            }
+
             if !NucleusDatabase.usesCloudKitSync, let error = NucleusDatabase.lastCloudKitSetupError {
                 Text(error)
                     .font(.caption)
@@ -140,7 +147,26 @@ struct AppSettingsView: View {
                     if let notesCloudKitMessage {
                         Text(notesCloudKitMessage)
                             .font(.caption)
-                            .foregroundStyle(notesCloudKitMessageColor)
+                            .foregroundStyle(cloudKitMessageColor(notesCloudKitMessage))
+                    }
+
+                    Button(uploadBillsButtonTitle) {
+                        isUploadingBillsToCloudKit = true
+                        billsCloudKitMessage = "Waiting for CloudKit export (up to 30s)…"
+                        Task {
+                            billsCloudKitMessage = await viewModel.pushBillsToCloudKit(force: true)
+                            isUploadingBillsToCloudKit = false
+                        }
+                    }
+                    .disabled(
+                        isUploadingBillsToCloudKit
+                            || (viewModel.activeBills.isEmpty && viewModel.billPayments.isEmpty)
+                    )
+
+                    if let billsCloudKitMessage {
+                        Text(billsCloudKitMessage)
+                            .font(.caption)
+                            .foregroundStyle(cloudKitMessageColor(billsCloudKitMessage))
                     }
                 }
 
@@ -154,13 +180,7 @@ struct AppSettingsView: View {
                 }
             }
 
-            Text("Accounts, notes, clipboard history, window layout, and preferences sync through iCloud. Gmail web sessions still require sign-in inside Inbox on each Mac.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-
-            Toggle("Sync clipboard history", isOn: $settings.clipboardSyncEnabled)
-
-            Text("Clipboard clips stay in Clipboard until you choose Save to Note on a clip. They are not added to Notes automatically.")
+            Text("Accounts, notes, bills, window layout, and preferences sync through iCloud. Gmail web sessions still require sign-in inside Inbox on each Mac.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
@@ -309,16 +329,15 @@ struct AppSettingsView: View {
         }
     }
 
-    private var notesCloudKitMessageColor: Color {
-        guard let notesCloudKitMessage else { return .secondary }
-        let lowered = notesCloudKitMessage.lowercased()
-        if lowered.contains("failed") {
+    private func cloudKitMessageColor(_ message: String) -> Color {
+        let lowered = message.lowercased()
+        if lowered.contains("failed") || lowered.contains("did not upload") {
             return .red
         }
         if lowered.contains("has not finished") || lowered.contains("waiting") {
             return .orange
         }
-        if lowered.contains("uploaded") {
+        if lowered.contains("uploaded") || lowered.contains("already has") {
             return .green
         }
         return .secondary
@@ -326,9 +345,16 @@ struct AppSettingsView: View {
 
     private var uploadNotesButtonTitle: String {
         if isUploadingNotesToCloudKit {
-            return "Uploading…"
+            return "Uploading Notes…"
         }
         return "Upload Notes to iCloud"
+    }
+
+    private var uploadBillsButtonTitle: String {
+        if isUploadingBillsToCloudKit {
+            return "Uploading Bills…"
+        }
+        return "Upload Bills to iCloud"
     }
 
     private func mailSoundRow(for account: GoogleAccount) -> some View {
@@ -394,7 +420,7 @@ private struct ICloudSyncLogPanel: View {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 4) {
                     if syncService.syncLogStore.entries.isEmpty {
-                        Text("CloudKit export, import, and remote-change events appear here.")
+                        Text("CloudKit export, import, and remote-change events for notes and bills appear here.")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     } else {
@@ -472,7 +498,7 @@ enum SettingsTab: String, CaseIterable, Identifiable {
     var subtitle: String {
         switch self {
         case .iCloud:
-            return "Sync accounts, notes, clipboard, and preferences across your Macs."
+            return "Sync accounts, notes, bills, and preferences across your Macs."
         case .keychain:
             return "Keep Google OAuth tokens available for automatic reconnection."
         case .notifications:

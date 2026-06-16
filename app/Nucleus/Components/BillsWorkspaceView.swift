@@ -17,7 +17,6 @@ struct BillsWorkspaceView: View {
     @State private var showingExportPanel = false
     @State private var exportDocument = BillCSVDocument(text: "")
     @State private var importMessage: String?
-    @State private var syncMessage: String?
     @State private var calendarMonth = Date()
 
     private var summary: BillMonthlySummary {
@@ -95,12 +94,12 @@ struct BillsWorkspaceView: View {
             }
         }
         .alert("Bills", isPresented: Binding(
-            get: { importMessage != nil || syncMessage != nil },
-            set: { if !$0 { importMessage = nil; syncMessage = nil } }
+            get: { importMessage != nil },
+            set: { if !$0 { importMessage = nil } }
         )) {
             Button("OK", role: .cancel) {}
         } message: {
-            Text(importMessage ?? syncMessage ?? "")
+            Text(importMessage ?? "")
         }
     }
 
@@ -240,7 +239,7 @@ struct BillsWorkspaceView: View {
             }
 
             if NucleusDatabase.usesCloudKitSync {
-                Label("Bills and payment history sync via iCloud", systemImage: "icloud")
+                Label("Bills sync via iCloud — use Settings → iCloud → Upload Bills to iCloud", systemImage: "icloud")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -414,17 +413,6 @@ struct BillsWorkspaceView: View {
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
-
-                Button {
-                    Task {
-                        syncMessage = await viewModel.pushBillsToCloudKit(force: true)
-                    }
-                } label: {
-                    Label("Sync", systemImage: "arrow.triangle.2.circlepath")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.bordered)
-                .disabled(!NucleusDatabase.usesCloudKitSync)
             }
             .padding(20)
             .frame(maxWidth: .infinity, alignment: .topLeading)

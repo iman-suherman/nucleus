@@ -380,7 +380,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         completeStartupStep(.keychainSync)
 
         await beginStartupStep(.clipboard, message: "Starting clipboard monitor…")
-        ClipboardMonitorService.shared.isCaptureEnabled = { settings.clipboardSyncEnabled }
+        ClipboardMonitorService.shared.isCaptureEnabled = { true }
         ClipboardMonitorService.shared.onCapture = { [weak self] capture in
             Task { @MainActor in
                 self?.handleClipboardCapture(capture)
@@ -969,15 +969,10 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         }
 
         let context = ModelContext(modelContainer)
-        do {
+        return await syncService.queueBillsExportAndWait { [self] in
             let count = try NucleusDatabase.exportBillsToCloudKit(context: context, force: force)
-            reloadLocalData()
-            if count > 0 {
-                return "Queued \(count) bill/payment record(s) for iCloud upload."
-            }
-            return "Bills are already queued for iCloud sync."
-        } catch {
-            return error.localizedDescription
+            self.reloadLocalData()
+            return count
         }
     }
 
@@ -1169,7 +1164,6 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
     }
 
     private func handleClipboardCapture(_ capture: ClipboardCapture) {
-        guard AppSettings.shared.clipboardSyncEnabled else { return }
         let entry = capture.asEntry()
         let context = ModelContext(modelContainer)
         try? ClipboardRepository.insert(entry, context: context)

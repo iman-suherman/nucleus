@@ -1,6 +1,6 @@
 {
   "name": "nucleus",
-  "version": "0.5.4",
+  "version": "0.5.5",
   "displayName": "Nucleus",
   "publisher": "Iman Suherman",
   "private": true,
@@ -11,6 +11,8 @@
   "scripts": {
     "info": "node scripts/info.cjs",
     "init": "npm run info",
+    "generate-env": "node scripts/generate-env.cjs",
+    "seed:secrets": "node scripts/seed-secrets.cjs",
     "build": "swift build",
     "test": "swift test",
     "dev:app": "swift build && swift test && npm run build:app && npm run run:app",
