@@ -626,7 +626,7 @@ public final class CloudKitSyncService: ObservableObject {
         }
     }
 
-    public func refreshAccountStatus() async {
+    public func refreshAccountStatus(includeDiagnostics: Bool = true) async {
         status = .checking
         log("Checking iCloud account status…")
 
@@ -662,9 +662,13 @@ public final class CloudKitSyncService: ObservableObject {
         }
 
         if status.isAvailable {
-            iCloudAccountProfile = await ICloudAccountProfileFetcher.fetch(containerIdentifier: containerID)
-            log("iCloud available — \(iCloudAccountDisplayName)", level: .success)
-            await logCloudKitDiagnostics(containerID: containerID)
+            if includeDiagnostics {
+                iCloudAccountProfile = await ICloudAccountProfileFetcher.fetch(containerIdentifier: containerID)
+                log("iCloud available — \(iCloudAccountDisplayName)", level: .success)
+                await logCloudKitDiagnostics(containerID: containerID)
+            } else {
+                log("iCloud available", level: .success)
+            }
         } else {
             iCloudAccountProfile = ICloudAccountProfile()
             log("iCloud status: \(status.label)", level: .warning)

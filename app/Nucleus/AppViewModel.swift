@@ -426,6 +426,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         completeStartupStep(.accounts)
 
         beginStartupStep(.icloudSync, message: "Syncing configuration via iCloud…")
+        NSLog("Nucleus: bootstrap icloud step starting")
         syncService.registerModelContainer(modelContainer)
         syncService.start()
         menuBarController.configure(modelContainer: modelContainer) { [weak self] in
@@ -437,18 +438,12 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
             settings: settings,
             layoutDelegate: self
         )
-        await syncService.refreshAccountStatus()
-        try? await Task.sleep(nanoseconds: 350_000_000)
+        await syncService.refreshAccountStatus(includeDiagnostics: false)
         reloadLocalData()
-        if cloudSyncService.status.isConnected {
-            let cloudContext = ModelContext(modelContainer)
-            await cloudSyncService.syncNow(context: cloudContext)
-            reloadLocalData()
-        }
         reconcileSelectedAccounts(settings: settings)
         applySyncedLayout(from: settings)
-        await refreshWebSessionStatus()
         completeStartupStep(.icloudSync)
+        NSLog("Nucleus: bootstrap icloud step finished")
 
         beginStartupStep(.keychainSync, message: "Restoring Google credentials…")
         await autoReconnectAccounts(settings: settings)
@@ -476,8 +471,10 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
 
         beginStartupStep(.mailSync, message: "Syncing mail…")
         mailSyncService.start(viewModel: self, interval: settings.mailSyncInterval)
-        await syncMail()
         completeStartupStep(.mailSync)
+        Task { @MainActor in
+            await syncMail()
+        }
         DashboardAnalysisService.shared.start(viewModel: self)
 
         updateDockBadge()
@@ -491,6 +488,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         AppSettings.shared.selectedWorkspacePane = WorkspacePane.dashboard.rawValue
         statusMessage = statusMessageForCurrentState()
         scheduleDeferredCloudKitExportPrep()
+        scheduleDeferredStartupSync()
         NSLog("Nucleus: bootstrap finished")
         await presentWhatsNewIfNeeded()
         await promptSignInIfNeeded(settings: settings)
@@ -509,6 +507,20 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
             if let exported = try? NucleusDatabase.exportDashboardToCloudKit(context: exportContext), exported > 0 {
                 syncService.log("Queued dashboard analysis for iCloud export on launch")
             }
+        }
+    }
+
+    private func scheduleDeferredStartupSync() {
+        Task(priority: .utility) { @MainActor in
+            NSLog("Nucleus: deferred startup sync starting")
+            await syncService.refreshAccountStatus(includeDiagnostics: true)
+            if cloudSyncService.status.isConnected {
+                let cloudContext = ModelContext(modelContainer)
+                await cloudSyncService.syncNow(context: cloudContext)
+                reloadLocalData()
+            }
+            await refreshWebSessionStatus()
+            NSLog("Nucleus: deferred startup sync finished")
         }
     }
 
