@@ -501,6 +501,13 @@ public enum NoteRepository {
         let exportStamp = Date()
         for record in records {
             record.updatedAt = exportStamp
+            record.markdown += "\u{200B}"
+        }
+        try context.save()
+        for record in records {
+            if record.markdown.hasSuffix("\u{200B}") {
+                record.markdown.removeLast()
+            }
         }
         try context.save()
         return records.count

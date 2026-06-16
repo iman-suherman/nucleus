@@ -58,6 +58,7 @@ public final class CloudKitSyncService: ObservableObject {
     @Published public private(set) var iCloudAccountProfile = ICloudAccountProfile()
     @Published public private(set) var isNotesSyncInProgress = false
     @Published public private(set) var notesExportOutcome: NotesExportOutcome = .idle
+    @Published public private(set) var lastCloudKitExportError: String?
     @Published public private(set) var syncLogStore = CloudKitSyncLogStore.shared
 
     private let ubiquityContainerIdentifier: String?
@@ -154,11 +155,7 @@ public final class CloudKitSyncService: ObservableObject {
                     return message
                 }
             }
-            let message =
-                "Queued \(exportedCount) \(noteWord) locally, but CloudKit did not confirm export within \(Int(timeoutSeconds)) seconds. "
-                + "Check the sync log for export errors, confirm Production schema in CloudKit Console, then try again."
-            log(message, level: .warning)
-            return message
+            return await messageForExportTimeout(localNoteCount: exportedCount, timeoutSeconds: timeoutSeconds)
         case .cancelled:
             notesExportOutcome = .idle
             return "Upload cancelled."
@@ -247,24 +244,47 @@ public final class CloudKitSyncService: ObservableObject {
         }
     }
 
+    private func messageForExportTimeout(localNoteCount: Int, timeoutSeconds: TimeInterval) async -> String {
+        let noteWord = localNoteCount == 1 ? "note" : "notes"
+
+        if let lastCloudKitExportError {
+            log("Last export error: \(lastCloudKitExportError)", level: .warning)
+        }
+
+        if let containerID = ubiquityContainerIdentifier {
+            let summary = await CloudKitRecordDiagnostics.summarizeRemoteCounts(
+                containerID: containerID,
+                zoneName: NucleusDatabase.swiftDataCloudKitZoneName
+            )
+            log("CloudKit Production record counts: \(summary)", level: .info)
+        }
+
+        var message =
+            "iCloud has 0 note records — your \(localNoteCount) local \(noteWord) did not upload. "
+
+        if let lastCloudKitExportError {
+            message += "Last export error: \(lastCloudKitExportError). "
+        } else {
+            message +=
+                "CloudKit never sent an export finished event within \(Int(timeoutSeconds)) seconds. "
+        }
+
+        message += CloudKitRecordDiagnostics.productionSchemaHint
+        log(message, level: .warning)
+        return message
+    }
+
     private func countNotesInCloudKit() async -> Int? {
         guard let containerID = ubiquityContainerIdentifier else { return nil }
 
-        let container = CKContainer(identifier: containerID)
-        let zoneID = CKRecordZone.ID(
+        switch await CloudKitRecordDiagnostics.countRecords(
+            containerID: containerID,
             zoneName: NucleusDatabase.swiftDataCloudKitZoneName,
-            ownerName: CKCurrentUserDefaultName
-        )
-        let query = CKQuery(recordType: "CD_NoteRecord", predicate: NSPredicate(value: true))
-
-        do {
-            let (results, _) = try await container.privateCloudDatabase.records(
-                matching: query,
-                inZoneWith: zoneID,
-                desiredKeys: []
-            )
-            return results.count
-        } catch {
+            recordType: "CD_NoteRecord"
+        ) {
+        case .success(let count):
+            return count
+        case .failure(let error):
             log("CloudKit note query failed: \(CloudKitErrorDescriber.describe(error))", level: .warning)
             return nil
         }
@@ -323,6 +343,19 @@ public final class CloudKitSyncService: ObservableObject {
             log("CloudKit private zones: \(zoneNames.isEmpty ? "(none)" : zoneNames)")
         } catch {
             log("CloudKit zone check failed: \(CloudKitErrorDescriber.describe(error))", level: .warning)
+        }
+
+        let summary = await CloudKitRecordDiagnostics.summarizeRemoteCounts(
+            containerID: containerID,
+            zoneName: NucleusDatabase.swiftDataCloudKitZoneName
+        )
+        log("CloudKit Production record counts: \(summary)")
+
+        if summary.contains("CD_NoteRecord=0") {
+            log(
+                "No notes in iCloud Production. Export is failing — deploy schema to Production in CloudKit Console.",
+                level: .warning
+            )
         }
     }
 
@@ -414,8 +447,15 @@ public final class CloudKitSyncService: ObservableObject {
         }
 
         if let error = event.error {
+            if event.type == .export, event.endDate != nil {
+                lastCloudKitExportError = CloudKitErrorDescriber.describe(error)
+            }
             log("CloudKit \(typeLabel) \(phase): \(CloudKitErrorDescriber.describe(error))", level: .error)
             return
+        }
+
+        if event.type == .export, event.endDate != nil {
+            lastCloudKitExportError = nil
         }
 
         log("CloudKit \(typeLabel) \(phase)", level: event.endDate == nil ? .info : .success)

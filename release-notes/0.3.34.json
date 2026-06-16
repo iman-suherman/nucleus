@@ -1,0 +1,15 @@
+{
+  "version": "0.3.34",
+  "summary": "Clearer iCloud upload errors when notes fail to reach CloudKit.",
+  "releaseNotes": {
+    "introduced": [],
+    "changed": [
+      "Settings → iCloud shows the last CloudKit export error when upload fails",
+      "Upload timeout message reports Production record counts and schema fix steps",
+      "Sync log includes CD_* record counts from CloudKit Production on status refresh"
+    ],
+    "fixed": [
+      "Manual upload nudges SwiftData to export notes that were not marked dirty"
+    ]
+  }
+}

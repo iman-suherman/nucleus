@@ -164,6 +164,12 @@ struct AppSettingsView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
+            if let lastExportError = syncService.lastCloudKitExportError {
+                Text("Last export error: \(lastExportError)")
+                    .font(.caption)
+                    .foregroundStyle(.red)
+            }
+
             Button("Refresh iCloud Status") {
                 Task { await syncService.refreshAccountStatus() }
             }
