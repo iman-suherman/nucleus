@@ -1,16 +1,15 @@
 {
-  "version": "0.5.1",
-  "summary": "Import bills from CSV, color-coded status, and improved iCloud sync for payment history.",
+  "version": "0.5.2",
+  "summary": "Bill due reminders and a sanitized sample CSV for imports.",
   "releaseNotes": {
     "introduced": [
-      "Import and export bills plus payment history from CSV",
-      "Bundled sample CSV modeled on Chronicle Pro bill layouts",
-      "Color-coded bill status bars: paid, upcoming, due soon, partial, and overdue"
+      "Bill due reminders at 7, 3, and 1 day before plus on the due date",
+      "Bill reminder settings in Notifications with a configurable daily time",
+      "Tap a bill notification to open the Bills workspace"
     ],
     "changed": [
-      "Empty Bills workspace shows a guided import and add-bill layout instead of a blank table",
-      "Bill and payment changes queue iCloud export automatically; sidebar Sync uploads bills and history",
-      "CloudKit diagnostics now include BillRecord and BillPaymentRecord probes"
+      "Bundled sample CSV now uses fictional demo data instead of personal bill details",
+      "Dock badge for bills and chat uses top and bottom corners when both are present"
     ],
     "fixed": [],
     "breaking": []
