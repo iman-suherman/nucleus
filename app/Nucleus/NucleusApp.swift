@@ -32,6 +32,11 @@ struct NucleusApp: App {
     @StateObject private var appSettings = AppSettings.shared
 
     var body: some Scene {
+        mainWindowScene
+        menuBarScene
+    }
+
+    private var mainWindowScene: some Scene {
         WindowGroup {
             ContentView()
                 .environmentObject(viewModel)
@@ -88,6 +93,22 @@ struct NucleusApp: App {
                 .keyboardShortcut("v", modifiers: [.command, .shift])
             }
         }
+    }
+
+    @SceneBuilder
+    private var menuBarScene: some Scene {
+        MenuBarExtra(
+            "Nucleus",
+            systemImage: "doc.on.clipboard",
+            isInserted: Binding(
+                get: { appSettings.menuBarEnabled },
+                set: { appSettings.menuBarEnabled = $0 }
+            )
+        ) {
+            MenuBarPopoverView(controller: viewModel.menuBarController)
+                .onAppear { viewModel.menuBarController.reload() }
+        }
+        .menuBarExtraStyle(.window)
     }
 }
 
@@ -160,7 +181,12 @@ struct ContentView: View {
         }
         .animation(.easeInOut(duration: 0.22), value: viewModel.isStartingUp)
         .animation(.easeInOut(duration: 0.22), value: viewModel.showWhatsNew)
-        .animation(.easeInOut(duration: 0.22), value: viewModel.clipboardPasswordSuggestion != nil)
+        .onChange(of: appSettings.menuBarEnabled) { _, enabled in
+            viewModel.menuBarController.applySettings(appSettings)
+            if enabled {
+                viewModel.menuBarController.reload()
+            }
+        }
         .onChange(of: viewModel.sidebarSelection) { _, selection in
             viewModel.sidebarSelectionDidChange(selection)
             EmbeddedWebViewRegistry.syncVisibility(activePane: activeWorkspacePane(from: selection))

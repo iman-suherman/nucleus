@@ -3,7 +3,7 @@ import NucleusKit
 import SwiftUI
 
 struct MenuBarPopoverView: View {
-    @ObservedObject var controller: MenuBarDataController
+    @ObservedObject var controller: MenuBarController
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {

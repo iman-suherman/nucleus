@@ -85,6 +85,8 @@ struct AppSettingsView: View {
             nucleusCloudSection
         case .iCloud:
             iCloudSyncSection
+        case .menuBar:
+            menuBarSection
         case .keychain:
             iCloudKeychainSection
         case .notifications:
@@ -277,20 +279,36 @@ struct AppSettingsView: View {
         }
     }
 
+    private var menuBarSection: some View {
+        Group {
+            Section("Menu bar companion") {
+                Toggle("Show Nucleus in the menu bar", isOn: $settings.menuBarEnabled)
+
+                Text("When enabled, Nucleus shows a clipboard icon in the menu bar with recent clipboard items, saved passwords, and password-save prompts.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Section("Clipboard monitoring") {
+                Toggle("Suggest saving passwords from clipboard", isOn: $settings.clipboardPasswordDetectionEnabled)
+                    .disabled(!settings.menuBarEnabled)
+
+                Toggle("Sync clipboard to iCloud", isOn: $settings.clipboardSyncEnabled)
+                    .disabled(!settings.menuBarEnabled)
+
+                Text("Password prompts appear in the menu bar popover. Clipboard monitoring runs while Nucleus is open and the menu bar companion is enabled.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
     private var notificationsSection: some View {
         Group {
             Section("Notifications") {
                 Toggle("Email notifications", isOn: $settings.emailNotificationsEnabled)
                 Toggle("Chat notifications", isOn: $settings.chatNotificationsEnabled)
                 Toggle("Calendar notifications", isOn: $settings.calendarNotificationsEnabled)
-            }
-
-            Section("Intelligent clipboard") {
-                Toggle("Suggest saving passwords from clipboard", isOn: $settings.clipboardPasswordDetectionEnabled)
-
-                Text("When Nucleus detects a password-like value on your clipboard, it offers to save it as a Passwords note.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
             }
 
             Section("Hourly beep") {
@@ -534,6 +552,7 @@ private struct ICloudSyncLogPanel: View {
 enum SettingsTab: String, CaseIterable, Identifiable {
     case nucleusCloud
     case iCloud
+    case menuBar
     case keychain
     case notifications
     case mail
@@ -546,6 +565,7 @@ enum SettingsTab: String, CaseIterable, Identifiable {
         switch self {
         case .nucleusCloud: return "Nucleus Cloud"
         case .iCloud: return "iCloud"
+        case .menuBar: return "Menu Bar"
         case .keychain: return "Keychain"
         case .notifications: return "Notifications"
         case .mail: return "Mail"
@@ -558,6 +578,7 @@ enum SettingsTab: String, CaseIterable, Identifiable {
         switch self {
         case .nucleusCloud: return "cloud"
         case .iCloud: return "icloud"
+        case .menuBar: return "menubar.rectangle"
         case .keychain: return "key"
         case .notifications: return "bell"
         case .mail: return "envelope"
@@ -572,6 +593,8 @@ enum SettingsTab: String, CaseIterable, Identifiable {
             return "Cross-platform sync without Apple iCloud."
         case .iCloud:
             return "Sync accounts, notes, bills, and preferences across your Macs."
+        case .menuBar:
+            return "Clipboard history, passwords, and password detection from the menu bar."
         case .keychain:
             return "Keep Google OAuth tokens available for automatic reconnection."
         case .notifications:

@@ -156,6 +156,7 @@ final class AppSettings: ObservableObject {
         static let clipboardSyncEnabled = "nucleus.settings.clipboardSyncEnabled"
         static let clipboardSaveToNotesEnabled = "nucleus.settings.clipboardSaveToNotesEnabled"
         static let clipboardPasswordDetectionEnabled = "nucleus.settings.clipboardPasswordDetectionEnabled"
+        static let menuBarEnabled = "nucleus.settings.menuBarEnabled"
         static let iCloudKeychainTokenSyncEnabled = "nucleus.settings.iCloudKeychainTokenSyncEnabled"
         static let selectedWorkspacePane = "nucleus.settings.selectedWorkspacePane"
         static let windowLayout = "nucleus.settings.windowLayout"
@@ -244,6 +245,12 @@ final class AppSettings: ObservableObject {
 
     @Published var clipboardPasswordDetectionEnabled: Bool {
         didSet { UserDefaults.standard.set(clipboardPasswordDetectionEnabled, forKey: Keys.clipboardPasswordDetectionEnabled) }
+    }
+
+    @Published var menuBarEnabled: Bool {
+        didSet {
+            UserDefaults.standard.set(menuBarEnabled, forKey: Keys.menuBarEnabled)
+        }
     }
 
     @Published var iCloudKeychainTokenSyncEnabled: Bool {
@@ -430,6 +437,12 @@ final class AppSettings: ObservableObject {
             clipboardPasswordDetectionEnabled = UserDefaults.standard.bool(forKey: Keys.clipboardPasswordDetectionEnabled)
         } else {
             clipboardPasswordDetectionEnabled = true
+        }
+
+        if UserDefaults.standard.object(forKey: Keys.menuBarEnabled) != nil {
+            menuBarEnabled = UserDefaults.standard.bool(forKey: Keys.menuBarEnabled)
+        } else {
+            menuBarEnabled = true
         }
 
         if UserDefaults.standard.object(forKey: Keys.iCloudKeychainTokenSyncEnabled) != nil {

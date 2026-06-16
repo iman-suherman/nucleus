@@ -61,6 +61,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
 
     let modelContainer: ModelContainer
     let syncService = CloudKitSyncService.shared
+    let menuBarController = MenuBarController()
     let cloudSyncService = NucleusCloudSyncService.shared
     private let mailSyncService = MailSyncService()
     private var knownMessageIDs = Set<String>()
@@ -74,8 +75,8 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
     private var mailSignInPendingAccountIDs = Set<UUID>()
     private var billReminderRefreshTask: Task<Void, Never>?
     private var billReminderSettingsObserver: AnyCancellable?
+    private var menuBarSettingsObserver: AnyCancellable?
     private var dismissedPasswordSuggestionHashes = Set<String>()
-    private var menuBarRefreshObserver: NSObjectProtocol?
 
     init() {
         if ProcessInfo.processInfo.environment["NUCLEUS_SEED_CLOUDKIT_SCHEMA"] == "1" {
@@ -93,19 +94,18 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         observeChatWebUnreadCount()
         observeCloudKitChanges()
         observeNucleusCloudConnection()
-        observeMenuBarDataRefresh()
+        observeMenuBarSettings()
         startWindowLayoutTracking()
         observeBillReminderSettings()
     }
 
-    private func observeMenuBarDataRefresh() {
-        menuBarRefreshObserver = NucleusDarwinNotifications.observe(
-            NucleusMenuBarBridge.darwinRefreshNotification
-        ) { [weak self] in
-            Task { @MainActor in
-                self?.reloadLocalData()
+    private func observeMenuBarSettings() {
+        menuBarSettingsObserver = AppSettings.shared.objectWillChange
+            .debounce(for: .milliseconds(200), scheduler: RunLoop.main)
+            .sink { [weak self] _ in
+                guard let self else { return }
+                self.menuBarController.applySettings(AppSettings.shared)
             }
-        }
     }
 
     private func observeNucleusCloudConnection() {
@@ -395,6 +395,10 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         await beginStartupStep(.icloudSync, message: "Syncing configuration via iCloud…")
         syncService.registerModelContainer(modelContainer)
         syncService.start()
+        menuBarController.configure(modelContainer: modelContainer) { [weak self] in
+            self?.reloadLocalData()
+        }
+        menuBarController.applySettings(settings)
         SettingsSyncBridge.shared.start(
             modelContainer: modelContainer,
             settings: settings,
@@ -683,6 +687,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
 
         scheduleBillReminderRefresh()
         updateDockBadge()
+        menuBarController.reload()
     }
 
     private func updateDockBadge() {

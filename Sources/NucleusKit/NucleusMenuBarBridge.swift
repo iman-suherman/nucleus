@@ -22,7 +22,7 @@ public struct ClipboardPasswordSuggestionPayload: Codable, Equatable, Sendable {
     }
 }
 
-/// Cross-process bridge between Nucleus and the menu bar companion.
+/// Shared helpers for the in-app menu bar companion.
 public enum NucleusMenuBarBridge {
     public static let darwinRefreshNotification = "net.suherman.nucleus.data.refresh"
     public static let darwinPasswordSuggestionNotification = "net.suherman.nucleus.password.suggestion"

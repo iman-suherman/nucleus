@@ -15,36 +15,6 @@ settings:
     SWIFT_VERSION: "5.9"
     MACOSX_DEPLOYMENT_TARGET: "14.0"
 targets:
-  NucleusMenuBar:
-    type: application
-    platform: macOS
-    sources:
-      - path: NucleusMenuBar
-        excludes:
-          - entitlements.menubar.plist
-    settings:
-      base:
-        PRODUCT_BUNDLE_IDENTIFIER: net.suherman.nucleus.menubar
-        PRODUCT_NAME: NucleusMenuBar
-        INFOPLIST_FILE: NucleusMenuBar/Info.plist
-        CODE_SIGN_ENTITLEMENTS: NucleusMenuBar/entitlements.menubar.plist
-        CODE_SIGN_STYLE: Automatic
-        DEVELOPMENT_TEAM: Q3TXW887NM
-        CURRENT_PROJECT_VERSION: 5011
-        MARKETING_VERSION: 0.5.11
-        ENABLE_HARDENED_RUNTIME: YES
-    dependencies:
-      - package: NucleusPackages
-        product: NucleusKit
-      - package: NucleusPackages
-        product: DatabaseKit
-      - package: NucleusPackages
-        product: ClipboardKit
-      - package: NucleusPackages
-        product: NotesKit
-    scheme:
-      testTargets: []
-
   Nucleus:
     type: application
     platform: macOS
@@ -101,13 +71,6 @@ targets:
       testTargets: []
 
 schemes:
-  NucleusMenuBar:
-    build:
-      targets:
-        NucleusMenuBar: all
-    run:
-      config: Debug
-
   Nucleus:
     build:
       targets:

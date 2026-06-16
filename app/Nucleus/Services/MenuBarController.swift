@@ -7,7 +7,7 @@ import NucleusKit
 import SwiftData
 
 @MainActor
-final class MenuBarDataController: ObservableObject {
+final class MenuBarController: ObservableObject {
     @Published private(set) var clipboardEntries: [ClipboardEntry] = []
     @Published private(set) var passwordNotes: [NoteDocument] = []
     @Published var pendingSuggestion: ClipboardPasswordSuggestionPayload?
@@ -16,62 +16,51 @@ final class MenuBarDataController: ObservableObject {
     @Published var passwordDraftUsername = ""
     @Published var passwordDraftEmail = ""
 
-    let modelContainer: ModelContainer
-    private var refreshObserver: NSObjectProtocol?
-    private var suggestionObserver: NSObjectProtocol?
+    private var modelContainer: ModelContainer?
+    private var onDataChanged: (() -> Void)?
+    private var isMonitoring = false
 
-    init() {
-        modelContainer = (try? NucleusDatabase.makeContainer(enableCloudKit: false)) ?? {
-            fatalError("Failed to open Nucleus database for menu bar companion")
-        }()
+    func configure(modelContainer: ModelContainer, onDataChanged: @escaping () -> Void) {
+        self.modelContainer = modelContainer
+        self.onDataChanged = onDataChanged
+    }
 
+    func applySettings(_ settings: AppSettings) {
+        if settings.menuBarEnabled {
+            startMonitoring()
+            reload()
+        } else {
+            stopMonitoring()
+            pendingSuggestion = nil
+        }
+    }
+
+    func startMonitoring() {
+        guard !isMonitoring else { return }
+        isMonitoring = true
         ClipboardMonitorService.shared.onCapture = { [weak self] capture in
             Task { @MainActor in
                 self?.handleCapture(capture)
             }
         }
-
-        refreshObserver = DarwinNotificationCenter.observe(NucleusMenuBarBridge.darwinRefreshNotification) { [weak self] in
-            Task { @MainActor in
-                self?.reload()
-            }
+        ClipboardMonitorService.shared.isCaptureEnabled = {
+            AppSettings.shared.menuBarEnabled
         }
-
-        suggestionObserver = DarwinNotificationCenter.observe(NucleusMenuBarBridge.darwinPasswordSuggestionNotification) { [weak self] in
-            Task { @MainActor in
-                self?.loadPendingSuggestion()
-            }
-        }
-
-        reload()
-        loadPendingSuggestion()
         ClipboardMonitorService.shared.start()
     }
 
-    deinit {
-        if let refreshObserver { DarwinNotificationCenter.remove(refreshObserver) }
-        if let suggestionObserver { DarwinNotificationCenter.remove(suggestionObserver) }
+    func stopMonitoring() {
+        guard isMonitoring else { return }
+        isMonitoring = false
+        ClipboardMonitorService.shared.stop()
     }
 
     func reload() {
+        guard let modelContainer else { return }
         let context = ModelContext(modelContainer)
         clipboardEntries = (try? ClipboardRepository.fetchRecent(context: context, limit: 10)) ?? []
         let notes = (try? NoteRepository.fetchAll(context: context)) ?? []
         passwordNotes = notes.filter { $0.folder == .passwords }
-    }
-
-    func loadPendingSuggestion() {
-        pendingSuggestion = NucleusMenuBarBridge.pendingSuggestion()
-        if let pendingSuggestion {
-            let fields = PasswordNoteFields.fromDetectedPassword(
-                pendingSuggestion.password,
-                source: pendingSuggestion.sourceApplication
-            )
-            passwordDraftName = fields.name
-            passwordDraftURL = fields.url
-            passwordDraftUsername = fields.username
-            passwordDraftEmail = fields.email
-        }
     }
 
     func copyEntry(_ entry: ClipboardEntry) {
@@ -100,12 +89,11 @@ final class MenuBarDataController: ObservableObject {
         if let pendingSuggestion {
             NucleusMenuBarBridge.rememberDismissedPassword(pendingSuggestion.password)
         }
-        NucleusMenuBarBridge.clearPendingSuggestion()
         pendingSuggestion = nil
     }
 
     func saveSuggestion() {
-        guard let suggestion = pendingSuggestion else { return }
+        guard let suggestion = pendingSuggestion, let modelContainer else { return }
         let fields = PasswordNoteFields(
             name: passwordDraftName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                 ? "New Entry"
@@ -123,28 +111,25 @@ final class MenuBarDataController: ObservableObject {
         let context = ModelContext(modelContainer)
         try? NoteRepository.upsert(note, context: context)
         NucleusMenuBarBridge.rememberDismissedPassword(suggestion.password)
-        NucleusMenuBarBridge.clearPendingSuggestion()
         pendingSuggestion = nil
-        NucleusMenuBarBridge.postDataRefresh()
-        reload()
+        notifyDataChanged()
     }
 
     private func handleCapture(_ capture: ClipboardCapture) {
+        guard AppSettings.shared.menuBarEnabled else { return }
         guard !NucleusMenuBarBridge.isNucleusFamilyApp(capture.sourceApplication) else { return }
+        guard let modelContainer else { return }
 
         let entry = capture.asEntry()
         let context = ModelContext(modelContainer)
         try? ClipboardRepository.insert(entry, context: context)
         reload()
-        NucleusMenuBarBridge.postDataRefresh()
-
+        notifyDataChanged()
         evaluatePassword(entry: entry, capture: capture)
     }
 
     private func evaluatePassword(entry: ClipboardEntry, capture: ClipboardCapture) {
-        guard UserDefaults.standard.object(forKey: "nucleus.settings.clipboardPasswordDetectionEnabled") as? Bool ?? true else {
-            return
-        }
+        guard AppSettings.shared.clipboardPasswordDetectionEnabled else { return }
         guard let analysis = ClipboardPasswordAnalyzer.analyze(capture.content) else { return }
         guard !NucleusMenuBarBridge.isDismissedPassword(analysis.extractedPassword) else { return }
 
@@ -155,21 +140,29 @@ final class MenuBarDataController: ObservableObject {
             capturedAt: capture.capturedAt,
             reason: analysis.reason
         )
-        NucleusMenuBarBridge.setPendingSuggestion(payload)
         pendingSuggestion = payload
-        passwordDraftName = PasswordNoteFields.fromDetectedPassword(
+        let fields = PasswordNoteFields.fromDetectedPassword(
             analysis.extractedPassword,
             source: capture.sourceApplication
-        ).name
-    }
-}
+        )
+        passwordDraftName = fields.name
+        passwordDraftURL = fields.url
+        passwordDraftUsername = fields.username
+        passwordDraftEmail = fields.email
 
-enum DarwinNotificationCenter {
-    static func observe(_ name: String, handler: @escaping () -> Void) -> NSObjectProtocol {
-        NucleusDarwinNotifications.observe(name, handler: handler)
+        NucleusNotificationService.shared.notifyClipboardPasswordSuggestion(
+            ClipboardPasswordSuggestion(
+                id: entry.id,
+                password: analysis.extractedPassword,
+                sourceApplication: capture.sourceApplication,
+                capturedAt: capture.capturedAt,
+                reason: analysis.reason
+            )
+        )
     }
 
-    static func remove(_ token: NSObjectProtocol) {
-        NucleusDarwinNotifications.remove(token)
+    private func notifyDataChanged() {
+        reload()
+        onDataChanged?()
     }
 }

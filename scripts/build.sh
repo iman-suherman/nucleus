@@ -59,28 +59,6 @@ if ! xcodebuild "${XCODEBUILD_ARGS[@]}"; then
   exit 1
 fi
 
-echo "==> Building NucleusMenuBar.app ($XCODE_CONFIG)"
-MENUBAR_ARGS=(
-  -project Nucleus.xcodeproj
-  -scheme NucleusMenuBar
-  -configuration "$XCODE_CONFIG"
-  -derivedDataPath "$ROOT_DIR/.build/DerivedData"
-)
-
-if [[ "$XCODE_CONFIG" == "Release" ]]; then
-  MENUBAR_ARGS+=(
-    CODE_SIGNING_ALLOWED=NO
-    CODE_SIGN_ENTITLEMENTS=
-  )
-fi
-
-MENUBAR_ARGS+=(build)
-
-if ! xcodebuild "${MENUBAR_ARGS[@]}"; then
-  echo "xcodebuild NucleusMenuBar failed."
-  exit 1
-fi
-
 APP_PATH="$ROOT_DIR/.build/DerivedData/Build/Products/$XCODE_CONFIG/Nucleus.app"
 if [[ -d "$APP_PATH" ]]; then
   ICNS_SOURCE="$APP_DIR/Nucleus/Assets/AppIcon.icns"

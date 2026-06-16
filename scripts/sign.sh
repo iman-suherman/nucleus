@@ -113,10 +113,3 @@ fi
 sign_binary "$APP_PATH" "$ENTITLEMENTS"
 codesign --verify --deep --strict --verbose=2 "$APP_PATH"
 echo "Signed successfully."
-
-MENUBAR_APP_PATH="${MENUBAR_APP_PATH:-$ROOT_DIR/.build/DerivedData/Build/Products/Release/NucleusMenuBar.app}"
-if [[ -d "$MENUBAR_APP_PATH" ]]; then
-  echo "==> Signing $MENUBAR_APP_PATH"
-  sign_binary "$MENUBAR_APP_PATH" "$ROOT_DIR/app/NucleusMenuBar/entitlements.menubar.plist"
-  codesign --verify --deep --strict --verbose=2 "$MENUBAR_APP_PATH"
-fi

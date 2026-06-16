@@ -16,10 +16,10 @@
 		1C16F495A356343A23379879 /* SyncKit in Frameworks */ = {isa = PBXBuildFile; productRef = FED7A9E834289C4FDE54F124 /* SyncKit */; };
 		1DDFDCAF38135EC627A0E7A8 /* GoogleOAuthConfigurationLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = B95AA6B0D2A2C4F3ACD4653E /* GoogleOAuthConfigurationLoader.swift */; };
 		2A0B56C8E90F257BB66650C4 /* NucleusNotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 584F84F9AF029CC4D8800A01 /* NucleusNotificationService.swift */; };
+		2D9BBC35081BBFC740FBA05F /* MenuBarPopoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2ADEB9B8C248DDB0410D9749 /* MenuBarPopoverView.swift */; };
 		2E92D4BDB66A47E6E813E56B /* BackgroundSyncServices.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50537B36D31255DB7C3030C9 /* BackgroundSyncServices.swift */; };
 		369B622F3177919D55C55827 /* DashboardWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F695044507986F1B738A6465 /* DashboardWorkspaceView.swift */; };
 		37A6CBA22087747F45F0F4F5 /* EmbeddedWebViewContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5971F41F5427FCE836471DA /* EmbeddedWebViewContainer.swift */; };
-		3B191D9DF044EDC8A80D7279 /* NucleusMenuBarApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C85BD3624076E27949E57541 /* NucleusMenuBarApp.swift */; };
 		3F48A8BA617C1BF575B71A17 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BF4B3460305D779B31B79D8C /* Assets.xcassets */; };
 		4502C4FF7AEF207C5B35F583 /* NucleusKit in Frameworks */ = {isa = PBXBuildFile; productRef = 3AEE0E5864A512AD45140FF0 /* NucleusKit */; };
 		4573D9B3E1B2E7E5C1A01E2A /* BillsWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A4515FC13933C08473E2A2F /* BillsWorkspaceView.swift */; };
@@ -29,10 +29,8 @@
 		4F9239E03B04C76F97BF4728 /* SettingsSyncBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18EF3BE5CDCDF196B18E0AAC /* SettingsSyncBridge.swift */; };
 		51EAB3CEA8190FEC48F1F8B8 /* NotesWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 953865571573F05622595783 /* NotesWorkspaceView.swift */; };
 		54097C655AC0AD8DD2FCFDFC /* DashboardAnalysisService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5BDDEC8A6712481CBFAABBE /* DashboardAnalysisService.swift */; };
-		5A51044556B5F0A9FEEE724F /* NucleusKit in Frameworks */ = {isa = PBXBuildFile; productRef = 78F0C778C53006E93C876108 /* NucleusKit */; };
 		5AB3E566D34F7195E90F8AF2 /* NucleusTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FE025998DE849CA2FCBCC91 /* NucleusTheme.swift */; };
 		5C5D19FBE763E1524A4E831C /* RegistryReleaseNotesClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDFFBFACBD2632D34A43FC55 /* RegistryReleaseNotesClient.swift */; };
-		5CFD33056C3D7DC318DB3546 /* MenuBarDataController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D60302643E055C1EA087939C /* MenuBarDataController.swift */; };
 		5E7C65A062AF7D911926A67F /* StartupSplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F2DE343844F3EF7B493842C /* StartupSplashView.swift */; };
 		627462CDC0887CCD00A910E4 /* NucleusMail.caf in Resources */ = {isa = PBXBuildFile; fileRef = A1ADB4D8B805C7C16E7A1939 /* NucleusMail.caf */; };
 		642590B42B17C9B63C0BB830 /* HourlyBeepService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68AD664CB4410FC8FBE21B1C /* HourlyBeepService.swift */; };
@@ -42,9 +40,9 @@
 		68F673476FAE5D0CA8204F89 /* MailWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 948AE221487288E373756BDD /* MailWorkspaceView.swift */; };
 		6A81848593CE059032A516A7 /* ReleaseNotesLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9987E7B42A89E15817F7CAD9 /* ReleaseNotesLoader.swift */; };
 		779C8BFFA5C17B8EEC8E9296 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 414321C6FA288B25C3F312A3 /* AppSettings.swift */; };
-		7F759AE1060E1794AE66D797 /* NotesKit in Frameworks */ = {isa = PBXBuildFile; productRef = 94E55EC4AA3AF0BE83588BC1 /* NotesKit */; };
 		8489DED1153909B55543B5E4 /* ChatWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68D014822AC55CF805FF2873 /* ChatWorkspaceView.swift */; };
 		86A2EDB6E47C37FFBA5DE437 /* CalendarWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F58A8AC449384291C26E26C /* CalendarWorkspaceView.swift */; };
+		86F0B8E63AA373C254764688 /* MenuBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97A7289328BE097836736716 /* MenuBarController.swift */; };
 		8893C084748D7E66C6211F57 /* GoogleWebSignInURL.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91C3018A0AFE8668C0B1FC5D /* GoogleWebSignInURL.swift */; };
 		89DD2F6A9B7E342945B2F792 /* NotificationUserInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A0BFA8EFB82901232FB9B24 /* NotificationUserInfo.swift */; };
 		8AA22D21D12A34FDC718D87B /* EmbeddedWebViewRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D37475DD0560D594BCD02DC /* EmbeddedWebViewRegistry.swift */; };
@@ -53,9 +51,7 @@
 		98D83C9FEF7CEB8DF54441FE /* HourlyBeep.swift in Sources */ = {isa = PBXBuildFile; fileRef = 046B650FCA89CA8C322D0A3B /* HourlyBeep.swift */; };
 		9B0DCC0F8A21372D7F8D82F1 /* WorkspaceStatusBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95F9299FA19C03821267F616 /* WorkspaceStatusBadge.swift */; };
 		9DD421879CE8E2380986DE94 /* GmailWebSessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C19EFA3DE919CAF339A8D6E /* GmailWebSessionStore.swift */; };
-		9FFC9BA354156EED576E68D6 /* DatabaseKit in Frameworks */ = {isa = PBXBuildFile; productRef = 40D7BD127A82A62D6CF7C035 /* DatabaseKit */; };
 		AA2B9B165190FE2E23E7AD95 /* MailInboxLoadingPhase.swift in Sources */ = {isa = PBXBuildFile; fileRef = C201B6D32546E035E9D04B57 /* MailInboxLoadingPhase.swift */; };
-		ABD4713C201CD3887A8CB2B1 /* ClipboardKit in Frameworks */ = {isa = PBXBuildFile; productRef = A09234C8866BEBBC24CE34B0 /* ClipboardKit */; };
 		B9E2844DD110DC0608825A91 /* AppViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9169DE152DD2077D9F7C4DB3 /* AppViewModel.swift */; };
 		C0DBC257A8BAB9C658468527 /* NucleusApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2698972D63EAE12C5F050DE /* NucleusApp.swift */; };
 		C442A46B050B3F01536FCC47 /* DockBadgeController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 035D0E9FC4A418A7C52523C6 /* DockBadgeController.swift */; };
@@ -70,7 +66,6 @@
 		DDA9D760632D2CDC4544A09A /* NotesKit in Frameworks */ = {isa = PBXBuildFile; productRef = 93B2C6D49EA5F6E3F446A3F3 /* NotesKit */; };
 		E084DF303AFCF5970158EC6C /* AccountCategoryEditorSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 927BBCFD3EA8B38DF2FC4788 /* AccountCategoryEditorSheet.swift */; };
 		E3AA1CB51FE3D2B0B15677A0 /* Nucleus_DeveloperID.provisionprofile in Resources */ = {isa = PBXBuildFile; fileRef = C6C43800AFF7B02A1B95466D /* Nucleus_DeveloperID.provisionprofile */; };
-		E42F4CABA6A36571397E7D78 /* MenuBarPopoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE841B8521996E823CC8B485 /* MenuBarPopoverView.swift */; };
 		E45F6E0F6660F34010CFDEBE /* ClipboardPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D130F5FD244D81A8B8DBE22 /* ClipboardPickerView.swift */; };
 		E61500042BE1E8A2138B4EDD /* MailKit in Frameworks */ = {isa = PBXBuildFile; productRef = 05DB77AAF24A6898436A8A52 /* MailKit */; };
 		EDB250E352E4A3372A211D5C /* AddWebGmailAccountSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 015B76265392421D7C57E815 /* AddWebGmailAccountSheet.swift */; };
@@ -84,6 +79,7 @@
 		0A4515FC13933C08473E2A2F /* BillsWorkspaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BillsWorkspaceView.swift; sourceTree = "<group>"; };
 		0E94FBF67AC3185DD7F65D61 /* nucleus */ = {isa = PBXFileReference; lastKnownFileType = folder; name = nucleus; path = ..; sourceTree = SOURCE_ROOT; };
 		18EF3BE5CDCDF196B18E0AAC /* SettingsSyncBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsSyncBridge.swift; sourceTree = "<group>"; };
+		2ADEB9B8C248DDB0410D9749 /* MenuBarPopoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarPopoverView.swift; sourceTree = "<group>"; };
 		2C3B6F07B15EF705C5429DF9 /* WKWebView+Visibility.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WKWebView+Visibility.swift"; sourceTree = "<group>"; };
 		2D130F5FD244D81A8B8DBE22 /* ClipboardPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardPickerView.swift; sourceTree = "<group>"; };
 		2F1A694368885A964F497B45 /* ReleaseNotes.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = ReleaseNotes.json; sourceTree = "<group>"; };
@@ -91,7 +87,6 @@
 		35B2C2677CC4B681656C62C2 /* Nucleus.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Nucleus.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		36D30869A475802CF2EC37F9 /* WindowLayoutController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowLayoutController.swift; sourceTree = "<group>"; };
 		3730C4191445362A9101A48B /* entitlements.mac.development.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = entitlements.mac.development.plist; sourceTree = "<group>"; };
-		37FC1CCA5B4FA214D0C90A52 /* NucleusMenuBar.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NucleusMenuBar.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		3C96EA452B81430207A5A9FB /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		414321C6FA288B25C3F312A3 /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
 		4FE025998DE849CA2FCBCC91 /* NucleusTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NucleusTheme.swift; sourceTree = "<group>"; };
@@ -114,6 +109,7 @@
 		953865571573F05622595783 /* NotesWorkspaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotesWorkspaceView.swift; sourceTree = "<group>"; };
 		95F9299FA19C03821267F616 /* WorkspaceStatusBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceStatusBadge.swift; sourceTree = "<group>"; };
 		964EE9A5CC0993B6B53D3120 /* AuthStateMigration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthStateMigration.swift; sourceTree = "<group>"; };
+		97A7289328BE097836736716 /* MenuBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarController.swift; sourceTree = "<group>"; };
 		99525F1C7DA669B771908581 /* CalendarWebAuthIndexStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarWebAuthIndexStore.swift; sourceTree = "<group>"; };
 		9987E7B42A89E15817F7CAD9 /* ReleaseNotesLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReleaseNotesLoader.swift; sourceTree = "<group>"; };
 		9F2DE343844F3EF7B493842C /* StartupSplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartupSplashView.swift; sourceTree = "<group>"; };
@@ -122,18 +118,14 @@
 		A6EDADCCF24985DEF2C1A2DB /* ReleaseNotesDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReleaseNotesDetailView.swift; sourceTree = "<group>"; };
 		B6238A17B183A8059CB7A2C0 /* SparkleUpdater.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SparkleUpdater.swift; sourceTree = "<group>"; };
 		B95AA6B0D2A2C4F3ACD4653E /* GoogleOAuthConfigurationLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoogleOAuthConfigurationLoader.swift; sourceTree = "<group>"; };
-		BE841B8521996E823CC8B485 /* MenuBarPopoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarPopoverView.swift; sourceTree = "<group>"; };
 		BF4B3460305D779B31B79D8C /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		C201B6D32546E035E9D04B57 /* MailInboxLoadingPhase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MailInboxLoadingPhase.swift; sourceTree = "<group>"; };
 		C2698972D63EAE12C5F050DE /* NucleusApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NucleusApp.swift; sourceTree = "<group>"; };
 		C643F64124025FA6F196C435 /* ClipboardWorkspaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardWorkspaceView.swift; sourceTree = "<group>"; };
 		C6C43800AFF7B02A1B95466D /* Nucleus_DeveloperID.provisionprofile */ = {isa = PBXFileReference; path = Nucleus_DeveloperID.provisionprofile; sourceTree = "<group>"; };
-		C85BD3624076E27949E57541 /* NucleusMenuBarApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NucleusMenuBarApp.swift; sourceTree = "<group>"; };
 		CDFFBFACBD2632D34A43FC55 /* RegistryReleaseNotesClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegistryReleaseNotesClient.swift; sourceTree = "<group>"; };
-		D60302643E055C1EA087939C /* MenuBarDataController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarDataController.swift; sourceTree = "<group>"; };
 		E4CEADA0142869F8949F55DD /* SupportViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupportViews.swift; sourceTree = "<group>"; };
 		E5971F41F5427FCE836471DA /* EmbeddedWebViewContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmbeddedWebViewContainer.swift; sourceTree = "<group>"; };
-		E6AF0E341EEF64E38201B1DF /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		E79434496C370BC490D26F0A /* nucleus-bills-import-demo.csv */ = {isa = PBXFileReference; path = "nucleus-bills-import-demo.csv"; sourceTree = "<group>"; };
 		EBE67C288974FF5B2F8524E6 /* CloudKitStoreMigration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitStoreMigration.swift; sourceTree = "<group>"; };
 		F695044507986F1B738A6465 /* DashboardWorkspaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardWorkspaceView.swift; sourceTree = "<group>"; };
@@ -141,17 +133,6 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		3EAB3E2B93431518090F0E33 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				5A51044556B5F0A9FEEE724F /* NucleusKit in Frameworks */,
-				9FFC9BA354156EED576E68D6 /* DatabaseKit in Frameworks */,
-				ABD4713C201CD3887A8CB2B1 /* ClipboardKit in Frameworks */,
-				7F759AE1060E1794AE66D797 /* NotesKit in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		4618B6C17309E86A956A0ED6 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -186,6 +167,7 @@
 				F695044507986F1B738A6465 /* DashboardWorkspaceView.swift */,
 				C201B6D32546E035E9D04B57 /* MailInboxLoadingPhase.swift */,
 				948AE221487288E373756BDD /* MailWorkspaceView.swift */,
+				2ADEB9B8C248DDB0410D9749 /* MenuBarPopoverView.swift */,
 				953865571573F05622595783 /* NotesWorkspaceView.swift */,
 				4FE025998DE849CA2FCBCC91 /* NucleusTheme.swift */,
 				A6EDADCCF24985DEF2C1A2DB /* ReleaseNotesDetailView.swift */,
@@ -251,6 +233,7 @@
 				91C3018A0AFE8668C0B1FC5D /* GoogleWebSignInURL.swift */,
 				046B650FCA89CA8C322D0A3B /* HourlyBeep.swift */,
 				68AD664CB4410FC8FBE21B1C /* HourlyBeepService.swift */,
+				97A7289328BE097836736716 /* MenuBarController.swift */,
 				81F61F31E82EC125D210B051 /* NotesClipboardMigration.swift */,
 				7A0BFA8EFB82901232FB9B24 /* NotificationUserInfo.swift */,
 				584F84F9AF029CC4D8800A01 /* NucleusNotificationService.swift */,
@@ -267,7 +250,6 @@
 			isa = PBXGroup;
 			children = (
 				35B2C2677CC4B681656C62C2 /* Nucleus.app */,
-				37FC1CCA5B4FA214D0C90A52 /* NucleusMenuBar.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -284,7 +266,6 @@
 			isa = PBXGroup;
 			children = (
 				466AF8445649955C30A247E1 /* Nucleus */,
-				F73D16F57811F162BEA34B3D /* NucleusMenuBar */,
 				BE87F95A911B3BC122A2E31A /* Packages */,
 				952FE1F1150C5DD27FAF45EF /* Products */,
 			);
@@ -298,42 +279,9 @@
 			path = Assets;
 			sourceTree = "<group>";
 		};
-		F73D16F57811F162BEA34B3D /* NucleusMenuBar */ = {
-			isa = PBXGroup;
-			children = (
-				E6AF0E341EEF64E38201B1DF /* Info.plist */,
-				D60302643E055C1EA087939C /* MenuBarDataController.swift */,
-				BE841B8521996E823CC8B485 /* MenuBarPopoverView.swift */,
-				C85BD3624076E27949E57541 /* NucleusMenuBarApp.swift */,
-			);
-			path = NucleusMenuBar;
-			sourceTree = "<group>";
-		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		56F5E28FD12919D450F53378 /* NucleusMenuBar */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = A6764448319530C5D515F33E /* Build configuration list for PBXNativeTarget "NucleusMenuBar" */;
-			buildPhases = (
-				D709C3B580FF0B732059F481 /* Sources */,
-				3EAB3E2B93431518090F0E33 /* Frameworks */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			name = NucleusMenuBar;
-			packageProductDependencies = (
-				78F0C778C53006E93C876108 /* NucleusKit */,
-				40D7BD127A82A62D6CF7C035 /* DatabaseKit */,
-				A09234C8866BEBBC24CE34B0 /* ClipboardKit */,
-				94E55EC4AA3AF0BE83588BC1 /* NotesKit */,
-			);
-			productName = NucleusMenuBar;
-			productReference = 37FC1CCA5B4FA214D0C90A52 /* NucleusMenuBar.app */;
-			productType = "com.apple.product-type.application";
-		};
 		DB1E0D2630414328DE7163D5 /* Nucleus */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 7E09C760230D6FFCA85855E1 /* Build configuration list for PBXNativeTarget "Nucleus" */;
@@ -371,10 +319,6 @@
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
-					56F5E28FD12919D450F53378 = {
-						DevelopmentTeam = Q3TXW887NM;
-						ProvisioningStyle = Automatic;
-					};
 					DB1E0D2630414328DE7163D5 = {
 						DevelopmentTeam = Q3TXW887NM;
 						ProvisioningStyle = Automatic;
@@ -400,7 +344,6 @@
 			projectRoot = "";
 			targets = (
 				DB1E0D2630414328DE7163D5 /* Nucleus */,
-				56F5E28FD12919D450F53378 /* NucleusMenuBar */,
 			);
 		};
 /* End PBXProject section */
@@ -455,6 +398,8 @@
 				642590B42B17C9B63C0BB830 /* HourlyBeepService.swift in Sources */,
 				AA2B9B165190FE2E23E7AD95 /* MailInboxLoadingPhase.swift in Sources */,
 				68F673476FAE5D0CA8204F89 /* MailWorkspaceView.swift in Sources */,
+				86F0B8E63AA373C254764688 /* MenuBarController.swift in Sources */,
+				2D9BBC35081BBFC740FBA05F /* MenuBarPopoverView.swift in Sources */,
 				CD6372D2C3B60CF249E70D00 /* NotesClipboardMigration.swift in Sources */,
 				51EAB3CEA8190FEC48F1F8B8 /* NotesWorkspaceView.swift in Sources */,
 				89DD2F6A9B7E342945B2F792 /* NotificationUserInfo.swift in Sources */,
@@ -472,16 +417,6 @@
 				914183577EE397F3EA7C0EF7 /* WhatsNewOverlay.swift in Sources */,
 				D269748A37583FCD001DE941 /* WindowLayoutController.swift in Sources */,
 				9B0DCC0F8A21372D7F8D82F1 /* WorkspaceStatusBadge.swift in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		D709C3B580FF0B732059F481 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				5CFD33056C3D7DC318DB3546 /* MenuBarDataController.swift in Sources */,
-				E42F4CABA6A36571397E7D78 /* MenuBarPopoverView.swift in Sources */,
-				3B191D9DF044EDC8A80D7279 /* NucleusMenuBarApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -551,28 +486,6 @@
 			};
 			name = Debug;
 		};
-		3664EA1D60D59784CF134CC5 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_ENTITLEMENTS = NucleusMenuBar/entitlements.menubar.plist;
-				CODE_SIGN_STYLE = Automatic;
-				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 5011;
-				DEVELOPMENT_TEAM = Q3TXW887NM;
-				ENABLE_HARDENED_RUNTIME = YES;
-				INFOPLIST_FILE = NucleusMenuBar/Info.plist;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/../Frameworks",
-				);
-				MARKETING_VERSION = 0.5.11;
-				PRODUCT_BUNDLE_IDENTIFIER = net.suherman.nucleus.menubar;
-				PRODUCT_NAME = NucleusMenuBar;
-				SDKROOT = macosx;
-			};
-			name = Release;
-		};
 		5E80A35875DE6FD818AC8820 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -628,28 +541,6 @@
 				SWIFT_VERSION = 5.9;
 			};
 			name = Release;
-		};
-		992C96EC763BC1C29D03BCA4 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_ENTITLEMENTS = NucleusMenuBar/entitlements.menubar.plist;
-				CODE_SIGN_STYLE = Automatic;
-				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 5011;
-				DEVELOPMENT_TEAM = Q3TXW887NM;
-				ENABLE_HARDENED_RUNTIME = YES;
-				INFOPLIST_FILE = NucleusMenuBar/Info.plist;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/../Frameworks",
-				);
-				MARKETING_VERSION = 0.5.11;
-				PRODUCT_BUNDLE_IDENTIFIER = net.suherman.nucleus.menubar;
-				PRODUCT_NAME = NucleusMenuBar;
-				SDKROOT = macosx;
-			};
-			name = Debug;
 		};
 		F83F4D0675A69EA7EDA64DA6 /* Debug */ = {
 			isa = XCBuildConfiguration;
@@ -709,15 +600,6 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
 		};
-		A6764448319530C5D515F33E /* Build configuration list for PBXNativeTarget "NucleusMenuBar" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				992C96EC763BC1C29D03BCA4 /* Debug */,
-				3664EA1D60D59784CF134CC5 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Debug;
-		};
 		D2E13B3292A4C8F950F568E7 /* Build configuration list for PBXProject "Nucleus" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -765,25 +647,9 @@
 			isa = XCSwiftPackageProductDependency;
 			productName = NucleusKit;
 		};
-		40D7BD127A82A62D6CF7C035 /* DatabaseKit */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = DatabaseKit;
-		};
-		78F0C778C53006E93C876108 /* NucleusKit */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = NucleusKit;
-		};
 		93B2C6D49EA5F6E3F446A3F3 /* NotesKit */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = NotesKit;
-		};
-		94E55EC4AA3AF0BE83588BC1 /* NotesKit */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = NotesKit;
-		};
-		A09234C8866BEBBC24CE34B0 /* ClipboardKit */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = ClipboardKit;
 		};
 		DAECE07451118013D6E717ED /* DatabaseKit */ = {
 			isa = XCSwiftPackageProductDependency;

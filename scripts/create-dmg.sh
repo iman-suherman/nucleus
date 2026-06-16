@@ -4,7 +4,6 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 APP_PATH="${1:-$ROOT_DIR/.build/DerivedData/Build/Products/Release/Nucleus.app}"
-MENUBAR_APP_PATH="${MENUBAR_APP_PATH:-$ROOT_DIR/.build/DerivedData/Build/Products/Release/NucleusMenuBar.app}"
 OUTPUT_DMG="${2:-$ROOT_DIR/Nucleus.dmg}"
 VOLUME_NAME="${3:-Nucleus}"
 
@@ -46,7 +45,7 @@ if command -v create-dmg >/dev/null 2>&1; then
   if [[ -f "$ICON_PATH" ]]; then
     CREATE_DMG_ARGS=(--volicon "$ICON_PATH" "${CREATE_DMG_ARGS[@]}")
   fi
-  create-dmg "${CREATE_DMG_ARGS[@]}" "$OUTPUT_DMG" "$APP_PATH" "$MENUBAR_APP_PATH"
+  create-dmg "${CREATE_DMG_ARGS[@]}" "$OUTPUT_DMG" "$APP_PATH"
   bash "$ROOT_DIR/scripts/configure-dmg-statusbar.sh" "$OUTPUT_DMG" "$VOLUME_NAME" || {
     echo "Warning: DMG status bar configuration skipped"
   }
@@ -55,9 +54,6 @@ else
   STAGING_DIR="$(mktemp -d)"
   trap 'rm -rf "$STAGING_DIR"' EXIT
   cp -R "$APP_PATH" "$STAGING_DIR/$APP_NAME"
-  if [[ -d "$MENUBAR_APP_PATH" ]]; then
-    cp -R "$MENUBAR_APP_PATH" "$STAGING_DIR/$(basename "$MENUBAR_APP_PATH")"
-  fi
   ln -s /Applications "$STAGING_DIR/Applications"
   hdiutil create \
     -volname "$VOLUME_NAME" \
