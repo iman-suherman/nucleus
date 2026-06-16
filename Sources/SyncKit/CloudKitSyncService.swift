@@ -57,6 +57,7 @@ public final class CloudKitSyncService: ObservableObject {
     @Published public private(set) var iCloudAccountProfile = ICloudAccountProfile()
     @Published public private(set) var isNotesSyncInProgress = false
     @Published public private(set) var notesExportOutcome: NotesExportOutcome = .idle
+    @Published public private(set) var syncLogStore = CloudKitSyncLogStore.shared
 
     private let ubiquityContainerIdentifier: String?
     private var remoteChangeObserver: NSObjectProtocol?
@@ -70,7 +71,16 @@ public final class CloudKitSyncService: ObservableObject {
     public func start() {
         observeRemoteChanges()
         observeCloudKitExportEvents()
+        log("CloudKit sync service started")
         Task { await refreshAccountStatus() }
+    }
+
+    public func log(_ message: String, level: CloudKitSyncLogEntry.Level = .info) {
+        syncLogStore.log(message, level: level)
+    }
+
+    public func clearSyncLog() {
+        syncLogStore.clear()
     }
 
     /// Registers for the next CloudKit export, runs `performExport`, then waits for completion.
@@ -81,31 +91,93 @@ public final class CloudKitSyncService: ObservableObject {
         enum ExportEvent {
             case completed
             case failed(Error)
+            case timedOut
         }
 
+        log("Upload Notes to iCloud requested")
         isNotesSyncInProgress = true
         notesSyncClearTask?.cancel()
         notesExportOutcome = .exporting
 
-        var exportedCount = 0
+        let waitTask = Task { @MainActor in
+            await self.waitForCloudKitExport(timeoutSeconds: timeoutSeconds)
+        }
 
-        let exportEvent: ExportEvent? = await withTaskGroup(of: ExportEvent?.self) { group in
-            group.addTask { @MainActor in
-                await withCheckedContinuation { (continuation: CheckedContinuation<ExportEvent?, Never>) in
+        await Task.yield()
+
+        let exportedCount: Int
+        do {
+            log("Queuing local notes for CloudKit export…")
+            exportedCount = try performExport()
+            log("Marked \(exportedCount) note(s) for export")
+        } catch {
+            waitTask.cancel()
+            isNotesSyncInProgress = false
+            notesExportOutcome = .failed(error.localizedDescription)
+            log("Failed to queue notes: \(error.localizedDescription)", level: .error)
+            return error.localizedDescription
+        }
+
+        guard exportedCount > 0 else {
+            waitTask.cancel()
+            isNotesSyncInProgress = false
+            notesExportOutcome = .idle
+            log("No notes needed re-export — already queued", level: .warning)
+            return "Notes are already queued for iCloud sync."
+        }
+
+        log("Waiting for CloudKit export (timeout \(Int(timeoutSeconds))s)…")
+
+        let exportEvent = await waitTask.value
+        isNotesSyncInProgress = false
+
+        let noteWord = exportedCount == 1 ? "note" : "notes"
+
+        switch exportEvent {
+        case .completed:
+            notesExportOutcome = .succeeded(noteCount: exportedCount)
+            let message = "Uploaded \(exportedCount) \(noteWord) to iCloud."
+            log(message, level: .success)
+            return message
+        case .failed(let error):
+            let message = Self.exportFailureMessage(error)
+            notesExportOutcome = .failed(message)
+            log(message, level: .error)
+            return message
+        case .timedOut:
+            let message =
+                "Queued \(exportedCount) \(noteWord) for iCloud, but upload has not finished after \(Int(timeoutSeconds)) seconds. "
+                + "Leave Nucleus open, confirm iCloud is signed in, then try again."
+            notesExportOutcome = .timedOut(noteCount: exportedCount)
+            log(message, level: .warning)
+            return message
+        }
+    }
+
+    private enum ExportWaitResult {
+        case completed
+        case failed(Error)
+        case timedOut
+    }
+
+    private func waitForCloudKitExport(timeoutSeconds: TimeInterval) async -> ExportWaitResult {
+        await withTaskGroup(of: ExportWaitResult.self) { group in
+            group.addTask {
+                await withCheckedContinuation { (continuation: CheckedContinuation<ExportWaitResult, Never>) in
                     final class Handle: @unchecked Sendable {
                         var observer: NSObjectProtocol?
                         var resumed = false
                     }
                     let handle = Handle()
 
-                    func resumeOnce(_ event: ExportEvent?) {
+                    func resumeOnce(_ result: ExportWaitResult) {
                         Task { @MainActor in
                             guard !handle.resumed else { return }
                             handle.resumed = true
                             if let observer = handle.observer {
                                 NotificationCenter.default.removeObserver(observer)
                             }
-                            continuation.resume(returning: event)
+                            continuation.resume(returning: result)
                         }
                     }
 
@@ -113,7 +185,7 @@ public final class CloudKitSyncService: ObservableObject {
                         forName: NSPersistentCloudKitContainer.eventChangedNotification,
                         object: nil,
                         queue: .main
-                    ) { notification in
+                    ) { [weak self] notification in
                         Task { @MainActor in
                             guard let event = notification.userInfo?[
                                 NSPersistentCloudKitContainer.eventNotificationUserInfoKey
@@ -122,25 +194,22 @@ public final class CloudKitSyncService: ObservableObject {
                             }
                             guard event.type == .export else { return }
 
+                            if event.endDate == nil {
+                                self?.log("CloudKit export started")
+                                return
+                            }
+
                             if let error = event.error {
+                                self?.log(
+                                    "CloudKit export failed: \(error.localizedDescription)",
+                                    level: .error
+                                )
                                 resumeOnce(.failed(error))
                                 return
                             }
 
-                            if event.endDate != nil {
-                                resumeOnce(.completed)
-                            }
-                        }
-                    }
-
-                    Task { @MainActor in
-                        do {
-                            exportedCount = try performExport()
-                            if exportedCount == 0 {
-                                resumeOnce(nil)
-                            }
-                        } catch {
-                            resumeOnce(.failed(error))
+                            self?.log("CloudKit export finished", level: .success)
+                            resumeOnce(.completed)
                         }
                     }
                 }
@@ -148,51 +217,22 @@ public final class CloudKitSyncService: ObservableObject {
 
             group.addTask {
                 try? await Task.sleep(nanoseconds: UInt64(timeoutSeconds * 1_000_000_000))
-                return nil
+                return .timedOut
             }
 
-            var outcome: ExportEvent?
+            var result = ExportWaitResult.timedOut
             for await value in group {
-                if let value {
-                    outcome = value
-                    group.cancelAll()
-                    break
-                }
-                outcome = nil
+                result = value
                 group.cancelAll()
                 break
             }
-            return outcome
-        }
-
-        isNotesSyncInProgress = false
-
-        if exportedCount == 0 {
-            notesExportOutcome = .idle
-            return "Notes are already queued for iCloud sync."
-        }
-
-        let noteWord = exportedCount == 1 ? "note" : "notes"
-
-        switch exportEvent {
-        case .completed:
-            notesExportOutcome = .succeeded(noteCount: exportedCount)
-            return "Uploaded \(exportedCount) \(noteWord) to iCloud."
-        case .failed(let error):
-            let message = Self.exportFailureMessage(error)
-            notesExportOutcome = .failed(message)
-            return message
-        case nil:
-            let message =
-                "Queued \(exportedCount) \(noteWord) for iCloud, but upload has not finished after \(Int(timeoutSeconds)) seconds. "
-                + "Leave Nucleus open, confirm iCloud is signed in, then try again."
-            notesExportOutcome = .timedOut(noteCount: exportedCount)
-            return message
+            return result
         }
     }
 
     public func refreshAccountStatus() async {
         status = .checking
+        log("Checking iCloud account status…")
 
         guard let containerID = ubiquityContainerIdentifier else {
             status = .unavailable
@@ -227,8 +267,10 @@ public final class CloudKitSyncService: ObservableObject {
 
         if status.isAvailable {
             iCloudAccountProfile = await ICloudAccountProfileFetcher.fetch(containerIdentifier: containerID)
+            log("iCloud available — \(iCloudAccountDisplayName)", level: .success)
         } else {
             iCloudAccountProfile = ICloudAccountProfile()
+            log("iCloud status: \(status.label)", level: .warning)
         }
     }
 
@@ -263,6 +305,7 @@ public final class CloudKitSyncService: ObservableObject {
                 self?.lastRemoteChangeAt = Date()
                 self?.isNotesSyncInProgress = false
                 self?.notesSyncClearTask?.cancel()
+                self?.log("Remote CloudKit change received — reloading notes", level: .success)
                 NotificationCenter.default.post(name: .nucleusCloudKitDataDidChange, object: nil)
             }
         }
@@ -280,21 +323,45 @@ public final class CloudKitSyncService: ObservableObject {
                     as? NSPersistentCloudKitContainer.Event else {
                     return
                 }
-                guard event.type == .export else { return }
 
-                if let error = event.error {
-                    let message = Self.exportFailureMessage(error)
-                    self?.notesExportOutcome = .failed(message)
-                    self?.isNotesSyncInProgress = false
-                    return
-                }
+                self?.logCloudKitEvent(event)
 
-                if event.endDate != nil, case .exporting = self?.notesExportOutcome {
-                    // Manual upload flow sets the final message; background exports just clear progress.
-                    self?.isNotesSyncInProgress = false
+                if event.type == .export {
+                    if let error = event.error {
+                        let message = Self.exportFailureMessage(error)
+                        self?.notesExportOutcome = .failed(message)
+                        self?.isNotesSyncInProgress = false
+                        return
+                    }
+
+                    if event.endDate != nil, case .exporting = self?.notesExportOutcome {
+                        self?.isNotesSyncInProgress = false
+                    }
                 }
             }
         }
+    }
+
+    private func logCloudKitEvent(_ event: NSPersistentCloudKitContainer.Event) {
+        let phase = event.endDate == nil ? "started" : "finished"
+        let typeLabel: String
+        switch event.type {
+        case .export:
+            typeLabel = "export"
+        case .import:
+            typeLabel = "import"
+        case .setup:
+            typeLabel = "setup"
+        @unknown default:
+            typeLabel = "sync"
+        }
+
+        if let error = event.error {
+            log("CloudKit \(typeLabel) \(phase): \(error.localizedDescription)", level: .error)
+            return
+        }
+
+        log("CloudKit \(typeLabel) \(phase)", level: event.endDate == nil ? .info : .success)
     }
 
     private nonisolated static func exportFailureMessage(_ error: Error) -> String {

@@ -126,21 +126,25 @@ struct AppSettingsView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
-                Button(isUploadingNotesToCloudKit ? "Uploading…" : "Upload Notes to iCloud") {
-                    isUploadingNotesToCloudKit = true
-                    notesCloudKitMessage = nil
-                    Task {
-                        notesCloudKitMessage = await viewModel.pushNotesToCloudKit(force: true)
-                        isUploadingNotesToCloudKit = false
+                VStack(alignment: .leading, spacing: 8) {
+                    Button(uploadNotesButtonTitle) {
+                        isUploadingNotesToCloudKit = true
+                        notesCloudKitMessage = "Waiting for CloudKit export…"
+                        Task {
+                            notesCloudKitMessage = await viewModel.pushNotesToCloudKit(force: true)
+                            isUploadingNotesToCloudKit = false
+                        }
+                    }
+                    .disabled(isUploadingNotesToCloudKit || viewModel.notes.isEmpty)
+
+                    if let notesCloudKitMessage {
+                        Text(notesCloudKitMessage)
+                            .font(.caption)
+                            .foregroundStyle(notesCloudKitMessageColor)
                     }
                 }
-                .disabled(isUploadingNotesToCloudKit || viewModel.notes.isEmpty)
 
-                if let notesCloudKitMessage {
-                    Text(notesCloudKitMessage)
-                        .font(.caption)
-                        .foregroundStyle(notesCloudKitMessageColor)
-                }
+                ICloudSyncLogPanel(syncService: syncService)
             }
 
             if let lastRemoteChangeAt = syncService.lastRemoteChangeAt {
@@ -271,13 +275,20 @@ struct AppSettingsView: View {
         if lowered.contains("failed") {
             return .red
         }
-        if lowered.contains("has not finished") {
+        if lowered.contains("has not finished") || lowered.contains("waiting") {
             return .orange
         }
         if lowered.contains("uploaded") {
             return .green
         }
         return .secondary
+    }
+
+    private var uploadNotesButtonTitle: String {
+        if isUploadingNotesToCloudKit {
+            return "Uploading…"
+        }
+        return "Upload Notes to iCloud"
     }
 
     private func mailSoundRow(for account: GoogleAccount) -> some View {
@@ -318,6 +329,71 @@ struct AppSettingsView: View {
             }
             .disabled(binding.wrappedValue == .silent)
         }
+    }
+}
+
+private struct ICloudSyncLogPanel: View {
+    @ObservedObject var syncService: CloudKitSyncService
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("Sync log")
+                    .font(.subheadline.weight(.semibold))
+                Spacer()
+                Button("Copy") {
+                    copyLogToPasteboard()
+                }
+                .disabled(syncService.syncLogStore.entries.isEmpty)
+                Button("Clear") {
+                    syncService.clearSyncLog()
+                }
+                .disabled(syncService.syncLogStore.entries.isEmpty)
+            }
+
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 4) {
+                    if syncService.syncLogStore.entries.isEmpty {
+                        Text("CloudKit export, import, and remote-change events appear here.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        ForEach(syncService.syncLogStore.entries) { entry in
+                            Text(entry.formattedLine)
+                                .font(.caption.monospaced())
+                                .foregroundStyle(color(for: entry.level))
+                                .textSelection(.enabled)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                    }
+                }
+                .padding(10)
+            }
+            .frame(minHeight: 120, maxHeight: 220)
+            .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 10))
+        }
+    }
+
+    private func color(for level: CloudKitSyncLogEntry.Level) -> Color {
+        switch level {
+        case .info:
+            return .secondary
+        case .success:
+            return .green
+        case .warning:
+            return .orange
+        case .error:
+            return .red
+        }
+    }
+
+    private func copyLogToPasteboard() {
+        let text = syncService.syncLogStore.entries
+            .reversed()
+            .map(\.formattedLine)
+            .joined(separator: "\n")
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(text, forType: .string)
     }
 }
 
