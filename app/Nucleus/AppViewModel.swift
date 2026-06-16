@@ -428,17 +428,12 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         beginStartupStep(.icloudSync, message: "Syncing configuration via iCloud…")
         NSLog("Nucleus: bootstrap icloud step starting")
         syncService.registerModelContainer(modelContainer)
-        syncService.start()
+        syncService.start(refreshAccount: false)
         menuBarController.configure(modelContainer: modelContainer) { [weak self] in
             self?.reloadLocalData()
         }
         menuBarController.applySettings(settings)
-        SettingsSyncBridge.shared.start(
-            modelContainer: modelContainer,
-            settings: settings,
-            layoutDelegate: self
-        )
-        await syncService.refreshAccountStatus(includeDiagnostics: false)
+        await syncService.refreshAccountStatus(includeDiagnostics: false, localOnly: true)
         reloadLocalData()
         reconcileSelectedAccounts(settings: settings)
         applySyncedLayout(from: settings)
@@ -513,6 +508,12 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
     private func scheduleDeferredStartupSync() {
         Task(priority: .utility) { @MainActor in
             NSLog("Nucleus: deferred startup sync starting")
+            let settings = AppSettings.shared
+            SettingsSyncBridge.shared.start(
+                modelContainer: modelContainer,
+                settings: settings,
+                layoutDelegate: self
+            )
             await syncService.refreshAccountStatus(includeDiagnostics: true)
             if cloudSyncService.status.isConnected {
                 let cloudContext = ModelContext(modelContainer)

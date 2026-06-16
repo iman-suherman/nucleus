@@ -1,0 +1,17 @@
+{
+  "version": "0.5.19",
+  "summary": "Fix startup hang on the iCloud sync splash step by deferring heavy CloudKit work until after launch.",
+  "releaseNotes": {
+    "introduced": [],
+    "changed": [
+      "Settings sync via iCloud now starts after the splash screen instead of during bootstrap",
+      "npm run logs filters to Nucleus bootstrap markers; npm run logs:all shows full process output"
+    ],
+    "fixed": [
+      "Startup no longer hangs at “Syncing via iCloud” when CloudKit mirroring and account checks run at the same time"
+    ],
+    "updated": [],
+    "removed": [],
+    "breaking": []
+  }
+}

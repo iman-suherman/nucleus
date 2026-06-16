@@ -96,11 +96,13 @@ public final class CloudKitSyncService: ObservableObject {
         modelContainer = container
     }
 
-    public func start() {
+    public func start(refreshAccount: Bool = true) {
         observeRemoteChanges()
         observeCloudKitExportEvents()
         log("CloudKit sync service started")
-        Task { await refreshAccountStatus() }
+        if refreshAccount {
+            Task { await refreshAccountStatus() }
+        }
     }
 
     public func log(_ message: String, level: CloudKitSyncLogEntry.Level = .info) {
@@ -626,7 +628,9 @@ public final class CloudKitSyncService: ObservableObject {
         }
     }
 
-    public func refreshAccountStatus(includeDiagnostics: Bool = true) async {
+    /// - Parameter localOnly: When true, infer availability from the ubiquity token only and skip CloudKit API calls.
+    ///   Use during app launch while Core Data + CloudKit mirroring is still starting.
+    public func refreshAccountStatus(includeDiagnostics: Bool = true, localOnly: Bool = false) async {
         status = .checking
         log("Checking iCloud account status…")
 
@@ -639,6 +643,12 @@ public final class CloudKitSyncService: ObservableObject {
         if FileManager.default.ubiquityIdentityToken == nil {
             status = .noAccount
             iCloudAccountProfile = ICloudAccountProfile()
+            return
+        }
+
+        if localOnly {
+            status = .available
+            log("iCloud available (local check)", level: .success)
             return
         }
 

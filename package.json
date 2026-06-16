@@ -32,6 +32,8 @@
     "release:local": "bash scripts/release.sh",
     "upload:release": "node scripts/upload-release.cjs",
     "run:app": "bash scripts/run-app.sh",
+    "logs": "/usr/bin/log stream --predicate 'process == \"Nucleus\" AND eventMessage CONTAINS \"Nucleus:\"'",
+    "logs:all": "/usr/bin/log stream --predicate 'process == \"Nucleus\"'",
     "open:xcode": "open app/Nucleus.xcodeproj",
     "app": "npm run build:app && npm run run:app",
     "xcode": "npm run build:app && npm run open:xcode",
