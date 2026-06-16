@@ -67,6 +67,8 @@ targets:
         product: NotesKit
       - package: NucleusPackages
         product: SyncKit
+      - sdk: WeatherKit.framework
+      - sdk: CoreLocation.framework
     scheme:
       testTargets: []
 

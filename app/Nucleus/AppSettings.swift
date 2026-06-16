@@ -172,6 +172,11 @@ final class AppSettings: ObservableObject {
     }
 
     static let currentAppVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.1.0"
+    static let marketingWebsiteURL = URL(string: "https://nucleus.suherman.net")!
+
+    static func openMarketingWebsite() {
+        NSWorkspace.shared.open(marketingWebsiteURL)
+    }
 
     @Published var mailSyncInterval: TimeInterval {
         didSet { UserDefaults.standard.set(mailSyncInterval, forKey: Keys.mailSyncInterval) }

@@ -36,7 +36,14 @@ struct NucleusBrandMark: View {
 
     var body: some View {
         HStack(alignment: .center, spacing: 10) {
-            NucleusAppLogo(size: logoSize, cornerRadius: resolvedCornerRadius)
+            Button {
+                AppSettings.openMarketingWebsite()
+            } label: {
+                NucleusAppLogo(size: logoSize, cornerRadius: resolvedCornerRadius)
+            }
+            .buttonStyle(.plain)
+            .pointerCursor()
+            .accessibilityLabel("Open Nucleus website")
 
             if showText {
                 VStack(alignment: .leading, spacing: 2) {
@@ -53,8 +60,8 @@ struct NucleusBrandMark: View {
                 }
             }
         }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("Nucleus version \(AppSettings.currentAppVersion), Personal Operating System")
+        .accessibilityElement(children: showText ? .contain : .ignore)
+        .accessibilityLabel(showText ? "Nucleus version \(AppSettings.currentAppVersion), Personal Operating System" : "Open Nucleus website")
     }
 }
 

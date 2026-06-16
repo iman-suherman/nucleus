@@ -6,9 +6,11 @@ import NucleusKit
 final class DashboardAnalysisService {
     static let shared = DashboardAnalysisService()
 
+    static let analysisInterval: TimeInterval = 30 * 60
+
     private var timer: Timer?
     private weak var viewModel: AppViewModel?
-    private let interval: TimeInterval = 30 * 60
+    private let interval = DashboardAnalysisService.analysisInterval
 
     private init() {}
 
@@ -39,5 +41,9 @@ final class DashboardAnalysisService {
         }
 
         viewModel.persistDashboardAnalysis()
+    }
+
+    func forceAnalysis() {
+        runAnalysisIfNeeded(force: true)
     }
 }

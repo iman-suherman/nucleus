@@ -6,6 +6,7 @@ public struct DashboardUpcomingBill: Identifiable, Sendable, Equatable, Codable 
     public var dueDate: Date
     public var amountDue: Double
     public var currencyCode: String
+    public var category: BillCategory
     public var status: BillDisplayStatus
 
     public init(
@@ -14,6 +15,7 @@ public struct DashboardUpcomingBill: Identifiable, Sendable, Equatable, Codable 
         dueDate: Date,
         amountDue: Double,
         currencyCode: String = BillCurrency.aud.rawValue,
+        category: BillCategory = .other,
         status: BillDisplayStatus
     ) {
         self.id = id
@@ -21,7 +23,60 @@ public struct DashboardUpcomingBill: Identifiable, Sendable, Equatable, Codable 
         self.dueDate = dueDate
         self.amountDue = amountDue
         self.currencyCode = currencyCode.uppercased()
+        self.category = category
         self.status = status
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, name, dueDate, amountDue, currencyCode, category, status
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        name = try container.decode(String.self, forKey: .name)
+        dueDate = try container.decode(Date.self, forKey: .dueDate)
+        amountDue = try container.decode(Double.self, forKey: .amountDue)
+        currencyCode = try container.decode(String.self, forKey: .currencyCode)
+        category = try container.decodeIfPresent(BillCategory.self, forKey: .category) ?? .other
+        status = try container.decode(BillDisplayStatus.self, forKey: .status)
+    }
+}
+
+public struct DashboardBillPaymentSummaryGroup: Identifiable, Sendable, Equatable, Codable {
+    public var category: BillCategory
+    public var currencyCode: String
+    public var totalAmount: Double
+    public var billCount: Int
+    public var earliestDueDate: Date
+    public var latestDueDate: Date
+
+    public var id: String { "\(category.rawValue)-\(currencyCode)" }
+
+    public init(
+        category: BillCategory,
+        currencyCode: String,
+        totalAmount: Double,
+        billCount: Int,
+        earliestDueDate: Date,
+        latestDueDate: Date
+    ) {
+        self.category = category
+        self.currencyCode = currencyCode.uppercased()
+        self.totalAmount = totalAmount
+        self.billCount = billCount
+        self.earliestDueDate = earliestDueDate
+        self.latestDueDate = latestDueDate
+    }
+}
+
+public struct DashboardBillPaymentSummary: Sendable, Equatable, Codable {
+    public var groups: [DashboardBillPaymentSummaryGroup]
+    public var preparationNotes: String
+
+    public init(groups: [DashboardBillPaymentSummaryGroup], preparationNotes: String) {
+        self.groups = groups
+        self.preparationNotes = preparationNotes
     }
 }
 
@@ -167,6 +222,7 @@ public enum DashboardInsightsEngine {
                     dueDate: bill.nextDueDate,
                     amountDue: remaining,
                     currencyCode: bill.currencyCode,
+                    category: bill.category,
                     status: BillScheduleCalculator.displayStatus(
                         bill: bill,
                         payments: payments,
@@ -176,6 +232,105 @@ public enum DashboardInsightsEngine {
                 )
             }
             .sorted { $0.dueDate < $1.dueDate }
+    }
+
+    public static func billPaymentSummary(
+        bills: [Bill],
+        payments: [BillPayment],
+        withinDays: Int = 14,
+        now: Date = Date(),
+        calendar: Calendar = .current
+    ) -> DashboardBillPaymentSummary {
+        let upcoming = upcomingBills(
+            bills: bills,
+            payments: payments,
+            withinDays: withinDays,
+            now: now,
+            calendar: calendar
+        )
+
+        var grouped: [String: (category: BillCategory, currencyCode: String, total: Double, count: Int, earliest: Date, latest: Date)] = [:]
+
+        for bill in upcoming {
+            let key = "\(bill.category.rawValue)-\(bill.currencyCode)"
+            if var existing = grouped[key] {
+                existing.total += bill.amountDue
+                existing.count += 1
+                existing.earliest = min(existing.earliest, bill.dueDate)
+                existing.latest = max(existing.latest, bill.dueDate)
+                grouped[key] = existing
+            } else {
+                grouped[key] = (
+                    category: bill.category,
+                    currencyCode: bill.currencyCode,
+                    total: bill.amountDue,
+                    count: 1,
+                    earliest: bill.dueDate,
+                    latest: bill.dueDate
+                )
+            }
+        }
+
+        let groups = grouped.values
+            .map {
+                DashboardBillPaymentSummaryGroup(
+                    category: $0.category,
+                    currencyCode: $0.currencyCode,
+                    totalAmount: $0.total,
+                    billCount: $0.count,
+                    earliestDueDate: $0.earliest,
+                    latestDueDate: $0.latest
+                )
+            }
+            .sorted {
+                if $0.earliestDueDate != $1.earliestDueDate {
+                    return $0.earliestDueDate < $1.earliestDueDate
+                }
+                if $0.category.rawValue != $1.category.rawValue {
+                    return $0.category.rawValue < $1.category.rawValue
+                }
+                return $0.currencyCode < $1.currencyCode
+            }
+
+        return DashboardBillPaymentSummary(
+            groups: groups,
+            preparationNotes: billPreparationNarrative(groups: groups, calendar: calendar)
+        )
+    }
+
+    public static func billPreparationNarrative(
+        groups: [DashboardBillPaymentSummaryGroup],
+        calendar: Calendar = .current
+    ) -> String {
+        guard !groups.isEmpty else {
+            return "You're all set — no payments to prepare for in the next two weeks."
+        }
+
+        let sentences = groups.map { group -> String in
+            let amount = NucleusFormatters.currencyString(group.totalAmount, currencyCode: group.currencyCode)
+            let duePhrase = dueWindowPhrase(
+                from: group.earliestDueDate,
+                to: group.latestDueDate,
+                calendar: calendar
+            )
+            let billPhrase = group.billCount == 1 ? "1 bill" : "\(group.billCount) bills"
+            return "Prepare \(amount) for \(group.category.label.lowercased()) (\(billPhrase) due \(duePhrase))."
+        }
+
+        if sentences.count == 1 {
+            return sentences[0]
+        }
+
+        return "Payment prep for the next two weeks: " + sentences.joined(separator: " ")
+    }
+
+    private static func dueWindowPhrase(from earliest: Date, to latest: Date, calendar: Calendar) -> String {
+        let start = calendar.startOfDay(for: earliest)
+        let end = calendar.startOfDay(for: latest)
+        if start == end {
+            return NucleusFormatters.dayHeader.string(from: earliest)
+        }
+        return "\(NucleusFormatters.dayHeader.string(from: earliest))–\(NucleusFormatters.dayHeader.string(from: latest))"
     }
 
     public static func productivityBuckets(

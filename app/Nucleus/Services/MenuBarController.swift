@@ -103,6 +103,7 @@ final class MenuBarController: ObservableObject {
     func dismissSuggestion() {
         if let pendingSuggestion {
             NucleusMenuBarBridge.rememberDismissedPassword(pendingSuggestion.password)
+            NucleusNotificationService.shared.clearPasswordNotification(entryID: pendingSuggestion.entryID)
         }
         pendingSuggestion = nil
     }
@@ -126,6 +127,7 @@ final class MenuBarController: ObservableObject {
     }
 
     func dismissPasswordSuggestion(entryID: UUID) {
+        NucleusNotificationService.shared.clearPasswordNotification(entryID: entryID)
         if pendingSuggestion?.entryID == entryID {
             dismissSuggestion()
             return
@@ -175,6 +177,7 @@ final class MenuBarController: ObservableObject {
         let context = ModelContext(modelContainer)
         try? NoteRepository.upsert(note, context: context)
         NucleusMenuBarBridge.rememberDismissedPassword(suggestion.password)
+        NucleusNotificationService.shared.clearPasswordNotification(entryID: suggestion.entryID)
         pendingSuggestion = nil
         notifyDataChanged()
     }

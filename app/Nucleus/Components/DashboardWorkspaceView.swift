@@ -1,12 +1,27 @@
 import Charts
+import DatabaseKit
 import NucleusKit
 import SwiftUI
+import SyncKit
 
 struct DashboardWorkspaceView: View {
     @EnvironmentObject private var viewModel: AppViewModel
+    @ObservedObject private var syncService = CloudKitSyncService.shared
+    @ObservedObject private var cloudSyncService = NucleusCloudSyncService.shared
+    @ObservedObject private var weatherService = DashboardWeatherService.shared
+
+    @State private var isConnectingNucleusCloud = false
+    @State private var nucleusCloudMessage: String?
 
     private var snapshot: DashboardSnapshot {
         viewModel.dashboardSnapshot()
+    }
+
+    private var billPaymentSummary: DashboardBillPaymentSummary {
+        DashboardInsightsEngine.billPaymentSummary(
+            bills: viewModel.activeBills,
+            payments: viewModel.billPayments
+        )
     }
 
     var body: some View {
@@ -15,6 +30,7 @@ struct DashboardWorkspaceView: View {
                 VStack(alignment: .leading, spacing: 28) {
                     header
                     summaryCards
+                    cloudSyncSection
                     summaryAndBillsRow
                     productivitySection
                 }
@@ -24,26 +40,99 @@ struct DashboardWorkspaceView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(Color(nsColor: .windowBackgroundColor))
+        .onAppear {
+            weatherService.refreshIfNeeded()
+        }
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 10) {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 16) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("\(DashboardGreeting.timeOfDay()), \(DashboardGreeting.firstName)")
+                        .font(.largeTitle.bold())
+
+                    weatherGreetingLine
+                }
+
+                Spacer(minLength: 0)
+
                 Image(systemName: "sparkles")
                     .font(.title2)
-                    .foregroundStyle(.orange)
-                Text("Dashboard")
-                    .font(.largeTitle.bold())
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [.orange, .pink, .purple],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .padding(.top, 4)
             }
+
             Text("Your workspace at a glance — bills, messages, passwords, and activity patterns.")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
 
-            if let analyzedAt = viewModel.dashboardAnalyzedAt {
-                Text("Last analysis \(analyzedAt, style: .relative)")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+            analysisStatusRow
+        }
+    }
+
+    @ViewBuilder
+    private var weatherGreetingLine: some View {
+        if let weather = weatherService.weather {
+            HStack(spacing: 8) {
+                Image(systemName: weather.conditionSymbol)
+                    .symbolRenderingMode(.multicolor)
+                Text("Today: \(weather.conditionDescription). High \(weather.highTemperature), low \(weather.lowTemperature).")
+                if let rainSummary = weather.rainSummary {
+                    Text(rainSummary)
+                }
             }
+            .font(.subheadline)
+            .foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+        } else if weatherService.isLoading {
+            HStack(spacing: 8) {
+                ProgressView()
+                    .controlSize(.small)
+                Text("Loading today's weather…")
+            }
+            .font(.subheadline)
+            .foregroundStyle(.secondary)
+        } else if let statusMessage = weatherService.statusMessage {
+            Text(statusMessage)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private var analysisStatusRow: some View {
+        HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: 2) {
+                if let analyzedAt = viewModel.dashboardAnalyzedAt {
+                    Text("Last analysis \(analyzedAt, style: .relative)")
+                } else {
+                    Text("No analysis yet")
+                }
+
+                if let nextAt = viewModel.nextDashboardAnalysisAt {
+                    if nextAt <= Date() {
+                        Text("Next analysis due now")
+                    } else {
+                        Text("Next analysis \(nextAt, style: .relative)")
+                    }
+                } else {
+                    Text("Next analysis runs every 30 minutes")
+                }
+            }
+            .font(.caption)
+            .foregroundStyle(.secondary)
+
+            Button("Analyze Now") {
+                viewModel.refreshDashboardAnalysisNow()
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
         }
     }
 
@@ -78,6 +167,122 @@ struct DashboardWorkspaceView: View {
                 action: { viewModel.sidebarSelection = .workspace(.bills) }
             )
         }
+    }
+
+    private var cloudSyncSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Label("Cloud sync", systemImage: "icloud")
+                .font(.headline)
+
+            VStack(spacing: 0) {
+                cloudSyncRow(
+                    title: "Nucleus Cloud",
+                    systemImage: "cloud",
+                    isConnected: cloudSyncService.status.isConnected,
+                    statusLabel: cloudSyncService.status.label,
+                    connectTitle: isConnectingNucleusCloud ? "Opening Browser…" : "Connect",
+                    isConnectDisabled: isConnectingNucleusCloud,
+                    onConnect: {
+                        isConnectingNucleusCloud = true
+                        nucleusCloudMessage = "Authorize this Mac in your browser…"
+                        Task {
+                            nucleusCloudMessage = await viewModel.connectNucleusCloud()
+                            isConnectingNucleusCloud = false
+                        }
+                    }
+                )
+
+                Divider()
+
+                cloudSyncRow(
+                    title: "iCloud",
+                    systemImage: "icloud.fill",
+                    isConnected: iCloudIsConnected,
+                    statusLabel: iCloudStatusLabel,
+                    connectTitle: iCloudConnectTitle,
+                    isConnectDisabled: false,
+                    onConnect: connectICloud
+                )
+            }
+            .background(.quaternary.opacity(0.25), in: RoundedRectangle(cornerRadius: 12))
+
+            if let nucleusCloudMessage {
+                Text(nucleusCloudMessage)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .onAppear {
+            Task { await syncService.refreshAccountStatus() }
+        }
+    }
+
+    private var iCloudIsConnected: Bool {
+        syncService.status.isAvailable && NucleusDatabase.usesCloudKitSync
+    }
+
+    private var iCloudStatusLabel: String {
+        if syncService.status.isAvailable, NucleusDatabase.usesCloudKitSync {
+            return syncService.status.label
+        }
+        if !NucleusDatabase.usesCloudKitSync,
+           let error = NucleusDatabase.lastCloudKitSetupError,
+           !error.isEmpty {
+            return error
+        }
+        return syncService.status.label
+    }
+
+    private var iCloudConnectTitle: String {
+        if case .noAccount = syncService.status {
+            return "Sign in to iCloud"
+        }
+        return "Open Settings"
+    }
+
+    private func connectICloud() {
+        if case .noAccount = syncService.status {
+            viewModel.openSystemICloudSettings()
+            return
+        }
+        viewModel.openSettings(tab: .iCloud)
+        Task { await syncService.refreshAccountStatus() }
+    }
+
+    private func cloudSyncRow(
+        title: String,
+        systemImage: String,
+        isConnected: Bool,
+        statusLabel: String,
+        connectTitle: String,
+        isConnectDisabled: Bool,
+        onConnect: @escaping () -> Void
+    ) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: isConnected ? "checkmark.circle.fill" : systemImage)
+                .foregroundStyle(isConnected ? .green : .secondary)
+                .frame(width: 22)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                Text(statusLabel)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+            }
+
+            Spacer()
+
+            if !isConnected {
+                Button(connectTitle, action: onConnect)
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .disabled(isConnectDisabled)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
     }
 
     private var summaryAndBillsRow: some View {
@@ -132,6 +337,8 @@ struct DashboardWorkspaceView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(.quaternary.opacity(0.25), in: RoundedRectangle(cornerRadius: 12))
             } else {
+                billPaymentPreparationCard
+
                 VStack(spacing: 0) {
                     ForEach(snapshot.upcomingBills) { bill in
                         Button {
@@ -140,11 +347,20 @@ struct DashboardWorkspaceView: View {
                         } label: {
                             HStack(spacing: 12) {
                                 VStack(alignment: .leading, spacing: 4) {
-                                    Text(bill.name)
-                                        .font(.subheadline.weight(.semibold))
-                                    Text(NucleusFormatters.dayHeader.string(from: bill.dueDate))
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
+                                    HStack(spacing: 6) {
+                                        Image(systemName: bill.category.systemImage)
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                        Text(bill.name)
+                                            .font(.subheadline.weight(.semibold))
+                                    }
+                                    HStack(spacing: 4) {
+                                        Text(NucleusFormatters.dayHeader.string(from: bill.dueDate))
+                                        Text("·")
+                                        Text(bill.dueDate, style: .relative)
+                                    }
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
                                 }
                                 Spacer()
                                 VStack(alignment: .trailing, spacing: 4) {
@@ -170,9 +386,90 @@ struct DashboardWorkspaceView: View {
         }
     }
 
+    private var billPaymentPreparationCard: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Label("Payment preparation", systemImage: "sparkles")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: [.orange, .pink],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+
+            Text(billPaymentSummary.preparationNotes)
+                .font(.body)
+                .fixedSize(horizontal: false, vertical: true)
+
+            VStack(spacing: 0) {
+                ForEach(billPaymentSummary.groups) { group in
+                    HStack(spacing: 12) {
+                        Image(systemName: group.category.systemImage)
+                            .foregroundStyle(.purple)
+                            .frame(width: 22)
+
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text("\(group.category.label) · \(group.currencyCode)")
+                                .font(.subheadline.weight(.semibold))
+                            Text("\(group.billCount == 1 ? "1 bill" : "\(group.billCount) bills") due \(dueWindowLabel(for: group))")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        Spacer()
+
+                        Text(NucleusFormatters.currencyString(group.totalAmount, currencyCode: group.currencyCode))
+                            .font(.subheadline.weight(.semibold).monospacedDigit())
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+
+                    if group.id != billPaymentSummary.groups.last?.id {
+                        Divider()
+                    }
+                }
+            }
+            .background(Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 10))
+        }
+        .padding(16)
+        .background(
+            LinearGradient(
+                colors: [
+                    Color.purple.opacity(0.08),
+                    Color.orange.opacity(0.06),
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            ),
+            in: RoundedRectangle(cornerRadius: 12)
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: 12)
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [.purple.opacity(0.25), .orange.opacity(0.2)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1
+                )
+        }
+    }
+
+    private func dueWindowLabel(for group: DashboardBillPaymentSummaryGroup) -> String {
+        let calendar = Calendar.current
+        let start = calendar.startOfDay(for: group.earliestDueDate)
+        let end = calendar.startOfDay(for: group.latestDueDate)
+        if start == end {
+            return NucleusFormatters.dayHeader.string(from: group.earliestDueDate)
+        }
+        return "\(NucleusFormatters.dayHeader.string(from: group.earliestDueDate))–\(NucleusFormatters.dayHeader.string(from: group.latestDueDate))"
+    }
+
     private var productivitySection: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Label("Clipboard productivity", systemImage: "chart.bar.fill")
+            Label("Productivity", systemImage: "chart.bar.fill")
                 .font(.headline)
 
             Text("How your recent clipboard captures break down over the last 7 days.")

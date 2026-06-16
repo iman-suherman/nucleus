@@ -24,9 +24,11 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
         case quickReply(messageID: String, threadID: String, accountID: UUID, to: String, subject: String)
     }
 
-    private override init() {
-        super.init()
-    }
+    private var passwordNotificationTimers: [UUID: Timer] = [:]
+    private var pendingPasswordSuggestions: [UUID: ClipboardPasswordSuggestion] = [:]
+    private var passwordNotificationHasPlayedSound: Set<UUID> = []
+
+    private let passwordNotificationRepostInterval: TimeInterval = 4
 
     func prepare() {
         UNUserNotificationCenter.current().delegate = self
@@ -110,22 +112,62 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
         guard AppSettings.shared.clipboardPasswordDetectionEnabled else { return }
         guard !isAppActive else { return }
 
+        pendingPasswordSuggestions[suggestion.id] = suggestion
+        postPasswordNotification(suggestion, playSound: !passwordNotificationHasPlayedSound.contains(suggestion.id))
+        passwordNotificationHasPlayedSound.insert(suggestion.id)
+        startPasswordNotificationPersistence(for: suggestion.id)
+    }
+
+    func clearPasswordNotification(entryID: UUID) {
+        passwordNotificationTimers[entryID]?.invalidate()
+        passwordNotificationTimers.removeValue(forKey: entryID)
+        pendingPasswordSuggestions.removeValue(forKey: entryID)
+        passwordNotificationHasPlayedSound.remove(entryID)
+
+        let identifier = passwordNotificationIdentifier(for: entryID)
+        UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: [identifier])
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [identifier])
+    }
+
+    private func passwordNotificationIdentifier(for entryID: UUID) -> String {
+        "clipboard-password-\(entryID.uuidString)"
+    }
+
+    private func postPasswordNotification(_ suggestion: ClipboardPasswordSuggestion, playSound: Bool) {
         let content = UNMutableNotificationContent()
         content.title = "Password detected on clipboard"
         content.subtitle = suggestion.sourceApplication
         content.body = "Nucleus noticed a password-like value. Save it to Passwords?"
         content.categoryIdentifier = "NUCLEUS_CLIPBOARD_PASSWORD"
-        content.sound = .default
+        content.interruptionLevel = .timeSensitive
+        content.sound = playSound ? .default : nil
         content.userInfo = [
             "entryID": suggestion.id.uuidString,
         ]
 
         let request = UNNotificationRequest(
-            identifier: "clipboard-password-\(suggestion.id.uuidString)",
+            identifier: passwordNotificationIdentifier(for: suggestion.id),
             content: content,
             trigger: nil
         )
         UNUserNotificationCenter.current().add(request)
+    }
+
+    private func startPasswordNotificationPersistence(for entryID: UUID) {
+        passwordNotificationTimers[entryID]?.invalidate()
+        passwordNotificationTimers[entryID] = Timer.scheduledTimer(
+            withTimeInterval: passwordNotificationRepostInterval,
+            repeats: true
+        ) { [weak self] timer in
+            Task { @MainActor in
+                guard let self,
+                      let suggestion = self.pendingPasswordSuggestions[entryID] else {
+                    timer.invalidate()
+                    return
+                }
+                self.postPasswordNotification(suggestion, playSound: false)
+            }
+        }
     }
 
     private func postChatNotification(
@@ -316,7 +358,8 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
         let clipboardPasswordCategory = UNNotificationCategory(
             identifier: "NUCLEUS_CLIPBOARD_PASSWORD",
             actions: [savePassword, dismissPassword],
-            intentIdentifiers: []
+            intentIdentifiers: [],
+            options: [.customDismissAction]
         )
 
         UNUserNotificationCenter.current().setNotificationCategories([
@@ -345,6 +388,8 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
             guard sound != .silent else { return [.banner] }
             sound.playAlert()
             return [.banner]
+        case "NUCLEUS_CLIPBOARD_PASSWORD":
+            return [.banner, .list, .sound]
         default:
             return [.banner, .sound]
         }
@@ -398,17 +443,27 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
             case "SAVE_PASSWORD":
                 if let entryIDRaw = info["entryID"] as? String,
                    let entryID = UUID(uuidString: entryIDRaw) {
+                    clearPasswordNotification(entryID: entryID)
                     onClipboardPasswordAction?(.show(entryID: entryID))
                 }
             case "DISMISS_PASSWORD":
                 if let entryIDRaw = info["entryID"] as? String,
                    let entryID = UUID(uuidString: entryIDRaw) {
+                    clearPasswordNotification(entryID: entryID)
+                    onClipboardPasswordAction?(.dismiss(entryID: entryID))
+                }
+            case UNNotificationDismissActionIdentifier:
+                if response.notification.request.identifier.hasPrefix("clipboard-password-"),
+                   let entryIDRaw = info["entryID"] as? String,
+                   let entryID = UUID(uuidString: entryIDRaw) {
+                    clearPasswordNotification(entryID: entryID)
                     onClipboardPasswordAction?(.dismiss(entryID: entryID))
                 }
             default:
                 if response.notification.request.identifier.hasPrefix("clipboard-password-"),
                    let entryIDRaw = info["entryID"] as? String,
                    let entryID = UUID(uuidString: entryIDRaw) {
+                    clearPasswordNotification(entryID: entryID)
                     onClipboardPasswordAction?(.show(entryID: entryID))
                 } else if response.notification.request.identifier.hasPrefix("bill-"),
                    let billIDRaw = info["billID"] as? String,

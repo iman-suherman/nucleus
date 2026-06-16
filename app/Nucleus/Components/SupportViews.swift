@@ -628,6 +628,15 @@ struct SettingsWorkspaceView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .background(Color(nsColor: .windowBackgroundColor))
+        .onAppear {
+            selectedTab = viewModel.settingsTabSelection
+        }
+        .onChange(of: viewModel.settingsTabSelection) { _, tab in
+            selectedTab = tab
+        }
+        .onChange(of: selectedTab) { _, tab in
+            viewModel.settingsTabSelection = tab
+        }
     }
 
     private var settingsHeader: some View {

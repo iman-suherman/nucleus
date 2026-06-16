@@ -23,6 +23,7 @@
 		369B622F3177919D55C55827 /* DashboardWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F695044507986F1B738A6465 /* DashboardWorkspaceView.swift */; };
 		37A6CBA22087747F45F0F4F5 /* EmbeddedWebViewContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5971F41F5427FCE836471DA /* EmbeddedWebViewContainer.swift */; };
 		3F48A8BA617C1BF575B71A17 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BF4B3460305D779B31B79D8C /* Assets.xcassets */; };
+		4145571152831419B598BCD1 /* DashboardWeatherService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4AB09CEFF7019C07BF7A676 /* DashboardWeatherService.swift */; };
 		4502C4FF7AEF207C5B35F583 /* NucleusKit in Frameworks */ = {isa = PBXBuildFile; productRef = 3AEE0E5864A512AD45140FF0 /* NucleusKit */; };
 		4573D9B3E1B2E7E5C1A01E2A /* BillsWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A4515FC13933C08473E2A2F /* BillsWorkspaceView.swift */; };
 		4C597A31214F502918BAE394 /* WKWebView+Visibility.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C3B6F07B15EF705C5429DF9 /* WKWebView+Visibility.swift */; };
@@ -37,6 +38,7 @@
 		5E7C65A062AF7D911926A67F /* StartupSplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F2DE343844F3EF7B493842C /* StartupSplashView.swift */; };
 		627462CDC0887CCD00A910E4 /* NucleusMail.caf in Resources */ = {isa = PBXBuildFile; fileRef = A1ADB4D8B805C7C16E7A1939 /* NucleusMail.caf */; };
 		642590B42B17C9B63C0BB830 /* HourlyBeepService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68AD664CB4410FC8FBE21B1C /* HourlyBeepService.swift */; };
+		642D789BDE016C476CEA1A3C /* WeatherKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0B2285F2575AB46242481E99 /* WeatherKit.framework */; };
 		650D21C4C88640C42F258396 /* nucleus-bills-import-demo.csv in Resources */ = {isa = PBXBuildFile; fileRef = E79434496C370BC490D26F0A /* nucleus-bills-import-demo.csv */; };
 		67D16211CC02FDAF4A0379CD /* ReleaseNotes.json in Resources */ = {isa = PBXBuildFile; fileRef = 2F1A694368885A964F497B45 /* ReleaseNotes.json */; };
 		68556500C668B7A54CCA4BA4 /* SparkleUpdater.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6238A17B183A8059CB7A2C0 /* SparkleUpdater.swift */; };
@@ -58,6 +60,7 @@
 		B9E2844DD110DC0608825A91 /* AppViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9169DE152DD2077D9F7C4DB3 /* AppViewModel.swift */; };
 		C0DBC257A8BAB9C658468527 /* NucleusApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2698972D63EAE12C5F050DE /* NucleusApp.swift */; };
 		C442A46B050B3F01536FCC47 /* DockBadgeController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 035D0E9FC4A418A7C52523C6 /* DockBadgeController.swift */; };
+		C67FBF9A748A2D78F0D4B1BB /* WorkspaceIdleController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D25355470BC63425B500B871 /* WorkspaceIdleController.swift */; };
 		C7B8138444FEA8F5600C4648 /* CalendarKit in Frameworks */ = {isa = PBXBuildFile; productRef = 0663CFC119484D7BD11FB843 /* CalendarKit */; };
 		C8B7DC0B032F4FA042820B5B /* AuthStateMigration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 964EE9A5CC0993B6B53D3120 /* AuthStateMigration.swift */; };
 		CD6372D2C3B60CF249E70D00 /* NotesClipboardMigration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81F61F31E82EC125D210B051 /* NotesClipboardMigration.swift */; };
@@ -67,6 +70,7 @@
 		DA24CFEA61CAC79C5A243DA0 /* SupportViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4CEADA0142869F8949F55DD /* SupportViews.swift */; };
 		DCC4B4B8A424D0C638BDAD3C /* CalendarWebAuthIndexStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99525F1C7DA669B771908581 /* CalendarWebAuthIndexStore.swift */; };
 		DDA9D760632D2CDC4544A09A /* NotesKit in Frameworks */ = {isa = PBXBuildFile; productRef = 93B2C6D49EA5F6E3F446A3F3 /* NotesKit */; };
+		E051D3027DB2077A6D7E7977 /* CoreLocation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6ED92D3B0C9CE1BDD7CB1483 /* CoreLocation.framework */; };
 		E084DF303AFCF5970158EC6C /* AccountCategoryEditorSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 927BBCFD3EA8B38DF2FC4788 /* AccountCategoryEditorSheet.swift */; };
 		E3AA1CB51FE3D2B0B15677A0 /* Nucleus_DeveloperID.provisionprofile in Resources */ = {isa = PBXBuildFile; fileRef = C6C43800AFF7B02A1B95466D /* Nucleus_DeveloperID.provisionprofile */; };
 		E45F6E0F6660F34010CFDEBE /* ClipboardPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D130F5FD244D81A8B8DBE22 /* ClipboardPickerView.swift */; };
@@ -80,6 +84,7 @@
 		035D0E9FC4A418A7C52523C6 /* DockBadgeController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DockBadgeController.swift; sourceTree = "<group>"; };
 		046B650FCA89CA8C322D0A3B /* HourlyBeep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HourlyBeep.swift; sourceTree = "<group>"; };
 		0A4515FC13933C08473E2A2F /* BillsWorkspaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BillsWorkspaceView.swift; sourceTree = "<group>"; };
+		0B2285F2575AB46242481E99 /* WeatherKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WeatherKit.framework; path = System/Library/Frameworks/WeatherKit.framework; sourceTree = SDKROOT; };
 		0E94FBF67AC3185DD7F65D61 /* nucleus */ = {isa = PBXFileReference; lastKnownFileType = folder; name = nucleus; path = ..; sourceTree = SOURCE_ROOT; };
 		18EF3BE5CDCDF196B18E0AAC /* SettingsSyncBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsSyncBridge.swift; sourceTree = "<group>"; };
 		2ADEB9B8C248DDB0410D9749 /* MenuBarPopoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarPopoverView.swift; sourceTree = "<group>"; };
@@ -100,6 +105,7 @@
 		68AD664CB4410FC8FBE21B1C /* HourlyBeepService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HourlyBeepService.swift; sourceTree = "<group>"; };
 		68D014822AC55CF805FF2873 /* ChatWorkspaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatWorkspaceView.swift; sourceTree = "<group>"; };
 		69A7BEC28EFE1D402738D081 /* AccountCenterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountCenterView.swift; sourceTree = "<group>"; };
+		6ED92D3B0C9CE1BDD7CB1483 /* CoreLocation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreLocation.framework; path = System/Library/Frameworks/CoreLocation.framework; sourceTree = SDKROOT; };
 		6F58A8AC449384291C26E26C /* CalendarWorkspaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarWorkspaceView.swift; sourceTree = "<group>"; };
 		7A0BFA8EFB82901232FB9B24 /* NotificationUserInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationUserInfo.swift; sourceTree = "<group>"; };
 		7C19EFA3DE919CAF339A8D6E /* GmailWebSessionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GmailWebSessionStore.swift; sourceTree = "<group>"; };
@@ -125,10 +131,12 @@
 		BF4B3460305D779B31B79D8C /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		C201B6D32546E035E9D04B57 /* MailInboxLoadingPhase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MailInboxLoadingPhase.swift; sourceTree = "<group>"; };
 		C2698972D63EAE12C5F050DE /* NucleusApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NucleusApp.swift; sourceTree = "<group>"; };
+		C4AB09CEFF7019C07BF7A676 /* DashboardWeatherService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardWeatherService.swift; sourceTree = "<group>"; };
 		C643F64124025FA6F196C435 /* ClipboardWorkspaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardWorkspaceView.swift; sourceTree = "<group>"; };
 		C6C43800AFF7B02A1B95466D /* Nucleus_DeveloperID.provisionprofile */ = {isa = PBXFileReference; path = Nucleus_DeveloperID.provisionprofile; sourceTree = "<group>"; };
 		CDFFBFACBD2632D34A43FC55 /* RegistryReleaseNotesClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegistryReleaseNotesClient.swift; sourceTree = "<group>"; };
 		D12215EBDC2CCD7294F9F071 /* MenuBarPopoverSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarPopoverSession.swift; sourceTree = "<group>"; };
+		D25355470BC63425B500B871 /* WorkspaceIdleController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceIdleController.swift; sourceTree = "<group>"; };
 		E4CEADA0142869F8949F55DD /* SupportViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupportViews.swift; sourceTree = "<group>"; };
 		E5971F41F5427FCE836471DA /* EmbeddedWebViewContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmbeddedWebViewContainer.swift; sourceTree = "<group>"; };
 		E79434496C370BC490D26F0A /* nucleus-bills-import-demo.csv */ = {isa = PBXFileReference; path = "nucleus-bills-import-demo.csv"; sourceTree = "<group>"; };
@@ -152,6 +160,8 @@
 				0DF76E6C3FFC27AFE1D7BCFC /* ClipboardKit in Frameworks */,
 				DDA9D760632D2CDC4544A09A /* NotesKit in Frameworks */,
 				1C16F495A356343A23379879 /* SyncKit in Frameworks */,
+				642D789BDE016C476CEA1A3C /* WeatherKit.framework in Frameworks */,
+				E051D3027DB2077A6D7E7977 /* CoreLocation.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -232,6 +242,7 @@
 				F73321C16D7956F50F538A6E /* ClipboardPasteController.swift */,
 				EBE67C288974FF5B2F8524E6 /* CloudKitStoreMigration.swift */,
 				A5BDDEC8A6712481CBFAABBE /* DashboardAnalysisService.swift */,
+				C4AB09CEFF7019C07BF7A676 /* DashboardWeatherService.swift */,
 				035D0E9FC4A418A7C52523C6 /* DockBadgeController.swift */,
 				E5971F41F5427FCE836471DA /* EmbeddedWebViewContainer.swift */,
 				8D37475DD0560D594BCD02DC /* EmbeddedWebViewRegistry.swift */,
@@ -251,6 +262,7 @@
 				18EF3BE5CDCDF196B18E0AAC /* SettingsSyncBridge.swift */,
 				36D30869A475802CF2EC37F9 /* WindowLayoutController.swift */,
 				2C3B6F07B15EF705C5429DF9 /* WKWebView+Visibility.swift */,
+				D25355470BC63425B500B871 /* WorkspaceIdleController.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -261,6 +273,15 @@
 				35B2C2677CC4B681656C62C2 /* Nucleus.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		B71D2C8D4166B7C89F6E5526 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				6ED92D3B0C9CE1BDD7CB1483 /* CoreLocation.framework */,
+				0B2285F2575AB46242481E99 /* WeatherKit.framework */,
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 		BE87F95A911B3BC122A2E31A /* Packages */ = {
@@ -276,6 +297,7 @@
 			children = (
 				466AF8445649955C30A247E1 /* Nucleus */,
 				BE87F95A911B3BC122A2E31A /* Packages */,
+				B71D2C8D4166B7C89F6E5526 /* Frameworks */,
 				952FE1F1150C5DD27FAF45EF /* Products */,
 			);
 			sourceTree = "<group>";
@@ -396,6 +418,7 @@
 				194D73C14442409686DEF2AE /* ClipboardWorkspaceView.swift in Sources */,
 				F0D6500DCFA05119C86E72BE /* CloudKitStoreMigration.swift in Sources */,
 				54097C655AC0AD8DD2FCFDFC /* DashboardAnalysisService.swift in Sources */,
+				4145571152831419B598BCD1 /* DashboardWeatherService.swift in Sources */,
 				369B622F3177919D55C55827 /* DashboardWorkspaceView.swift in Sources */,
 				C442A46B050B3F01536FCC47 /* DockBadgeController.swift in Sources */,
 				37A6CBA22087747F45F0F4F5 /* EmbeddedWebViewContainer.swift in Sources */,
@@ -428,6 +451,7 @@
 				4C597A31214F502918BAE394 /* WKWebView+Visibility.swift in Sources */,
 				914183577EE397F3EA7C0EF7 /* WhatsNewOverlay.swift in Sources */,
 				D269748A37583FCD001DE941 /* WindowLayoutController.swift in Sources */,
+				C67FBF9A748A2D78F0D4B1BB /* WorkspaceIdleController.swift in Sources */,
 				9B0DCC0F8A21372D7F8D82F1 /* WorkspaceStatusBadge.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

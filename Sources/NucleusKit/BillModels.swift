@@ -42,6 +42,18 @@ public enum BillCategory: String, Codable, CaseIterable, Sendable {
         case .other: return "doc.text.fill"
         }
     }
+
+    public var label: String {
+        switch self {
+        case .housing: return "Housing"
+        case .utilities: return "Utilities"
+        case .subscription: return "Subscriptions"
+        case .credit: return "Credit"
+        case .insurance: return "Insurance"
+        case .gift: return "Gifts"
+        case .other: return "Other"
+        }
+    }
 }
 
 public enum BillCurrency: String, Codable, CaseIterable, Sendable {

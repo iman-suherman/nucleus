@@ -29,6 +29,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
     static weak var current: AppViewModel?
 
     @Published var sidebarSelection: SidebarSelection = .workspace(.dashboard)
+    @Published var settingsTabSelection: SettingsTab = .nucleusCloud
     @Published var accounts: [GoogleAccount] = []
     @Published var clipboardEntries: [ClipboardEntry] = []
     @Published var bills: [Bill] = []
@@ -190,6 +191,25 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         guard case .workspace(let pane) = selection else { return }
         AppSettings.shared.selectedWorkspacePane = pane.rawValue
         pushSyncedConfiguration()
+        WorkspaceIdleController.shared.recordActivity()
+    }
+
+    func openSettings(tab: SettingsTab) {
+        settingsTabSelection = tab
+        sidebarSelection = .workspace(.settings)
+        AppSettings.shared.selectedWorkspacePane = WorkspacePane.settings.rawValue
+    }
+
+    func openSystemICloudSettings() {
+        let candidates = [
+            "x-apple.systempreferences:com.apple.preferences.AppleIDPrefPane",
+            "x-apple.systempreferences:com.apple.AccountSettings",
+        ]
+        for candidate in candidates {
+            if let url = URL(string: candidate), NSWorkspace.shared.open(url) {
+                return
+            }
+        }
     }
 
     func updateNotesListWidth(_ width: CGFloat) {
@@ -487,6 +507,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         scheduleDeferredCloudKitExportPrep()
         scheduleDeferredStartupSync()
         NSLog("Nucleus: bootstrap finished")
+        WorkspaceIdleController.shared.start(viewModel: self)
         await presentWhatsNewIfNeeded()
         await promptSignInIfNeeded(settings: settings)
     }
@@ -799,6 +820,15 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         try? DashboardAnalysisRepository.upsert(stored, context: context)
         storedDashboardAnalysis = stored
         dashboardAnalyzedAt = stored.analyzedAt
+    }
+
+    var nextDashboardAnalysisAt: Date? {
+        guard let dashboardAnalyzedAt else { return nil }
+        return dashboardAnalyzedAt.addingTimeInterval(DashboardAnalysisService.analysisInterval)
+    }
+
+    func refreshDashboardAnalysisNow() {
+        DashboardAnalysisService.shared.forceAnalysis()
     }
 
     var hasSyncedDataToUpload: Bool {
@@ -1268,12 +1298,14 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
     func dismissClipboardPasswordSuggestion() {
         if let suggestion = clipboardPasswordSuggestion {
             rememberDismissedPasswordSuggestion(suggestion.password)
+            NucleusNotificationService.shared.clearPasswordNotification(entryID: suggestion.id)
         }
         clipboardPasswordSuggestion = nil
     }
 
     func acceptClipboardPasswordSuggestion() async {
         guard let suggestion = clipboardPasswordSuggestion else { return }
+        NucleusNotificationService.shared.clearPasswordNotification(entryID: suggestion.id)
         clipboardPasswordSuggestion = nil
         rememberDismissedPasswordSuggestion(suggestion.password)
         await createPasswordNoteFromClipboard(

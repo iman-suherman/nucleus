@@ -31,6 +31,10 @@
 	</dict>
 	<key>NSHumanReadableCopyright</key>
 	<string>Copyright © 2026 Iman Suherman</string>
+	<key>NSLocationUsageDescription</key>
+	<string>Nucleus uses your location to show today's weather on the Dashboard.</string>
+	<key>NSUserNotificationAlertStyle</key>
+	<string>alert</string>
 	<key>SUAllowsAutomaticUpdates</key>
 	<true/>
 	<key>SUEnableAutomaticChecks</key>

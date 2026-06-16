@@ -84,6 +84,7 @@ final class MenuBarStatusItemController: NSObject {
     func showPasswordSavePopover(entryID: UUID) {
         guard AppSettings.shared.menuBarEnabled else { return }
         guard let controller else { return }
+        NucleusNotificationService.shared.clearPasswordNotification(entryID: entryID)
         guard controller.presentPasswordSuggestion(entryID: entryID) else { return }
 
         if containerView == nil {

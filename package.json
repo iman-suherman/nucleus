@@ -21,6 +21,7 @@
     "setup:xcodegen": "brew install xcodegen",
     "setup:xcode": "xcodebuild -runFirstLaunch",
     "build:app": "bash scripts/build.sh",
+    "build:xcode": "cd app && xcodebuild -scheme Nucleus -configuration Debug -destination 'platform=macOS' -allowProvisioningUpdates build",
     "build:ios": "bash nucleus-apple/scripts/build-ios.sh",
     "xcode:ios": "cd nucleus-apple/Apps/NucleusIOS && xcodegen generate && open NucleusIOS.xcodeproj",
     "prepare:icon": "bash scripts/prepare-app-icon.sh && swift scripts/generate-app-icon.swift app/Nucleus/Assets.xcassets/AppIcon.appiconset app/Nucleus/Assets/AppIconSource.png",
