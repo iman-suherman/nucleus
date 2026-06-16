@@ -1,17 +1,22 @@
 {
-  "version": "0.5.23",
-  "summary": "Menu bar polish, a full-width dashboard, and a more readable dock mail badge.",
+  "version": "0.6.0",
+  "summary": "A smarter dashboard with weather, bill prep guidance, and workspace polish.",
   "releaseNotes": {
-    "introduced": [],
+    "introduced": [
+      "Dashboard greets you by name and shows today's WeatherKit forecast with high, low, and rain timing",
+      "Payment preparation card groups upcoming bills by category and currency so you know what to set aside",
+      "Analyze Now on the dashboard forces a refresh and shows when the next analysis runs",
+      "Cloud sync section on the dashboard for Nucleus Cloud and iCloud with connect actions",
+      "Five-minute idle timer returns the workspace to the Dashboard",
+      "npm run build:xcode for signed Debug builds with automatic provisioning"
+    ],
     "changed": [
-      "Menu bar uses a monochrome Nucleus logo mark instead of the clipboard icon",
-      "Menu bar password rows add Copy email alongside Copy username, Copy password, and Open URL",
-      "Dashboard expands to use the full detail pane width",
-      "Dock mail unread badge is larger and easier to read"
+      "Upcoming bills show relative due dates and a category icon on each row",
+      "Clipboard productivity section renamed to Productivity",
+      "Sidebar Nucleus logo opens the marketing website",
+      "Password-detected notifications stay visible until you save, dismiss, or open the menu bar prompt"
     ],
-    "fixed": [
-      "Menu bar password save form stays open when clicking outside until Save or Not Now"
-    ],
+    "fixed": [],
     "updated": [],
     "removed": [],
     "breaking": []
