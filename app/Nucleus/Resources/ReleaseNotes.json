@@ -1,16 +1,18 @@
 {
-  "version": "0.5.22",
-  "summary": "Menu bar password actions and notification routing improvements, plus a cleaner dashboard passwords card.",
+  "version": "0.5.23",
+  "summary": "Menu bar polish, a full-width dashboard, and a more readable dock mail badge.",
   "releaseNotes": {
     "introduced": [],
     "changed": [
-      "Menu bar password entries now offer Copy username, Copy password, and Open URL actions",
-      "Save to Passwords on the clipboard notification opens the menu bar popover instead of the main window"
+      "Menu bar uses a monochrome Nucleus logo mark instead of the clipboard icon",
+      "Menu bar password rows add Copy email alongside Copy username, Copy password, and Open URL",
+      "Dashboard expands to use the full detail pane width",
+      "Dock mail unread badge is larger and easier to read"
     ],
-    "fixed": [],
-    "updated": [
-      "Passwords stored on the dashboard no longer uses the highlighted Vault styling"
+    "fixed": [
+      "Menu bar password save form stays open when clicking outside until Save or Not Now"
     ],
+    "updated": [],
     "removed": [],
     "breaking": []
   }
