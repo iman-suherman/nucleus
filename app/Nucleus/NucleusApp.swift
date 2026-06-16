@@ -15,6 +15,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         DispatchQueue.main.async {
             _ = SparkleUpdaterController.shared
+            guard let viewModel = AppViewModel.current else { return }
+            Task { @MainActor in
+                await viewModel.bootstrap(settings: AppSettings.shared)
+            }
         }
     }
 
@@ -43,9 +47,6 @@ struct NucleusApp: App {
                 .environmentObject(appSettings)
                 .modelContainer(viewModel.modelContainer)
                 .frame(minWidth: 1180, minHeight: 780)
-                .task {
-                    await viewModel.bootstrap(settings: appSettings)
-                }
                 .sheet(item: $viewModel.quickReplyContext) { context in
                     QuickReplySheet(context: context)
                         .environmentObject(viewModel)

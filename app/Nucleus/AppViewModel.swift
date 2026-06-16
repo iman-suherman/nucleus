@@ -201,8 +201,9 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
             queue: .main
         ) { [weak self] _ in
             Task { @MainActor in
-                self?.reloadLocalData()
-                await self?.refreshWebSessionStatus()
+                guard let self, !self.isStartingUp else { return }
+                self.reloadLocalData()
+                await self.refreshWebSessionStatus()
             }
         }
     }
@@ -371,7 +372,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         startupActiveStep = nil
         startupProgressFraction = 0
 
-        await beginStartupStep(.database, message: "Loading workspace data…")
+        beginStartupStep(.database, message: "Loading workspace data…")
         if CloudKitStoreMigration.didResetThisLaunch {
             syncService.syncLogStore.log(
                 "Local database reset for iCloud compatibility (v0.4.0). Re-add Google accounts and notes, then use Sync to iCloud in Settings.",
@@ -383,23 +384,12 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
             syncService.markNotesLocalChange()
         }
         reloadLocalData()
-        let exportContext = ModelContext(modelContainer)
-        if let exported = try? NucleusDatabase.exportNotesToCloudKit(context: exportContext), exported > 0 {
-            syncService.markNotesLocalChange()
-        }
-        if let exported = try? NucleusDatabase.exportBillsToCloudKit(context: exportContext), exported > 0 {
-            syncService.log("Queued \(exported) bill/payment record(s) for iCloud export on launch")
-        }
-        persistDashboardAnalysis()
-        if let exported = try? NucleusDatabase.exportDashboardToCloudKit(context: exportContext), exported > 0 {
-            syncService.log("Queued dashboard analysis for iCloud export on launch")
-        }
         completeStartupStep(.database)
 
-        await beginStartupStep(.accounts, message: "Restoring Google accounts…")
+        beginStartupStep(.accounts, message: "Restoring Google accounts…")
         completeStartupStep(.accounts)
 
-        await beginStartupStep(.icloudSync, message: "Syncing configuration via iCloud…")
+        beginStartupStep(.icloudSync, message: "Syncing configuration via iCloud…")
         syncService.registerModelContainer(modelContainer)
         syncService.start()
         menuBarController.configure(modelContainer: modelContainer) { [weak self] in
@@ -424,15 +414,15 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         await refreshWebSessionStatus()
         completeStartupStep(.icloudSync)
 
-        await beginStartupStep(.keychainSync, message: "Restoring Google credentials…")
+        beginStartupStep(.keychainSync, message: "Restoring Google credentials…")
         await autoReconnectAccounts(settings: settings)
         completeStartupStep(.keychainSync)
 
-        await beginStartupStep(.clipboard, message: "Connecting clipboard companion…")
+        beginStartupStep(.clipboard, message: "Connecting clipboard companion…")
         completeStartupStep(.clipboard)
         ClipboardPasteController.shared.start()
 
-        await beginStartupStep(.notifications, message: "Preparing notifications…")
+        beginStartupStep(.notifications, message: "Preparing notifications…")
         NucleusNotificationService.shared.prepare()
         NucleusNotificationService.shared.registerCategories()
         NucleusNotificationService.shared.onMailAction = { [weak self] action in
@@ -448,7 +438,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         HourlyBeepService.shared.start()
         completeStartupStep(.notifications)
 
-        await beginStartupStep(.mailSync, message: "Syncing mail…")
+        beginStartupStep(.mailSync, message: "Syncing mail…")
         mailSyncService.start(viewModel: self, interval: settings.mailSyncInterval)
         await syncMail()
         completeStartupStep(.mailSync)
@@ -463,8 +453,25 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         sidebarSelection = .workspace(.dashboard)
         AppSettings.shared.selectedWorkspacePane = WorkspacePane.dashboard.rawValue
         statusMessage = statusMessageForCurrentState()
+        scheduleDeferredCloudKitExportPrep()
         await presentWhatsNewIfNeeded()
         await promptSignInIfNeeded(settings: settings)
+    }
+
+    private func scheduleDeferredCloudKitExportPrep() {
+        Task { @MainActor in
+            let exportContext = ModelContext(modelContainer)
+            if let exported = try? NucleusDatabase.exportNotesToCloudKit(context: exportContext), exported > 0 {
+                syncService.markNotesLocalChange()
+            }
+            if let exported = try? NucleusDatabase.exportBillsToCloudKit(context: exportContext), exported > 0 {
+                syncService.log("Queued \(exported) bill/payment record(s) for iCloud export on launch")
+            }
+            persistDashboardAnalysis()
+            if let exported = try? NucleusDatabase.exportDashboardToCloudKit(context: exportContext), exported > 0 {
+                syncService.log("Queued dashboard analysis for iCloud export on launch")
+            }
+        }
     }
 
     func dismissWhatsNew() {
@@ -631,11 +638,10 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         }
     }
 
-    private func beginStartupStep(_ step: StartupStep, message: String) async {
+    private func beginStartupStep(_ step: StartupStep, message: String) {
         startupActiveStep = step
         startupMessage = message
         refreshStartupProgress()
-        try? await Task.sleep(nanoseconds: 150_000_000)
     }
 
     private func completeStartupStep(_ step: StartupStep) {
@@ -695,7 +701,9 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
 
         scheduleBillReminderRefresh()
         updateDockBadge()
-        menuBarController.reload()
+        if !isStartingUp {
+            menuBarController.reload()
+        }
     }
 
     private func updateDockBadge() {
