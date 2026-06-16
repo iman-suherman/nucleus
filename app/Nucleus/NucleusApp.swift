@@ -15,10 +15,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         DispatchQueue.main.async {
             _ = SparkleUpdaterController.shared
-            guard let viewModel = AppViewModel.current else { return }
-            Task { @MainActor in
-                await viewModel.bootstrap(settings: AppSettings.shared)
-            }
         }
     }
 
@@ -146,6 +142,9 @@ struct ContentView: View {
         .frame(minWidth: 1180, minHeight: 780)
         .animation(.easeInOut(duration: 0.22), value: viewModel.isStartingUp)
         .animation(.easeInOut(duration: 0.22), value: viewModel.showWhatsNew)
+        .onAppear {
+            viewModel.scheduleBootstrap(settings: appSettings)
+        }
     }
 
     private var mainWorkspace: some View {

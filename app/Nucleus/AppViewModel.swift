@@ -79,6 +79,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
     private var dismissedPasswordSuggestionHashes = Set<String>()
     private var isBootstrapping = false
     private var hasFinishedBootstrap = false
+    private var bootstrapTask: Task<Void, Never>?
 
     init() {
         if ProcessInfo.processInfo.environment["NUCLEUS_SEED_CLOUDKIT_SCHEMA"] == "1" {
@@ -99,6 +100,17 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         observeMenuBarSettings()
         startWindowLayoutTracking()
         observeBillReminderSettings()
+        scheduleBootstrap(settings: AppSettings.shared)
+    }
+
+    func scheduleBootstrap(settings: AppSettings) {
+        guard !hasFinishedBootstrap else { return }
+        guard bootstrapTask == nil else { return }
+        bootstrapTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            await self.bootstrap(settings: settings)
+            self.bootstrapTask = nil
+        }
     }
 
     private func observeMenuBarSettings() {
@@ -367,6 +379,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         isBootstrapping = true
         defer { isBootstrapping = false }
 
+        NSLog("Nucleus: bootstrap started")
         isStartingUp = true
         startupCompletedSteps = []
         startupActiveStep = nil
@@ -454,6 +467,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         AppSettings.shared.selectedWorkspacePane = WorkspacePane.dashboard.rawValue
         statusMessage = statusMessageForCurrentState()
         scheduleDeferredCloudKitExportPrep()
+        NSLog("Nucleus: bootstrap finished")
         await presentWhatsNewIfNeeded()
         await promptSignInIfNeeded(settings: settings)
     }
