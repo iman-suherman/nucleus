@@ -14,8 +14,7 @@ struct DashboardWorkspaceView: View {
             VStack(alignment: .leading, spacing: 28) {
                 header
                 summaryCards
-                intelligentSummary
-                upcomingBillsSection
+                summaryAndBillsRow
                 productivitySection
             }
             .padding(28)
@@ -77,6 +76,15 @@ struct DashboardWorkspaceView: View {
                 tint: .purple,
                 action: { viewModel.sidebarSelection = .workspace(.bills) }
             )
+        }
+    }
+
+    private var summaryAndBillsRow: some View {
+        HStack(alignment: .top, spacing: 20) {
+            intelligentSummary
+                .frame(maxWidth: .infinity, alignment: .leading)
+            upcomingBillsSection
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
