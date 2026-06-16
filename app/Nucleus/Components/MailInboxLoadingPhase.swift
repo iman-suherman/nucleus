@@ -1,6 +1,6 @@
 import Foundation
 
-enum MailInboxLoadingPhase: Equatable {
+enum MailInboxLoadingPhase: Equatable, Hashable {
     case idle
     case connecting
     case signingIn
