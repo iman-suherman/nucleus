@@ -1,18 +1,21 @@
 {
-  "version": "0.5.4",
-  "summary": "Bill due colours, double-click details, iCloud sync fixes, and CloudKit schema deploy tooling.",
+  "version": "0.5.5",
+  "summary": "Dedicated bill iCloud upload in Settings, improved sync logging, and CloudKit deploy tooling.",
   "releaseNotes": {
     "introduced": [
-      "Bill row colours ramp from green to orange as the due date approaches, red when overdue",
-      "Double-click a bill row to open its detail sheet"
+      "Upload Bills to iCloud button in Settings with the same export wait and logging as notes"
     ],
     "changed": [
-      "Next due column shows relative timing and the formatted due date together",
-      "Bills and deletions queue for iCloud export on launch and after delete",
-      "CloudKit schema scripts now include CD_BillRecord and CD_BillPaymentRecord"
+      "Sync log now covers notes and bills uploads, including bill record counts from CloudKit",
+      "CloudKit schema deploy script reads CLOUDKIT_MANAGEMENT_TOKEN from .env automatically"
     ],
-    "fixed": [
-      "Existing bills on one Mac were not always uploaded to iCloud on app launch"
+    "fixed": [],
+    "updated": [
+      "generate-env and seed-secrets scripts for GCP Secret Manager",
+      ".env.example template for local development"
+    ],
+    "removed": [
+      "Sync clipboard history toggle and the Bills sidebar Sync button"
     ],
     "breaking": []
   }

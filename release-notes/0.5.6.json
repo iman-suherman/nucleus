@@ -1,0 +1,16 @@
+{
+  "version": "0.5.6",
+  "summary": "Cleaner bill due labels, full-row selection, and quick payment logging from bill details.",
+  "releaseNotes": {
+    "introduced": [],
+    "changed": [
+      "Bill rows show due countdown only (e.g. Due in 14 days) without a Paid prefix",
+      "Clicking anywhere on a bill row selects it; double-click still opens details",
+      "Bill detail sheet includes Log Payment and Log Partial buttons"
+    ],
+    "fixed": [],
+    "updated": [],
+    "removed": [],
+    "breaking": []
+  }
+}

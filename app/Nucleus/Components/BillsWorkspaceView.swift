@@ -58,17 +58,21 @@ struct BillsWorkspaceView: View {
             }
         }
         .sheet(isPresented: $showingBillDetail) {
-            if let bill = viewModel.selectedBill {
+            if let billID = viewModel.selectedBillID {
                 BillDetailSheet(
-                    bill: bill,
-                    payments: viewModel.payments(for: bill.id),
-                    averageAmount: viewModel.averagePayment(for: bill.id),
-                    remainingAmount: viewModel.remainingAmount(for: bill)
-                ) { updated in
-                    viewModel.saveBill(updated)
-                } onDelete: {
-                    viewModel.deleteBill(id: bill.id)
-                }
+                    billID: billID,
+                    onSave: { updated in
+                        viewModel.saveBill(updated)
+                    },
+                    onDelete: {
+                        if let bill = viewModel.selectedBill {
+                            viewModel.deleteBill(id: bill.id)
+                        }
+                    },
+                    onLogPayment: { amount, note in
+                        viewModel.logBillPayment(billID: billID, amount: amount, note: note)
+                    }
+                )
             }
         }
         .sheet(isPresented: $showingIncomeEditor) {
@@ -165,6 +169,9 @@ struct BillsWorkspaceView: View {
                         remainingAmount: viewModel.remainingAmount(for: bill),
                         status: viewModel.billDisplayStatus(for: bill),
                         progress: viewModel.billStatusProgress(for: bill),
+                        onSelect: {
+                            viewModel.selectedBillID = bill.id
+                        },
                         onOpen: {
                             viewModel.selectedBillID = bill.id
                             showingBillDetail = true
@@ -453,12 +460,8 @@ private enum BillStatusStyle {
         return Color(red: accent.red, green: accent.green, blue: accent.blue)
     }
 
-    static func dueLabel(for bill: Bill, remainingAmount: Double) -> String {
-        let relative = BillScheduleCalculator.dueCountdown(for: bill.nextDueDate)
-        if remainingAmount <= 0.009 {
-            return "Paid · \(relative)"
-        }
-        return relative
+    static func dueLabel(for bill: Bill) -> String {
+        BillScheduleCalculator.dueCountdown(for: bill.nextDueDate)
     }
 }
 
@@ -468,6 +471,7 @@ private struct BillRowView: View {
     let remainingAmount: Double
     let status: BillDisplayStatus
     let progress: Double
+    var onSelect: (() -> Void)?
     var onOpen: (() -> Void)?
 
     private var accent: Color { BillStatusStyle.accent(for: bill, remainingAmount: remainingAmount) }
@@ -502,7 +506,7 @@ private struct BillRowView: View {
                 .foregroundStyle(isOverdue ? .red : .primary)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(BillStatusStyle.dueLabel(for: bill, remainingAmount: remainingAmount))
+                Text(BillStatusStyle.dueLabel(for: bill))
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(accent)
                 Text(NucleusFormatters.dayHeader.string(from: bill.nextDueDate))
@@ -516,10 +520,15 @@ private struct BillRowView: View {
         }
         .padding(.vertical, 4)
         .contentShape(Rectangle())
-        .help("Double-click to view bill details")
-        .onTapGesture(count: 2) {
-            onOpen?()
+        .help("Click to select · double-click for details")
+        .onTapGesture {
+            onSelect?()
         }
+        .simultaneousGesture(
+            TapGesture(count: 2).onEnded {
+                onOpen?()
+            }
+        )
     }
 }
 
@@ -840,17 +849,46 @@ private struct LogPaymentSheet: View {
 
 private struct BillDetailSheet: View {
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var viewModel: AppViewModel
 
-    let bill: Bill
-    let payments: [BillPayment]
-    let averageAmount: Double?
-    let remainingAmount: Double
+    let billID: UUID
     let onSave: (Bill) -> Void
     let onDelete: () -> Void
+    let onLogPayment: (Double, String) -> Void
 
     @State private var showingEditor = false
+    @State private var showingLogPayment = false
+    @State private var showingPartialPayment = false
+
+    private var bill: Bill? {
+        viewModel.activeBills.first { $0.id == billID }
+    }
+
+    private var payments: [BillPayment] {
+        viewModel.payments(for: billID)
+    }
+
+    private var remainingAmount: Double {
+        guard let bill else { return 0 }
+        return viewModel.remainingAmount(for: bill)
+    }
 
     var body: some View {
+        Group {
+            if let bill {
+                detailContent(for: bill)
+            } else {
+                Text("Bill not found.")
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
+        .padding(24)
+        .frame(width: 520, height: 600)
+    }
+
+    @ViewBuilder
+    private func detailContent(for bill: Bill) -> some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
                 Image(systemName: bill.resolvedIconName)
@@ -873,7 +911,7 @@ private struct BillDetailSheet: View {
                 }
                 GridRow {
                     Text("Average").foregroundStyle(.secondary)
-                    Text(NucleusFormatters.currencyString(averageAmount ?? bill.amount))
+                    Text(NucleusFormatters.currencyString(viewModel.averagePayment(for: bill.id) ?? bill.amount))
                 }
                 GridRow {
                     Text("Remaining").foregroundStyle(.secondary)
@@ -881,8 +919,32 @@ private struct BillDetailSheet: View {
                 }
                 GridRow {
                     Text("Next due").foregroundStyle(.secondary)
-                    Text(NucleusFormatters.dayHeader.string(from: bill.nextDueDate))
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(BillStatusStyle.dueLabel(for: bill))
+                            .fontWeight(.medium)
+                        Text(NucleusFormatters.dayHeader.string(from: bill.nextDueDate))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
+            }
+
+            HStack(spacing: 12) {
+                Button {
+                    showingLogPayment = true
+                } label: {
+                    Label("Log Payment", systemImage: "checkmark.circle")
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(remainingAmount <= 0.009)
+
+                Button {
+                    showingPartialPayment = true
+                } label: {
+                    Label("Log Partial", systemImage: "plus.circle")
+                }
+                .buttonStyle(.bordered)
+                .disabled(remainingAmount <= 0.009)
             }
 
             if !bill.notes.isEmpty {
@@ -914,7 +976,7 @@ private struct BillDetailSheet: View {
                             .foregroundStyle(.secondary)
                     }
                 }
-                .frame(minHeight: 180, maxHeight: 260)
+                .frame(minHeight: 160, maxHeight: 220)
             }
 
             HStack {
@@ -926,11 +988,23 @@ private struct BillDetailSheet: View {
                 Button("Close") { dismiss() }
             }
         }
-        .padding(24)
-        .frame(width: 520, height: 560)
         .sheet(isPresented: $showingEditor) {
             BillEditorSheet(mode: .edit, existingBill: bill) { updated in
                 onSave(updated)
+            }
+        }
+        .sheet(isPresented: $showingLogPayment) {
+            LogPaymentSheet(bill: bill, mode: .full) { amount, note in
+                onLogPayment(amount, note)
+            }
+        }
+        .sheet(isPresented: $showingPartialPayment) {
+            LogPaymentSheet(
+                bill: bill,
+                mode: .partial,
+                suggestedAmount: remainingAmount
+            ) { amount, note in
+                onLogPayment(amount, note)
             }
         }
     }
