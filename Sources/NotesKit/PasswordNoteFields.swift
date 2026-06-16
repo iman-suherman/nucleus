@@ -26,6 +26,17 @@ public struct PasswordNoteFields: Equatable, Sendable {
         PasswordNoteFields(name: name)
     }
 
+    public static func fromDetectedPassword(_ password: String, source: String) -> PasswordNoteFields {
+        let trimmedSource = source.trimmingCharacters(in: .whitespacesAndNewlines)
+        let name: String
+        if trimmedSource.isEmpty || trimmedSource.compare("Unknown", options: .caseInsensitive) == .orderedSame {
+            name = "New Entry"
+        } else {
+            name = "From \(trimmedSource)"
+        }
+        return PasswordNoteFields(name: name, password: password)
+    }
+
     public func markdown() -> String {
         """
         # \(name)

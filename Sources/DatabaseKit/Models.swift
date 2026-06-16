@@ -446,3 +446,39 @@ public final class SyncedSettingsRecord {
         updatedAt = configuration.updatedAt
     }
 }
+
+@Model
+public final class DashboardAnalysisRecord {
+    public static let singletonRecordID = UUID(uuidString: "00000000-0000-0000-0000-000000000002")!
+
+    public var id: UUID = DashboardAnalysisRecord.singletonRecordID
+    public var payloadData: Data = Data()
+    public var analyzedAt: Date = Date()
+    public var updatedAt: Date = Date()
+
+    public init(id: UUID = DashboardAnalysisRecord.singletonRecordID, payloadData: Data, analyzedAt: Date, updatedAt: Date) {
+        self.id = id
+        self.payloadData = payloadData
+        self.analyzedAt = analyzedAt
+        self.updatedAt = updatedAt
+    }
+
+    public init(stored: StoredDashboardAnalysis) throws {
+        id = Self.singletonRecordID
+        payloadData = try JSONEncoder().encode(stored)
+        analyzedAt = stored.analyzedAt
+        updatedAt = stored.analyzedAt
+    }
+
+    public var storedAnalysis: StoredDashboardAnalysis {
+        get throws {
+            try JSONDecoder().decode(StoredDashboardAnalysis.self, from: payloadData)
+        }
+    }
+
+    public func apply(_ stored: StoredDashboardAnalysis) throws {
+        payloadData = try JSONEncoder().encode(stored)
+        analyzedAt = stored.analyzedAt
+        updatedAt = stored.analyzedAt
+    }
+}

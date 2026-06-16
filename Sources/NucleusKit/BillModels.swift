@@ -128,7 +128,7 @@ public struct BillDueAccent: Sendable, Equatable {
     }
 }
 
-public enum BillDisplayStatus: String, Sendable, CaseIterable {
+public enum BillDisplayStatus: String, Sendable, CaseIterable, Codable {
     case paid
     case overdue
     case dueSoon

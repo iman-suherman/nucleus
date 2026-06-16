@@ -155,6 +155,7 @@ final class AppSettings: ObservableObject {
         static let calendarNotificationsEnabled = "nucleus.settings.calendarNotificationsEnabled"
         static let clipboardSyncEnabled = "nucleus.settings.clipboardSyncEnabled"
         static let clipboardSaveToNotesEnabled = "nucleus.settings.clipboardSaveToNotesEnabled"
+        static let clipboardPasswordDetectionEnabled = "nucleus.settings.clipboardPasswordDetectionEnabled"
         static let iCloudKeychainTokenSyncEnabled = "nucleus.settings.iCloudKeychainTokenSyncEnabled"
         static let selectedWorkspacePane = "nucleus.settings.selectedWorkspacePane"
         static let windowLayout = "nucleus.settings.windowLayout"
@@ -239,6 +240,10 @@ final class AppSettings: ObservableObject {
 
     @Published var clipboardSaveToNotesEnabled: Bool {
         didSet { UserDefaults.standard.set(clipboardSaveToNotesEnabled, forKey: Keys.clipboardSaveToNotesEnabled) }
+    }
+
+    @Published var clipboardPasswordDetectionEnabled: Bool {
+        didSet { UserDefaults.standard.set(clipboardPasswordDetectionEnabled, forKey: Keys.clipboardPasswordDetectionEnabled) }
     }
 
     @Published var iCloudKeychainTokenSyncEnabled: Bool {
@@ -419,6 +424,12 @@ final class AppSettings: ObservableObject {
             clipboardSaveToNotesEnabled = UserDefaults.standard.bool(forKey: Keys.clipboardSaveToNotesEnabled)
         } else {
             clipboardSaveToNotesEnabled = false
+        }
+
+        if UserDefaults.standard.object(forKey: Keys.clipboardPasswordDetectionEnabled) != nil {
+            clipboardPasswordDetectionEnabled = UserDefaults.standard.bool(forKey: Keys.clipboardPasswordDetectionEnabled)
+        } else {
+            clipboardPasswordDetectionEnabled = true
         }
 
         if UserDefaults.standard.object(forKey: Keys.iCloudKeychainTokenSyncEnabled) != nil {

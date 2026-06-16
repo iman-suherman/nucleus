@@ -139,6 +139,18 @@ struct ContentView: View {
                 }
             }
 
+            if let suggestion = viewModel.clipboardPasswordSuggestion {
+                ClipboardPasswordSuggestionOverlay(
+                    suggestion: suggestion,
+                    onSave: {
+                        Task { await viewModel.acceptClipboardPasswordSuggestion() }
+                    },
+                    onDismiss: {
+                        viewModel.dismissClipboardPasswordSuggestion()
+                    }
+                )
+            }
+
             ForEach(viewModel.webSessionAccounts) { account in
                 GmailUnreadPoller(accountID: account.id, accountEmail: account.email)
                 ChatUnreadPoller(accountID: account.id)
@@ -146,6 +158,7 @@ struct ContentView: View {
         }
         .animation(.easeInOut(duration: 0.22), value: viewModel.isStartingUp)
         .animation(.easeInOut(duration: 0.22), value: viewModel.showWhatsNew)
+        .animation(.easeInOut(duration: 0.22), value: viewModel.clipboardPasswordSuggestion != nil)
         .onChange(of: viewModel.sidebarSelection) { _, selection in
             viewModel.sidebarSelectionDidChange(selection)
             EmbeddedWebViewRegistry.syncVisibility(activePane: activeWorkspacePane(from: selection))
@@ -159,6 +172,8 @@ struct ContentView: View {
     private var detailContent: some View {
         Group {
             switch activeWorkspacePane(from: viewModel.sidebarSelection) {
+            case .dashboard:
+                DashboardWorkspaceView()
             case .inbox:
                 MailWorkspaceView(isVisible: true)
             case .calendar:
@@ -234,6 +249,10 @@ struct ContentView: View {
     @ViewBuilder
     private func badge(for pane: WorkspacePane) -> some View {
         switch pane {
+        case .dashboard where viewModel.totalUnread + viewModel.totalChatUnread + viewModel.billsDueDockBadgeCount > 0:
+            NucleusCountBadge(
+                count: viewModel.totalUnread + viewModel.totalChatUnread + viewModel.billsDueDockBadgeCount
+            )
         case .inbox where viewModel.totalUnread > 0:
             NucleusCountBadge(count: viewModel.totalUnread, kind: .mail)
         case .chat where viewModel.totalChatUnread > 0:

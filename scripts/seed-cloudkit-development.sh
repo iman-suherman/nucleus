@@ -46,6 +46,7 @@ No CLOUDKIT_MANAGEMENT_TOKEN found. Import manually:
    - CD_ClipboardItemRecord
    - CD_BillRecord
    - CD_BillPaymentRecord
+   - CD_DashboardAnalysisRecord
 6. Footer → Deploy Schema Changes… → deploy to Production
 
 For the full CLI workflow (import Development + verify Production):

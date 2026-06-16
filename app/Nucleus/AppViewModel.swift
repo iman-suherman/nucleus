@@ -27,7 +27,7 @@ struct QuickReplyContext: Identifiable {
 final class AppViewModel: ObservableObject, SyncedLayoutApplying {
     static weak var current: AppViewModel?
 
-    @Published var sidebarSelection: SidebarSelection = .workspace(.inbox)
+    @Published var sidebarSelection: SidebarSelection = .workspace(.dashboard)
     @Published var accounts: [GoogleAccount] = []
     @Published var clipboardEntries: [ClipboardEntry] = []
     @Published var bills: [Bill] = []
@@ -50,6 +50,9 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
     @Published var showWhatsNew = false
     @Published var whatsNewRelease: AppReleaseNotes?
     @Published var quickReplyContext: QuickReplyContext?
+    @Published var clipboardPasswordSuggestion: ClipboardPasswordSuggestion?
+    @Published private(set) var storedDashboardAnalysis: StoredDashboardAnalysis?
+    @Published var dashboardAnalyzedAt: Date?
     @Published var accountError: String?
     @Published var webSessionStatus: [UUID: Bool] = [:]
     @Published var oauthConnectionStatus: [UUID: Bool] = [:]
@@ -69,6 +72,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
     private var mailSignInPendingAccountIDs = Set<UUID>()
     private var billReminderRefreshTask: Task<Void, Never>?
     private var billReminderSettingsObserver: AnyCancellable?
+    private var dismissedPasswordSuggestionHashes = Set<String>()
 
     init() {
         if ProcessInfo.processInfo.environment["NUCLEUS_SEED_CLOUDKIT_SCHEMA"] == "1" {
@@ -115,10 +119,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
     }
 
     func applySyncedLayout(from settings: AppSettings) {
-        if let raw = settings.selectedWorkspacePane,
-           let pane = WorkspacePane(rawValue: raw) {
-            sidebarSelection = .workspace(pane)
-        }
+        // Dashboard is always the launch entry point; window layout restores via AppSettings.windowLayout.
     }
 
     func sidebarSelectionDidChange(_ selection: SidebarSelection) {
@@ -339,7 +340,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         await beginStartupStep(.database, message: "Loading workspace data…")
         if CloudKitStoreMigration.didResetThisLaunch {
             syncService.syncLogStore.log(
-                "Local database reset for iCloud compatibility (v0.4.0). Re-add Google accounts and notes, then use Upload Notes to iCloud.",
+                "Local database reset for iCloud compatibility (v0.4.0). Re-add Google accounts and notes, then use Sync to iCloud in Settings.",
                 level: .warning
             )
         }
@@ -354,6 +355,10 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         }
         if let exported = try? NucleusDatabase.exportBillsToCloudKit(context: exportContext), exported > 0 {
             syncService.log("Queued \(exported) bill/payment record(s) for iCloud export on launch")
+        }
+        persistDashboardAnalysis()
+        if let exported = try? NucleusDatabase.exportDashboardToCloudKit(context: exportContext), exported > 0 {
+            syncService.log("Queued dashboard analysis for iCloud export on launch")
         }
         completeStartupStep(.database)
 
@@ -399,6 +404,11 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
             }
         }
         NucleusNotificationService.shared.onMeetingReminder = nil
+        NucleusNotificationService.shared.onClipboardPasswordAction = { [weak self] action in
+            Task { @MainActor in
+                self?.handleClipboardPasswordNotificationAction(action)
+            }
+        }
         await NucleusNotificationService.shared.rescheduleMeetingReminders([])
         await refreshBillReminders(settings: settings)
         MailNotificationSound.prepareNotificationSounds()
@@ -410,12 +420,15 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         mailSyncService.start(viewModel: self, interval: settings.mailSyncInterval)
         await syncMail()
         completeStartupStep(.mailSync)
+        DashboardAnalysisService.shared.start(viewModel: self)
 
         updateDockBadge()
         startupMessage = "Nucleus is ready"
         startupProgressFraction = 1
         try? await Task.sleep(nanoseconds: 250_000_000)
         isStartingUp = false
+        sidebarSelection = .workspace(.dashboard)
+        AppSettings.shared.selectedWorkspacePane = WorkspacePane.dashboard.rawValue
         statusMessage = statusMessageForCurrentState()
         await presentWhatsNewIfNeeded()
         await promptSignInIfNeeded(settings: settings)
@@ -614,6 +627,10 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         bills = (try? BillRepository.fetchAll(context: context)) ?? []
         billPayments = (try? BillRepository.fetchPayments(context: context)) ?? []
         notes = (try? NoteRepository.fetchAll(context: context)) ?? []
+        if let stored = try? DashboardAnalysisRepository.fetch(context: context) {
+            storedDashboardAnalysis = stored
+            dashboardAnalyzedAt = stored.analyzedAt
+        }
 
         let storedMessages = (try? MailRepository.fetchRecent(context: context)) ?? []
         mailMessages = storedMessages
@@ -660,6 +677,64 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
             bills: bills,
             payments: billPayments
         )
+    }
+
+    func dashboardSnapshot() -> DashboardSnapshot {
+        if let storedDashboardAnalysis {
+            return storedDashboardAnalysis.snapshot
+        }
+        return computeDashboardSnapshot()
+    }
+
+    func computeDashboardSnapshot() -> DashboardSnapshot {
+        DashboardInsightsEngine.build(
+            unreadMailCount: totalUnread,
+            unreadChatCount: totalChatUnread,
+            passwordCount: notes.filter { $0.folder == .passwords }.count,
+            notesCount: notes.count,
+            bills: bills,
+            payments: billPayments,
+            clipboardEntries: clipboardEntries
+        )
+    }
+
+    func persistDashboardAnalysis() {
+        let stored = StoredDashboardAnalysis(
+            snapshot: computeDashboardSnapshot(),
+            analyzedAt: Date()
+        )
+        let context = ModelContext(modelContainer)
+        try? DashboardAnalysisRepository.upsert(stored, context: context)
+        storedDashboardAnalysis = stored
+        dashboardAnalyzedAt = stored.analyzedAt
+    }
+
+    var hasSyncedDataToUpload: Bool {
+        !notes.isEmpty
+            || !activeBills.isEmpty
+            || !billPayments.isEmpty
+            || storedDashboardAnalysis != nil
+    }
+
+    func pushSyncedDataToCloudKit(force: Bool = true) async -> String {
+        guard NucleusDatabase.usesCloudKitSync else {
+            if let error = NucleusDatabase.lastCloudKitSetupError {
+                return error
+            }
+            return "Synced data is stored on this Mac only. Sign in to iCloud and restart Nucleus."
+        }
+
+        if !hasSyncedDataToUpload {
+            return "No notes, bills, or dashboard analysis to sync yet."
+        }
+
+        persistDashboardAnalysis()
+        let context = ModelContext(modelContainer)
+        return await syncService.queueSyncedExportAndWait { [self] in
+            let counts = try NucleusDatabase.exportSyncedDataToCloudKit(context: context, force: force)
+            self.reloadLocalData()
+            return counts
+        }
     }
 
     func reconcileSelectedAccounts(settings: AppSettings) {
@@ -1032,6 +1107,35 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         reloadLocalData()
     }
 
+    func dismissClipboardPasswordSuggestion() {
+        if let suggestion = clipboardPasswordSuggestion {
+            rememberDismissedPasswordSuggestion(suggestion.password)
+        }
+        clipboardPasswordSuggestion = nil
+    }
+
+    func acceptClipboardPasswordSuggestion() async {
+        guard let suggestion = clipboardPasswordSuggestion else { return }
+        clipboardPasswordSuggestion = nil
+        rememberDismissedPasswordSuggestion(suggestion.password)
+        await createPasswordNoteFromClipboard(
+            password: suggestion.password,
+            source: suggestion.sourceApplication
+        )
+    }
+
+    func createPasswordNoteFromClipboard(password: String, source: String) async {
+        let fields = PasswordNoteFields.fromDetectedPassword(password, source: source)
+        let note = NoteDocument(
+            title: fields.name,
+            markdown: fields.markdown(),
+            folder: .passwords
+        )
+        sidebarSelection = .workspace(.notes)
+        await saveNote(note, selectNote: true)
+        statusMessage = "Password note created — fill in the details"
+    }
+
     func saveClipboardToNote(_ entry: ClipboardEntry, selectNote: Bool = true) async {
         let note = NoteDocument(
             title: "Clipboard \(NucleusFormatters.time.string(from: entry.capturedAt))",
@@ -1168,6 +1272,86 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         let context = ModelContext(modelContainer)
         try? ClipboardRepository.insert(entry, context: context)
         reloadLocalData()
+        evaluateClipboardForPassword(entry: entry, capture: capture)
+    }
+
+    private func evaluateClipboardForPassword(entry: ClipboardEntry, capture: ClipboardCapture) {
+        guard AppSettings.shared.clipboardPasswordDetectionEnabled else { return }
+        guard !isNucleusSourceApplication(capture.sourceApplication) else { return }
+        guard let analysis = ClipboardPasswordAnalyzer.analyze(capture.content) else { return }
+
+        let hash = passwordSuggestionHash(for: analysis.extractedPassword)
+        guard !dismissedPasswordSuggestionHashes.contains(hash) else { return }
+        guard clipboardPasswordSuggestion?.password != analysis.extractedPassword else { return }
+
+        let suggestion = ClipboardPasswordSuggestion(
+            id: entry.id,
+            password: analysis.extractedPassword,
+            sourceApplication: capture.sourceApplication,
+            capturedAt: capture.capturedAt,
+            reason: analysis.reason
+        )
+        clipboardPasswordSuggestion = suggestion
+        NucleusNotificationService.shared.notifyClipboardPasswordSuggestion(suggestion)
+    }
+
+    private func handleClipboardPasswordNotificationAction(
+        _ action: NucleusNotificationService.ClipboardPasswordAction
+    ) {
+        switch action {
+        case .show(let entryID):
+            restoreClipboardPasswordSuggestion(entryID: entryID)
+        case .save(let entryID):
+            guard let entry = clipboardEntries.first(where: { $0.id == entryID }),
+                  let analysis = ClipboardPasswordAnalyzer.analyze(entry.content) else {
+                if let suggestion = clipboardPasswordSuggestion, suggestion.id == entryID {
+                    Task { await acceptClipboardPasswordSuggestion() }
+                }
+                return
+            }
+            clipboardPasswordSuggestion = nil
+            rememberDismissedPasswordSuggestion(analysis.extractedPassword)
+            Task {
+                await createPasswordNoteFromClipboard(
+                    password: analysis.extractedPassword,
+                    source: entry.sourceApplication
+                )
+            }
+        case .dismiss(let entryID):
+            if clipboardPasswordSuggestion?.id == entryID {
+                dismissClipboardPasswordSuggestion()
+            } else if let entry = clipboardEntries.first(where: { $0.id == entryID }),
+                      let analysis = ClipboardPasswordAnalyzer.analyze(entry.content) {
+                rememberDismissedPasswordSuggestion(analysis.extractedPassword)
+            }
+        }
+    }
+
+    private func restoreClipboardPasswordSuggestion(entryID: UUID) {
+        guard let entry = clipboardEntries.first(where: { $0.id == entryID }),
+              let analysis = ClipboardPasswordAnalyzer.analyze(entry.content) else { return }
+
+        clipboardPasswordSuggestion = ClipboardPasswordSuggestion(
+            id: entry.id,
+            password: analysis.extractedPassword,
+            sourceApplication: entry.sourceApplication,
+            capturedAt: entry.capturedAt,
+            reason: analysis.reason
+        )
+    }
+
+    private func isNucleusSourceApplication(_ source: String) -> Bool {
+        let appName = Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String ?? "Nucleus"
+        return source.localizedCaseInsensitiveContains(appName)
+            || source.localizedCaseInsensitiveContains("Nucleus")
+    }
+
+    private func rememberDismissedPasswordSuggestion(_ password: String) {
+        dismissedPasswordSuggestionHashes.insert(passwordSuggestionHash(for: password))
+    }
+
+    private func passwordSuggestionHash(for password: String) -> String {
+        password.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private func handleMailNotificationAction(_ action: NucleusNotificationService.MailNotificationAction) {

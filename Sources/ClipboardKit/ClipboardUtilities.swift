@@ -27,6 +27,9 @@ public enum ClipboardTagger {
         if content.contains("```") || content.contains("func ") || content.contains("class ") {
             tags.append("code")
         }
+        if ClipboardPasswordAnalyzer.analyze(content) != nil {
+            tags.append("password")
+        }
 
         return Array(Set(tags)).sorted()
     }

@@ -10,6 +10,13 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
 
     var onMailAction: ((MailNotificationAction) -> Void)?
     var onMeetingReminder: ((CalendarEventSummary, MeetingReminderPlanner.Reminder.Kind) -> Void)?
+    var onClipboardPasswordAction: ((ClipboardPasswordAction) -> Void)?
+
+    enum ClipboardPasswordAction {
+        case save(entryID: UUID)
+        case dismiss(entryID: UUID)
+        case show(entryID: UUID)
+    }
 
     enum MailNotificationAction {
         case open(messageID: String, accountID: UUID)
@@ -97,6 +104,28 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
             content: content,
             accountID: accountID
         )
+    }
+
+    func notifyClipboardPasswordSuggestion(_ suggestion: ClipboardPasswordSuggestion) {
+        guard AppSettings.shared.clipboardPasswordDetectionEnabled else { return }
+        guard !isAppActive else { return }
+
+        let content = UNMutableNotificationContent()
+        content.title = "Password detected on clipboard"
+        content.subtitle = suggestion.sourceApplication
+        content.body = "Nucleus noticed a password-like value. Save it to Passwords?"
+        content.categoryIdentifier = "NUCLEUS_CLIPBOARD_PASSWORD"
+        content.sound = .default
+        content.userInfo = [
+            "entryID": suggestion.id.uuidString,
+        ]
+
+        let request = UNNotificationRequest(
+            identifier: "clipboard-password-\(suggestion.id.uuidString)",
+            content: content,
+            trigger: nil
+        )
+        UNUserNotificationCenter.current().add(request)
     }
 
     private func postChatNotification(
@@ -278,9 +307,20 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
         let meetingCategory = UNNotificationCategory(identifier: "NUCLEUS_MEETING", actions: [], intentIdentifiers: [])
         let chatCategory = UNNotificationCategory(identifier: "NUCLEUS_CHAT", actions: [open], intentIdentifiers: [])
         let billCategory = UNNotificationCategory(identifier: "NUCLEUS_BILL", actions: [open], intentIdentifiers: [])
+        let savePassword = UNNotificationAction(
+            identifier: "SAVE_PASSWORD",
+            title: "Save to Passwords",
+            options: [.foreground]
+        )
+        let dismissPassword = UNNotificationAction(identifier: "DISMISS_PASSWORD", title: "Not Now")
+        let clipboardPasswordCategory = UNNotificationCategory(
+            identifier: "NUCLEUS_CLIPBOARD_PASSWORD",
+            actions: [savePassword, dismissPassword],
+            intentIdentifiers: []
+        )
 
         UNUserNotificationCenter.current().setNotificationCategories([
-            mailCategory, joinCategory, meetingCategory, chatCategory, billCategory,
+            mailCategory, joinCategory, meetingCategory, chatCategory, billCategory, clipboardPasswordCategory,
         ])
     }
 
@@ -355,8 +395,22 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
                    let url = URL(string: link) {
                     ChromeLauncher.open(url: url)
                 }
+            case "SAVE_PASSWORD":
+                if let entryIDRaw = info["entryID"] as? String,
+                   let entryID = UUID(uuidString: entryIDRaw) {
+                    onClipboardPasswordAction?(.save(entryID: entryID))
+                }
+            case "DISMISS_PASSWORD":
+                if let entryIDRaw = info["entryID"] as? String,
+                   let entryID = UUID(uuidString: entryIDRaw) {
+                    onClipboardPasswordAction?(.dismiss(entryID: entryID))
+                }
             default:
-                if response.notification.request.identifier.hasPrefix("bill-"),
+                if response.notification.request.identifier.hasPrefix("clipboard-password-"),
+                   let entryIDRaw = info["entryID"] as? String,
+                   let entryID = UUID(uuidString: entryIDRaw) {
+                    onClipboardPasswordAction?(.show(entryID: entryID))
+                } else if response.notification.request.identifier.hasPrefix("bill-"),
                    let billIDRaw = info["billID"] as? String,
                    let billID = UUID(uuidString: billIDRaw) {
                     AppSettings.shared.selectedWorkspacePane = WorkspacePane.bills.rawValue

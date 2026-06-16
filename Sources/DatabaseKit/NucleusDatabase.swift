@@ -10,6 +10,15 @@ public enum NucleusDatabase {
     private static let developmentSchemaSeedDefaultsKey = "NucleusCloudKitDevelopmentSchemaSeeded"
     private static let notesCloudKitExportDefaultsKey = "NucleusCloudKitNotesExportedToCloudKit"
     private static let billsCloudKitExportDefaultsKey = "NucleusCloudKitBillsExportedToCloudKit"
+    private static let dashboardCloudKitExportDefaultsKey = "NucleusCloudKitDashboardExportedToCloudKit"
+
+    public struct SyncedCloudKitExportCounts: Sendable {
+        public var notes: Int
+        public var bills: Int
+        public var dashboard: Int
+
+        public var total: Int { notes + bills + dashboard }
+    }
 
     /// Whether the active store configuration is syncing notes via CloudKit.
     public private(set) static var usesCloudKitSync = false
@@ -23,6 +32,7 @@ public enum NucleusDatabase {
         ClipboardItemRecord.self,
         BillRecord.self,
         BillPaymentRecord.self,
+        DashboardAnalysisRecord.self,
     ])
 
     public static let localSchema = Schema([
@@ -38,6 +48,7 @@ public enum NucleusDatabase {
         ClipboardItemRecord.self,
         BillRecord.self,
         BillPaymentRecord.self,
+        DashboardAnalysisRecord.self,
         CalendarEventRecord.self,
         ActivityNotificationRecord.self,
         MailMessageRecord.self,
@@ -145,6 +156,7 @@ public enum NucleusDatabase {
             ClipboardItemRecord.self,
             BillRecord.self,
             BillPaymentRecord.self,
+            DashboardAnalysisRecord.self,
             CalendarEventRecord.self,
             ActivityNotificationRecord.self,
             MailMessageRecord.self,
@@ -173,6 +185,7 @@ public enum NucleusDatabase {
             ClipboardItemRecord.self,
             BillRecord.self,
             BillPaymentRecord.self,
+            DashboardAnalysisRecord.self,
             CalendarEventRecord.self,
             ActivityNotificationRecord.self,
             MailMessageRecord.self,
@@ -223,10 +236,36 @@ public enum NucleusDatabase {
         }
     }
 
+    /// Re-saves dashboard analysis so SwiftData exports it to CloudKit.
+    @discardableResult
+    public static func exportDashboardToCloudKit(context: ModelContext, force: Bool = false) throws -> Int {
+        guard usesCloudKitSync else { return 0 }
+        if !force, UserDefaults.standard.bool(forKey: dashboardCloudKitExportDefaultsKey) {
+            return 0
+        }
+
+        let count = try DashboardAnalysisRepository.touchForCloudKitExport(context: context)
+        if count > 0 || force {
+            UserDefaults.standard.set(true, forKey: dashboardCloudKitExportDefaultsKey)
+            NSLog("Nucleus: Queued dashboard analysis for CloudKit export.")
+        }
+        return count
+    }
+
+    @discardableResult
+    public static func exportSyncedDataToCloudKit(context: ModelContext, force: Bool = false) throws -> SyncedCloudKitExportCounts {
+        SyncedCloudKitExportCounts(
+            notes: try exportNotesToCloudKit(context: context, force: force),
+            bills: try exportBillsToCloudKit(context: context, force: force),
+            dashboard: try exportDashboardToCloudKit(context: context, force: force)
+        )
+    }
+
     /// Clears CloudKit export flags so a fresh store re-exports to iCloud.
     public static func resetCloudKitUserDefaults() {
         UserDefaults.standard.removeObject(forKey: notesCloudKitExportDefaultsKey)
         UserDefaults.standard.removeObject(forKey: billsCloudKitExportDefaultsKey)
+        UserDefaults.standard.removeObject(forKey: dashboardCloudKitExportDefaultsKey)
         UserDefaults.standard.removeObject(forKey: developmentSchemaSeedDefaultsKey)
     }
 
@@ -268,6 +307,7 @@ public enum NucleusDatabase {
             ClipboardItemRecord.self,
             BillRecord.self,
             BillPaymentRecord.self,
+            DashboardAnalysisRecord.self,
         ]
         guard let managedObjectModel = NSManagedObjectModel.makeManagedObjectModel(for: syncedModels) else {
             throw NSError(domain: "NucleusDatabase", code: 1, userInfo: [
@@ -880,5 +920,49 @@ public enum BillRepository {
         }
         try context.save()
         return billRecords.count + paymentRecords.count
+    }
+}
+
+public enum DashboardAnalysisRepository {
+    public static func fetch(context: ModelContext) throws -> StoredDashboardAnalysis? {
+        let singletonID = DashboardAnalysisRecord.singletonRecordID
+        var descriptor = FetchDescriptor<DashboardAnalysisRecord>(
+            predicate: #Predicate { $0.id == singletonID }
+        )
+        descriptor.fetchLimit = 1
+        guard let record = try context.fetch(descriptor).first else { return nil }
+        return try record.storedAnalysis
+    }
+
+    public static func upsert(_ stored: StoredDashboardAnalysis, context: ModelContext) throws {
+        let singletonID = DashboardAnalysisRecord.singletonRecordID
+        var descriptor = FetchDescriptor<DashboardAnalysisRecord>(
+            predicate: #Predicate { $0.id == singletonID }
+        )
+        descriptor.fetchLimit = 1
+
+        if let existing = try context.fetch(descriptor).first {
+            try existing.apply(stored)
+        } else {
+            context.insert(try DashboardAnalysisRecord(stored: stored))
+        }
+        try context.save()
+    }
+
+    @discardableResult
+    public static func touchForCloudKitExport(context: ModelContext) throws -> Int {
+        let singletonID = DashboardAnalysisRecord.singletonRecordID
+        var descriptor = FetchDescriptor<DashboardAnalysisRecord>(
+            predicate: #Predicate { $0.id == singletonID }
+        )
+        descriptor.fetchLimit = 1
+        guard let record = try context.fetch(descriptor).first else { return 0 }
+
+        record.updatedAt = Date()
+        record.payloadData.append(0)
+        try context.save()
+        record.payloadData.removeLast()
+        try context.save()
+        return 1
     }
 }

@@ -9,6 +9,7 @@ enum CloudKitRecordDiagnostics {
         "CD_ClipboardItemRecord",
         "CD_BillRecord",
         "CD_BillPaymentRecord",
+        "CD_DashboardAnalysisRecord",
     ]
 
     static let productionSchemaDeployHint =
@@ -134,6 +135,10 @@ enum CloudKitRecordDiagnostics {
             record["CD_billID"] = UUID().uuidString as CKRecordValue
             record["CD_amount"] = 0 as CKRecordValue
             record["CD_paidAt"] = Date() as CKRecordValue
+        case "CD_DashboardAnalysisRecord":
+            record["CD_payloadData"] = Data("{}".utf8) as CKRecordValue
+            record["CD_analyzedAt"] = Date() as CKRecordValue
+            record["CD_updatedAt"] = Date() as CKRecordValue
         default:
             break
         }

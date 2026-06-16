@@ -21,6 +21,7 @@ REQUIRED_TYPES=(
   CD_ClipboardItemRecord
   CD_BillRecord
   CD_BillPaymentRecord
+  CD_DashboardAnalysisRecord
 )
 
 echo "==> Nucleus CloudKit schema → Production (bills included)"
@@ -65,6 +66,7 @@ Apple only allows Production schema deploy through CloudKit Console:
   3. Schema → Record Types — confirm these exist:
      - CD_BillRecord
      - CD_BillPaymentRecord
+     - CD_DashboardAnalysisRecord
      - CD_NoteRecord, CD_GoogleAccountRecord, CD_SyncedSettingsRecord, CD_ClipboardItemRecord
   4. Footer → "Deploy Schema Changes…"
   5. Review changes (should list CD_BillRecord / CD_BillPaymentRecord if new)

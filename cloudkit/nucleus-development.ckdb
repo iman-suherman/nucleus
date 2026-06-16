@@ -61,6 +61,22 @@ DEFINE SCHEMA
         GRANT CREATE TO "_icloud"
     );
 
+    RECORD TYPE CD_DashboardAnalysisRecord (
+        CD_analyzedAt   TIMESTAMP,
+        CD_entityName   STRING,
+        CD_id           STRING QUERYABLE,
+        CD_payloadData  BYTES,
+        CD_updatedAt    TIMESTAMP,
+        "___createTime" TIMESTAMP,
+        "___createdBy"  REFERENCE,
+        "___etag"       STRING,
+        "___modTime"    TIMESTAMP,
+        "___modifiedBy" REFERENCE,
+        "___recordID"   REFERENCE QUERYABLE,
+        GRANT READ, WRITE TO "_creator",
+        GRANT CREATE TO "_icloud"
+    );
+
     RECORD TYPE CD_GoogleAccountRecord (
         CD_authMode              STRING,
         CD_avatarURL             STRING,

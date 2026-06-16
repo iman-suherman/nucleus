@@ -49,10 +49,8 @@ struct AppSettingsView: View {
     @ObservedObject var viewModel: AppViewModel
     var accounts: [GoogleAccount]
     let selectedTab: SettingsTab
-    @State private var notesCloudKitMessage: String?
-    @State private var billsCloudKitMessage: String?
-    @State private var isUploadingNotesToCloudKit = false
-    @State private var isUploadingBillsToCloudKit = false
+    @State private var cloudKitSyncMessage: String?
+    @State private var isSyncingToCloudKit = false
 
     var body: some View {
         ScrollView {
@@ -120,6 +118,13 @@ struct AppSettingsView: View {
                     .foregroundStyle(.secondary)
             }
 
+            if let analyzedAt = viewModel.dashboardAnalyzedAt {
+                LabeledContent("Dashboard analysis") {
+                    Text(analyzedAt, style: .relative)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
             if !NucleusDatabase.usesCloudKitSync, let error = NucleusDatabase.lastCloudKitSetupError {
                 Text(error)
                     .font(.caption)
@@ -134,40 +139,25 @@ struct AppSettingsView: View {
                 .foregroundStyle(.secondary)
 
                 VStack(alignment: .leading, spacing: 8) {
-                    Button(uploadNotesButtonTitle) {
-                        isUploadingNotesToCloudKit = true
-                        notesCloudKitMessage = "Waiting for CloudKit export (up to 30s)…"
+                    Button(syncToCloudButtonTitle) {
+                        isSyncingToCloudKit = true
+                        cloudKitSyncMessage = "Waiting for CloudKit export (up to 45s)…"
                         Task {
-                            notesCloudKitMessage = await viewModel.pushNotesToCloudKit(force: true)
-                            isUploadingNotesToCloudKit = false
+                            cloudKitSyncMessage = await viewModel.pushSyncedDataToCloudKit(force: true)
+                            isSyncingToCloudKit = false
                         }
                     }
-                    .disabled(isUploadingNotesToCloudKit || viewModel.notes.isEmpty)
+                    .disabled(isSyncingToCloudKit || !viewModel.hasSyncedDataToUpload)
 
-                    if let notesCloudKitMessage {
-                        Text(notesCloudKitMessage)
+                    if let cloudKitSyncMessage {
+                        Text(cloudKitSyncMessage)
                             .font(.caption)
-                            .foregroundStyle(cloudKitMessageColor(notesCloudKitMessage))
+                            .foregroundStyle(cloudKitMessageColor(cloudKitSyncMessage))
                     }
 
-                    Button(uploadBillsButtonTitle) {
-                        isUploadingBillsToCloudKit = true
-                        billsCloudKitMessage = "Waiting for CloudKit export (up to 30s)…"
-                        Task {
-                            billsCloudKitMessage = await viewModel.pushBillsToCloudKit(force: true)
-                            isUploadingBillsToCloudKit = false
-                        }
-                    }
-                    .disabled(
-                        isUploadingBillsToCloudKit
-                            || (viewModel.activeBills.isEmpty && viewModel.billPayments.isEmpty)
-                    )
-
-                    if let billsCloudKitMessage {
-                        Text(billsCloudKitMessage)
-                            .font(.caption)
-                            .foregroundStyle(cloudKitMessageColor(billsCloudKitMessage))
-                    }
+                    Text("Syncs notes, bills, and the latest dashboard analysis to iCloud.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
 
                 ICloudSyncLogPanel(syncService: syncService)
@@ -180,7 +170,7 @@ struct AppSettingsView: View {
                 }
             }
 
-            Text("Accounts, notes, bills, window layout, and preferences sync through iCloud. Gmail web sessions still require sign-in inside Inbox on each Mac.")
+            Text("Accounts, notes, bills, dashboard analysis, window layout, and preferences sync through iCloud. Gmail web sessions still require sign-in inside Inbox on each Mac.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
@@ -216,6 +206,14 @@ struct AppSettingsView: View {
                 Toggle("Email notifications", isOn: $settings.emailNotificationsEnabled)
                 Toggle("Chat notifications", isOn: $settings.chatNotificationsEnabled)
                 Toggle("Calendar notifications", isOn: $settings.calendarNotificationsEnabled)
+            }
+
+            Section("Intelligent clipboard") {
+                Toggle("Suggest saving passwords from clipboard", isOn: $settings.clipboardPasswordDetectionEnabled)
+
+                Text("When Nucleus detects a password-like value on your clipboard, it offers to save it as a Passwords note.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
 
             Section("Hourly beep") {
@@ -337,24 +335,17 @@ struct AppSettingsView: View {
         if lowered.contains("has not finished") || lowered.contains("waiting") {
             return .orange
         }
-        if lowered.contains("uploaded") || lowered.contains("already has") {
+        if lowered.contains("uploaded") || lowered.contains("already has") || lowered.contains("synced") {
             return .green
         }
         return .secondary
     }
 
-    private var uploadNotesButtonTitle: String {
-        if isUploadingNotesToCloudKit {
-            return "Uploading Notes…"
+    private var syncToCloudButtonTitle: String {
+        if isSyncingToCloudKit {
+            return "Syncing to iCloud…"
         }
-        return "Upload Notes to iCloud"
-    }
-
-    private var uploadBillsButtonTitle: String {
-        if isUploadingBillsToCloudKit {
-            return "Uploading Bills…"
-        }
-        return "Upload Bills to iCloud"
+        return "Sync to iCloud"
     }
 
     private func mailSoundRow(for account: GoogleAccount) -> some View {

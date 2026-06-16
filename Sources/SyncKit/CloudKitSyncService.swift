@@ -23,6 +23,7 @@ public enum BillsExportOutcome: Equatable {
 private enum ActiveCloudKitUpload {
     case notes
     case bills
+    case synced
 }
 
 public extension Notification.Name {
@@ -125,6 +126,75 @@ public final class CloudKitSyncService: ObservableObject {
         )
     }
 
+    public func queueSyncedExportAndWait(
+        performExport: @escaping @MainActor () throws -> NucleusDatabase.SyncedCloudKitExportCounts,
+        timeoutSeconds: TimeInterval = 45
+    ) async -> String {
+        log("Sync to iCloud requested")
+        activeUpload = .synced
+        setExporting(true, for: .synced)
+
+        async let exportWait = waitForCloudKitExport(timeoutSeconds: timeoutSeconds)
+
+        await Task.yield()
+        await Task.yield()
+
+        let exportedCounts: NucleusDatabase.SyncedCloudKitExportCounts
+        do {
+            log("Queuing notes, bills, and dashboard for CloudKit export…")
+            exportedCounts = try performExport()
+            log(
+                "Marked \(exportedCounts.notes) note(s), \(exportedCounts.bills) bill/payment record(s), and \(exportedCounts.dashboard) dashboard record(s) for export"
+            )
+        } catch {
+            setExporting(false, for: .synced)
+            setFailed(error.localizedDescription, for: .synced)
+            log("Failed to queue iCloud sync: \(error.localizedDescription)", level: .error)
+            activeUpload = nil
+            return error.localizedDescription
+        }
+
+        guard exportedCounts.total > 0 else {
+            setExporting(false, for: .synced)
+            setIdle(for: .synced)
+            log("No synced data needed re-export — already queued", level: .warning)
+            activeUpload = nil
+            return "Synced data is already queued for iCloud."
+        }
+
+        log("Waiting for CloudKit export (timeout \(Int(timeoutSeconds))s)…")
+        let exportEvent = await exportWait
+        setExporting(false, for: .synced)
+        activeUpload = nil
+
+        switch exportEvent {
+        case .completed:
+            notesExportOutcome = .succeeded(noteCount: exportedCounts.notes)
+            billsExportOutcome = .succeeded(recordCount: exportedCounts.bills)
+            let message =
+                "Synced \(exportedCounts.notes) note(s), \(exportedCounts.bills) bill/payment record(s), and dashboard analysis to iCloud."
+            log(message, level: .success)
+            return message
+        case .failed(let error):
+            let message = Self.exportFailureMessage(error)
+            notesExportOutcome = .failed(message)
+            billsExportOutcome = .failed(message)
+            log(message, level: .error)
+            return message
+        case .timedOut:
+            notesExportOutcome = .timedOut(noteCount: exportedCounts.notes)
+            billsExportOutcome = .timedOut(recordCount: exportedCounts.bills)
+            let message =
+                "Sync started for \(exportedCounts.total) record(s), but CloudKit has not finished within \(Int(timeoutSeconds)) seconds. Leave Nucleus open and try again."
+            log(message, level: .warning)
+            return message
+        case .cancelled:
+            notesExportOutcome = .idle
+            billsExportOutcome = .idle
+            return "Sync cancelled."
+        }
+    }
+
     private func queueExportAndWait(
         target: ActiveCloudKitUpload,
         performExport: @escaping @MainActor () throws -> Int,
@@ -184,6 +254,8 @@ public final class CloudKitSyncService: ObservableObject {
                 exportEvent: exportEvent,
                 timeoutSeconds: timeoutSeconds
             )
+        case .synced:
+            return "Unexpected synced export path."
         }
     }
 
@@ -298,6 +370,15 @@ public final class CloudKitSyncService: ObservableObject {
                 billsSyncClearTask?.cancel()
                 billsExportOutcome = .exporting
             }
+        case .synced:
+            isNotesSyncInProgress = exporting
+            isBillsSyncInProgress = exporting
+            if exporting {
+                notesSyncClearTask?.cancel()
+                billsSyncClearTask?.cancel()
+                notesExportOutcome = .exporting
+                billsExportOutcome = .exporting
+            }
         }
     }
 
@@ -306,6 +387,9 @@ public final class CloudKitSyncService: ObservableObject {
         case .notes:
             notesExportOutcome = .idle
         case .bills:
+            billsExportOutcome = .idle
+        case .synced:
+            notesExportOutcome = .idle
             billsExportOutcome = .idle
         }
     }
@@ -316,6 +400,9 @@ public final class CloudKitSyncService: ObservableObject {
             notesExportOutcome = .failed(message)
         case .bills:
             billsExportOutcome = .failed(message)
+        case .synced:
+            notesExportOutcome = .failed(message)
+            billsExportOutcome = .failed(message)
         }
     }
 
@@ -324,6 +411,9 @@ public final class CloudKitSyncService: ObservableObject {
         case .notes:
             if case .exporting = notesExportOutcome { return true }
         case .bills:
+            if case .exporting = billsExportOutcome { return true }
+        case .synced:
+            if case .exporting = notesExportOutcome { return true }
             if case .exporting = billsExportOutcome { return true }
         case .none:
             break
