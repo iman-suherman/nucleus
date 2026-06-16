@@ -30,6 +30,7 @@ targets:
       - path: Nucleus/Assets/AppIcon.icns
       - path: Nucleus/Assets/Sounds
       - path: Nucleus/Resources/ReleaseNotes.json
+      - path: Nucleus/Resources/nucleus-bills-import.csv
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: net.suherman.nucleus
@@ -38,8 +39,8 @@ targets:
         CODE_SIGN_ENTITLEMENTS: Nucleus/entitlements.mac.plist
         CODE_SIGN_STYLE: Automatic
         DEVELOPMENT_TEAM: Q3TXW887NM
-        CURRENT_PROJECT_VERSION: 5000
-        MARKETING_VERSION: 0.5.0
+        CURRENT_PROJECT_VERSION: 6000
+        MARKETING_VERSION: 0.6.0
         ENABLE_HARDENED_RUNTIME: YES
         SPARKLE_PUBLIC_ED_KEY: B6P7+AkeawAfMFk4f5j3+0diuQWorDuCYNrVX0vJeV0=
       configs:

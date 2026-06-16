@@ -855,9 +855,88 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         )
     }
 
+    func billDisplayStatus(for bill: Bill) -> BillDisplayStatus {
+        BillScheduleCalculator.displayStatus(bill: bill, payments: billPayments)
+    }
+
+    func billStatusProgress(for bill: Bill) -> Double {
+        let status = billDisplayStatus(for: bill)
+        return BillScheduleCalculator.statusProgress(
+            bill: bill,
+            payments: billPayments,
+            status: status
+        )
+    }
+
+    @discardableResult
+    func importBillsFromCSV(_ text: String, replaceExisting: Bool = false) -> BillCSVImportResult {
+        let parsed = BillCSVCodec.importCSV(text, existingBills: bills)
+        let context = ModelContext(modelContainer)
+        do {
+            var stored = try BillRepository.importData(
+                bills: parsed.bills,
+                payments: parsed.payments,
+                context: context,
+                replaceExisting: replaceExisting
+            )
+            stored.errors.append(contentsOf: parsed.result.errors)
+            if NucleusDatabase.usesCloudKitSync {
+                _ = try NucleusDatabase.exportBillsToCloudKit(context: context, force: true)
+            }
+            reloadLocalData()
+            statusMessage = "Imported \(stored.billsImported) bill(s) and \(stored.paymentsImported) payment(s)"
+            return stored
+        } catch {
+            var result = parsed.result
+            result.errors.append(error.localizedDescription)
+            statusMessage = "Bill import failed"
+            return result
+        }
+    }
+
+    func exportBillsCSV() -> String {
+        BillCSVCodec.exportCSV(bills: bills, payments: billPayments)
+    }
+
+    func sampleBillsCSV() -> String {
+        guard let url = Bundle.main.url(forResource: "nucleus-bills-import", withExtension: "csv"),
+              let text = try? String(contentsOf: url, encoding: .utf8) else {
+            return BillCSVCodec.exportCSV(bills: [], payments: [])
+        }
+        return text
+    }
+
+    func pushBillsToCloudKit(force: Bool = true) async -> String {
+        guard NucleusDatabase.usesCloudKitSync else {
+            if let error = NucleusDatabase.lastCloudKitSetupError {
+                return error
+            }
+            return "Bills are stored on this Mac only. Sign in to iCloud and restart Nucleus."
+        }
+
+        if bills.isEmpty, billPayments.isEmpty {
+            return "No bills or payments to upload."
+        }
+
+        let context = ModelContext(modelContainer)
+        do {
+            let count = try NucleusDatabase.exportBillsToCloudKit(context: context, force: force)
+            reloadLocalData()
+            if count > 0 {
+                return "Queued \(count) bill/payment record(s) for iCloud upload."
+            }
+            return "Bills are already queued for iCloud sync."
+        } catch {
+            return error.localizedDescription
+        }
+    }
+
     func saveBill(_ bill: Bill) {
         let context = ModelContext(modelContainer)
         try? BillRepository.upsert(bill, context: context)
+        if NucleusDatabase.usesCloudKitSync {
+            try? NucleusDatabase.exportBillsToCloudKit(context: context, force: true)
+        }
         reloadLocalData()
         selectedBillID = bill.id
         statusMessage = "Saved bill"
@@ -888,6 +967,10 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
                 customIntervalDays: bill.customIntervalDays
             )
             try? BillRepository.upsert(bill, context: context)
+        }
+
+        if NucleusDatabase.usesCloudKitSync {
+            try? NucleusDatabase.exportBillsToCloudKit(context: context, force: true)
         }
 
         reloadLocalData()

@@ -215,6 +215,55 @@ public enum BillScheduleCalculator {
         return dates
     }
 
+    public static func displayStatus(
+        bill: Bill,
+        payments: [BillPayment],
+        reference: Date = Date(),
+        calendar: Calendar = .current
+    ) -> BillDisplayStatus {
+        let remaining = remainingAmount(bill: bill, payments: payments, calendar: calendar)
+        if remaining <= 0.009 {
+            return .paid
+        }
+
+        let dueDay = calendar.startOfDay(for: bill.nextDueDate)
+        let today = calendar.startOfDay(for: reference)
+        if dueDay < today {
+            return .overdue
+        }
+
+        let paid = amountPaidThisPeriod(bill: bill, payments: payments, calendar: calendar)
+        if paid > 0.009 {
+            return .partial
+        }
+
+        if let soon = calendar.date(byAdding: .day, value: 14, to: today), dueDay <= soon {
+            return .dueSoon
+        }
+
+        return .upcoming
+    }
+
+    public static func statusProgress(
+        bill: Bill,
+        payments: [BillPayment],
+        status: BillDisplayStatus,
+        reference: Date = Date(),
+        calendar: Calendar = .current
+    ) -> Double {
+        switch status {
+        case .paid:
+            return 1
+        case .overdue:
+            return 1
+        case .partial:
+            let paid = amountPaidThisPeriod(bill: bill, payments: payments, calendar: calendar)
+            return bill.amount > 0 ? min(1, paid / bill.amount) : 1
+        case .dueSoon, .upcoming:
+            return progressUntilDue(bill: bill, payments: payments, reference: reference, calendar: calendar)
+        }
+    }
+
     private static func nextMonthlyDue(day: Int, after reference: Date, calendar: Calendar) -> Date {
         var components = calendar.dateComponents([.year, .month], from: reference)
         let year = components.year ?? calendar.component(.year, from: reference)

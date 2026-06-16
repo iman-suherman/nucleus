@@ -7,6 +7,8 @@ enum CloudKitRecordDiagnostics {
         "CD_GoogleAccountRecord",
         "CD_SyncedSettingsRecord",
         "CD_ClipboardItemRecord",
+        "CD_BillRecord",
+        "CD_BillPaymentRecord",
     ]
 
     static let productionSchemaDeployHint =
@@ -119,6 +121,19 @@ enum CloudKitRecordDiagnostics {
             record["CD_sourceApplication"] = "Nucleus" as CKRecordValue
             record["CD_isPinned"] = 0 as CKRecordValue
             record["CD_capturedAt"] = Date() as CKRecordValue
+        case "CD_BillRecord":
+            record["CD_name"] = "probe" as CKRecordValue
+            record["CD_amount"] = 0 as CKRecordValue
+            record["CD_categoryRaw"] = "other" as CKRecordValue
+            record["CD_recurrenceRaw"] = "monthly" as CKRecordValue
+            record["CD_nextDueDate"] = Date() as CKRecordValue
+            record["CD_isArchived"] = 0 as CKRecordValue
+            record["CD_createdAt"] = Date() as CKRecordValue
+            record["CD_sortOrder"] = 0 as CKRecordValue
+        case "CD_BillPaymentRecord":
+            record["CD_billID"] = UUID().uuidString as CKRecordValue
+            record["CD_amount"] = 0 as CKRecordValue
+            record["CD_paidAt"] = Date() as CKRecordValue
         default:
             break
         }

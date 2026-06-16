@@ -116,6 +116,24 @@ public struct BillPayment: Identifiable, Codable, Hashable, Sendable {
     }
 }
 
+public enum BillDisplayStatus: String, Sendable, CaseIterable {
+    case paid
+    case overdue
+    case dueSoon
+    case partial
+    case upcoming
+
+    public var label: String {
+        switch self {
+        case .paid: return "Paid"
+        case .overdue: return "Overdue"
+        case .dueSoon: return "Due soon"
+        case .partial: return "Partially paid"
+        case .upcoming: return "Upcoming"
+        }
+    }
+}
+
 public struct BillMonthlySummary: Sendable {
     public var dueSoonCount: Int
     public var dueSoonAmount: Double

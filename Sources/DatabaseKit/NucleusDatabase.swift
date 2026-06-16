@@ -9,6 +9,7 @@ public enum NucleusDatabase {
     public static let swiftDataCloudKitZoneName = "com.apple.coredata.cloudkit.zone"
     private static let developmentSchemaSeedDefaultsKey = "NucleusCloudKitDevelopmentSchemaSeeded"
     private static let notesCloudKitExportDefaultsKey = "NucleusCloudKitNotesExportedToCloudKit"
+    private static let billsCloudKitExportDefaultsKey = "NucleusCloudKitBillsExportedToCloudKit"
 
     /// Whether the active store configuration is syncing notes via CloudKit.
     public private(set) static var usesCloudKitSync = false
@@ -100,6 +101,22 @@ public enum NucleusDatabase {
         if count > 0 || force {
             UserDefaults.standard.set(true, forKey: notesCloudKitExportDefaultsKey)
             NSLog("Nucleus: Queued %ld note(s) for CloudKit export.", count)
+        }
+        return count
+    }
+
+    /// Re-saves every bill and payment so SwiftData exports them to CloudKit.
+    @discardableResult
+    public static func exportBillsToCloudKit(context: ModelContext, force: Bool = false) throws -> Int {
+        guard usesCloudKitSync else { return 0 }
+        if !force, UserDefaults.standard.bool(forKey: billsCloudKitExportDefaultsKey) {
+            return 0
+        }
+
+        let count = try BillRepository.touchAllForCloudKitExport(context: context)
+        if count > 0 || force {
+            UserDefaults.standard.set(true, forKey: billsCloudKitExportDefaultsKey)
+            NSLog("Nucleus: Queued %ld bill/payment record(s) for CloudKit export.", count)
         }
         return count
     }
@@ -209,6 +226,7 @@ public enum NucleusDatabase {
     /// Clears CloudKit export flags so a fresh store re-exports to iCloud.
     public static func resetCloudKitUserDefaults() {
         UserDefaults.standard.removeObject(forKey: notesCloudKitExportDefaultsKey)
+        UserDefaults.standard.removeObject(forKey: billsCloudKitExportDefaultsKey)
         UserDefaults.standard.removeObject(forKey: developmentSchemaSeedDefaultsKey)
     }
 
@@ -758,5 +776,109 @@ public enum BillRepository {
     private static func nextBillSortOrder(context: ModelContext) throws -> Int {
         let records = try context.fetch(FetchDescriptor<BillRecord>())
         return (records.map(\.sortOrder).max() ?? -1) + 1
+    }
+
+    public static func importData(
+        bills: [Bill],
+        payments: [BillPayment],
+        context: ModelContext,
+        replaceExisting: Bool = false
+    ) throws -> BillCSVImportResult {
+        if replaceExisting {
+            for record in try context.fetch(FetchDescriptor<BillRecord>()) {
+                context.delete(record)
+            }
+            for record in try context.fetch(FetchDescriptor<BillPaymentRecord>()) {
+                context.delete(record)
+            }
+        }
+
+        let existingRecords = try context.fetch(FetchDescriptor<BillRecord>())
+        var billIDMap: [UUID: UUID] = [:]
+        var importedBills = 0
+
+        for bill in bills {
+            if let match = existingRecords.first(where: { $0.name.caseInsensitiveCompare(bill.name) == .orderedSame }) {
+                billIDMap[bill.id] = match.id
+                var updated = bill
+                updated = Bill(
+                    id: match.id,
+                    name: bill.name,
+                    amount: bill.amount,
+                    category: bill.category,
+                    recurrence: bill.recurrence,
+                    customIntervalDays: bill.customIntervalDays,
+                    dueDayOfMonth: bill.dueDayOfMonth,
+                    nextDueDate: bill.nextDueDate,
+                    iconName: bill.iconName,
+                    notes: bill.notes,
+                    isArchived: bill.isArchived,
+                    createdAt: match.createdAt,
+                    sortOrder: bill.sortOrder == 0 ? match.sortOrder : bill.sortOrder
+                )
+                match.apply(updated)
+            } else {
+                billIDMap[bill.id] = bill.id
+                importedBills += 1
+                let nextSortOrder = try nextBillSortOrder(context: context)
+                context.insert(BillRecord(
+                    id: bill.id,
+                    name: bill.name,
+                    amount: bill.amount,
+                    categoryRaw: bill.category.rawValue,
+                    recurrenceRaw: bill.recurrence.rawValue,
+                    customIntervalDays: bill.customIntervalDays,
+                    dueDayOfMonth: bill.dueDayOfMonth,
+                    nextDueDate: bill.nextDueDate,
+                    iconName: bill.iconName,
+                    notes: bill.notes,
+                    isArchived: bill.isArchived,
+                    createdAt: bill.createdAt,
+                    sortOrder: bill.sortOrder == 0 ? nextSortOrder : bill.sortOrder
+                ))
+            }
+        }
+
+        let existingPaymentIDs = Set(try context.fetch(FetchDescriptor<BillPaymentRecord>()).map(\.id))
+        var importedPayments = 0
+        for payment in payments {
+            guard !existingPaymentIDs.contains(payment.id) else { continue }
+            let resolvedBillID = billIDMap[payment.billID] ?? payment.billID
+            context.insert(BillPaymentRecord(
+                id: payment.id,
+                billID: resolvedBillID,
+                amount: payment.amount,
+                paidAt: payment.paidAt,
+                note: payment.note
+            ))
+            importedPayments += 1
+        }
+
+        try context.save()
+        return BillCSVImportResult(billsImported: importedBills, paymentsImported: importedPayments)
+    }
+
+    @discardableResult
+    public static func touchAllForCloudKitExport(context: ModelContext) throws -> Int {
+        let billRecords = try context.fetch(FetchDescriptor<BillRecord>())
+        let paymentRecords = try context.fetch(FetchDescriptor<BillPaymentRecord>())
+        guard !billRecords.isEmpty || !paymentRecords.isEmpty else { return 0 }
+
+        for record in billRecords {
+            record.notes += "\u{200B}"
+        }
+        for record in paymentRecords {
+            record.note += "\u{200B}"
+        }
+        try context.save()
+
+        for record in billRecords where record.notes.hasSuffix("\u{200B}") {
+            record.notes.removeLast()
+        }
+        for record in paymentRecords where record.note.hasSuffix("\u{200B}") {
+            record.note.removeLast()
+        }
+        try context.save()
+        return billRecords.count + paymentRecords.count
     }
 }

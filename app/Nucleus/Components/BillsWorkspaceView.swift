@@ -1,14 +1,23 @@
+import DatabaseKit
 import NucleusKit
 import SwiftUI
+import SyncKit
+import UniformTypeIdentifiers
 
 struct BillsWorkspaceView: View {
     @EnvironmentObject private var viewModel: AppViewModel
     @EnvironmentObject private var appSettings: AppSettings
+    @ObservedObject private var syncService = CloudKitSyncService.shared
     @State private var showingAddBill = false
     @State private var showingLogPayment = false
     @State private var showingPartialPayment = false
     @State private var showingBillDetail = false
     @State private var showingIncomeEditor = false
+    @State private var showingImportPanel = false
+    @State private var showingExportPanel = false
+    @State private var exportDocument = BillCSVDocument(text: "")
+    @State private var importMessage: String?
+    @State private var syncMessage: String?
     @State private var calendarMonth = Date()
 
     private var summary: BillMonthlySummary {
@@ -65,28 +74,145 @@ struct BillsWorkspaceView: View {
                 appSettings.expectedMonthlyIncome = amount
             }
         }
+        .fileImporter(
+            isPresented: $showingImportPanel,
+            allowedContentTypes: [.commaSeparatedText, .plainText, .text],
+            allowsMultipleSelection: false
+        ) { result in
+            handleImport(result)
+        }
+        .fileExporter(
+            isPresented: $showingExportPanel,
+            document: exportDocument,
+            contentType: .commaSeparatedText,
+            defaultFilename: "nucleus-bills-export"
+        ) { result in
+            if case .failure(let error) = result {
+                importMessage = error.localizedDescription
+            }
+        }
+        .alert("Bills", isPresented: Binding(
+            get: { importMessage != nil || syncMessage != nil },
+            set: { if !$0 { importMessage = nil; syncMessage = nil } }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(importMessage ?? syncMessage ?? "")
+        }
+    }
+
+    private func handleImport(_ result: Result<[URL], Error>) {
+        switch result {
+        case .failure(let error):
+            importMessage = error.localizedDescription
+        case .success(let urls):
+            guard let url = urls.first else { return }
+            guard url.startAccessingSecurityScopedResource() else {
+                importMessage = "Could not access the selected file."
+                return
+            }
+            defer { url.stopAccessingSecurityScopedResource() }
+            do {
+                let text = try String(contentsOf: url, encoding: .utf8)
+                let outcome = viewModel.importBillsFromCSV(text)
+                if outcome.errors.isEmpty {
+                    importMessage = "Imported \(outcome.billsImported) bill(s) and \(outcome.paymentsImported) payment(s)."
+                } else {
+                    importMessage = "Imported \(outcome.billsImported) bill(s) and \(outcome.paymentsImported) payment(s) with \(outcome.errors.count) warning(s).\n\(outcome.errors.prefix(3).joined(separator: "\n"))"
+                }
+            } catch {
+                importMessage = error.localizedDescription
+            }
+        }
     }
 
     private var billList: some View {
         VStack(spacing: 0) {
             billListHeader
-            billColumnHeader
 
-            List(selection: $viewModel.selectedBillID) {
-                ForEach(viewModel.activeBills) { bill in
-                    BillRowView(
-                        bill: bill,
-                        averageAmount: viewModel.averagePayment(for: bill.id) ?? bill.amount,
-                        remainingAmount: viewModel.remainingAmount(for: bill),
-                        progress: viewModel.dueProgress(for: bill)
-                    )
-                    .tag(bill.id)
+            if viewModel.activeBills.isEmpty {
+                billsEmptyState
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                billColumnHeader
+                List(selection: $viewModel.selectedBillID) {
+                    ForEach(viewModel.activeBills) { bill in
+                        BillRowView(
+                            bill: bill,
+                            averageAmount: viewModel.averagePayment(for: bill.id) ?? bill.amount,
+                            remainingAmount: viewModel.remainingAmount(for: bill),
+                            status: viewModel.billDisplayStatus(for: bill),
+                            progress: viewModel.billStatusProgress(for: bill)
+                        )
+                        .tag(bill.id)
+                    }
                 }
+                .listStyle(.inset)
             }
-            .listStyle(.inset)
 
             billActionBar
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(nsColor: .textBackgroundColor))
+    }
+
+    private var billsEmptyState: some View {
+        VStack(spacing: 20) {
+            Spacer()
+
+            Image(systemName: "calendar.badge.clock")
+                .font(.system(size: 52, weight: .light))
+                .foregroundStyle(.secondary)
+
+            VStack(spacing: 8) {
+                Text("No bills yet")
+                    .font(.title2.bold())
+                Text("Track recurring bills, log payments, and see what's still due this month.")
+                    .font(.body)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: 420)
+            }
+
+            HStack(spacing: 12) {
+                Button {
+                    showingImportPanel = true
+                } label: {
+                    Label("Import CSV", systemImage: "square.and.arrow.down")
+                }
+                .buttonStyle(.borderedProminent)
+
+                Button {
+                    showingAddBill = true
+                } label: {
+                    Label("Add Bill", systemImage: "plus")
+                }
+                .buttonStyle(.bordered)
+            }
+
+            VStack(spacing: 8) {
+                Text("Use the bundled sample CSV modeled on Chronicle Pro bills, or export from Nucleus anytime.")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: 460)
+
+                Button("Save Sample CSV…") {
+                    exportDocument = BillCSVDocument(text: viewModel.sampleBillsCSV())
+                    showingExportPanel = true
+                }
+                .buttonStyle(.link)
+            }
+
+            if NucleusDatabase.usesCloudKitSync {
+                Label("Bills and payment history sync via iCloud", systemImage: "icloud")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+        }
+        .padding(.horizontal, 32)
     }
 
     private var billListHeader: some View {
@@ -94,6 +220,36 @@ struct BillsWorkspaceView: View {
             Text("Bills")
                 .font(.title2.bold())
             Spacer()
+
+            if NucleusDatabase.usesCloudKitSync {
+                Label("iCloud", systemImage: syncService.status.isAvailable ? "icloud.fill" : "icloud.slash")
+                    .font(.caption)
+                    .foregroundStyle(syncService.status.isAvailable ? .blue : .secondary)
+            }
+
+            Menu {
+                Button {
+                    showingImportPanel = true
+                } label: {
+                    Label("Import CSV…", systemImage: "square.and.arrow.down")
+                }
+                Button {
+                    exportDocument = BillCSVDocument(text: viewModel.exportBillsCSV())
+                    showingExportPanel = true
+                } label: {
+                    Label("Export CSV…", systemImage: "square.and.arrow.up")
+                }
+                Button {
+                    exportDocument = BillCSVDocument(text: viewModel.sampleBillsCSV())
+                    showingExportPanel = true
+                } label: {
+                    Label("Save Sample CSV…", systemImage: "doc.text")
+                }
+            } label: {
+                Label("Import / Export", systemImage: "arrow.up.arrow.down.circle")
+            }
+            .menuStyle(.borderlessButton)
+
             Text("\(viewModel.activeBills.count) active")
                 .foregroundStyle(.secondary)
         }
@@ -122,10 +278,19 @@ struct BillsWorkspaceView: View {
 
     private var billActionBar: some View {
         HStack(spacing: 12) {
-            Button {
-                showingAddBill = true
+            Menu {
+                Button {
+                    showingAddBill = true
+                } label: {
+                    Label("Add Bill", systemImage: "plus")
+                }
+                Button {
+                    showingImportPanel = true
+                } label: {
+                    Label("Import CSV…", systemImage: "square.and.arrow.down")
+                }
             } label: {
-                Label("Add Bill", systemImage: "plus")
+                Label("Add", systemImage: "plus")
             }
 
             Button {
@@ -214,6 +379,17 @@ struct BillsWorkspaceView: View {
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
+
+                Button {
+                    Task {
+                        syncMessage = await viewModel.pushBillsToCloudKit(force: true)
+                    }
+                } label: {
+                    Label("Sync", systemImage: "arrow.triangle.2.circlepath")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .disabled(!NucleusDatabase.usesCloudKitSync)
             }
             .padding(20)
         }
@@ -221,17 +397,68 @@ struct BillsWorkspaceView: View {
     }
 }
 
+private struct BillCSVDocument: FileDocument {
+    static var readableContentTypes: [UTType] { [.commaSeparatedText, .plainText] }
+
+    var text: String
+
+    init(text: String) {
+        self.text = text
+    }
+
+    init(configuration: ReadConfiguration) throws {
+        guard let data = configuration.file.regularFileContents,
+              let string = String(data: data, encoding: .utf8) else {
+            throw CocoaError(.fileReadCorruptFile)
+        }
+        text = string
+    }
+
+    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
+        FileWrapper(regularFileWithContents: Data(text.utf8))
+    }
+}
+
+private enum BillStatusStyle {
+    static func accent(for status: BillDisplayStatus) -> Color {
+        switch status {
+        case .paid, .upcoming:
+            return Color(red: 129 / 255, green: 201 / 255, blue: 149 / 255)
+        case .dueSoon:
+            return .orange
+        case .partial:
+            return .yellow
+        case .overdue:
+            return .red
+        }
+    }
+
+    static func countdownLabel(for bill: Bill, status: BillDisplayStatus) -> String {
+        switch status {
+        case .paid:
+            return "Paid this period"
+        case .overdue:
+            return BillScheduleCalculator.dueCountdown(for: bill.nextDueDate)
+        default:
+            return BillScheduleCalculator.dueCountdown(for: bill.nextDueDate)
+        }
+    }
+}
+
 private struct BillRowView: View {
     let bill: Bill
     let averageAmount: Double
     let remainingAmount: Double
+    let status: BillDisplayStatus
     let progress: Double
+
+    private var accent: Color { BillStatusStyle.accent(for: status) }
 
     var body: some View {
         HStack(spacing: 12) {
             HStack(spacing: 10) {
                 Image(systemName: bill.resolvedIconName)
-                    .foregroundStyle(.green)
+                    .foregroundStyle(accent)
                     .frame(width: 22)
 
                 VStack(alignment: .leading, spacing: 2) {
@@ -251,18 +478,19 @@ private struct BillRowView: View {
             Text(NucleusFormatters.currencyString(remainingAmount))
                 .frame(width: 90, alignment: .trailing)
                 .fontWeight(.medium)
+                .foregroundStyle(status == .overdue ? .red : .primary)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(BillScheduleCalculator.dueCountdown(for: bill.nextDueDate))
+                Text(BillStatusStyle.countdownLabel(for: bill, status: status))
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(.green)
+                    .foregroundStyle(accent)
                 Text(NucleusFormatters.dayHeader.string(from: bill.nextDueDate))
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
             .frame(width: 170, alignment: .leading)
 
-            BillDueProgressBar(progress: progress)
+            BillDueProgressBar(progress: progress, accent: accent)
                 .frame(width: 8, height: 44)
         }
         .padding(.vertical, 4)
@@ -271,15 +499,16 @@ private struct BillRowView: View {
 
 private struct BillDueProgressBar: View {
     let progress: Double
+    let accent: Color
 
     var body: some View {
         GeometryReader { proxy in
             ZStack(alignment: .bottom) {
                 RoundedRectangle(cornerRadius: 4, style: .continuous)
-                    .fill(Color.green.opacity(0.15))
+                    .fill(accent.opacity(0.18))
                 RoundedRectangle(cornerRadius: 4, style: .continuous)
-                    .fill(Color.green)
-                    .frame(height: proxy.size.height * progress)
+                    .fill(accent)
+                    .frame(height: max(4, proxy.size.height * progress))
             }
         }
     }
