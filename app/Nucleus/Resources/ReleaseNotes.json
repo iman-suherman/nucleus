@@ -1,14 +1,15 @@
 {
-  "version": "0.3.33",
-  "summary": "Fix iCloud upload stuck on Waiting for CloudKit export.",
+  "version": "0.3.34",
+  "summary": "Clearer iCloud upload errors when notes fail to reach CloudKit.",
   "releaseNotes": {
     "introduced": [],
     "changed": [
-      "Upload Notes to iCloud uses a reliable 30-second timeout and queries CloudKit to verify notes when no export event is received"
+      "Settings → iCloud shows the last CloudKit export error when upload fails",
+      "Upload timeout message reports Production record counts and schema fix steps",
+      "Sync log includes CD_* record counts from CloudKit Production on status refresh"
     ],
     "fixed": [
-      "Upload no longer hangs indefinitely on “Waiting for CloudKit export…”",
-      "Export wait timeout no longer deadlocks on the main thread during manual upload"
+      "Manual upload nudges SwiftData to export notes that were not marked dirty"
     ]
   }
 }
