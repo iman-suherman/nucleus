@@ -284,22 +284,25 @@ struct GmailWebView: NSViewRepresentable {
             func check() {
                 guard generation == readyCheckGeneration else { return }
                 attempts += 1
-                let progress = webView.estimatedProgress
-                let ready = progress >= 0.92 || attempts >= 30
 
-                if ready {
-                    if isFirstReach {
-                        setPhase(.syncingUnread)
-                        let syncing = AppViewModel.current?.isMailBackgroundSyncInProgress == true
-                        setLoading(syncing)
-                    } else {
-                        setLoading(false)
+                webView.evaluateJavaScript(GmailWebView.inboxReadyScript) { result, _ in
+                    guard generation == self.readyCheckGeneration else { return }
+
+                    let domReady = (result as? Bool) == true
+                    let progress = webView.estimatedProgress
+                    let ready = domReady || progress >= 0.85 || attempts >= 25
+
+                    if ready {
+                        if isFirstReach {
+                            self.setPhase(.syncingUnread)
+                        }
+                        self.setLoading(false)
+                        return
                     }
-                    return
-                }
 
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                    check()
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                        check()
+                    }
                 }
             }
 
@@ -364,6 +367,15 @@ struct GmailWebView: NSViewRepresentable {
 }
 
 private extension GmailWebView {
+    static let inboxReadyScript = """
+    (function() {
+      const main = document.querySelector('[role="main"]');
+      if (main && main.children.length > 0) return true;
+      const inboxNav = document.querySelector('a[href*="#inbox"], [aria-label*="Inbox"]');
+      return Boolean(inboxNav);
+    })();
+    """
+
     static let unreadCountScript = """
     (function() {
       const titleMatch = document.title.match(/\\((\\d+)\\)/);
@@ -425,9 +437,8 @@ struct MailWorkspaceView: View {
 
     @State private var renamingAccount: GoogleAccount?
     @State private var renameDraft = ""
-    @State private var isInboxLoading = true
+    @State private var isInboxLoading = false
     @State private var inboxLoadingPhase: MailInboxLoadingPhase = .connecting
-    @State private var awaitingPostSignInSync = false
 
     var body: some View {
         Group {
@@ -441,23 +452,10 @@ struct MailWorkspaceView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onChange(of: selectedAccount?.id) { _, _ in
             inboxLoadingPhase = .connecting
-            isInboxLoading = true
-            awaitingPostSignInSync = false
+            isInboxLoading = selectedAccount != nil
         }
-        .onChange(of: viewModel.isMailBackgroundSyncInProgress) { _, syncing in
-            guard !syncing, isInboxLoading, inboxLoadingPhase == .syncingUnread else { return }
-            awaitingPostSignInSync = false
-            isInboxLoading = false
-            inboxLoadingPhase = .idle
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .gmailWebSessionDidSignIn)) { notification in
-            guard let accountID = notification.object as? UUID,
-                  accountID == selectedAccount?.id else { return }
-            inboxLoadingPhase = .syncingUnread
-            isInboxLoading = true
-            if viewModel.isMailBackgroundSyncInProgress {
-                awaitingPostSignInSync = true
-            } else {
+        .onChange(of: viewModel.accounts.isEmpty) { _, isEmpty in
+            if isEmpty {
                 isInboxLoading = false
                 inboxLoadingPhase = .idle
             }
@@ -478,10 +476,12 @@ struct MailWorkspaceView: View {
 
     private var mailContent: some View {
         VStack(spacing: 0) {
-            accountTabs
-                .padding(.horizontal, 20)
-                .padding(.top, 16)
-                .padding(.bottom, 8)
+            if !viewModel.accounts.isEmpty {
+                accountTabs
+                    .padding(.horizontal, 20)
+                    .padding(.top, 16)
+                    .padding(.bottom, 8)
+            }
 
             if viewModel.accounts.isEmpty {
                 ContentUnavailableView(
@@ -644,7 +644,7 @@ struct MailWorkspaceView: View {
     }
 
     private func inboxStepIcon(for step: MailInboxLoadingPhase) -> String {
-        if inboxLoadingPhase.isCompleted(relativeTo: step) {
+        if step.isCompleted(relativeTo: inboxLoadingPhase) {
             return "checkmark.circle.fill"
         }
         if step.isCurrent(inboxLoadingPhase) {
@@ -654,7 +654,7 @@ struct MailWorkspaceView: View {
     }
 
     private func inboxStepColor(for step: MailInboxLoadingPhase) -> Color {
-        if inboxLoadingPhase.isCompleted(relativeTo: step) {
+        if step.isCompleted(relativeTo: inboxLoadingPhase) {
             return .green
         }
         if step.isCurrent(inboxLoadingPhase) {
@@ -667,7 +667,6 @@ struct MailWorkspaceView: View {
         settings.selectedMailAccountID = account.id
         inboxLoadingPhase = .connecting
         isInboxLoading = true
-        awaitingPostSignInSync = false
         GmailWebView.navigateToInbox(
             accountID: account.id,
             email: account.email,

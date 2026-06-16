@@ -209,6 +209,7 @@ struct ContentView: View {
             }
         }
         .listStyle(.sidebar)
+        .safeAreaPadding(.top, 28)
     }
 
     private func sidebarRow(for pane: WorkspacePane) -> some View {
