@@ -105,7 +105,7 @@ struct AppSettingsView: View {
 
             LabeledContent("Notes storage") {
                 Text(NucleusDatabase.usesCloudKitSync ? "iCloud CloudKit" : "This Mac only")
-                    .foregroundStyle(NucleusDatabase.usesCloudKitSync ? .secondary : .orange)
+                    .foregroundStyle(NucleusDatabase.usesCloudKitSync ? Color.secondary : Color.orange)
             }
 
             LabeledContent("Notes on this Mac") {
