@@ -211,7 +211,7 @@ struct AppSettingsView: View {
                     settings.hourlyBeepSound.playAlert()
                 }
 
-                Text("A short beep on the hour, like a Casio watch hourly signal. Nucleus must be running.")
+                Text("A short beep at minute 59 each hour, like a Casio watch hourly signal. Nucleus must be running.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

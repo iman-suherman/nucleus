@@ -169,6 +169,8 @@ struct ContentView: View {
                 ClipboardWorkspaceView()
             case .notes:
                 NotesWorkspaceView()
+            case .bills:
+                BillsWorkspaceView()
             case .accounts:
                 AccountCenterView()
             case .settings:
@@ -238,6 +240,8 @@ struct ContentView: View {
             NucleusCountBadge(count: viewModel.totalChatUnread, kind: .chat)
         case .clipboard where !viewModel.clipboardEntries.isEmpty:
             NucleusCountBadge(count: viewModel.clipboardEntries.count)
+        case .bills where !viewModel.activeBills.isEmpty:
+            NucleusCountBadge(count: viewModel.activeBills.count)
         default:
             EmptyView()
         }

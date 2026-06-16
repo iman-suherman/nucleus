@@ -1,74 +1,128 @@
 DEFINE SCHEMA
 
-    RECORD TYPE CD_ClipboardItemRecord (
+    RECORD TYPE CD_BillPaymentRecord (
+        CD_amount       DOUBLE,
+        CD_billID       STRING QUERYABLE,
+        CD_entityName   STRING,
+        CD_id           STRING QUERYABLE,
+        CD_note         STRING,
+        CD_paidAt       TIMESTAMP,
         "___createTime" TIMESTAMP,
         "___createdBy"  REFERENCE,
         "___etag"       STRING,
         "___modTime"    TIMESTAMP,
         "___modifiedBy" REFERENCE,
         "___recordID"   REFERENCE QUERYABLE,
-        CD_capturedAt   TIMESTAMP,
-        CD_content      STRING,
-        CD_contentType  STRING,
-        CD_id           STRING QUERYABLE,
-        CD_isPinned     INT64,
+        GRANT READ, WRITE TO "_creator",
+        GRANT CREATE TO "_icloud"
+    );
+
+    RECORD TYPE CD_BillRecord (
+        CD_amount              DOUBLE,
+        CD_categoryRaw         STRING,
+        CD_createdAt           TIMESTAMP,
+        CD_customIntervalDays  INT64,
+        CD_dueDayOfMonth       INT64,
+        CD_entityName          STRING,
+        CD_iconName            STRING,
+        CD_id                  STRING QUERYABLE,
+        CD_isArchived          INT64,
+        CD_name                STRING QUERYABLE,
+        CD_nextDueDate         TIMESTAMP,
+        CD_notes               STRING,
+        CD_recurrenceRaw       STRING,
+        CD_sortOrder           INT64,
+        "___createTime"        TIMESTAMP,
+        "___createdBy"         REFERENCE,
+        "___etag"              STRING,
+        "___modTime"           TIMESTAMP,
+        "___modifiedBy"        REFERENCE,
+        "___recordID"          REFERENCE QUERYABLE,
+        GRANT READ, WRITE TO "_creator",
+        GRANT CREATE TO "_icloud"
+    );
+
+    RECORD TYPE CD_ClipboardItemRecord (
+        CD_capturedAt        TIMESTAMP,
+        CD_content           STRING,
+        CD_contentType       STRING,
+        CD_entityName        STRING,
+        CD_id                STRING QUERYABLE,
+        CD_isPinned          INT64,
         CD_sourceApplication STRING,
-        CD_tagsCSV      STRING,
-        GRANT WRITE TO "_creator",
-        GRANT CREATE TO "_icloud",
-        GRANT READ TO "_creator"
+        CD_tagsCSV           STRING,
+        "___createTime"      TIMESTAMP,
+        "___createdBy"       REFERENCE,
+        "___etag"            STRING,
+        "___modTime"         TIMESTAMP,
+        "___modifiedBy"      REFERENCE,
+        "___recordID"        REFERENCE QUERYABLE,
+        GRANT READ, WRITE TO "_creator",
+        GRANT CREATE TO "_icloud"
     );
 
     RECORD TYPE CD_GoogleAccountRecord (
-        "___createTime" TIMESTAMP,
-        "___createdBy"  REFERENCE,
-        "___etag"       STRING,
-        "___modTime"    TIMESTAMP,
-        "___modifiedBy" REFERENCE,
-        "___recordID"   REFERENCE QUERYABLE,
-        CD_authMode     STRING,
-        CD_avatarURL    STRING,
-        CD_createdAt    TIMESTAMP,
-        CD_displayName  STRING,
-        CD_email        STRING QUERYABLE,
-        CD_id           STRING QUERYABLE,
-        CD_isPrimary    INT64,
+        CD_authMode              STRING,
+        CD_avatarURL             STRING,
+        CD_createdAt             TIMESTAMP,
+        CD_displayName           STRING,
+        CD_email                 STRING QUERYABLE,
+        CD_entityName            STRING,
+        CD_id                    STRING QUERYABLE,
+        CD_isPrimary             INT64,
         CD_isPrimaryNotesAccount INT64,
-        CD_sortOrder    INT64,
-        GRANT WRITE TO "_creator",
-        GRANT CREATE TO "_icloud",
-        GRANT READ TO "_creator"
+        CD_sortOrder             INT64,
+        "___createTime"          TIMESTAMP,
+        "___createdBy"           REFERENCE,
+        "___etag"                STRING,
+        "___modTime"             TIMESTAMP,
+        "___modifiedBy"          REFERENCE,
+        "___recordID"            REFERENCE QUERYABLE,
+        GRANT READ, WRITE TO "_creator",
+        GRANT CREATE TO "_icloud"
     );
 
     RECORD TYPE CD_NoteRecord (
-        "___createTime" TIMESTAMP,
-        "___createdBy"  REFERENCE,
-        "___etag"       STRING,
-        "___modTime"    TIMESTAMP,
-        "___modifiedBy" REFERENCE,
-        "___recordID"   REFERENCE QUERYABLE,
         CD_driveFileID  STRING,
+        CD_entityName   STRING,
         CD_folderRaw    STRING,
         CD_id           STRING QUERYABLE,
         CD_markdown     STRING,
         CD_title        STRING QUERYABLE,
         CD_updatedAt    TIMESTAMP,
-        GRANT WRITE TO "_creator",
-        GRANT CREATE TO "_icloud",
-        GRANT READ TO "_creator"
-    );
-
-    RECORD TYPE CD_SyncedSettingsRecord (
         "___createTime" TIMESTAMP,
         "___createdBy"  REFERENCE,
         "___etag"       STRING,
         "___modTime"    TIMESTAMP,
         "___modifiedBy" REFERENCE,
         "___recordID"   REFERENCE QUERYABLE,
+        GRANT READ, WRITE TO "_creator",
+        GRANT CREATE TO "_icloud"
+    );
+
+    RECORD TYPE CD_SyncedSettingsRecord (
+        CD_entityName   STRING,
         CD_id           STRING QUERYABLE,
         CD_payloadData  BYTES,
         CD_updatedAt    TIMESTAMP,
+        "___createTime" TIMESTAMP,
+        "___createdBy"  REFERENCE,
+        "___etag"       STRING,
+        "___modTime"    TIMESTAMP,
+        "___modifiedBy" REFERENCE,
+        "___recordID"   REFERENCE QUERYABLE,
+        GRANT READ, WRITE TO "_creator",
+        GRANT CREATE TO "_icloud"
+    );
+
+    RECORD TYPE Users (
+        "___createTime" TIMESTAMP,
+        "___createdBy"  REFERENCE,
+        "___etag"       STRING,
+        "___modTime"    TIMESTAMP,
+        "___modifiedBy" REFERENCE,
+        "___recordID"   REFERENCE,
+        roles           LIST<INT64>,
         GRANT WRITE TO "_creator",
-        GRANT CREATE TO "_icloud",
-        GRANT READ TO "_creator"
+        GRANT READ TO "_world"
     );

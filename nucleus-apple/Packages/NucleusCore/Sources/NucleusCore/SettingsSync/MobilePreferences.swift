@@ -9,6 +9,9 @@ public enum MobileWorkspaceTab: String, CaseIterable, Identifiable, Codable, Sen
 
     public var id: String { rawValue }
 
+    /// Tabs shown in the iOS companion app (Mail, Calendar, and Chat are macOS-only).
+    public static let iosTabs: [MobileWorkspaceTab] = [.notes, .settings]
+
     public var title: String {
         switch self {
         case .mail: return "Mail"
@@ -28,6 +31,10 @@ public enum MobileWorkspaceTab: String, CaseIterable, Identifiable, Codable, Sen
         case .settings: return "gearshape"
         }
     }
+
+    public static func normalizedForIOS(_ tab: MobileWorkspaceTab) -> MobileWorkspaceTab {
+        iosTabs.contains(tab) ? tab : .notes
+    }
 }
 
 public struct MobilePreferences: Codable, Hashable, Sendable {
@@ -43,7 +50,7 @@ public struct MobilePreferences: Codable, Hashable, Sendable {
 
     public init(
         version: Int = MobilePreferences.currentVersion,
-        selectedTab: MobileWorkspaceTab = .mail,
+        selectedTab: MobileWorkspaceTab = .notes,
         selectedMailAccountID: String? = nil,
         selectedCalendarAccountID: String? = nil,
         selectedChatAccountID: String? = nil,

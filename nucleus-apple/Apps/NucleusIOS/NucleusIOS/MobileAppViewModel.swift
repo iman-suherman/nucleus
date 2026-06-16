@@ -11,16 +11,13 @@ import UserNotifications
 final class MobileAppViewModel: ObservableObject {
     @Published var isBootstrapping = true
     @Published var statusMessage = "Starting…"
-    @Published var showAddAccount = false
     @Published var errorMessage: String?
 
     let modelContainer: ModelContainer
     let accountService: MobileAccountService
     let preferencesStore = MobilePreferencesStore.shared
     let settingsSync = MobileSettingsSyncService.shared
-    let calendarSync = CalendarSyncService()
     let notesService: NotesMetadataService
-    let unreadBadge = UnreadBadgeService()
     let iCloudSync = ICloudSyncDisplayService.shared
 
     private var cloudKitObserver: AnyCancellable?
@@ -50,10 +47,10 @@ final class MobileAppViewModel: ObservableObject {
         isBootstrapping = true
         statusMessage = "Connecting to iCloud…"
 
+        normalizeSelectedTab()
         settingsSync.start(modelContainer: modelContainer)
         CloudKitSyncService.shared.start()
         await iCloudSync.refresh()
-        MeetingReminderScheduler.shared.registerCategories()
         await requestNotificationPermission()
 
         observeCloudKitChanges()
@@ -65,54 +62,10 @@ final class MobileAppViewModel: ObservableObject {
     }
 
     var selectedTab: MobileWorkspaceTab {
-        get { preferencesStore.preferences.selectedTab }
+        get { MobileWorkspaceTab.normalizedForIOS(preferencesStore.preferences.selectedTab) }
         set {
-            preferencesStore.update { $0.selectedTab = newValue }
+            preferencesStore.update { $0.selectedTab = MobileWorkspaceTab.normalizedForIOS(newValue) }
         }
-    }
-
-    func selectedAccountID(for surface: WebSurface) -> UUID? {
-        let preferences = preferencesStore.preferences
-        let raw: String?
-        switch surface {
-        case .mail: raw = preferences.selectedMailAccountID
-        case .calendar: raw = preferences.selectedCalendarAccountID
-        case .chat: raw = preferences.selectedChatAccountID
-        }
-        if let raw, let id = UUID(uuidString: raw) {
-            return id
-        }
-        return accountService.primaryAccount()?.id
-    }
-
-    func selectAccount(_ account: GoogleAccount, for surface: WebSurface) {
-        preferencesStore.update { preferences in
-            switch surface {
-            case .mail:
-                preferences.selectedMailAccountID = account.id.uuidString
-            case .calendar:
-                preferences.selectedCalendarAccountID = account.id.uuidString
-            case .chat:
-                preferences.selectedChatAccountID = account.id.uuidString
-            }
-        }
-    }
-
-    func addAccount(email: String, displayName: String) {
-        do {
-            _ = try accountService.addAccount(email: email, displayName: displayName)
-            showAddAccount = false
-        } catch {
-            errorMessage = error.localizedDescription
-        }
-    }
-
-    func refreshCalendar() async {
-        guard let account = accountService.account(for: .calendar, preferences: preferencesStore.preferences) else {
-            return
-        }
-        let cookies = await WebSessionStore.cookies(for: account.id)
-        await calendarSync.syncEvents(for: account, cookies: cookies)
     }
 
     func reloadAccountsAndNotes() {
@@ -129,6 +82,12 @@ final class MobileAppViewModel: ObservableObject {
     var primaryNotesAccountEmail: String? {
         accountService.accounts.first(where: { $0.isPrimaryNotesAccount })?.email
             ?? accountService.accounts.first?.email
+    }
+
+    private func normalizeSelectedTab() {
+        let normalized = MobileWorkspaceTab.normalizedForIOS(preferencesStore.preferences.selectedTab)
+        guard normalized != preferencesStore.preferences.selectedTab else { return }
+        preferencesStore.update { $0.selectedTab = normalized }
     }
 
     private func observeCloudKitChanges() {

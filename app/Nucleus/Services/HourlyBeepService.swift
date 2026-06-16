@@ -34,7 +34,7 @@ final class HourlyBeepService {
         let now = Date()
         let calendar = Calendar.current
         let minute = calendar.component(.minute, from: now)
-        guard minute == 0 else { return }
+        guard minute == 59 else { return }
 
         let hour = calendar.component(.hour, from: now)
         guard lastPlayedHour != hour else { return }

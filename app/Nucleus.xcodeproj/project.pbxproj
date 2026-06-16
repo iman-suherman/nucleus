@@ -20,8 +20,10 @@
 		37A6CBA22087747F45F0F4F5 /* EmbeddedWebViewContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5971F41F5427FCE836471DA /* EmbeddedWebViewContainer.swift */; };
 		3F48A8BA617C1BF575B71A17 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BF4B3460305D779B31B79D8C /* Assets.xcassets */; };
 		4502C4FF7AEF207C5B35F583 /* NucleusKit in Frameworks */ = {isa = PBXBuildFile; productRef = 3AEE0E5864A512AD45140FF0 /* NucleusKit */; };
+		4573D9B3E1B2E7E5C1A01E2A /* BillsWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A4515FC13933C08473E2A2F /* BillsWorkspaceView.swift */; };
 		4C597A31214F502918BAE394 /* WKWebView+Visibility.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C3B6F07B15EF705C5429DF9 /* WKWebView+Visibility.swift */; };
 		4E988604D8181071BA70B0EF /* Funky.caf in Resources */ = {isa = PBXBuildFile; fileRef = 500EAAED9E0A3F359D797709 /* Funky.caf */; };
+		4EDBD1DF9444754090238320 /* entitlements.mac.development.plist in Resources */ = {isa = PBXBuildFile; fileRef = 3730C4191445362A9101A48B /* entitlements.mac.development.plist */; };
 		4F9239E03B04C76F97BF4728 /* SettingsSyncBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18EF3BE5CDCDF196B18E0AAC /* SettingsSyncBridge.swift */; };
 		51EAB3CEA8190FEC48F1F8B8 /* NotesWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 953865571573F05622595783 /* NotesWorkspaceView.swift */; };
 		5AB3E566D34F7195E90F8AF2 /* NucleusTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FE025998DE849CA2FCBCC91 /* NucleusTheme.swift */; };
@@ -69,6 +71,7 @@
 		015B76265392421D7C57E815 /* AddWebGmailAccountSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddWebGmailAccountSheet.swift; sourceTree = "<group>"; };
 		035D0E9FC4A418A7C52523C6 /* DockBadgeController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DockBadgeController.swift; sourceTree = "<group>"; };
 		046B650FCA89CA8C322D0A3B /* HourlyBeep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HourlyBeep.swift; sourceTree = "<group>"; };
+		0A4515FC13933C08473E2A2F /* BillsWorkspaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BillsWorkspaceView.swift; sourceTree = "<group>"; };
 		0E94FBF67AC3185DD7F65D61 /* nucleus */ = {isa = PBXFileReference; lastKnownFileType = folder; name = nucleus; path = ..; sourceTree = SOURCE_ROOT; };
 		18EF3BE5CDCDF196B18E0AAC /* SettingsSyncBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsSyncBridge.swift; sourceTree = "<group>"; };
 		2C3B6F07B15EF705C5429DF9 /* WKWebView+Visibility.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WKWebView+Visibility.swift"; sourceTree = "<group>"; };
@@ -77,6 +80,7 @@
 		31C5C1AF3794BF5FF1456573 /* WhatsNewOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhatsNewOverlay.swift; sourceTree = "<group>"; };
 		35B2C2677CC4B681656C62C2 /* Nucleus.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Nucleus.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		36D30869A475802CF2EC37F9 /* WindowLayoutController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowLayoutController.swift; sourceTree = "<group>"; };
+		3730C4191445362A9101A48B /* entitlements.mac.development.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = entitlements.mac.development.plist; sourceTree = "<group>"; };
 		3C96EA452B81430207A5A9FB /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		414321C6FA288B25C3F312A3 /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
 		4FE025998DE849CA2FCBCC91 /* NucleusTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NucleusTheme.swift; sourceTree = "<group>"; };
@@ -144,6 +148,7 @@
 				927BBCFD3EA8B38DF2FC4788 /* AccountCategoryEditorSheet.swift */,
 				69A7BEC28EFE1D402738D081 /* AccountCenterView.swift */,
 				015B76265392421D7C57E815 /* AddWebGmailAccountSheet.swift */,
+				0A4515FC13933C08473E2A2F /* BillsWorkspaceView.swift */,
 				6F58A8AC449384291C26E26C /* CalendarWorkspaceView.swift */,
 				68D014822AC55CF805FF2873 /* ChatWorkspaceView.swift */,
 				2D130F5FD244D81A8B8DBE22 /* ClipboardPickerView.swift */,
@@ -167,6 +172,7 @@
 				414321C6FA288B25C3F312A3 /* AppSettings.swift */,
 				9169DE152DD2077D9F7C4DB3 /* AppViewModel.swift */,
 				BF4B3460305D779B31B79D8C /* Assets.xcassets */,
+				3730C4191445362A9101A48B /* entitlements.mac.development.plist */,
 				3C96EA452B81430207A5A9FB /* Info.plist */,
 				C6C43800AFF7B02A1B95466D /* Nucleus_DeveloperID.provisionprofile */,
 				C2698972D63EAE12C5F050DE /* NucleusApp.swift */,
@@ -337,6 +343,7 @@
 				627462CDC0887CCD00A910E4 /* NucleusMail.caf in Resources */,
 				E3AA1CB51FE3D2B0B15677A0 /* Nucleus_DeveloperID.provisionprofile in Resources */,
 				67D16211CC02FDAF4A0379CD /* ReleaseNotes.json in Resources */,
+				4EDBD1DF9444754090238320 /* entitlements.mac.development.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -354,6 +361,7 @@
 				B9E2844DD110DC0608825A91 /* AppViewModel.swift in Sources */,
 				C8B7DC0B032F4FA042820B5B /* AuthStateMigration.swift in Sources */,
 				2E92D4BDB66A47E6E813E56B /* BackgroundSyncServices.swift in Sources */,
+				4573D9B3E1B2E7E5C1A01E2A /* BillsWorkspaceView.swift in Sources */,
 				DCC4B4B8A424D0C638BDAD3C /* CalendarWebAuthIndexStore.swift in Sources */,
 				86A2EDB6E47C37FFBA5DE437 /* CalendarWorkspaceView.swift in Sources */,
 				8489DED1153909B55543B5E4 /* ChatWorkspaceView.swift in Sources */,
@@ -521,7 +529,7 @@
 				CODE_SIGN_ENTITLEMENTS = Nucleus/entitlements.mac.plist;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 4000;
+				CURRENT_PROJECT_VERSION = 5000;
 				DEVELOPMENT_TEAM = Q3TXW887NM;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = Nucleus/Info.plist;
@@ -529,7 +537,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.4.0;
+				MARKETING_VERSION = 0.5.0;
 				PRODUCT_BUNDLE_IDENTIFIER = net.suherman.nucleus;
 				SDKROOT = macosx;
 				SPARKLE_FEED_URL = "http://127.0.0.1:3000/appcast.xml";
@@ -544,7 +552,7 @@
 				CODE_SIGN_ENTITLEMENTS = Nucleus/entitlements.mac.plist;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 4000;
+				CURRENT_PROJECT_VERSION = 5000;
 				DEVELOPMENT_TEAM = Q3TXW887NM;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = Nucleus/Info.plist;
@@ -552,7 +560,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.4.0;
+				MARKETING_VERSION = 0.5.0;
 				PRODUCT_BUNDLE_IDENTIFIER = net.suherman.nucleus;
 				SDKROOT = macosx;
 				SPARKLE_FEED_URL = "https://nucleus-registry.suherman.net/appcast.xml";

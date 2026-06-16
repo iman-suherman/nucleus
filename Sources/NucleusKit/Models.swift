@@ -43,6 +43,7 @@ public enum WorkspacePane: String, CaseIterable, Identifiable, Sendable {
     case chat
     case clipboard
     case notes
+    case bills
     case accounts
     case settings
 
@@ -55,6 +56,7 @@ public enum WorkspacePane: String, CaseIterable, Identifiable, Sendable {
         case .chat: return "Chat"
         case .clipboard: return "Clipboard"
         case .notes: return "Notes"
+        case .bills: return "Bills"
         case .accounts: return "Accounts"
         case .settings: return "Settings"
         }
@@ -67,6 +69,7 @@ public enum WorkspacePane: String, CaseIterable, Identifiable, Sendable {
         case .chat: return "Google Chat messages"
         case .clipboard: return "Recent clips and templates"
         case .notes: return "Markdown knowledge base"
+        case .bills: return "Monthly bills and payments"
         case .accounts: return "Google identities"
         case .settings: return "Sync and notifications"
         }
@@ -79,12 +82,13 @@ public enum WorkspacePane: String, CaseIterable, Identifiable, Sendable {
         case .chat: return "message"
         case .clipboard: return "doc.on.clipboard"
         case .notes: return "note.text"
+        case .bills: return "dollarsign.circle"
         case .accounts: return "person.crop.circle.badge.plus"
         case .settings: return "gearshape"
         }
     }
 
-    public static let primaryWorkspaces: [WorkspacePane] = [.inbox, .calendar, .chat, .clipboard, .notes]
+    public static let primaryWorkspaces: [WorkspacePane] = [.inbox, .calendar, .chat, .clipboard, .notes, .bills]
     public static let utilityWorkspaces: [WorkspacePane] = [.settings, .accounts]
 }
 
@@ -431,6 +435,17 @@ public enum NucleusFormatters {
         formatter.dateFormat = "EEE d MMM yyyy"
         return formatter
     }()
+
+    public static let currency: NumberFormatter = {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .currency
+        formatter.locale = Locale.current
+        return formatter
+    }()
+
+    public static func currencyString(_ amount: Double) -> String {
+        currency.string(from: NSNumber(value: amount)) ?? String(format: "$%.2f", amount)
+    }
 }
 
 public enum ExternalLinkPolicy {

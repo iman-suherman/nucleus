@@ -160,6 +160,7 @@ final class AppSettings: ObservableObject {
         static let windowLayout = "nucleus.settings.windowLayout"
         static let hourlyBeepEnabled = "nucleus.settings.hourlyBeepEnabled"
         static let hourlyBeepSound = "nucleus.settings.hourlyBeepSound"
+        static let expectedMonthlyIncome = "nucleus.settings.expectedMonthlyIncome"
     }
 
     static let currentAppVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.1.0"
@@ -264,6 +265,10 @@ final class AppSettings: ObservableObject {
 
     @Published var hourlyBeepSound: HourlyBeepSound {
         didSet { UserDefaults.standard.set(hourlyBeepSound.rawValue, forKey: Keys.hourlyBeepSound) }
+    }
+
+    @Published var expectedMonthlyIncome: Double {
+        didSet { UserDefaults.standard.set(expectedMonthlyIncome, forKey: Keys.expectedMonthlyIncome) }
     }
 
     var sidebarWidth: CGFloat {
@@ -402,6 +407,8 @@ final class AppSettings: ObservableObject {
         } else {
             hourlyBeepSound = .classic
         }
+
+        expectedMonthlyIncome = UserDefaults.standard.object(forKey: Keys.expectedMonthlyIncome) as? Double ?? 0
     }
 
     private func persistMailNotificationSoundOverrides() {

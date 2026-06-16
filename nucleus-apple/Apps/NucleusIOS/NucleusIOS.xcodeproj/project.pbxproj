@@ -12,7 +12,6 @@
 		2934702A576CAA7A5E412CF9 /* TabletRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36C8A3C6ACCEE859BEB6EE7C /* TabletRootView.swift */; };
 		67B42FF4E7AC2C6B3A30D967 /* NucleusCore in Frameworks */ = {isa = PBXBuildFile; productRef = EA9A5099159BBEB6D87E9569 /* NucleusCore */; };
 		6AE673DB077E872544D16D7D /* WorkspaceScreens.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB8D424370D4A85FA42CBEB2 /* WorkspaceScreens.swift */; };
-		811C7FDBEA009888F6A403C9 /* AddAccountSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A6B61ABC19B4F475482C689 /* AddAccountSheet.swift */; };
 		9D77CD6F6518920313EAE8C4 /* NucleusIOSApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81DD1C5C00FFB3720FFE53A4 /* NucleusIOSApp.swift */; };
 		E6FFEB68ED5C8F1C806D61CA /* PhoneRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 582D4ABB589982477F4F9438 /* PhoneRootView.swift */; };
 		EE8B885912FCE650739554D7 /* MobileAppViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 410288DECCDA6B0F278D517A /* MobileAppViewModel.swift */; };
@@ -20,7 +19,6 @@
 
 /* Begin PBXFileReference section */
 		05AD418210F4B4E322618BDF /* MobileRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileRootView.swift; sourceTree = "<group>"; };
-		1A6B61ABC19B4F475482C689 /* AddAccountSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddAccountSheet.swift; sourceTree = "<group>"; };
 		36C8A3C6ACCEE859BEB6EE7C /* TabletRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabletRootView.swift; sourceTree = "<group>"; };
 		410288DECCDA6B0F278D517A /* MobileAppViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileAppViewModel.swift; sourceTree = "<group>"; };
 		582D4ABB589982477F4F9438 /* PhoneRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneRootView.swift; sourceTree = "<group>"; };
@@ -57,7 +55,6 @@
 		2C9423901469B4FB8AD518F6 /* Views */ = {
 			isa = PBXGroup;
 			children = (
-				1A6B61ABC19B4F475482C689 /* AddAccountSheet.swift */,
 				05AD418210F4B4E322618BDF /* MobileRootView.swift */,
 				582D4ABB589982477F4F9438 /* PhoneRootView.swift */,
 				36C8A3C6ACCEE859BEB6EE7C /* TabletRootView.swift */,
@@ -160,7 +157,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				811C7FDBEA009888F6A403C9 /* AddAccountSheet.swift in Sources */,
 				EE8B885912FCE650739554D7 /* MobileAppViewModel.swift in Sources */,
 				1454EB4D3E94990105825767 /* MobileRootView.swift in Sources */,
 				9D77CD6F6518920313EAE8C4 /* NucleusIOSApp.swift in Sources */,

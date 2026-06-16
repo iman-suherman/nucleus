@@ -20,6 +20,8 @@ public enum NucleusDatabase {
         NoteRecord.self,
         SyncedSettingsRecord.self,
         ClipboardItemRecord.self,
+        BillRecord.self,
+        BillPaymentRecord.self,
     ])
 
     public static let localSchema = Schema([
@@ -33,6 +35,8 @@ public enum NucleusDatabase {
         NoteRecord.self,
         SyncedSettingsRecord.self,
         ClipboardItemRecord.self,
+        BillRecord.self,
+        BillPaymentRecord.self,
         CalendarEventRecord.self,
         ActivityNotificationRecord.self,
         MailMessageRecord.self,
@@ -122,6 +126,8 @@ public enum NucleusDatabase {
             NoteRecord.self,
             SyncedSettingsRecord.self,
             ClipboardItemRecord.self,
+            BillRecord.self,
+            BillPaymentRecord.self,
             CalendarEventRecord.self,
             ActivityNotificationRecord.self,
             MailMessageRecord.self,
@@ -148,6 +154,8 @@ public enum NucleusDatabase {
             NoteRecord.self,
             SyncedSettingsRecord.self,
             ClipboardItemRecord.self,
+            BillRecord.self,
+            BillPaymentRecord.self,
             CalendarEventRecord.self,
             ActivityNotificationRecord.self,
             MailMessageRecord.self,
@@ -240,6 +248,8 @@ public enum NucleusDatabase {
             NoteRecord.self,
             SyncedSettingsRecord.self,
             ClipboardItemRecord.self,
+            BillRecord.self,
+            BillPaymentRecord.self,
         ]
         guard let managedObjectModel = NSManagedObjectModel.makeManagedObjectModel(for: syncedModels) else {
             throw NSError(domain: "NucleusDatabase", code: 1, userInfo: [
@@ -651,5 +661,102 @@ public enum MailRepository {
             ))
         }
         try context.save()
+    }
+}
+
+public enum BillRepository {
+    public static func fetchAll(context: ModelContext, includeArchived: Bool = false) throws -> [Bill] {
+        let descriptor = FetchDescriptor<BillRecord>(
+            sortBy: [
+                SortDescriptor(\.sortOrder),
+                SortDescriptor(\.name),
+            ]
+        )
+        let records = try context.fetch(descriptor)
+        if includeArchived {
+            return records.map(\.bill)
+        }
+        return records.filter { !$0.isArchived }.map(\.bill)
+    }
+
+    public static func upsert(_ bill: Bill, context: ModelContext) throws {
+        let targetID = bill.id
+        var descriptor = FetchDescriptor<BillRecord>(
+            predicate: #Predicate { $0.id == targetID }
+        )
+        descriptor.fetchLimit = 1
+
+        if let existing = try context.fetch(descriptor).first {
+            existing.apply(bill)
+        } else {
+            let nextSortOrder = try nextBillSortOrder(context: context)
+            context.insert(BillRecord(
+                id: bill.id,
+                name: bill.name,
+                amount: bill.amount,
+                categoryRaw: bill.category.rawValue,
+                recurrenceRaw: bill.recurrence.rawValue,
+                customIntervalDays: bill.customIntervalDays,
+                dueDayOfMonth: bill.dueDayOfMonth,
+                nextDueDate: bill.nextDueDate,
+                iconName: bill.iconName,
+                notes: bill.notes,
+                isArchived: bill.isArchived,
+                createdAt: bill.createdAt,
+                sortOrder: bill.sortOrder == 0 ? nextSortOrder : bill.sortOrder
+            ))
+        }
+        try context.save()
+    }
+
+    public static func delete(id: UUID, context: ModelContext) throws {
+        let targetID = id
+        var billDescriptor = FetchDescriptor<BillRecord>(
+            predicate: #Predicate { $0.id == targetID }
+        )
+        billDescriptor.fetchLimit = 1
+        if let existing = try context.fetch(billDescriptor).first {
+            context.delete(existing)
+        }
+
+        let paymentDescriptor = FetchDescriptor<BillPaymentRecord>(
+            predicate: #Predicate { $0.billID == targetID }
+        )
+        for payment in try context.fetch(paymentDescriptor) {
+            context.delete(payment)
+        }
+        try context.save()
+    }
+
+    public static func fetchPayments(context: ModelContext, billID: UUID? = nil) throws -> [BillPayment] {
+        if let billID {
+            let targetID = billID
+            let descriptor = FetchDescriptor<BillPaymentRecord>(
+                predicate: #Predicate { $0.billID == targetID },
+                sortBy: [SortDescriptor(\.paidAt, order: .reverse)]
+            )
+            return try context.fetch(descriptor).map(\.payment)
+        }
+
+        let descriptor = FetchDescriptor<BillPaymentRecord>(
+            sortBy: [SortDescriptor(\.paidAt, order: .reverse)]
+        )
+        return try context.fetch(descriptor).map(\.payment)
+    }
+
+    public static func insertPayment(_ payment: BillPayment, context: ModelContext) throws {
+        context.insert(BillPaymentRecord(
+            id: payment.id,
+            billID: payment.billID,
+            amount: payment.amount,
+            paidAt: payment.paidAt,
+            note: payment.note
+        ))
+        try context.save()
+    }
+
+    private static func nextBillSortOrder(context: ModelContext) throws -> Int {
+        let records = try context.fetch(FetchDescriptor<BillRecord>())
+        return (records.map(\.sortOrder).max() ?? -1) + 1
     }
 }

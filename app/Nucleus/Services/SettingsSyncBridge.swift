@@ -79,12 +79,14 @@ final class SettingsSyncBridge {
                 layoutDelegate?.applySyncedLayout(from: settings)
                 isApplyingRemote = false
                 lastAppliedRemoteUpdatedAt = remote.updatedAt
-            } else {
+            } else if !CloudKitStoreMigration.didResetThisLaunch {
                 try? SyncedSettingsRepository.upsert(localConfiguration, context: context)
                 lastLocalPushAt = localConfiguration.updatedAt
             }
             return
         }
+
+        guard !CloudKitStoreMigration.didResetThisLaunch else { return }
 
         try? SyncedSettingsRepository.upsert(localConfiguration, context: context)
         lastLocalPushAt = localConfiguration.updatedAt

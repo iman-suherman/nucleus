@@ -17,11 +17,6 @@ struct MobileRootView: View {
             }
         }
         .tint(NucleusMobileTheme.accent)
-        .sheet(isPresented: $viewModel.showAddAccount) {
-            AddAccountSheet { email, name in
-                viewModel.addAccount(email: email, displayName: name)
-            }
-        }
         .alert("Error", isPresented: Binding(
             get: { viewModel.errorMessage != nil },
             set: { if !$0 { viewModel.errorMessage = nil } }

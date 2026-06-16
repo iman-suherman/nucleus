@@ -269,7 +269,7 @@ public final class CloudKitSyncService: ObservableObject {
                 "CloudKit never sent an export finished event within \(Int(timeoutSeconds)) seconds. "
         }
 
-        message += CloudKitRecordDiagnostics.productionSchemaHint
+        message += CloudKitRecordDiagnostics.productionSchemaDeployHint
         log(message, level: .warning)
         return message
     }
@@ -357,26 +357,24 @@ public final class CloudKitSyncService: ObservableObject {
     }
 
     private func logExportFailureHints(containerID: String) async {
-        switch await CloudKitRecordDiagnostics.probeNoteRecordWrite(
+        let probeSummary = await CloudKitRecordDiagnostics.probeAllSyncedRecordTypes(
             containerID: containerID,
             zoneName: NucleusDatabase.swiftDataCloudKitZoneName
-        ) {
-        case .success(let message):
-            log(message, level: .info)
+        )
+        log("CloudKit write probes: \(probeSummary)", level: .info)
+
+        if probeSummary.contains("FAILED") {
             log(
-                "No notes in iCloud yet, but CloudKit writes work. If export still fails, check iCloud storage in System Settings → Apple ID → iCloud, then quit Nucleus and rename ~/Library/Application Support/Nucleus to reset stale local sync metadata (back up first).",
+                "CloudKit rejected a test write — check iCloud storage in System Settings → Apple ID → iCloud, or deploy schema in CloudKit Console.",
                 level: .warning
             )
-        case .failure(let message):
-            log("CloudKit write probe failed: \(message)", level: .warning)
-            if message.localizedCaseInsensitiveContains("quota") {
-                log("iCloud storage may be full — free space in System Settings → Apple ID → iCloud.", level: .warning)
-            } else if message.localizedCaseInsensitiveContains("schema")
-                || message.localizedCaseInsensitiveContains("unknown field")
-                || message.localizedCaseInsensitiveContains("unknown item") {
-                log(CloudKitRecordDiagnostics.productionSchemaHint, level: .warning)
-            }
+            return
         }
+
+        log(
+            "CloudKit accepts direct writes — Production schema looks OK. Add notes, then Settings → iCloud → Upload Notes to iCloud. An export error on an empty database is usually harmless until you have data to sync.",
+            level: .warning
+        )
     }
 
     public func markNotesLocalChange() {

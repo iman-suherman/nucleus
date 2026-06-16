@@ -298,6 +298,126 @@ public final class MailMessageRecord {
 }
 
 @Model
+public final class BillRecord {
+    public var id: UUID = UUID()
+    public var name: String = ""
+    public var amount: Double = 0
+    public var categoryRaw: String = BillCategory.other.rawValue
+    public var recurrenceRaw: String = BillRecurrence.monthly.rawValue
+    public var customIntervalDays: Int?
+    public var dueDayOfMonth: Int?
+    public var nextDueDate: Date = Date()
+    public var iconName: String = ""
+    public var notes: String = ""
+    public var isArchived: Bool = false
+    public var createdAt: Date = Date()
+    public var sortOrder: Int = 0
+
+    public init(
+        id: UUID = UUID(),
+        name: String,
+        amount: Double,
+        categoryRaw: String,
+        recurrenceRaw: String,
+        customIntervalDays: Int? = nil,
+        dueDayOfMonth: Int? = nil,
+        nextDueDate: Date,
+        iconName: String = "",
+        notes: String = "",
+        isArchived: Bool = false,
+        createdAt: Date = Date(),
+        sortOrder: Int = 0
+    ) {
+        self.id = id
+        self.name = name
+        self.amount = amount
+        self.categoryRaw = categoryRaw
+        self.recurrenceRaw = recurrenceRaw
+        self.customIntervalDays = customIntervalDays
+        self.dueDayOfMonth = dueDayOfMonth
+        self.nextDueDate = nextDueDate
+        self.iconName = iconName
+        self.notes = notes
+        self.isArchived = isArchived
+        self.createdAt = createdAt
+        self.sortOrder = sortOrder
+    }
+
+    public var category: BillCategory {
+        BillCategory(rawValue: categoryRaw) ?? .other
+    }
+
+    public var recurrence: BillRecurrence {
+        BillRecurrence(rawValue: recurrenceRaw) ?? .monthly
+    }
+
+    public var bill: Bill {
+        Bill(
+            id: id,
+            name: name,
+            amount: amount,
+            category: category,
+            recurrence: recurrence,
+            customIntervalDays: customIntervalDays,
+            dueDayOfMonth: dueDayOfMonth,
+            nextDueDate: nextDueDate,
+            iconName: iconName,
+            notes: notes,
+            isArchived: isArchived,
+            createdAt: createdAt,
+            sortOrder: sortOrder
+        )
+    }
+
+    public func apply(_ bill: Bill) {
+        name = bill.name
+        amount = bill.amount
+        categoryRaw = bill.category.rawValue
+        recurrenceRaw = bill.recurrence.rawValue
+        customIntervalDays = bill.customIntervalDays
+        dueDayOfMonth = bill.dueDayOfMonth
+        nextDueDate = bill.nextDueDate
+        iconName = bill.iconName
+        notes = bill.notes
+        isArchived = bill.isArchived
+        sortOrder = bill.sortOrder
+    }
+}
+
+@Model
+public final class BillPaymentRecord {
+    public var id: UUID = UUID()
+    public var billID: UUID = UUID()
+    public var amount: Double = 0
+    public var paidAt: Date = Date()
+    public var note: String = ""
+
+    public init(
+        id: UUID = UUID(),
+        billID: UUID,
+        amount: Double,
+        paidAt: Date = Date(),
+        note: String = ""
+    ) {
+        self.id = id
+        self.billID = billID
+        self.amount = amount
+        self.paidAt = paidAt
+        self.note = note
+    }
+
+    public var payment: BillPayment {
+        BillPayment(
+            id: id,
+            billID: billID,
+            amount: amount,
+            paidAt: paidAt,
+            note: note
+        )
+    }
+}
+
+@Model
 public final class SyncedSettingsRecord {
     public var id: UUID = NucleusSyncedConfiguration.singletonRecordID
     public var payloadData: Data = Data()

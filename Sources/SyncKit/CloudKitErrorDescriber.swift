@@ -51,7 +51,19 @@ enum CloudKitErrorDescriber {
     }
 
     static func userFacingUploadFailure(_ error: Error) -> String {
+        let detail = describe(error)
+        if detail.localizedCaseInsensitiveContains("cd_entityname")
+            || detail.localizedCaseInsensitiveContains("cannot create or modify field") {
+            return "iCloud upload failed: CloudKit Production schema is missing SwiftData fields (e.g. CD_entityName). Deploy the updated schema from Development to Production in CloudKit Console."
+        }
+        if detail.localizedCaseInsensitiveContains("quota") {
+            return "iCloud upload failed: iCloud storage may be full. Free space in System Settings → Apple ID → iCloud, then try again."
+        }
+
         guard let ckError = error as? CKError else {
+            if detail.localizedCaseInsensitiveContains("partial") {
+                return "iCloud upload failed: \(detail)"
+            }
             return "iCloud upload failed: \(error.localizedDescription)"
         }
 
@@ -61,11 +73,10 @@ enum CloudKitErrorDescriber {
         case .notAuthenticated, .badContainer:
             return "iCloud upload failed: sign in to iCloud and confirm Nucleus has iCloud access in System Settings."
         case .partialFailure:
-            let detail = describe(ckError)
             if detail.localizedCaseInsensitiveContains("schema")
                 || detail.localizedCaseInsensitiveContains("unknown field")
                 || detail.localizedCaseInsensitiveContains("production") {
-                return "iCloud upload failed: CloudKit schema may not be deployed to Production. Open CloudKit Console for iCloud.net.suherman.nucleus and deploy schema to Production."
+                return "iCloud upload failed: CloudKit schema must be deployed to Production. Open CloudKit Console for iCloud.net.suherman.nucleus → Deploy Schema Changes."
             }
             return "iCloud upload failed: \(detail)"
         default:
@@ -104,7 +115,24 @@ enum CloudKitErrorDescriber {
             messages.append(contentsOf: nestedCloudKitMessages(for: underlying, depth: depth + 1))
         }
 
+        if let encountered = error.userInfo["encounteredErrors"] as? [Error] {
+            for item in encountered.prefix(6) {
+                messages.append(describe(item))
+            }
+        }
+
+        if let serverMessage = firstServerMessage(in: error.localizedDescription) {
+            messages.append(serverMessage)
+        }
+
         return messages
+    }
+
+    private static func firstServerMessage(in text: String) -> String? {
+        guard let range = text.range(of: "server message = \"") else { return nil }
+        let tail = text[range.upperBound...]
+        guard let end = tail.firstIndex(of: "\"") else { return nil }
+        return String(tail[..<end])
     }
 
     private static func headline(for code: CKError.Code) -> String {

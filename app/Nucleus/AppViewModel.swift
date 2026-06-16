@@ -30,6 +30,9 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
     @Published var sidebarSelection: SidebarSelection = .workspace(.inbox)
     @Published var accounts: [GoogleAccount] = []
     @Published var clipboardEntries: [ClipboardEntry] = []
+    @Published var bills: [Bill] = []
+    @Published var billPayments: [BillPayment] = []
+    @Published var selectedBillID: UUID?
     @Published var notes: [NoteDocument] = []
     @Published var mailMessages: [MailMessageSummary] = []
     @Published var unreadByAccount: [UUID: Int] = [:]
@@ -576,6 +579,8 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         let context = ModelContext(modelContainer)
         accounts = (try? AccountRepository.fetchAll(context: context)) ?? []
         clipboardEntries = (try? ClipboardRepository.fetchRecent(context: context)) ?? []
+        bills = (try? BillRepository.fetchAll(context: context)) ?? []
+        billPayments = (try? BillRepository.fetchPayments(context: context)) ?? []
         notes = (try? NoteRepository.fetchAll(context: context)) ?? []
 
         let storedMessages = (try? MailRepository.fetchRecent(context: context)) ?? []
@@ -599,6 +604,11 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
 
         if selectedNoteID == nil {
             selectedNoteID = notes.first?.id
+        }
+        if selectedBillID == nil {
+            selectedBillID = activeBills.first?.id
+        } else if !activeBills.contains(where: { $0.id == selectedBillID }) {
+            selectedBillID = activeBills.first?.id
         }
     }
 
@@ -810,6 +820,78 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
 
     func filteredClipboardEntries() -> [ClipboardEntry] {
         ClipboardSearch.rank(clipboardEntries, query: clipboardSearchQuery)
+    }
+
+    var activeBills: [Bill] {
+        bills.filter { !$0.isArchived }
+    }
+
+    var selectedBill: Bill? {
+        guard let selectedBillID else { return nil }
+        return bills.first { $0.id == selectedBillID }
+    }
+
+    func payments(for billID: UUID) -> [BillPayment] {
+        billPayments.filter { $0.billID == billID }
+    }
+
+    func averagePayment(for billID: UUID) -> Double? {
+        BillScheduleCalculator.averagePaymentAmount(billID: billID, payments: billPayments)
+    }
+
+    func remainingAmount(for bill: Bill) -> Double {
+        BillScheduleCalculator.remainingAmount(bill: bill, payments: billPayments)
+    }
+
+    func dueProgress(for bill: Bill) -> Double {
+        BillScheduleCalculator.progressUntilDue(bill: bill, payments: billPayments)
+    }
+
+    func billMonthlySummary(expectedIncome: Double) -> BillMonthlySummary {
+        BillScheduleCalculator.monthlySummary(
+            bills: bills,
+            payments: billPayments,
+            expectedIncome: expectedIncome
+        )
+    }
+
+    func saveBill(_ bill: Bill) {
+        let context = ModelContext(modelContainer)
+        try? BillRepository.upsert(bill, context: context)
+        reloadLocalData()
+        selectedBillID = bill.id
+        statusMessage = "Saved bill"
+    }
+
+    func deleteBill(id: UUID) {
+        let context = ModelContext(modelContainer)
+        try? BillRepository.delete(id: id, context: context)
+        reloadLocalData()
+        statusMessage = "Deleted bill"
+    }
+
+    func logBillPayment(billID: UUID, amount: Double, note: String = "") {
+        guard var bill = bills.first(where: { $0.id == billID }) else { return }
+
+        let payment = BillPayment(billID: billID, amount: amount, note: note)
+        let context = ModelContext(modelContainer)
+        try? BillRepository.insertPayment(payment, context: context)
+
+        let remaining = BillScheduleCalculator.remainingAmount(
+            bill: bill,
+            payments: billPayments + [payment]
+        )
+        if remaining <= 0.009 {
+            bill.nextDueDate = BillScheduleCalculator.advanceDueDate(
+                from: bill.nextDueDate,
+                recurrence: bill.recurrence,
+                customIntervalDays: bill.customIntervalDays
+            )
+            try? BillRepository.upsert(bill, context: context)
+        }
+
+        reloadLocalData()
+        statusMessage = "Logged payment"
     }
 
     func toggleClipboardPin(_ entry: ClipboardEntry) {
