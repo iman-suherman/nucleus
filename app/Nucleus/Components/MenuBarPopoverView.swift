@@ -101,6 +101,12 @@ struct MenuBarPopoverView: View {
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
             }
+            if !fields.email.isEmpty {
+                Text(fields.email)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
             if !fields.url.isEmpty {
                 Text(fields.url)
                     .font(.caption2)
@@ -113,15 +119,21 @@ struct MenuBarPopoverView: View {
                         .buttonStyle(.bordered)
                         .controlSize(.small)
                         .disabled(fields.username.isEmpty)
+                    Button("Copy email") { controller.copyEmail(note) }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                        .disabled(fields.email.isEmpty)
+                }
+                HStack(spacing: 6) {
                     Button("Copy password") { controller.copyPassword(note) }
                         .buttonStyle(.bordered)
                         .controlSize(.small)
                         .disabled(fields.password.isEmpty)
+                    Button("Open URL") { controller.openPasswordURL(note) }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                        .disabled(fields.url.isEmpty)
                 }
-                Button("Open URL") { controller.openPasswordURL(note) }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-                    .disabled(fields.url.isEmpty)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)

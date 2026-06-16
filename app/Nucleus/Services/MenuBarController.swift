@@ -82,6 +82,12 @@ final class MenuBarController: ObservableObject {
         ClipboardMonitorService.copyToPasteboard(fields.username)
     }
 
+    func copyEmail(_ note: NoteDocument) {
+        let fields = PasswordNoteFields.parse(from: note.markdown, fallbackTitle: note.title)
+        guard !fields.email.isEmpty else { return }
+        ClipboardMonitorService.copyToPasteboard(fields.email)
+    }
+
     func openPasswordURL(_ note: NoteDocument) {
         let fields = PasswordNoteFields.parse(from: note.markdown, fallbackTitle: note.title)
         let trimmed = fields.url.trimmingCharacters(in: .whitespacesAndNewlines)

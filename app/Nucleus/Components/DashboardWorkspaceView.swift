@@ -10,15 +10,17 @@ struct DashboardWorkspaceView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 28) {
-                header
-                summaryCards
-                summaryAndBillsRow
-                productivitySection
+        GeometryReader { geometry in
+            ScrollView {
+                VStack(alignment: .leading, spacing: 28) {
+                    header
+                    summaryCards
+                    summaryAndBillsRow
+                    productivitySection
+                }
+                .padding(28)
+                .frame(width: geometry.size.width, alignment: .leading)
             }
-            .padding(28)
-            .frame(maxWidth: 980, alignment: .leading)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(Color(nsColor: .windowBackgroundColor))

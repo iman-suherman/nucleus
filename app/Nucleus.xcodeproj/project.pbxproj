@@ -12,6 +12,7 @@
 		0DF76E6C3FFC27AFE1D7BCFC /* ClipboardKit in Frameworks */ = {isa = PBXBuildFile; productRef = F1636452BBBF1856D36D7603 /* ClipboardKit */; };
 		0DF8DBEBA58E40936F22C450 /* AccountCenterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69A7BEC28EFE1D402738D081 /* AccountCenterView.swift */; };
 		1009C3EAC35EB16973A02E97 /* AccountKit in Frameworks */ = {isa = PBXBuildFile; productRef = ECEB06ED4768094EA96F5F7E /* AccountKit */; };
+		12B2BE20B4F0B35D21701EE6 /* MenuBarNucleusMark.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5293EFD704186720E36251C /* MenuBarNucleusMark.swift */; };
 		194D73C14442409686DEF2AE /* ClipboardWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C643F64124025FA6F196C435 /* ClipboardWorkspaceView.swift */; };
 		1C16F495A356343A23379879 /* SyncKit in Frameworks */ = {isa = PBXBuildFile; productRef = FED7A9E834289C4FDE54F124 /* SyncKit */; };
 		1DDFDCAF38135EC627A0E7A8 /* GoogleOAuthConfigurationLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = B95AA6B0D2A2C4F3ACD4653E /* GoogleOAuthConfigurationLoader.swift */; };
@@ -116,6 +117,7 @@
 		9987E7B42A89E15817F7CAD9 /* ReleaseNotesLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReleaseNotesLoader.swift; sourceTree = "<group>"; };
 		9F2DE343844F3EF7B493842C /* StartupSplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartupSplashView.swift; sourceTree = "<group>"; };
 		A1ADB4D8B805C7C16E7A1939 /* NucleusMail.caf */ = {isa = PBXFileReference; path = NucleusMail.caf; sourceTree = "<group>"; };
+		A5293EFD704186720E36251C /* MenuBarNucleusMark.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarNucleusMark.swift; sourceTree = "<group>"; };
 		A5BDDEC8A6712481CBFAABBE /* DashboardAnalysisService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardAnalysisService.swift; sourceTree = "<group>"; };
 		A6EDADCCF24985DEF2C1A2DB /* ReleaseNotesDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReleaseNotesDetailView.swift; sourceTree = "<group>"; };
 		B6238A17B183A8059CB7A2C0 /* SparkleUpdater.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SparkleUpdater.swift; sourceTree = "<group>"; };
@@ -171,6 +173,7 @@
 				F695044507986F1B738A6465 /* DashboardWorkspaceView.swift */,
 				C201B6D32546E035E9D04B57 /* MailInboxLoadingPhase.swift */,
 				948AE221487288E373756BDD /* MailWorkspaceView.swift */,
+				A5293EFD704186720E36251C /* MenuBarNucleusMark.swift */,
 				2ADEB9B8C248DDB0410D9749 /* MenuBarPopoverView.swift */,
 				953865571573F05622595783 /* NotesWorkspaceView.swift */,
 				4FE025998DE849CA2FCBCC91 /* NucleusTheme.swift */,
@@ -405,6 +408,7 @@
 				AA2B9B165190FE2E23E7AD95 /* MailInboxLoadingPhase.swift in Sources */,
 				68F673476FAE5D0CA8204F89 /* MailWorkspaceView.swift in Sources */,
 				86F0B8E63AA373C254764688 /* MenuBarController.swift in Sources */,
+				12B2BE20B4F0B35D21701EE6 /* MenuBarNucleusMark.swift in Sources */,
 				5239A1B7AB185A4515F4E005 /* MenuBarPopoverSession.swift in Sources */,
 				2D9BBC35081BBFC740FBA05F /* MenuBarPopoverView.swift in Sources */,
 				31C2FB18B651A30B5F381A6F /* MenuBarStatusItemController.swift in Sources */,

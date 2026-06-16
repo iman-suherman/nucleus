@@ -14,6 +14,7 @@ final class MenuBarPopoverSession: NSObject, NSPopoverDelegate {
     private var localClickMonitor: Any?
     private var globalClickMonitor: Any?
     private var mainWindowObserver: NSObjectProtocol?
+    private var shouldDismissOnOutsideClick: (() -> Bool)?
 
     var isShown: Bool { popover?.isShown ?? false }
 
@@ -27,6 +28,7 @@ final class MenuBarPopoverSession: NSObject, NSPopoverDelegate {
     func toggle<V: View>(
         anchoredTo anchorView: NSView,
         contentSize: NSSize,
+        shouldDismissOnOutsideClick: (() -> Bool)? = nil,
         @ViewBuilder content: () -> V,
         onShow: (() -> Void)? = nil
     ) {
@@ -34,12 +36,19 @@ final class MenuBarPopoverSession: NSObject, NSPopoverDelegate {
             close()
             return
         }
-        present(anchoredTo: anchorView, contentSize: contentSize, content: content, onShow: onShow)
+        present(
+            anchoredTo: anchorView,
+            contentSize: contentSize,
+            shouldDismissOnOutsideClick: shouldDismissOnOutsideClick,
+            content: content,
+            onShow: onShow
+        )
     }
 
     func present<V: View>(
         anchoredTo anchorView: NSView,
         contentSize: NSSize,
+        shouldDismissOnOutsideClick: (() -> Bool)? = nil,
         @ViewBuilder content: () -> V,
         onShow: (() -> Void)? = nil
     ) {
@@ -49,9 +58,12 @@ final class MenuBarPopoverSession: NSObject, NSPopoverDelegate {
 
         Self.activeSession?.close()
 
+        self.shouldDismissOnOutsideClick = shouldDismissOnOutsideClick
+        let allowsOutsideDismiss = shouldDismissOnOutsideClick?() ?? true
+
         let popover = NSPopover()
         popover.contentSize = contentSize
-        popover.behavior = .transient
+        popover.behavior = allowsOutsideDismiss ? .transient : .applicationDefined
         popover.delegate = self
         popover.contentViewController = NSHostingController(rootView: content())
         popover.show(relativeTo: anchorView.bounds, of: anchorView, preferredEdge: .minY)
@@ -79,7 +91,9 @@ final class MenuBarPopoverSession: NSObject, NSPopoverDelegate {
         }
 
         globalClickMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
-            self?.close()
+            guard let self, self.isShown else { return }
+            guard self.shouldDismissOnOutsideClick?() ?? true else { return }
+            self.close()
         }
 
         mainWindowObserver = NotificationCenter.default.addObserver(
@@ -88,6 +102,7 @@ final class MenuBarPopoverSession: NSObject, NSPopoverDelegate {
             queue: .main
         ) { [weak self] notification in
             guard let self, self.isShown else { return }
+            guard self.shouldDismissOnOutsideClick?() ?? true else { return }
             guard let window = notification.object as? NSWindow, window.canBecomeMain else { return }
             if window === self.popover?.contentViewController?.view.window { return }
             self.close()
@@ -116,10 +131,12 @@ final class MenuBarPopoverSession: NSObject, NSPopoverDelegate {
         endObservation()
         popover = nil
         anchorView = nil
+        shouldDismissOnOutsideClick = nil
     }
 
     private func shouldClose(for event: NSEvent) -> Bool {
         guard popover != nil else { return false }
+        guard shouldDismissOnOutsideClick?() ?? true else { return false }
 
         if let popoverWindow = popover?.contentViewController?.view.window,
            event.window === popoverWindow {

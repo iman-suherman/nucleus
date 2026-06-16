@@ -38,13 +38,13 @@ enum DockBadgeController {
 
         if mailUnread > 0 {
             contentView.addSubview(
-                makeBadge(count: mailUnread, color: .systemRed, corner: .topTrailing)
+                makeBadge(count: mailUnread, color: .systemRed, corner: .topTrailing, scale: 1.25)
             )
         }
 
         if chatUnread > 0 {
             contentView.addSubview(
-                makeBadge(count: chatUnread, color: .systemBlue, corner: .bottomTrailing)
+                makeBadge(count: chatUnread, color: .systemBlue, corner: .bottomTrailing, scale: 1.1)
             )
         }
 
@@ -58,9 +58,14 @@ enum DockBadgeController {
         case bottomTrailing
     }
 
-    private static func makeBadge(count: Int, color: NSColor, corner: BadgeCorner) -> NSView {
+    private static func makeBadge(
+        count: Int,
+        color: NSColor,
+        corner: BadgeCorner,
+        scale: CGFloat = 1
+    ) -> NSView {
         let tileSize = NSApp.dockTile.size
-        let metrics = badgeMetrics(for: tileSize)
+        let metrics = badgeMetrics(for: tileSize, scale: scale)
         let inset = tileSize.width * 0.03
 
         let label = NSTextField(labelWithString: "\(count)")
@@ -94,15 +99,18 @@ enum DockBadgeController {
         return container
     }
 
-    private static func badgeMetrics(for tileSize: NSSize) -> (
+    private static func badgeMetrics(
+        for tileSize: NSSize,
+        scale: CGFloat = 1
+    ) -> (
         height: CGFloat,
         fontSize: CGFloat,
         horizontalPadding: CGFloat
     ) {
         // Scale with the dock tile so counts stay readable at every Dock icon size.
-        let height = max(26, tileSize.height * 0.24)
-        let fontSize = max(16, height * 0.56)
-        let horizontalPadding = max(9, height * 0.32)
+        let height = max(32, tileSize.height * 0.30) * scale
+        let fontSize = max(18, height * 0.58)
+        let horizontalPadding = max(11, height * 0.34)
         return (height, fontSize, horizontalPadding)
     }
 }

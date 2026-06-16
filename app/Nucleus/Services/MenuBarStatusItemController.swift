@@ -1,15 +1,6 @@
 import AppKit
 import SwiftUI
 
-private struct MenuBarStatusIconView: View {
-    var body: some View {
-        Image(systemName: "doc.on.clipboard")
-            .font(.system(size: 13, weight: .medium))
-            .foregroundStyle(.primary)
-            .frame(width: 22, height: 18)
-    }
-}
-
 final class MenuBarClickableStatusView: NSView {
     var onClick: (() -> Void)?
 
@@ -49,8 +40,8 @@ final class MenuBarStatusItemController: NSObject {
         guard statusItem == nil else { return }
 
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        let hostingView = NSHostingView(rootView: MenuBarStatusIconView())
-        hostingView.frame.size = NSSize(width: 22, height: 18)
+        let hostingView = NSHostingView(rootView: MenuBarNucleusMark())
+        hostingView.frame.size = NSSize(width: 20, height: 18)
 
         let container = MenuBarClickableStatusView(frame: hostingView.frame)
         container.onClick = { [weak self, weak container] in
@@ -79,7 +70,10 @@ final class MenuBarStatusItemController: NSObject {
 
         popoverSession.toggle(
             anchoredTo: anchorView,
-            contentSize: NSSize(width: 680, height: 420)
+            contentSize: NSSize(width: 680, height: 420),
+            shouldDismissOnOutsideClick: { [weak controller] in
+                controller?.pendingSuggestion == nil
+            }
         ) {
             MenuBarPopoverView(controller: controller)
         } onShow: {
@@ -105,7 +99,10 @@ final class MenuBarStatusItemController: NSObject {
 
         popoverSession.present(
             anchoredTo: anchorView,
-            contentSize: NSSize(width: 680, height: 420)
+            contentSize: NSSize(width: 680, height: 420),
+            shouldDismissOnOutsideClick: { [weak controller] in
+                controller?.pendingSuggestion == nil
+            }
         ) {
             MenuBarPopoverView(controller: controller)
         } onShow: {
