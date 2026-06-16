@@ -12,7 +12,6 @@ struct BillsWorkspaceView: View {
     @State private var showingLogPayment = false
     @State private var showingPartialPayment = false
     @State private var showingBillDetail = false
-    @State private var showingIncomeEditor = false
     @State private var showingImportPanel = false
     @State private var showingExportPanel = false
     @State private var exportDocument = BillCSVDocument(text: "")
@@ -20,7 +19,7 @@ struct BillsWorkspaceView: View {
     @State private var calendarMonth = Date()
 
     private var summary: BillMonthlySummary {
-        viewModel.billMonthlySummary(expectedIncome: appSettings.expectedMonthlyIncome)
+        viewModel.billMonthlySummary()
     }
 
     var body: some View {
@@ -73,11 +72,6 @@ struct BillsWorkspaceView: View {
                         viewModel.logBillPayment(billID: billID, amount: amount, note: note)
                     }
                 )
-            }
-        }
-        .sheet(isPresented: $showingIncomeEditor) {
-            IncomeEditorSheet(amount: appSettings.expectedMonthlyIncome) { amount in
-                appSettings.expectedMonthlyIncome = amount
             }
         }
         .fileImporter(
@@ -375,51 +369,30 @@ struct BillsWorkspaceView: View {
                 BillStatCard(
                     title: "Bills Due Soon",
                     count: summary.dueSoonCount,
-                    amount: summary.dueSoonAmount
+                    summaries: summary.byCurrency.map {
+                        (currencyCode: $0.currencyCode, amount: $0.dueSoonAmount)
+                    }
                 )
 
-                BillStatCard(
-                    title: "Bills Due This Month",
-                    count: summary.dueThisMonthCount,
-                    amount: summary.dueThisMonthAmount
-                )
-
-                BillStatCard(
-                    title: "Bills Paid This Month",
-                    count: summary.paidThisMonthCount,
-                    amount: summary.paidThisMonthAmount,
-                    emphasize: true
-                )
-
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("Monthly Balance")
-                        .font(.headline)
-
-                    BillBalanceRow(label: "Expected Total Income", amount: summary.expectedIncome)
-                    BillBalanceRow(label: "Paid This Month", amount: summary.paidThisMonthAmount)
-                    BillBalanceRow(label: "Still Due This Month", amount: summary.stillDueThisMonthAmount)
-
-                    Divider()
-
-                    HStack {
-                        Text("OK To Spend")
+                ForEach(summary.byCurrency) { currencySummary in
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text(currencySummary.currencyCode)
                             .font(.headline)
-                        Spacer()
-                        Text(NucleusFormatters.currencyString(summary.okToSpend))
-                            .font(.headline.monospacedDigit())
-                            .foregroundStyle(summary.okToSpend >= 0 ? Color.primary : Color.red)
+
+                        BillStatCard(
+                            title: "Paid This Month",
+                            count: nil,
+                            summaries: [(currencyCode: currencySummary.currencyCode, amount: currencySummary.paidThisMonthAmount)],
+                            emphasize: true
+                        )
+
+                        BillStatCard(
+                            title: "Due This Month",
+                            count: nil,
+                            summaries: [(currencyCode: currencySummary.currencyCode, amount: currencySummary.dueThisMonthAmount)]
+                        )
                     }
                 }
-                .padding(16)
-                .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-
-                Button {
-                    showingIncomeEditor = true
-                } label: {
-                    Label("New Income", systemImage: "plus.circle")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
             }
             .padding(20)
             .frame(maxWidth: .infinity, alignment: .topLeading)
@@ -496,11 +469,11 @@ private struct BillRowView: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
-            Text(NucleusFormatters.currencyString(averageAmount))
+            Text(NucleusFormatters.currencyString(averageAmount, currencyCode: bill.currencyCode))
                 .frame(width: 90, alignment: .trailing)
                 .foregroundStyle(.secondary)
 
-            Text(NucleusFormatters.currencyString(remainingAmount))
+            Text(NucleusFormatters.currencyString(remainingAmount, currencyCode: bill.currencyCode))
                 .frame(width: 90, alignment: .trailing)
                 .fontWeight(.medium)
                 .foregroundStyle(isOverdue ? .red : .primary)
@@ -551,8 +524,8 @@ private struct BillDueProgressBar: View {
 
 private struct BillStatCard: View {
     let title: String
-    let count: Int
-    let amount: Double
+    let count: Int?
+    let summaries: [(currencyCode: String, amount: Double)]
     var emphasize: Bool = false
 
     var body: some View {
@@ -560,11 +533,15 @@ private struct BillStatCard: View {
             Text(title.uppercased())
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.secondary)
-            Text("\(count) bill\(count == 1 ? "" : "s")")
-                .font(.title3.bold())
-            Text(NucleusFormatters.currencyString(amount))
-                .font(.title2.bold())
-                .foregroundStyle(emphasize ? .green : .primary)
+            if let count {
+                Text("\(count) bill\(count == 1 ? "" : "s")")
+                    .font(.title3.bold())
+            }
+            ForEach(summaries, id: \.currencyCode) { summary in
+                Text(NucleusFormatters.currencyString(summary.amount, currencyCode: summary.currencyCode))
+                    .font(count == nil ? .title2.bold() : .title3.bold())
+                    .foregroundStyle(emphasize ? .green : .primary)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
@@ -701,6 +678,7 @@ private struct BillEditorSheet: View {
     @State private var nextDueDate = Date()
     @State private var customIntervalDays = 30
     @State private var notes = ""
+    @State private var currencyCode = BillCurrency.aud.rawValue
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -710,6 +688,11 @@ private struct BillEditorSheet: View {
             Form {
                 TextField("Bill name", text: $name)
                 TextField("Amount", text: $amount)
+                Picker("Currency", selection: $currencyCode) {
+                    ForEach(BillCurrency.allCases, id: \.rawValue) { currency in
+                        Text(currency.label).tag(currency.rawValue)
+                    }
+                }
                 Picker("Category", selection: $category) {
                     ForEach(BillCategory.allCases, id: \.self) { category in
                         Label(category.rawValue.capitalized, systemImage: category.systemImage)
@@ -759,6 +742,7 @@ private struct BillEditorSheet: View {
         nextDueDate = existingBill.nextDueDate
         customIntervalDays = existingBill.customIntervalDays ?? 30
         notes = existingBill.notes
+        currencyCode = existingBill.currencyCode
     }
 
     private func saveBill() {
@@ -776,6 +760,7 @@ private struct BillEditorSheet: View {
             id: existingBill?.id ?? UUID(),
             name: trimmedName,
             amount: parsedAmount,
+            currencyCode: currencyCode,
             category: category,
             recurrence: recurrence,
             customIntervalDays: recurrence == .customDays ? customIntervalDays : nil,
@@ -907,15 +892,15 @@ private struct BillDetailSheet: View {
             Grid(alignment: .leading, horizontalSpacing: 24, verticalSpacing: 8) {
                 GridRow {
                     Text("Amount").foregroundStyle(.secondary)
-                    Text(NucleusFormatters.currencyString(bill.amount))
+                    Text(NucleusFormatters.currencyString(bill.amount, currencyCode: bill.currencyCode))
                 }
                 GridRow {
                     Text("Average").foregroundStyle(.secondary)
-                    Text(NucleusFormatters.currencyString(viewModel.averagePayment(for: bill.id) ?? bill.amount))
+                    Text(NucleusFormatters.currencyString(viewModel.averagePayment(for: bill.id) ?? bill.amount, currencyCode: bill.currencyCode))
                 }
                 GridRow {
                     Text("Remaining").foregroundStyle(.secondary)
-                    Text(NucleusFormatters.currencyString(remainingAmount))
+                    Text(NucleusFormatters.currencyString(remainingAmount, currencyCode: bill.currencyCode))
                 }
                 GridRow {
                     Text("Next due").foregroundStyle(.secondary)
@@ -962,7 +947,7 @@ private struct BillDetailSheet: View {
                 List(payments) { payment in
                     HStack {
                         VStack(alignment: .leading) {
-                            Text(NucleusFormatters.currencyString(payment.amount))
+                            Text(NucleusFormatters.currencyString(payment.amount, currencyCode: bill.currencyCode))
                                 .fontWeight(.semibold)
                             if !payment.note.isEmpty {
                                 Text(payment.note)
@@ -1006,40 +991,6 @@ private struct BillDetailSheet: View {
             ) { amount, note in
                 onLogPayment(amount, note)
             }
-        }
-    }
-}
-
-private struct IncomeEditorSheet: View {
-    @Environment(\.dismiss) private var dismiss
-
-    let amount: Double
-    let onSave: (Double) -> Void
-
-    @State private var income = ""
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Expected Monthly Income")
-                .font(.title2.bold())
-
-            TextField("Amount", text: $income)
-                .textFieldStyle(.roundedBorder)
-
-            HStack {
-                Spacer()
-                Button("Cancel") { dismiss() }
-                Button("Save") {
-                    onSave(Double(income) ?? 0)
-                    dismiss()
-                }
-                .keyboardShortcut(.defaultAction)
-            }
-        }
-        .padding(24)
-        .frame(width: 360)
-        .onAppear {
-            income = String(format: "%.2f", amount)
         }
     }
 }

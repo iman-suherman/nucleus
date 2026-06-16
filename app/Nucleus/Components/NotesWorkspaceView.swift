@@ -36,7 +36,7 @@ struct NotesWorkspaceView: View {
     private var notesList: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text("Notes")
+                Text("Notes and Passwords")
                     .font(.headline)
                 Spacer()
                 Menu("New") {

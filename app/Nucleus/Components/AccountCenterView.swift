@@ -1,5 +1,6 @@
 import NucleusKit
 import SwiftUI
+import SyncKit
 
 struct AccountCenterView: View {
     @EnvironmentObject private var viewModel: AppViewModel
@@ -8,11 +9,14 @@ struct AccountCenterView: View {
     @State private var isAddingWebAccount = false
     @State private var webAccountEmail = ""
     @State private var webAccountCategory = ""
+    @State private var isConnectingNucleusCloud = false
+    @State private var nucleusCloudMessage: String?
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 header
+                nucleusCloudCard
                 accountsList
             }
             .padding(24)
@@ -20,11 +24,63 @@ struct AccountCenterView: View {
         }
     }
 
+    private var nucleusCloudCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 8) {
+                Image(systemName: viewModel.cloudSyncService.status.isConnected ? "checkmark.circle.fill" : "cloud")
+                    .foregroundStyle(viewModel.cloudSyncService.status.isConnected ? .green : .secondary)
+                Text("Nucleus Cloud")
+                    .font(.headline)
+            }
+
+            Text(
+                viewModel.cloudSyncService.status.isConnected
+                    ? "This Mac syncs notes, bills, settings, and dashboard data through Nucleus Cloud."
+                    : "Connect Nucleus Cloud to sync your workspace without Apple iCloud. Google OAuth tokens stay in Keychain on this Mac."
+            )
+            .font(.subheadline)
+            .foregroundStyle(.secondary)
+
+            if viewModel.cloudSyncService.status.isConnected {
+                Text(viewModel.cloudSyncService.status.label)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else {
+                Button(isConnectingNucleusCloud ? "Opening Browser…" : "Connect Nucleus Cloud") {
+                    isConnectingNucleusCloud = true
+                    nucleusCloudMessage = "Authorize this Mac in your browser…"
+                    Task {
+                        nucleusCloudMessage = await viewModel.connectNucleusCloud()
+                        isConnectingNucleusCloud = false
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(isConnectingNucleusCloud)
+            }
+
+            if let nucleusCloudMessage {
+                Text(nucleusCloudMessage)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            Color(nsColor: .controlBackgroundColor).opacity(0.45),
+            in: RoundedRectangle(cornerRadius: 12, style: .continuous)
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(Color.primary.opacity(0.08), lineWidth: 1)
+        }
+    }
+
     private var header: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Account Center")
                 .font(.title2.bold())
-            Text("Manage multiple Google identities and default inbox. Notes sync through iCloud.")
+            Text("Manage Google identities, Nucleus Cloud sync, and default inbox.")
                 .foregroundStyle(.secondary)
 
             HStack(spacing: 12) {
@@ -36,7 +92,7 @@ struct AccountCenterView: View {
                 .buttonStyle(.borderedProminent)
             }
 
-            Text("Account metadata syncs via iCloud. OAuth tokens can sync via iCloud Keychain. Gmail web views still need sign-in inside Inbox on each Mac.")
+            Text("Account metadata can sync via Nucleus Cloud or iCloud. OAuth tokens can sync via iCloud Keychain. Gmail web views still need sign-in inside Inbox on each Mac.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
 

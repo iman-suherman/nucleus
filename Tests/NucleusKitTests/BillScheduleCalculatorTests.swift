@@ -60,14 +60,12 @@ final class BillScheduleCalculatorTests: XCTestCase {
         let summary = BillScheduleCalculator.monthlySummary(
             bills: [bill],
             payments: [payment],
-            expectedIncome: 3000,
             reference: reference,
             calendar: calendar
         )
 
-        XCTAssertEqual(summary.paidThisMonthCount, 1)
-        XCTAssertEqual(summary.paidThisMonthAmount, 500, accuracy: 0.001)
-        XCTAssertEqual(summary.okToSpend, 2500, accuracy: 0.001)
+        XCTAssertEqual(summary.byCurrency.first?.paidThisMonthAmount ?? 0, 500, accuracy: 0.001)
+        XCTAssertEqual(summary.byCurrency.first?.currencyCode, "AUD")
     }
 
     func testDueWithinDaysOrOverdueCountIncludesOverdueAndUpcoming() {

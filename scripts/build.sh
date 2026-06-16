@@ -46,7 +46,6 @@ XCODEBUILD_ARGS=(
 )
 
 if [[ "$XCODE_CONFIG" == "Release" ]]; then
-  # Build unsigned; Developer ID signing + iCloud entitlements happen in scripts/sign.sh.
   XCODEBUILD_ARGS+=(
     CODE_SIGNING_ALLOWED=NO
     CODE_SIGN_ENTITLEMENTS=
@@ -57,6 +56,28 @@ XCODEBUILD_ARGS+=(build)
 
 if ! xcodebuild "${XCODEBUILD_ARGS[@]}"; then
   echo "xcodebuild failed. If this is a fresh Xcode install, run: npm run setup:xcode"
+  exit 1
+fi
+
+echo "==> Building NucleusMenuBar.app ($XCODE_CONFIG)"
+MENUBAR_ARGS=(
+  -project Nucleus.xcodeproj
+  -scheme NucleusMenuBar
+  -configuration "$XCODE_CONFIG"
+  -derivedDataPath "$ROOT_DIR/.build/DerivedData"
+)
+
+if [[ "$XCODE_CONFIG" == "Release" ]]; then
+  MENUBAR_ARGS+=(
+    CODE_SIGNING_ALLOWED=NO
+    CODE_SIGN_ENTITLEMENTS=
+  )
+fi
+
+MENUBAR_ARGS+=(build)
+
+if ! xcodebuild "${MENUBAR_ARGS[@]}"; then
+  echo "xcodebuild NucleusMenuBar failed."
   exit 1
 fi
 

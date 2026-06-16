@@ -2,6 +2,7 @@ import AppKit
 import NucleusKit
 import SwiftUI
 import SwiftData
+import SyncKit
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -14,6 +15,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         DispatchQueue.main.async {
             _ = SparkleUpdaterController.shared
+        }
+    }
+
+    func application(_ application: NSApplication, open urls: [URL]) {
+        for url in urls {
+            NotificationCenter.default.post(name: .nucleusDidOpenURL, object: url)
         }
     }
 }
@@ -41,6 +48,13 @@ struct NucleusApp: App {
                 .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
                     viewModel.checkForUpdatesWhenEligible()
                     viewModel.refreshMailUnreadNow()
+                }
+                .onOpenURL { url in
+                    Task { await viewModel.handleIncomingURL(url) }
+                }
+                .onReceive(NotificationCenter.default.publisher(for: .nucleusDidOpenURL)) { notification in
+                    guard let url = notification.object as? URL else { return }
+                    Task { await viewModel.handleIncomingURL(url) }
                 }
                 .background(
                     WindowLayoutAccessor { window in
@@ -137,18 +151,6 @@ struct ContentView: View {
                 WhatsNewOverlay(release: release) {
                     viewModel.dismissWhatsNew()
                 }
-            }
-
-            if let suggestion = viewModel.clipboardPasswordSuggestion {
-                ClipboardPasswordSuggestionOverlay(
-                    suggestion: suggestion,
-                    onSave: {
-                        Task { await viewModel.acceptClipboardPasswordSuggestion() }
-                    },
-                    onDismiss: {
-                        viewModel.dismissClipboardPasswordSuggestion()
-                    }
-                )
             }
 
             ForEach(viewModel.webSessionAccounts) { account in

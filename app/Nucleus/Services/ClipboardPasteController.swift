@@ -1,5 +1,6 @@
 import AppKit
 import ApplicationServices
+import ClipboardKit
 import NucleusKit
 import SwiftUI
 

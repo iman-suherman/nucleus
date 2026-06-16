@@ -8,6 +8,7 @@ import { BRAND_NAME, GITHUB_REPO_URL } from "@/lib/brand";
 const nav = [
   { href: "/", label: "Home" },
   { href: "/install", label: "Install" },
+  { href: "/account", label: "Cloud" },
   { href: "/versions", label: "Download" },
   { href: "/#features", label: "Features" },
   { href: GITHUB_REPO_URL, label: "GitHub", external: true },

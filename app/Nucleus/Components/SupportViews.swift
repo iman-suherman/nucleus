@@ -46,11 +46,15 @@ struct QuickReplySheet: View {
 struct AppSettingsView: View {
     @ObservedObject var settings: AppSettings
     @ObservedObject var syncService: CloudKitSyncService
+    @ObservedObject var cloudSyncService: NucleusCloudSyncService
     @ObservedObject var viewModel: AppViewModel
     var accounts: [GoogleAccount]
     let selectedTab: SettingsTab
     @State private var cloudKitSyncMessage: String?
     @State private var isSyncingToCloudKit = false
+    @State private var nucleusCloudMessage: String?
+    @State private var isConnectingNucleusCloud = false
+    @State private var isSyncingNucleusCloud = false
 
     var body: some View {
         ScrollView {
@@ -77,6 +81,8 @@ struct AppSettingsView: View {
     @ViewBuilder
     private func settingsContent(for tab: SettingsTab) -> some View {
         switch tab {
+        case .nucleusCloud:
+            nucleusCloudSection
         case .iCloud:
             iCloudSyncSection
         case .keychain:
@@ -89,6 +95,77 @@ struct AppSettingsView: View {
             chatSection
         case .about:
             aboutSection
+        }
+    }
+
+    private var nucleusCloudSection: some View {
+        Section("Nucleus Cloud") {
+            LabeledContent("Status") {
+                HStack(spacing: 8) {
+                    Image(systemName: cloudSyncService.status.isConnected ? "checkmark.circle" : "icloud.and.arrow.up")
+                        .foregroundStyle(cloudSyncService.status.isConnected ? .green : .secondary)
+                    Text(cloudSyncService.status.label)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            Text(
+                "Nucleus Cloud syncs notes, bills, dashboard analysis, settings, and account metadata without Apple iCloud. Google OAuth tokens stay in Keychain on this Mac."
+            )
+            .font(.caption)
+            .foregroundStyle(.secondary)
+
+            if cloudSyncService.status.isConnected {
+                if let lastSyncAt = cloudSyncService.lastSyncAt {
+                    LabeledContent("Last sync") {
+                        Text(lastSyncAt, style: .relative)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                Button(isSyncingNucleusCloud ? "Syncing…" : "Sync Now") {
+                    isSyncingNucleusCloud = true
+                    nucleusCloudMessage = "Syncing with Nucleus Cloud…"
+                    Task {
+                        nucleusCloudMessage = await viewModel.pushToNucleusCloud()
+                        isSyncingNucleusCloud = false
+                    }
+                }
+                .disabled(isSyncingNucleusCloud)
+
+                Button("Disconnect", role: .destructive) {
+                    cloudSyncService.disconnect()
+                    nucleusCloudMessage = "Disconnected from Nucleus Cloud."
+                }
+            } else {
+                Button(isConnectingNucleusCloud ? "Opening Browser…" : "Connect Account") {
+                    isConnectingNucleusCloud = true
+                    nucleusCloudMessage = "Authorize this Mac in your browser…"
+                    Task {
+                        nucleusCloudMessage = await viewModel.connectNucleusCloud()
+                        isConnectingNucleusCloud = false
+                    }
+                }
+                .disabled(isConnectingNucleusCloud)
+            }
+
+            if let nucleusCloudMessage {
+                Text(nucleusCloudMessage)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            if let lastError = cloudSyncService.lastError {
+                Text(lastError)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+            }
+        }
+        .onChange(of: cloudSyncService.status) { _, status in
+            if case .connected = status, isConnectingNucleusCloud {
+                nucleusCloudMessage = "Connected. Syncing your workspace…"
+                isConnectingNucleusCloud = false
+            }
         }
     }
 
@@ -455,6 +532,7 @@ private struct ICloudSyncLogPanel: View {
 }
 
 enum SettingsTab: String, CaseIterable, Identifiable {
+    case nucleusCloud
     case iCloud
     case keychain
     case notifications
@@ -466,6 +544,7 @@ enum SettingsTab: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
+        case .nucleusCloud: return "Nucleus Cloud"
         case .iCloud: return "iCloud"
         case .keychain: return "Keychain"
         case .notifications: return "Notifications"
@@ -477,6 +556,7 @@ enum SettingsTab: String, CaseIterable, Identifiable {
 
     var systemImage: String {
         switch self {
+        case .nucleusCloud: return "cloud"
         case .iCloud: return "icloud"
         case .keychain: return "key"
         case .notifications: return "bell"
@@ -488,6 +568,8 @@ enum SettingsTab: String, CaseIterable, Identifiable {
 
     var subtitle: String {
         switch self {
+        case .nucleusCloud:
+            return "Cross-platform sync without Apple iCloud."
         case .iCloud:
             return "Sync accounts, notes, bills, and preferences across your Macs."
         case .keychain:
@@ -508,7 +590,7 @@ struct SettingsWorkspaceView: View {
     @EnvironmentObject private var settings: AppSettings
     @EnvironmentObject private var viewModel: AppViewModel
 
-    @State private var selectedTab: SettingsTab = .iCloud
+    @State private var selectedTab: SettingsTab = .nucleusCloud
 
     var body: some View {
         VStack(spacing: 0) {
@@ -583,6 +665,7 @@ struct SettingsWorkspaceView: View {
         AppSettingsView(
             settings: settings,
             syncService: viewModel.syncService,
+            cloudSyncService: viewModel.cloudSyncService,
             viewModel: viewModel,
             accounts: viewModel.accounts,
             selectedTab: selectedTab

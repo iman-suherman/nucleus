@@ -57,7 +57,7 @@ public enum WorkspacePane: String, CaseIterable, Identifiable, Sendable {
         case .calendar: return "Calendar"
         case .chat: return "Chat"
         case .clipboard: return "Clipboard"
-        case .notes: return "Notes"
+        case .notes: return "Notes and Passwords"
         case .bills: return "Bills"
         case .accounts: return "Accounts"
         case .settings: return "Settings"
@@ -71,7 +71,7 @@ public enum WorkspacePane: String, CaseIterable, Identifiable, Sendable {
         case .calendar: return "Google Calendar in Nucleus"
         case .chat: return "Google Chat messages"
         case .clipboard: return "Recent clips and templates"
-        case .notes: return "Markdown knowledge base"
+        case .notes: return "Markdown notes and password vault"
         case .bills: return "Monthly bills and payments"
         case .accounts: return "Google identities"
         case .settings: return "Sync and notifications"
@@ -471,8 +471,12 @@ public enum NucleusFormatters {
         return formatter
     }()
 
-    public static func currencyString(_ amount: Double) -> String {
-        currency.string(from: NSNumber(value: amount)) ?? String(format: "$%.2f", amount)
+    public static func currencyString(_ amount: Double, currencyCode: String = Locale.current.currency?.identifier ?? "AUD") -> String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .currency
+        formatter.currencyCode = currencyCode.uppercased()
+        formatter.locale = Locale.current
+        return formatter.string(from: NSNumber(value: amount)) ?? "\(currencyCode.uppercased()) \(String(format: "%.2f", amount))"
     }
 }
 

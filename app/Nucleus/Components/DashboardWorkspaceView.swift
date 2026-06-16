@@ -139,7 +139,7 @@ struct DashboardWorkspaceView: View {
                                 }
                                 Spacer()
                                 VStack(alignment: .trailing, spacing: 4) {
-                                    Text(NucleusFormatters.currencyString(bill.amountDue))
+                                    Text(NucleusFormatters.currencyString(bill.amountDue, currencyCode: bill.currencyCode))
                                         .font(.subheadline.monospacedDigit())
                                     Text(bill.status.label)
                                         .font(.caption2.weight(.medium))
@@ -190,7 +190,9 @@ struct DashboardWorkspaceView: View {
                     ClipboardProductivityCategory.development.rawValue: Color.blue,
                     ClipboardProductivityCategory.communication.rawValue: Color.green,
                     ClipboardProductivityCategory.research.rawValue: Color.purple,
-                    ClipboardProductivityCategory.general.rawValue: Color.orange,
+                    ClipboardProductivityCategory.notesAndDrafts.rawValue: Color.orange,
+                    ClipboardProductivityCategory.adminText.rawValue: Color.teal,
+                    ClipboardProductivityCategory.dataAndNumbers.rawValue: Color.pink,
                 ])
                 .chartYAxis {
                     AxisMarks(position: .leading)

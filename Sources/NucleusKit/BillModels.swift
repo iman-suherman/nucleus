@@ -44,10 +44,24 @@ public enum BillCategory: String, Codable, CaseIterable, Sendable {
     }
 }
 
+public enum BillCurrency: String, Codable, CaseIterable, Sendable {
+    case usd = "USD"
+    case aud = "AUD"
+    case eur = "EUR"
+    case gbp = "GBP"
+    case sgd = "SGD"
+    case idr = "IDR"
+    case jpy = "JPY"
+    case nzd = "NZD"
+
+    public var label: String { rawValue }
+}
+
 public struct Bill: Identifiable, Codable, Hashable, Sendable {
     public let id: UUID
     public var name: String
     public var amount: Double
+    public var currencyCode: String
     public var category: BillCategory
     public var recurrence: BillRecurrence
     public var customIntervalDays: Int?
@@ -63,6 +77,7 @@ public struct Bill: Identifiable, Codable, Hashable, Sendable {
         id: UUID = UUID(),
         name: String,
         amount: Double,
+        currencyCode: String = BillCurrency.aud.rawValue,
         category: BillCategory = .other,
         recurrence: BillRecurrence = .monthly,
         customIntervalDays: Int? = nil,
@@ -77,6 +92,7 @@ public struct Bill: Identifiable, Codable, Hashable, Sendable {
         self.id = id
         self.name = name
         self.amount = amount
+        self.currencyCode = currencyCode.uppercased()
         self.category = category
         self.recurrence = recurrence
         self.customIntervalDays = customIntervalDays
@@ -146,37 +162,38 @@ public enum BillDisplayStatus: String, Sendable, CaseIterable, Codable {
     }
 }
 
-public struct BillMonthlySummary: Sendable {
+public struct BillCurrencySummary: Sendable, Identifiable {
+    public var currencyCode: String
     public var dueSoonCount: Int
     public var dueSoonAmount: Double
-    public var dueThisMonthCount: Int
-    public var dueThisMonthAmount: Double
-    public var paidThisMonthCount: Int
     public var paidThisMonthAmount: Double
-    public var stillDueThisMonthAmount: Double
-    public var expectedIncome: Double
+    public var dueThisMonthAmount: Double
 
-    public var okToSpend: Double {
-        expectedIncome - paidThisMonthAmount - stillDueThisMonthAmount
-    }
+    public var id: String { currencyCode }
 
     public init(
+        currencyCode: String,
         dueSoonCount: Int = 0,
         dueSoonAmount: Double = 0,
-        dueThisMonthCount: Int = 0,
-        dueThisMonthAmount: Double = 0,
-        paidThisMonthCount: Int = 0,
         paidThisMonthAmount: Double = 0,
-        stillDueThisMonthAmount: Double = 0,
-        expectedIncome: Double = 0
+        dueThisMonthAmount: Double = 0
     ) {
+        self.currencyCode = currencyCode
         self.dueSoonCount = dueSoonCount
         self.dueSoonAmount = dueSoonAmount
-        self.dueThisMonthCount = dueThisMonthCount
-        self.dueThisMonthAmount = dueThisMonthAmount
-        self.paidThisMonthCount = paidThisMonthCount
         self.paidThisMonthAmount = paidThisMonthAmount
-        self.stillDueThisMonthAmount = stillDueThisMonthAmount
-        self.expectedIncome = expectedIncome
+        self.dueThisMonthAmount = dueThisMonthAmount
+    }
+}
+
+public struct BillMonthlySummary: Sendable {
+    public var byCurrency: [BillCurrencySummary]
+
+    public var dueSoonCount: Int {
+        byCurrency.reduce(0) { $0 + $1.dueSoonCount }
+    }
+
+    public init(byCurrency: [BillCurrencySummary] = []) {
+        self.byCurrency = byCurrency
     }
 }

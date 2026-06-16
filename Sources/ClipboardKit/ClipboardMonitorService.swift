@@ -1,24 +1,24 @@
+#if canImport(AppKit)
 import AppKit
 import Combine
 import Foundation
-import ClipboardKit
 
 @MainActor
-final class ClipboardMonitorService: ObservableObject {
-    static let shared = ClipboardMonitorService()
+public final class ClipboardMonitorService: ObservableObject {
+    public static let shared = ClipboardMonitorService()
 
-    @Published private(set) var lastChangeCount: Int = NSPasteboard.general.changeCount
+    @Published public private(set) var lastChangeCount: Int = NSPasteboard.general.changeCount
 
     private var timer: Timer?
     private var lastCapturedContent: String?
     private var isApplyingPaste = false
 
-    var onCapture: ((ClipboardCapture) -> Void)?
-    var isCaptureEnabled: () -> Bool = { true }
+    public var onCapture: ((ClipboardCapture) -> Void)?
+    public var isCaptureEnabled: () -> Bool = { true }
 
     private init() {}
 
-    func start() {
+    public func start() {
         stop()
         lastChangeCount = NSPasteboard.general.changeCount
         timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
@@ -28,7 +28,7 @@ final class ClipboardMonitorService: ObservableObject {
         }
     }
 
-    func stop() {
+    public func stop() {
         timer?.invalidate()
         timer = nil
     }
@@ -53,13 +53,20 @@ final class ClipboardMonitorService: ObservableObject {
         onCapture?(ClipboardCapture(content: content, sourceApplication: source))
     }
 
-    func preparePaste(_ content: String) {
+    public func preparePaste(_ content: String) {
         isApplyingPaste = true
         lastCapturedContent = content
     }
 
-    func completePaste() {
+    public func completePaste() {
         lastChangeCount = NSPasteboard.general.changeCount
         isApplyingPaste = false
     }
+
+    public static func copyToPasteboard(_ content: String) {
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        pasteboard.setString(content, forType: .string)
+    }
 }
+#endif

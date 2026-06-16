@@ -5,13 +5,22 @@ public struct DashboardUpcomingBill: Identifiable, Sendable, Equatable, Codable 
     public var name: String
     public var dueDate: Date
     public var amountDue: Double
+    public var currencyCode: String
     public var status: BillDisplayStatus
 
-    public init(id: UUID, name: String, dueDate: Date, amountDue: Double, status: BillDisplayStatus) {
+    public init(
+        id: UUID,
+        name: String,
+        dueDate: Date,
+        amountDue: Double,
+        currencyCode: String = BillCurrency.aud.rawValue,
+        status: BillDisplayStatus
+    ) {
         self.id = id
         self.name = name
         self.dueDate = dueDate
         self.amountDue = amountDue
+        self.currencyCode = currencyCode.uppercased()
         self.status = status
     }
 }
@@ -31,14 +40,18 @@ public enum ClipboardProductivityCategory: String, CaseIterable, Sendable, Codab
     case development = "Development"
     case communication = "Communication"
     case research = "Research"
-    case general = "General"
+    case notesAndDrafts = "Notes & drafts"
+    case adminText = "Admin & text"
+    case dataAndNumbers = "Data & numbers"
 
     public var systemImage: String {
         switch self {
         case .development: return "chevron.left.forwardslash.chevron.right"
         case .communication: return "bubble.left.and.bubble.right"
         case .research: return "magnifyingglass"
-        case .general: return "doc.text"
+        case .notesAndDrafts: return "note.text"
+        case .adminText: return "doc.text"
+        case .dataAndNumbers: return "number"
         }
     }
 }
@@ -153,6 +166,7 @@ public enum DashboardInsightsEngine {
                     name: bill.name,
                     dueDate: bill.nextDueDate,
                     amountDue: remaining,
+                    currencyCode: bill.currencyCode,
                     status: BillScheduleCalculator.displayStatus(
                         bill: bill,
                         payments: payments,
@@ -190,6 +204,7 @@ public enum DashboardInsightsEngine {
     public static func categorize(_ entry: ClipboardEntry) -> ClipboardProductivityCategory {
         let tags = Set(entry.tags.map { $0.lowercased() })
         let contentType = entry.contentType.lowercased()
+        let content = entry.content
 
         if tags.contains("code")
             || tags.contains("docker")
@@ -208,7 +223,30 @@ public enum DashboardInsightsEngine {
             return .research
         }
 
-        return .general
+        if tags.contains("password") || contentType == "note" {
+            return .notesAndDrafts
+        }
+
+        if content.contains("/") || content.contains("\\") || content.hasPrefix("~/") {
+            return .adminText
+        }
+
+        if trimmedLooksNumeric(entry.content) {
+            return .dataAndNumbers
+        }
+
+        if entry.content.count <= 120 {
+            return .notesAndDrafts
+        }
+
+        return .adminText
+    }
+
+    private static func trimmedLooksNumeric(_ content: String) -> Bool {
+        let trimmed = content.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return false }
+        let allowed = CharacterSet(charactersIn: "0123456789.,+-$€£¥% ")
+        return trimmed.unicodeScalars.allSatisfy { allowed.contains($0) }
     }
 
     private static func recentClipboardCount(
@@ -248,10 +286,16 @@ public enum DashboardInsightsEngine {
         if upcomingBills.isEmpty {
             openingParts.append("No bills are due in the next two weeks.")
         } else {
-            let totalDue = upcomingBills.reduce(0) { $0 + $1.amountDue }
             let billPhrase = upcomingBills.count == 1 ? "1 upcoming bill" : "\(upcomingBills.count) upcoming bills"
+            var totalsByCurrency: [String: Double] = [:]
+            for bill in upcomingBills {
+                totalsByCurrency[bill.currencyCode, default: 0] += bill.amountDue
+            }
+            let amountPhrase = totalsByCurrency.keys.sorted().map { code in
+                NucleusFormatters.currencyString(totalsByCurrency[code, default: 0], currencyCode: code)
+            }.joined(separator: ", ")
             openingParts.append(
-                "\(billPhrase) are due soon with \(NucleusFormatters.currencyString(totalDue)) still outstanding."
+                "\(billPhrase) are due soon with \(amountPhrase) still outstanding."
             )
         }
 
@@ -302,8 +346,12 @@ public enum DashboardInsightsEngine {
                 return "Productivity profile: connector mode. Links, meetings, and messaging dominate your captures, suggesting a collaboration-heavy rhythm."
             case .research:
                 return "Productivity profile: explorer mode. Issue trackers and reference material show up often, which fits investigation and planning work."
-            case .general:
-                return "Productivity profile: generalist mode. Most captures are plain text, which often means varied admin and note-taking across the day."
+            case .notesAndDrafts:
+                return "Productivity profile: note-taking mode. Short captures and draft text dominate your clipboard history."
+            case .adminText:
+                return "Productivity profile: admin mode. Paths, documents, and general text make up most of your captures."
+            case .dataAndNumbers:
+                return "Productivity profile: data mode. Numbers, amounts, and structured values appear frequently in your clipboard."
             }
         }
 

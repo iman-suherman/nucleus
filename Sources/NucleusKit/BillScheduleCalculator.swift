@@ -71,8 +71,8 @@ public enum BillScheduleCalculator {
         )
         return payments.filter { payment in
             payment.billID == bill.id
-                && payment.paidAt >= periodStart
-                && payment.paidAt <= bill.nextDueDate
+                && calendar.startOfDay(for: payment.paidAt) >= calendar.startOfDay(for: periodStart)
+                && calendar.startOfDay(for: payment.paidAt) <= calendar.startOfDay(for: bill.nextDueDate)
         }
     }
 
@@ -215,7 +215,6 @@ public enum BillScheduleCalculator {
     public static func monthlySummary(
         bills: [Bill],
         payments: [BillPayment],
-        expectedIncome: Double,
         reference: Date = Date(),
         calendar: Calendar = .current
     ) -> BillMonthlySummary {
@@ -223,44 +222,72 @@ public enum BillScheduleCalculator {
         let monthInterval = calendar.dateInterval(of: .month, for: reference)
         let monthStart = monthInterval?.start ?? reference
         let monthEnd = monthInterval?.end ?? reference
+        let today = calendar.startOfDay(for: reference)
+        let dueSoonHorizon = calendar.date(byAdding: .day, value: 14, to: today) ?? today
 
-        var dueSoonCount = 0
-        var dueSoonAmount = 0.0
-        var dueThisMonthCount = 0
-        var dueThisMonthAmount = 0.0
-        var stillDueThisMonthAmount = 0.0
+        var buckets: [String: BillCurrencySummary] = [:]
+
+        func bucket(for currencyCode: String) -> BillCurrencySummary {
+            if let existing = buckets[currencyCode] { return existing }
+            let created = BillCurrencySummary(currencyCode: currencyCode)
+            buckets[currencyCode] = created
+            return created
+        }
 
         for bill in activeBills {
             let remaining = remainingAmount(bill: bill, payments: payments, calendar: calendar)
-            let due = bill.nextDueDate
+            let dueDay = calendar.startOfDay(for: bill.nextDueDate)
+            var summary = bucket(for: bill.currencyCode)
 
-            if due >= reference, due <= calendar.date(byAdding: .day, value: 14, to: reference) ?? reference {
-                dueSoonCount += 1
-                dueSoonAmount += remaining
+            if dueDay <= dueSoonHorizon, remaining > 0.009 {
+                summary.dueSoonCount += 1
+                summary.dueSoonAmount += remaining
             }
 
-            if due >= monthStart, due < monthEnd {
-                dueThisMonthCount += 1
-                dueThisMonthAmount += bill.amount
-                stillDueThisMonthAmount += remaining
+            if dueDay >= monthStart, dueDay < monthEnd {
+                summary.dueThisMonthAmount += remaining
             }
+
+            buckets[bill.currencyCode] = summary
         }
 
         let monthPayments = payments.filter { payment in
             payment.paidAt >= monthStart && payment.paidAt < monthEnd
         }
-        let paidBillIDs = Set(monthPayments.map(\.billID))
 
-        return BillMonthlySummary(
-            dueSoonCount: dueSoonCount,
-            dueSoonAmount: dueSoonAmount,
-            dueThisMonthCount: dueThisMonthCount,
-            dueThisMonthAmount: dueThisMonthAmount,
-            paidThisMonthCount: paidBillIDs.count,
-            paidThisMonthAmount: monthPayments.reduce(0) { $0 + $1.amount },
-            stillDueThisMonthAmount: stillDueThisMonthAmount,
-            expectedIncome: expectedIncome
-        )
+        for payment in monthPayments {
+            guard let bill = activeBills.first(where: { $0.id == payment.billID }) else { continue }
+            var summary = bucket(for: bill.currencyCode)
+            summary.paidThisMonthAmount += payment.amount
+            buckets[bill.currencyCode] = summary
+        }
+
+        let sorted = buckets.values.sorted { $0.currencyCode < $1.currencyCode }
+        return BillMonthlySummary(byCurrency: sorted)
+    }
+
+    /// Advances nextDueDate for bills whose current period is fully paid.
+    public static func reconcileFullyPaidBills(
+        bills: inout [Bill],
+        payments: [BillPayment],
+        calendar: Calendar = .current
+    ) {
+        for index in bills.indices {
+            var bill = bills[index]
+            var safety = 0
+            while safety < 24 {
+                let remaining = remainingAmount(bill: bill, payments: payments, calendar: calendar)
+                guard remaining <= 0.009 else { break }
+                bill.nextDueDate = advanceDueDate(
+                    from: bill.nextDueDate,
+                    recurrence: bill.recurrence,
+                    customIntervalDays: bill.customIntervalDays,
+                    calendar: calendar
+                )
+                safety += 1
+            }
+            bills[index] = bill
+        }
     }
 
     public static func dueDates(in month: Date, bills: [Bill], calendar: Calendar = .current) -> Set<DateComponents> {

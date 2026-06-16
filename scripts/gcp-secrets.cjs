@@ -4,7 +4,12 @@
 const { spawnSync } = require("child_process");
 
 /** Env keys stored in Secret Manager (secret id matches env key). */
-const MANAGED_SECRETS = ["CLOUDKIT_MANAGEMENT_TOKEN"];
+const MANAGED_SECRETS = [
+  "CLOUDKIT_MANAGEMENT_TOKEN",
+  "AUTH_SECRET",
+  "GOOGLE_OAUTH_CLIENT_ID",
+  "GOOGLE_OAUTH_CLIENT_SECRET",
+];
 
 function runGcloud(args, { input } = {}) {
   const result = spawnSync("gcloud", args, {

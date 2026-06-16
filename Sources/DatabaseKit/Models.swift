@@ -302,6 +302,7 @@ public final class BillRecord {
     public var id: UUID = UUID()
     public var name: String = ""
     public var amount: Double = 0
+    public var currencyCode: String = BillCurrency.aud.rawValue
     public var categoryRaw: String = BillCategory.other.rawValue
     public var recurrenceRaw: String = BillRecurrence.monthly.rawValue
     public var customIntervalDays: Int?
@@ -317,6 +318,7 @@ public final class BillRecord {
         id: UUID = UUID(),
         name: String,
         amount: Double,
+        currencyCode: String = BillCurrency.aud.rawValue,
         categoryRaw: String,
         recurrenceRaw: String,
         customIntervalDays: Int? = nil,
@@ -331,6 +333,7 @@ public final class BillRecord {
         self.id = id
         self.name = name
         self.amount = amount
+        self.currencyCode = currencyCode.uppercased()
         self.categoryRaw = categoryRaw
         self.recurrenceRaw = recurrenceRaw
         self.customIntervalDays = customIntervalDays
@@ -356,6 +359,7 @@ public final class BillRecord {
             id: id,
             name: name,
             amount: amount,
+            currencyCode: currencyCode,
             category: category,
             recurrence: recurrence,
             customIntervalDays: customIntervalDays,
@@ -372,6 +376,7 @@ public final class BillRecord {
     public func apply(_ bill: Bill) {
         name = bill.name
         amount = bill.amount
+        currencyCode = bill.currencyCode
         categoryRaw = bill.category.rawValue
         recurrenceRaw = bill.recurrence.rawValue
         customIntervalDays = bill.customIntervalDays

@@ -22,6 +22,7 @@ public enum BillCSVCodec {
         "custom_interval_days",
         "due_day_of_month",
         "next_due_date",
+        "currency",
         "notes",
         "archived",
         "bill_name",
@@ -136,6 +137,7 @@ public enum BillCSVCodec {
             bill.customIntervalDays.map(String.init) ?? "",
             bill.dueDayOfMonth.map(String.init) ?? "",
             formatDate(bill.nextDueDate),
+            bill.currencyCode,
             bill.notes,
             bill.isArchived ? "true" : "false",
             "",
@@ -148,6 +150,7 @@ public enum BillCSVCodec {
     private static func encodePaymentRow(_ payment: BillPayment, billName: String) -> String {
         [
             "payment",
+            "",
             "",
             "",
             "",
@@ -182,6 +185,8 @@ public enum BillCSVCodec {
         let dueDay = Int(value(row, headerIndex, "due_day_of_month"))
         let archived = parseBool(value(row, headerIndex, "archived"))
         let notes = value(row, headerIndex, "notes")
+        let currencyCode = value(row, headerIndex, "currency").uppercased()
+        let resolvedCurrency = currencyCode.isEmpty ? BillCurrency.aud.rawValue : currencyCode
 
         let nextDue: Date
         if let parsedDue = parseDate(value(row, headerIndex, "next_due_date")) {
@@ -202,6 +207,7 @@ public enum BillCSVCodec {
             id: id,
             name: name,
             amount: amount,
+            currencyCode: resolvedCurrency,
             category: category,
             recurrence: recurrence,
             customIntervalDays: customDays,

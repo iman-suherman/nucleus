@@ -1,4 +1,5 @@
 import AccountKit
+import AppKit
 import ClipboardKit
 import Combine
 import DatabaseKit
@@ -60,6 +61,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
 
     let modelContainer: ModelContainer
     let syncService = CloudKitSyncService.shared
+    let cloudSyncService = NucleusCloudSyncService.shared
     private let mailSyncService = MailSyncService()
     private var knownMessageIDs = Set<String>()
     private var webReportedUnread: [UUID: Int] = [:]
@@ -73,6 +75,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
     private var billReminderRefreshTask: Task<Void, Never>?
     private var billReminderSettingsObserver: AnyCancellable?
     private var dismissedPasswordSuggestionHashes = Set<String>()
+    private var menuBarRefreshObserver: NSObjectProtocol?
 
     init() {
         if ProcessInfo.processInfo.environment["NUCLEUS_SEED_CLOUDKIT_SCHEMA"] == "1" {
@@ -89,8 +92,32 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         observeGmailWebUnreadCount()
         observeChatWebUnreadCount()
         observeCloudKitChanges()
+        observeNucleusCloudConnection()
+        observeMenuBarDataRefresh()
         startWindowLayoutTracking()
         observeBillReminderSettings()
+    }
+
+    private func observeMenuBarDataRefresh() {
+        menuBarRefreshObserver = NucleusDarwinNotifications.observe(
+            NucleusMenuBarBridge.darwinRefreshNotification
+        ) { [weak self] in
+            Task { @MainActor in
+                self?.reloadLocalData()
+            }
+        }
+    }
+
+    private func observeNucleusCloudConnection() {
+        NotificationCenter.default.addObserver(
+            forName: .nucleusCloudDidConnect,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                await self?.completeNucleusCloudConnection()
+            }
+        }
     }
 
     private func observeBillReminderSettings() {
@@ -375,6 +402,11 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         await syncService.refreshAccountStatus()
         try? await Task.sleep(nanoseconds: 350_000_000)
         reloadLocalData()
+        if cloudSyncService.status.isConnected {
+            let cloudContext = ModelContext(modelContainer)
+            await cloudSyncService.syncNow(context: cloudContext)
+            reloadLocalData()
+        }
         reconcileSelectedAccounts(settings: settings)
         applySyncedLayout(from: settings)
         await refreshWebSessionStatus()
@@ -384,14 +416,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         await autoReconnectAccounts(settings: settings)
         completeStartupStep(.keychainSync)
 
-        await beginStartupStep(.clipboard, message: "Starting clipboard monitor…")
-        ClipboardMonitorService.shared.isCaptureEnabled = { true }
-        ClipboardMonitorService.shared.onCapture = { [weak self] capture in
-            Task { @MainActor in
-                self?.handleClipboardCapture(capture)
-            }
-        }
-        ClipboardMonitorService.shared.start()
+        await beginStartupStep(.clipboard, message: "Connecting clipboard companion…")
         completeStartupStep(.clipboard)
         ClipboardPasteController.shared.start()
 
@@ -404,11 +429,6 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
             }
         }
         NucleusNotificationService.shared.onMeetingReminder = nil
-        NucleusNotificationService.shared.onClipboardPasswordAction = { [weak self] action in
-            Task { @MainActor in
-                self?.handleClipboardPasswordNotificationAction(action)
-            }
-        }
         await NucleusNotificationService.shared.rescheduleMeetingReminders([])
         await refreshBillReminders(settings: settings)
         MailNotificationSound.prepareNotificationSounds()
@@ -680,10 +700,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
     }
 
     func dashboardSnapshot() -> DashboardSnapshot {
-        if let storedDashboardAnalysis {
-            return storedDashboardAnalysis.snapshot
-        }
-        return computeDashboardSnapshot()
+        computeDashboardSnapshot()
     }
 
     func computeDashboardSnapshot() -> DashboardSnapshot {
@@ -735,6 +752,56 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
             self.reloadLocalData()
             return counts
         }
+    }
+
+    func handleIncomingURL(_ url: URL) async {
+        guard url.scheme == "net.suherman.nucleus", url.host == "cloud-sync" else { return }
+        guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+              let token = components.queryItems?.first(where: { $0.name == "token" })?.value,
+              !token.isEmpty else {
+            return
+        }
+
+        do {
+            try await cloudSyncService.handleDeepLinkToken(token)
+            await completeNucleusCloudConnection()
+        } catch {
+            statusMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+        }
+    }
+
+    func connectNucleusCloud() async -> String {
+        do {
+            let url = try await cloudSyncService.beginConnect()
+            NSWorkspace.shared.open(url)
+            return "Finish authorization in your browser, then return to Nucleus."
+        } catch {
+            return (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+        }
+    }
+
+    func completeNucleusCloudConnection() async {
+        persistDashboardAnalysis()
+        let context = ModelContext(modelContainer)
+        await cloudSyncService.syncNow(context: context)
+        reloadLocalData()
+        statusMessage = "Nucleus Cloud connected"
+    }
+
+    func pushToNucleusCloud() async -> String {
+        guard cloudSyncService.status.isConnected else {
+            return "Connect Nucleus Cloud in Settings first."
+        }
+
+        persistDashboardAnalysis()
+        let context = ModelContext(modelContainer)
+        await cloudSyncService.syncNow(context: context)
+        reloadLocalData()
+
+        if let error = cloudSyncService.lastError {
+            return error
+        }
+        return "Synced with Nucleus Cloud."
     }
 
     func reconcileSelectedAccounts(settings: AppSettings) {
@@ -972,11 +1039,10 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         BillScheduleCalculator.progressUntilDue(bill: bill, payments: billPayments)
     }
 
-    func billMonthlySummary(expectedIncome: Double) -> BillMonthlySummary {
+    func billMonthlySummary() -> BillMonthlySummary {
         BillScheduleCalculator.monthlySummary(
             bills: bills,
-            payments: billPayments,
-            expectedIncome: expectedIncome
+            payments: billPayments
         )
     }
 
@@ -1010,6 +1076,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
             }
             reloadLocalData()
             statusMessage = "Imported \(stored.billsImported) bill(s) and \(stored.paymentsImported) payment(s)"
+            reconcileImportedBillDueDates()
             return stored
         } catch {
             var result = parsed.result
@@ -1059,7 +1126,21 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         }
         reloadLocalData()
         selectedBillID = bill.id
+        persistDashboardAnalysis()
         statusMessage = "Saved bill"
+    }
+
+    private func reconcileImportedBillDueDates() {
+        var updatedBills = bills
+        BillScheduleCalculator.reconcileFullyPaidBills(bills: &updatedBills, payments: billPayments)
+        let context = ModelContext(modelContainer)
+        for bill in updatedBills {
+            if let original = bills.first(where: { $0.id == bill.id }), original.nextDueDate != bill.nextDueDate {
+                try? BillRepository.upsert(bill, context: context)
+            }
+        }
+        reloadLocalData()
+        persistDashboardAnalysis()
     }
 
     func deleteBill(id: UUID) {
@@ -1069,6 +1150,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
             try? NucleusDatabase.exportBillsToCloudKit(context: context, force: true)
         }
         reloadLocalData()
+        persistDashboardAnalysis()
         statusMessage = "Deleted bill"
     }
 
@@ -1097,6 +1179,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         }
 
         reloadLocalData()
+        persistDashboardAnalysis()
         statusMessage = "Logged payment"
     }
 
