@@ -18,6 +18,21 @@ EXPECTED_TYPES=(
   CD_DashboardAnalysisRecord
 )
 
+REQUIRED_BILL_FIELDS=(
+  CD_currencyCode
+)
+
+schema_has_bill_field() {
+  local schema_file="$1"
+  local field="$2"
+  awk -v field="$field" '
+    /RECORD TYPE CD_BillRecord/ { in_bill=1; next }
+    in_bill && /RECORD TYPE / { in_bill=0 }
+    in_bill && $0 ~ field { found=1 }
+    END { exit !found }
+  ' "$schema_file"
+}
+
 echo "==> Nucleus CloudKit schema diagnosis"
 echo "    Container: $CONTAINER_ID"
 echo "    Team:      $TEAM_ID"
@@ -96,6 +111,16 @@ for env in development production; do
   if [[ "$missing" -eq 0 ]]; then
     echo "  All expected CD_* types present in $env."
   fi
+
+  field_missing=0
+  for field in "${REQUIRED_BILL_FIELDS[@]}"; do
+    if schema_has_bill_field "$out" "$field"; then
+      echo "  CD_BillRecord has: $field"
+    else
+      echo "  CD_BillRecord MISSING: $field"
+      field_missing=1
+    fi
+  done
   echo
 done
 

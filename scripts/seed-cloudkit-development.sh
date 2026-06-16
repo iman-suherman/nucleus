@@ -44,7 +44,7 @@ No CLOUDKIT_MANAGEMENT_TOKEN found. Import manually:
    - CD_NoteRecord
    - CD_SyncedSettingsRecord
    - CD_ClipboardItemRecord
-   - CD_BillRecord
+   - CD_BillRecord (includes CD_currencyCode)
    - CD_BillPaymentRecord
    - CD_DashboardAnalysisRecord
 6. Footer → Deploy Schema Changes… → deploy to Production

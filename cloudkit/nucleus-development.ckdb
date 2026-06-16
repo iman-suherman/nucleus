@@ -21,6 +21,7 @@ DEFINE SCHEMA
         CD_amount              DOUBLE,
         CD_categoryRaw         STRING,
         CD_createdAt           TIMESTAMP,
+        CD_currencyCode        STRING,
         CD_customIntervalDays  INT64,
         CD_dueDayOfMonth       INT64,
         CD_entityName          STRING,

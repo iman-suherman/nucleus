@@ -39,7 +39,7 @@ enum CloudKitErrorDescriber {
             parts.append("Failed records — \(details.joined(separator: "; "))")
         } else if ckError.code == .partialFailure {
             parts.append(
-                "Core Data did not expose which records failed. Common causes: iCloud storage full, stale local sync metadata, or account needs attention in System Settings → Apple ID → iCloud."
+                "Core Data did not expose which records failed. If bills were recently updated, deploy CD_BillRecord.CD_currencyCode to CloudKit Production (see cloudkit/README.md). Other causes: iCloud storage full or account needs attention in System Settings → Apple ID → iCloud."
             )
         }
 
@@ -53,8 +53,9 @@ enum CloudKitErrorDescriber {
     static func userFacingUploadFailure(_ error: Error) -> String {
         let detail = describe(error)
         if detail.localizedCaseInsensitiveContains("cd_entityname")
-            || detail.localizedCaseInsensitiveContains("cannot create or modify field") {
-            return "iCloud upload failed: CloudKit Production schema is missing SwiftData fields (e.g. CD_entityName). Deploy the updated schema from Development to Production in CloudKit Console."
+            || detail.localizedCaseInsensitiveContains("cannot create or modify field")
+            || detail.localizedCaseInsensitiveContains("cd_currencycode") {
+            return "iCloud upload failed: CloudKit Production schema is missing SwiftData fields (e.g. CD_currencyCode on CD_BillRecord). Import cloudkit/nucleus-development.ckdb into Development, deploy to Production in CloudKit Console. See cloudkit/README.md."
         }
         if detail.localizedCaseInsensitiveContains("quota") {
             return "iCloud upload failed: iCloud storage may be full. Free space in System Settings → Apple ID → iCloud, then try again."

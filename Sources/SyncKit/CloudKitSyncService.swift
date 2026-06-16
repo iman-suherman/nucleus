@@ -82,6 +82,7 @@ public final class CloudKitSyncService: ObservableObject {
     private var cloudKitExportObserver: NSObjectProtocol?
     private var notesSyncClearTask: Task<Void, Never>?
     private var billsSyncClearTask: Task<Void, Never>?
+    private var remoteChangeDebounceTask: Task<Void, Never>?
     private var activeUpload: ActiveCloudKitUpload?
 
     public init(ubiquityContainerIdentifier: String? = "iCloud.net.suherman.nucleus") {
@@ -740,19 +741,28 @@ public final class CloudKitSyncService: ObservableObject {
             queue: .main
         ) { [weak self] _ in
             Task { @MainActor in
-                guard let self else { return }
-                self.lastRemoteChangeAt = Date()
-                if self.isUploadWaitActive {
-                    self.log("Remote CloudKit change received during upload wait", level: .info)
-                } else {
-                    self.isNotesSyncInProgress = false
-                    self.isBillsSyncInProgress = false
-                    self.notesSyncClearTask?.cancel()
-                    self.billsSyncClearTask?.cancel()
-                }
-                self.log("Remote CloudKit change received — reloading synced data", level: .success)
-                NotificationCenter.default.post(name: .nucleusCloudKitDataDidChange, object: nil)
+                self?.scheduleRemoteChangeReload()
             }
+        }
+    }
+
+    private func scheduleRemoteChangeReload() {
+        lastRemoteChangeAt = Date()
+        if isUploadWaitActive {
+            log("Remote CloudKit change received during upload wait", level: .info)
+        } else {
+            isNotesSyncInProgress = false
+            isBillsSyncInProgress = false
+            notesSyncClearTask?.cancel()
+            billsSyncClearTask?.cancel()
+        }
+
+        remoteChangeDebounceTask?.cancel()
+        remoteChangeDebounceTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 750_000_000)
+            guard !Task.isCancelled else { return }
+            log("Remote CloudKit change received — reloading synced data", level: .success)
+            NotificationCenter.default.post(name: .nucleusCloudKitDataDidChange, object: nil)
         }
     }
 

@@ -24,6 +24,11 @@ REQUIRED_TYPES=(
   CD_DashboardAnalysisRecord
 )
 
+# Fields that must exist on specific record types (additive schema migrations).
+REQUIRED_BILL_FIELDS=(
+  CD_currencyCode
+)
+
 echo "==> Nucleus CloudKit schema → Production (bills included)"
 echo "    Container: $CONTAINER_ID"
 echo "    Team:      $TEAM_ID"
@@ -40,11 +45,17 @@ if [[ ! -x "$CKTOOL" ]]; then
   exit 1
 fi
 
-echo "==> Verifying local schema file includes bill record types"
+echo "==> Verifying local schema file includes bill record types and currency field"
 missing_local=0
 for type in "${REQUIRED_TYPES[@]}"; do
   if ! rg -q "RECORD TYPE $type" "$SCHEMA_FILE"; then
     echo "  MISSING in local file: $type" >&2
+    missing_local=1
+  fi
+done
+for field in "${REQUIRED_BILL_FIELDS[@]}"; do
+  if ! schema_has_bill_field "$SCHEMA_FILE" "$field"; then
+    echo "  MISSING on CD_BillRecord in local file: $field" >&2
     missing_local=1
   fi
 done
@@ -57,27 +68,39 @@ echo
 
 print_production_deploy_steps() {
   cat <<EOF
-==> Deploy Development schema to Production (required for release app bill sync)
+==> Deploy Development schema to Production (required after bill currency / new fields)
 
 Apple only allows Production schema deploy through CloudKit Console:
 
   1. Open: $CONSOLE_URL
   2. Select environment: Development (left sidebar)
-  3. Schema → Record Types — confirm these exist:
-     - CD_BillRecord
-     - CD_BillPaymentRecord
-     - CD_DashboardAnalysisRecord
+  3. Schema → Record Types — confirm CD_BillRecord includes CD_currencyCode (String)
+  4. Also confirm these record types exist:
+     - CD_BillRecord, CD_BillPaymentRecord, CD_DashboardAnalysisRecord
      - CD_NoteRecord, CD_GoogleAccountRecord, CD_SyncedSettingsRecord, CD_ClipboardItemRecord
-  4. Footer → "Deploy Schema Changes…"
-  5. Review changes (should list CD_BillRecord / CD_BillPaymentRecord if new)
-  6. Deploy to Production
+  5. Footer → "Deploy Schema Changes…"
+  6. Review changes (e.g. CD_currencyCode added to CD_BillRecord)
+  7. Deploy to Production
 
 After deploy:
-  - Restart Nucleus on each Mac (release build uses Production CloudKit)
-  - Bills → Sync (or wait for automatic export on launch)
-  - Settings → iCloud sync log should show no BillRecord schema errors
+  - Quit and reopen Nucleus (release build uses Production CloudKit)
+  - Settings → iCloud → Sync to iCloud (or Bills → Sync)
+  - Export should finish without CKError partialFailure (code 2)
+
+See cloudkit/README.md for the full workflow.
 
 EOF
+}
+
+schema_has_bill_field() {
+  local schema_file="$1"
+  local field="$2"
+  awk -v field="$field" '
+    /RECORD TYPE CD_BillRecord/ { in_bill=1; next }
+    in_bill && /RECORD TYPE / { in_bill=0 }
+    in_bill && $0 ~ field { found=1 }
+    END { exit !found }
+  ' "$schema_file"
 }
 
 if [[ -z "${CLOUDKIT_MANAGEMENT_TOKEN:-}" ]]; then
@@ -133,6 +156,7 @@ prod_schema="$tmpdir/production.ckdb"
   --output-file "$prod_schema"
 
 missing_prod=0
+missing_prod_fields=0
 for type in "${REQUIRED_TYPES[@]}"; do
   if rg -q "RECORD TYPE $type" "$prod_schema"; then
     echo "  Production has: $type"
@@ -141,13 +165,26 @@ for type in "${REQUIRED_TYPES[@]}"; do
     missing_prod=1
   fi
 done
+for field in "${REQUIRED_BILL_FIELDS[@]}"; do
+  if schema_has_bill_field "$prod_schema" "$field"; then
+    echo "  Production CD_BillRecord has: $field"
+  else
+    echo "  Production CD_BillRecord MISSING: $field"
+    missing_prod_fields=1
+  fi
+done
 echo
 
-if [[ "$missing_prod" -eq 0 ]]; then
-  echo "Production already includes all required record types (including bills)."
-  echo "If bills still do not sync, use Bills → Sync on the Mac that owns the data."
+if [[ "$missing_prod" -eq 0 && "$missing_prod_fields" -eq 0 ]]; then
+  echo "Production already includes all required record types and bill fields."
+  echo "If bills still do not sync, use Settings → iCloud → Sync to iCloud on the Mac that owns the data."
   exit 0
 fi
 
-echo "Production is missing bill (or other) record types — deploy Development → Production."
+if [[ "$missing_prod_fields" -eq 1 && "$missing_prod" -eq 0 ]]; then
+  echo "Production has bill record types but is missing new fields (e.g. CD_currencyCode)."
+  echo "Import the updated schema into Development, then deploy Development → Production."
+else
+  echo "Production is missing bill (or other) record types — deploy Development → Production."
+fi
 print_production_deploy_steps
