@@ -1,16 +1,12 @@
 {
-  "version": "0.3.31",
-  "summary": "iCloud sync log and upload hang fix.",
+  "version": "0.3.32",
+  "summary": "Clearer iCloud sync error messages in the sync log.",
   "releaseNotes": {
-    "introduced": [
-      "Settings → iCloud sync log — live CloudKit export, import, and remote-change events with Copy and Clear"
-    ],
+    "introduced": [],
     "changed": [
-      "Upload Notes to iCloud shows progress text while waiting and logs each step in the sync log"
+      "Sync log decodes CloudKit errors — partialFailure (code 2), quota, and auth issues show actionable detail instead of generic messages",
+      "Settings → iCloud runs a zone diagnostic on refresh and logs private CloudKit zones"
     ],
-    "fixed": [
-      "Upload Notes to iCloud no longer hangs indefinitely on “Uploading…”",
-      "CloudKit export wait no longer deadlocks when queuing notes on the main thread"
-    ]
+    "fixed": []
   }
 }
