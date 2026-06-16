@@ -1,3 +1,4 @@
+import AppKit
 import CoreLocation
 import Foundation
 import WeatherKit
@@ -56,21 +57,34 @@ final class DashboardWeatherService: NSObject, ObservableObject {
             return
         }
         hasStarted = true
+        statusMessage = "Waiting for location access…"
         locationManager.requestWhenInUseAuthorization()
+        requestWeatherIfAuthorized()
+    }
+
+    func openLocationSettings() {
+        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_LocationServices") {
+            NSWorkspace.shared.open(url)
+        }
     }
 
     private func requestWeatherIfAuthorized() {
         switch locationManager.authorizationStatus {
         case .authorized, .authorizedAlways:
+            statusMessage = nil
             if let location = locationManager.location {
                 Task { await fetchWeather(for: location) }
             } else {
+                isLoading = true
                 locationManager.requestLocation()
             }
         case .denied, .restricted:
+            weather = nil
+            isLoading = false
             statusMessage = "Allow location access in System Settings to show today's weather."
         case .notDetermined:
-            locationManager.requestWhenInUseAuthorization()
+            isLoading = false
+            statusMessage = "Allow location access to show today's weather."
         @unknown default:
             break
         }

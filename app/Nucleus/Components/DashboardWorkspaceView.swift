@@ -1,3 +1,4 @@
+import AppKit
 import Charts
 import DatabaseKit
 import NucleusKit
@@ -30,9 +31,9 @@ struct DashboardWorkspaceView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 28) {
                     header
+                    weatherForecastSection
                     summaryCards
-                    resourceUsageSection
-                    cloudSyncSection
+                    resourceAndCloudSyncRow
                     summaryAndBillsRow
                     productivitySection
                 }
@@ -49,17 +50,16 @@ struct DashboardWorkspaceView: View {
         .onDisappear {
             processMetricsService.stopSampling()
         }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            weatherService.refreshIfNeeded()
+        }
     }
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .top, spacing: 16) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("\(DashboardGreeting.timeOfDay()), \(DashboardGreeting.firstName)")
-                        .font(.largeTitle.bold())
-
-                    weatherGreetingLine
-                }
+                Text("\(DashboardGreeting.timeOfDay()), \(DashboardGreeting.firstName)")
+                    .font(.largeTitle.bold())
 
                 Spacer(minLength: 0)
 
@@ -84,31 +84,67 @@ struct DashboardWorkspaceView: View {
     }
 
     @ViewBuilder
-    private var weatherGreetingLine: some View {
-        if let weather = weatherService.weather {
-            HStack(spacing: 8) {
-                Image(systemName: weather.conditionSymbol)
-                    .symbolRenderingMode(.multicolor)
-                Text("Today: \(weather.conditionDescription). High \(weather.highTemperature), low \(weather.lowTemperature).")
-                if let rainSummary = weather.rainSummary {
-                    Text(rainSummary)
+    private var weatherForecastSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label("Today's weather", systemImage: "cloud.sun.fill")
+                .font(.headline)
+                .symbolRenderingMode(.multicolor)
+
+            if let weather = weatherService.weather {
+                HStack(alignment: .top, spacing: 16) {
+                    Image(systemName: weather.conditionSymbol)
+                        .font(.system(size: 36))
+                        .symbolRenderingMode(.multicolor)
+                        .frame(width: 44)
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(weather.conditionDescription)
+                            .font(.title3.weight(.semibold))
+                        Text("High \(weather.highTemperature) · Low \(weather.lowTemperature)")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                        if let rainSummary = weather.rainSummary {
+                            Text(rainSummary)
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+
+                    Spacer(minLength: 0)
                 }
-            }
-            .font(.subheadline)
-            .foregroundStyle(.secondary)
-            .fixedSize(horizontal: false, vertical: true)
-        } else if weatherService.isLoading {
-            HStack(spacing: 8) {
-                ProgressView()
+                .padding(18)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 14))
+            } else if weatherService.isLoading {
+                HStack(spacing: 10) {
+                    ProgressView()
+                        .controlSize(.small)
+                    Text("Loading today's forecast…")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(18)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(.quaternary.opacity(0.25), in: RoundedRectangle(cornerRadius: 14))
+            } else if let statusMessage = weatherService.statusMessage {
+                HStack(alignment: .center, spacing: 12) {
+                    Image(systemName: "location.slash")
+                        .foregroundStyle(.secondary)
+                    Text(statusMessage)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 0)
+                    Button("Open Settings") {
+                        weatherService.openLocationSettings()
+                    }
+                    .buttonStyle(.bordered)
                     .controlSize(.small)
-                Text("Loading today's weather…")
+                }
+                .padding(18)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(.quaternary.opacity(0.25), in: RoundedRectangle(cornerRadius: 14))
             }
-            .font(.subheadline)
-            .foregroundStyle(.secondary)
-        } else if let statusMessage = weatherService.statusMessage {
-            Text(statusMessage)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
         }
     }
 
@@ -172,6 +208,15 @@ struct DashboardWorkspaceView: View {
                 tint: .purple,
                 action: { viewModel.sidebarSelection = .workspace(.bills) }
             )
+        }
+    }
+
+    private var resourceAndCloudSyncRow: some View {
+        HStack(alignment: .top, spacing: 20) {
+            resourceUsageSection
+                .frame(maxWidth: .infinity, alignment: .leading)
+            cloudSyncSection
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
@@ -354,117 +399,62 @@ struct DashboardWorkspaceView: View {
     private var upcomingBillsSection: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
-                Label("Upcoming bills", systemImage: "calendar.badge.clock")
+                Label("Payment preparation", systemImage: "sparkles")
                     .font(.headline)
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [.orange, .pink],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
                 Spacer()
                 Button("Open Bills") {
                     viewModel.sidebarSelection = .workspace(.bills)
                 }
             }
 
-            if snapshot.upcomingBills.isEmpty {
-                Text("Nothing due in the next two weeks.")
+            if billPaymentSummary.groups.isEmpty {
+                Text("Nothing to prepare in the next two weeks.")
                     .foregroundStyle(.secondary)
                     .padding(16)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(.quaternary.opacity(0.25), in: RoundedRectangle(cornerRadius: 12))
             } else {
                 billPaymentPreparationCard
-
-                VStack(spacing: 0) {
-                    ForEach(snapshot.upcomingBills) { bill in
-                        Button {
-                            viewModel.selectedBillID = bill.id
-                            viewModel.sidebarSelection = .workspace(.bills)
-                        } label: {
-                            HStack(spacing: 12) {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    HStack(spacing: 6) {
-                                        Image(systemName: bill.category.systemImage)
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
-                                        Text(bill.name)
-                                            .font(.subheadline.weight(.semibold))
-                                    }
-                                    HStack(spacing: 4) {
-                                        Text(NucleusFormatters.dayHeader.string(from: bill.dueDate))
-                                        Text("·")
-                                        Text(bill.dueDate, style: .relative)
-                                    }
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                }
-                                Spacer()
-                                VStack(alignment: .trailing, spacing: 4) {
-                                    Text(NucleusFormatters.currencyString(bill.amountDue, currencyCode: bill.currencyCode))
-                                        .font(.subheadline.monospacedDigit())
-                                    Text(bill.status.label)
-                                        .font(.caption2.weight(.medium))
-                                        .foregroundStyle(statusColor(for: bill.status))
-                                }
-                            }
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 12)
-                        }
-                        .buttonStyle(.plain)
-
-                        if bill.id != snapshot.upcomingBills.last?.id {
-                            Divider()
-                        }
-                    }
-                }
-                .background(.quaternary.opacity(0.25), in: RoundedRectangle(cornerRadius: 12))
             }
         }
     }
 
     private var billPaymentPreparationCard: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Label("Payment preparation", systemImage: "sparkles")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(
-                    LinearGradient(
-                        colors: [.orange, .pink],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                )
+        VStack(alignment: .leading, spacing: 0) {
+            ForEach(billPaymentSummary.groups) { group in
+                HStack(spacing: 12) {
+                    Image(systemName: group.category.systemImage)
+                        .foregroundStyle(.purple)
+                        .frame(width: 22)
 
-            Text(billPaymentSummary.preparationNotes)
-                .font(.body)
-                .fixedSize(horizontal: false, vertical: true)
-
-            VStack(spacing: 0) {
-                ForEach(billPaymentSummary.groups) { group in
-                    HStack(spacing: 12) {
-                        Image(systemName: group.category.systemImage)
-                            .foregroundStyle(.purple)
-                            .frame(width: 22)
-
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text("\(group.category.label) · \(group.currencyCode)")
-                                .font(.subheadline.weight(.semibold))
-                            Text("\(group.billCount == 1 ? "1 bill" : "\(group.billCount) bills") due \(dueWindowLabel(for: group))")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-
-                        Spacer()
-
-                        Text(NucleusFormatters.currencyString(group.totalAmount, currencyCode: group.currencyCode))
-                            .font(.subheadline.weight(.semibold).monospacedDigit())
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("\(group.category.label) · \(group.currencyCode)")
+                            .font(.subheadline.weight(.semibold))
+                        Text("\(group.billCount == 1 ? "1 bill" : "\(group.billCount) bills") due \(dueWindowLabel(for: group))")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 10)
 
-                    if group.id != billPaymentSummary.groups.last?.id {
-                        Divider()
-                    }
+                    Spacer()
+
+                    Text(NucleusFormatters.currencyString(group.totalAmount, currencyCode: group.currencyCode))
+                        .font(.subheadline.weight(.semibold).monospacedDigit())
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+
+                if group.id != billPaymentSummary.groups.last?.id {
+                    Divider()
                 }
             }
-            .background(Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 10))
         }
-        .padding(16)
         .background(
             LinearGradient(
                 colors: [
@@ -539,16 +529,6 @@ struct DashboardWorkspaceView: View {
                 .padding(16)
                 .background(.quaternary.opacity(0.25), in: RoundedRectangle(cornerRadius: 12))
             }
-        }
-    }
-
-    private func statusColor(for status: BillDisplayStatus) -> Color {
-        switch status {
-        case .paid: return .green
-        case .upcoming: return .secondary
-        case .dueSoon: return .orange
-        case .partial: return .yellow
-        case .overdue: return .red
         }
     }
 }
