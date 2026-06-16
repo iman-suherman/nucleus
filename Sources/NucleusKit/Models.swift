@@ -363,7 +363,7 @@ public struct NucleusSyncedConfiguration: Codable, Hashable, Sendable {
         selectedWorkspacePane: String? = nil,
         windowLayout: WindowLayoutState? = nil,
         clipboardSyncEnabled: Bool = true,
-        clipboardSaveToNotesEnabled: Bool = true,
+        clipboardSaveToNotesEnabled: Bool = false,
         iCloudKeychainTokenSyncEnabled: Bool = true,
         updatedAt: Date = Date()
     ) {
@@ -406,7 +406,7 @@ public struct NucleusSyncedConfiguration: Codable, Hashable, Sendable {
         selectedWorkspacePane = try container.decodeIfPresent(String.self, forKey: .selectedWorkspacePane)
         windowLayout = try container.decodeIfPresent(WindowLayoutState.self, forKey: .windowLayout)
         clipboardSyncEnabled = try container.decodeIfPresent(Bool.self, forKey: .clipboardSyncEnabled) ?? true
-        clipboardSaveToNotesEnabled = try container.decodeIfPresent(Bool.self, forKey: .clipboardSaveToNotesEnabled) ?? true
+        clipboardSaveToNotesEnabled = try container.decodeIfPresent(Bool.self, forKey: .clipboardSaveToNotesEnabled) ?? false
         iCloudKeychainTokenSyncEnabled = try container.decodeIfPresent(Bool.self, forKey: .iCloudKeychainTokenSyncEnabled) ?? true
         updatedAt = try container.decodeIfPresent(Date.self, forKey: .updatedAt) ?? Date()
     }

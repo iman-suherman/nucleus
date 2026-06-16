@@ -46,9 +46,12 @@ public final class CloudKitSyncService: ObservableObject {
 
     @Published public private(set) var status: SyncStatus = .checking
     @Published public private(set) var lastRemoteChangeAt: Date?
+    @Published public private(set) var iCloudAccountProfile = ICloudAccountProfile()
+    @Published public private(set) var isNotesSyncInProgress = false
 
     private let ubiquityContainerIdentifier: String?
     private var remoteChangeObserver: NSObjectProtocol?
+    private var notesSyncClearTask: Task<Void, Never>?
 
     public init(ubiquityContainerIdentifier: String? = "iCloud.net.suherman.nucleus") {
         self.ubiquityContainerIdentifier = ubiquityContainerIdentifier
@@ -64,11 +67,13 @@ public final class CloudKitSyncService: ObservableObject {
 
         guard let containerID = ubiquityContainerIdentifier else {
             status = .unavailable
+            iCloudAccountProfile = ICloudAccountProfile()
             return
         }
 
         if FileManager.default.ubiquityIdentityToken == nil {
             status = .noAccount
+            iCloudAccountProfile = ICloudAccountProfile()
             return
         }
 
@@ -90,6 +95,32 @@ public final class CloudKitSyncService: ObservableObject {
         } catch {
             status = .error(error.localizedDescription)
         }
+
+        if status.isAvailable {
+            iCloudAccountProfile = await ICloudAccountProfileFetcher.fetch(containerIdentifier: containerID)
+        } else {
+            iCloudAccountProfile = ICloudAccountProfile()
+        }
+    }
+
+    public func markNotesLocalChange() {
+        isNotesSyncInProgress = true
+        notesSyncClearTask?.cancel()
+        notesSyncClearTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            guard !Task.isCancelled else { return }
+            isNotesSyncInProgress = false
+        }
+    }
+
+    public var iCloudAccountDisplayName: String {
+        if !iCloudAccountProfile.isEmpty {
+            return iCloudAccountProfile.displayName
+        }
+        if FileManager.default.ubiquityIdentityToken != nil {
+            return "Signed in to iCloud"
+        }
+        return "Not signed in to iCloud"
     }
 
     private func observeRemoteChanges() {
@@ -101,6 +132,8 @@ public final class CloudKitSyncService: ObservableObject {
         ) { [weak self] _ in
             Task { @MainActor in
                 self?.lastRemoteChangeAt = Date()
+                self?.isNotesSyncInProgress = false
+                self?.notesSyncClearTask?.cancel()
                 NotificationCenter.default.post(name: .nucleusCloudKitDataDidChange, object: nil)
             }
         }

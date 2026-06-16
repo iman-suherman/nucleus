@@ -362,7 +362,7 @@ final class AppSettings: ObservableObject {
         if UserDefaults.standard.object(forKey: Keys.clipboardSaveToNotesEnabled) != nil {
             clipboardSaveToNotesEnabled = UserDefaults.standard.bool(forKey: Keys.clipboardSaveToNotesEnabled)
         } else {
-            clipboardSaveToNotesEnabled = true
+            clipboardSaveToNotesEnabled = false
         }
 
         if UserDefaults.standard.object(forKey: Keys.iCloudKeychainTokenSyncEnabled) != nil {

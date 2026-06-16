@@ -1,11 +1,14 @@
 import AppKit
+import DatabaseKit
 import NotesKit
 import NucleusKit
 import SwiftUI
+import SyncKit
 
 struct NotesWorkspaceView: View {
     @EnvironmentObject private var viewModel: AppViewModel
     @EnvironmentObject private var appSettings: AppSettings
+    @ObservedObject private var syncService = CloudKitSyncService.shared
     @State private var editorText = ""
     @State private var passwordFields = PasswordNoteFields.empty()
     @State private var listFilter: NoteFolder?
@@ -59,6 +62,9 @@ struct NotesWorkspaceView: View {
             }
             .pickerStyle(.segmented)
             .padding(.horizontal, 16)
+
+            NotesICloudSyncStatusCard(syncService: syncService)
+                .padding(.horizontal, 16)
 
             List(selection: $viewModel.selectedNoteID) {
                 ForEach(filteredNotes) { note in
@@ -278,6 +284,105 @@ struct NotesWorkspaceView: View {
                 Task { await viewModel.moveNote(current, to: newValue) }
             }
         )
+    }
+}
+
+private struct NotesICloudSyncStatusCard: View {
+    @ObservedObject var syncService: CloudKitSyncService
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                Image(systemName: statusIcon)
+                    .foregroundStyle(statusIconColor)
+                Text(syncStatusTitle)
+                    .font(.subheadline.weight(.semibold))
+                if syncService.isNotesSyncInProgress {
+                    ProgressView()
+                        .controlSize(.small)
+                }
+            }
+
+            LabeledContent("iCloud account") {
+                Text(syncService.iCloudAccountDisplayName)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.trailing)
+            }
+            .font(.caption)
+
+            LabeledContent("Sync") {
+                Text(notesStorageLabel)
+                    .foregroundStyle(notesStorageColor)
+                    .multilineTextAlignment(.trailing)
+            }
+            .font(.caption)
+
+            if let lastSync = syncService.lastRemoteChangeAt {
+                LabeledContent("Last sync") {
+                    Text(lastSync, format: .relative(presentation: .named))
+                        .foregroundStyle(.secondary)
+                }
+                .font(.caption)
+            } else if NucleusDatabase.usesCloudKitSync, syncService.status.isAvailable {
+                LabeledContent("Last sync") {
+                    Text("Waiting for first update")
+                        .foregroundStyle(.secondary)
+                }
+                .font(.caption)
+            }
+
+            if let error = NucleusDatabase.lastCloudKitSetupError, !NucleusDatabase.usesCloudKitSync {
+                Text(error)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(12)
+        .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 10))
+    }
+
+    private var syncStatusTitle: String {
+        if syncService.status == .checking {
+            return "Checking iCloud…"
+        }
+        if syncService.isNotesSyncInProgress {
+            return "Syncing notes…"
+        }
+        if NucleusDatabase.usesCloudKitSync, syncService.status.isAvailable {
+            return "Notes synced"
+        }
+        return syncService.status.label
+    }
+
+    private var statusIcon: String {
+        if syncService.isNotesSyncInProgress || syncService.status == .checking {
+            return "arrow.triangle.2.circlepath.icloud"
+        }
+        if NucleusDatabase.usesCloudKitSync, syncService.status.isAvailable {
+            return "checkmark.icloud.fill"
+        }
+        return "icloud.slash"
+    }
+
+    private var statusIconColor: Color {
+        if NucleusDatabase.usesCloudKitSync, syncService.status.isAvailable {
+            return .green
+        }
+        if syncService.status == .checking || syncService.isNotesSyncInProgress {
+            return .secondary
+        }
+        return .orange
+    }
+
+    private var notesStorageLabel: String {
+        if NucleusDatabase.usesCloudKitSync {
+            return "iCloud CloudKit"
+        }
+        return "This Mac only"
+    }
+
+    private var notesStorageColor: Color {
+        NucleusDatabase.usesCloudKitSync ? Color.secondary : Color.orange
     }
 }
 

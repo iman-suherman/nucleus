@@ -1,0 +1,21 @@
+{
+  "version": "0.3.26",
+  "summary": "Manual clipboard-to-notes, iCloud status in Notes, and step-by-step inbox loading.",
+  "releaseNotes": {
+    "introduced": [
+      "Notes sidebar shows iCloud account, sync state, and last sync time",
+      "Inbox loader explains each step while Gmail connects, signs in, renders, and syncs unread counts"
+    ],
+    "changed": [
+      "Clipboard clips are only added to Notes when you tap Save to Note — not on every copy or pin",
+      "Google sign-in during inbox load uses a non-blocking banner so you can complete authentication"
+    ],
+    "fixed": [
+      "Inbox loading overlay stays visible until Gmail finishes rendering and background unread sync completes",
+      "Reduced delay before post-sign-in mail sync starts"
+    ],
+    "removed": [
+      "Automatic Save clipboard to Notes setting — use Save to Note on individual clips instead"
+    ]
+  }
+}

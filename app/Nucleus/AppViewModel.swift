@@ -50,6 +50,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
     @Published var accountError: String?
     @Published var webSessionStatus: [UUID: Bool] = [:]
     @Published var oauthConnectionStatus: [UUID: Bool] = [:]
+    @Published private(set) var isMailBackgroundSyncInProgress = false
 
     let modelContainer: ModelContainer
     let syncService = CloudKitSyncService.shared
@@ -278,7 +279,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
                 }
                 await self?.refreshWebSessionStatus()
                 // Defer sync so Gmail can finish rendering after sign-in.
-                try? await Task.sleep(nanoseconds: 750_000_000)
+                try? await Task.sleep(nanoseconds: 200_000_000)
                 await self?.syncMail()
             }
         }
@@ -304,9 +305,14 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
 
         await beginStartupStep(.database, message: "Loading workspace data…")
         AuthStateMigration.resetStoredLoginIfNeeded(modelContainer: modelContainer)
+        if NotesClipboardMigration.resetNotesForClipboardPolicyChange(modelContainer: modelContainer) {
+            syncService.markNotesLocalChange()
+        }
         reloadLocalData()
         let exportContext = ModelContext(modelContainer)
-        try? NucleusDatabase.exportNotesToCloudKit(context: exportContext)
+        if let exported = try? NucleusDatabase.exportNotesToCloudKit(context: exportContext), exported > 0 {
+            syncService.markNotesLocalChange()
+        }
         completeStartupStep(.database)
 
         await beginStartupStep(.accounts, message: "Restoring Google accounts…")
@@ -721,6 +727,9 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
             return
         }
 
+        isMailBackgroundSyncInProgress = true
+        defer { isMailBackgroundSyncInProgress = false }
+
         statusMessage = "Syncing mail…"
         var mergedUnread: [UUID: Int] = [:]
         var mergedMessages: [MailMessageSummary] = []
@@ -799,9 +808,6 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         let pinning = !entry.isPinned
         try? ClipboardRepository.setPinned(id: entry.id, pinned: pinning, context: context)
         reloadLocalData()
-        if pinning, AppSettings.shared.clipboardSaveToNotesEnabled {
-            Task { await saveClipboardToNote(entry, selectNote: false) }
-        }
     }
 
     func saveClipboardToNote(_ entry: ClipboardEntry, selectNote: Bool = true) async {
@@ -820,6 +826,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
     func deleteNote(_ note: NoteDocument) async {
         let context = ModelContext(modelContainer)
         try? NoteRepository.delete(id: note.id, context: context)
+        syncService.markNotesLocalChange()
         reloadLocalData()
         if selectedNoteID == note.id {
             selectedNoteID = notes.first?.id
@@ -859,6 +866,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         }
 
         try? NoteRepository.upsert(updated, context: context)
+        syncService.markNotesLocalChange()
         reloadLocalData()
         if selectNote {
             selectedNoteID = updated.id
@@ -876,6 +884,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         let context = ModelContext(modelContainer)
         do {
             let count = try NucleusDatabase.exportNotesToCloudKit(context: context, force: force)
+            syncService.markNotesLocalChange()
             reloadLocalData()
             if count > 0 {
                 return "Uploading \(count) note\(count == 1 ? "" : "s") to iCloud…"
@@ -942,9 +951,6 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         let context = ModelContext(modelContainer)
         try? ClipboardRepository.insert(entry, context: context)
         reloadLocalData()
-        if AppSettings.shared.clipboardSaveToNotesEnabled {
-            Task { await saveClipboardToNote(entry, selectNote: false) }
-        }
     }
 
     private func handleMailNotificationAction(_ action: NucleusNotificationService.MailNotificationAction) {

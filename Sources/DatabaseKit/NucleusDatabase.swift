@@ -517,6 +517,15 @@ public enum NoteRepository {
             try context.save()
         }
     }
+
+    public static func deleteAll(context: ModelContext) throws {
+        let records = try context.fetch(FetchDescriptor<NoteRecord>())
+        guard !records.isEmpty else { return }
+        for record in records {
+            context.delete(record)
+        }
+        try context.save()
+    }
 }
 
 public enum CalendarRepository {

@@ -15,6 +15,7 @@ struct GmailWebView: NSViewRepresentable {
     var isVisible: Bool = true
     var preferSignIn: Bool = false
     @Binding var isLoading: Bool
+    @Binding var loadingPhase: MailInboxLoadingPhase
 
     func makeNSView(context: Context) -> EmbeddedWebViewContainer {
         let container = EmbeddedWebViewContainer()
@@ -26,12 +27,15 @@ struct GmailWebView: NSViewRepresentable {
         container.embed(webView)
         applyVisibility(to: container)
         if !EmbeddedWebViewRegistry.hasLoadedContent(webView) {
+            loadingPhase = .connecting
             isLoading = true
             loadInbox(into: webView, email: accountEmail, preferSignIn: preferSignIn)
         } else if webView.url?.absoluteString.contains("mail.google.com/mail") == true {
+            loadingPhase = .idle
             isLoading = false
             context.coordinator.resumeUnreadPollingIfNeeded(in: webView)
         } else {
+            loadingPhase = .connecting
             isLoading = true
             context.coordinator.resumeUnreadPollingIfNeeded(in: webView)
         }
@@ -61,12 +65,18 @@ struct GmailWebView: NSViewRepresentable {
     }
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(isLoading: $isLoading)
+        Coordinator(isLoading: $isLoading, loadingPhase: $loadingPhase)
     }
 
-    static func navigateToInbox(accountID: UUID, email: String, isLoading: Binding<Bool>? = nil) {
+    static func navigateToInbox(
+        accountID: UUID,
+        email: String,
+        isLoading: Binding<Bool>? = nil,
+        loadingPhase: Binding<MailInboxLoadingPhase>? = nil
+    ) {
         guard let webView = EmbeddedWebViewRegistry.existingWebView(accountID: accountID, surface: .mail),
               let url = inboxURL(for: email) else { return }
+        loadingPhase?.wrappedValue = .connecting
         isLoading?.wrappedValue = true
         webView.load(URLRequest(url: url))
     }
@@ -128,14 +138,17 @@ struct GmailWebView: NSViewRepresentable {
 
     final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate {
         var isLoading: Binding<Bool>
+        var loadingPhase: Binding<MailInboxLoadingPhase>
         var accountID: UUID?
         var accountEmail: String?
         var hasReachedInbox = false
         private var unreadPollTimer: Timer?
         private var pollNowObserver: NSObjectProtocol?
+        private var readyCheckGeneration = 0
 
-        init(isLoading: Binding<Bool>) {
+        init(isLoading: Binding<Bool>, loadingPhase: Binding<MailInboxLoadingPhase>) {
             self.isLoading = isLoading
+            self.loadingPhase = loadingPhase
         }
 
         deinit {
@@ -145,18 +158,30 @@ struct GmailWebView: NSViewRepresentable {
         private func setLoading(_ loading: Bool) {
             DispatchQueue.main.async {
                 self.isLoading.wrappedValue = loading
+                if !loading {
+                    self.loadingPhase.wrappedValue = .idle
+                }
+            }
+        }
+
+        private func setPhase(_ phase: MailInboxLoadingPhase) {
+            DispatchQueue.main.async {
+                self.loadingPhase.wrappedValue = phase
             }
         }
 
         func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
+            setPhase(MailInboxLoadingPhase.phase(for: webView.url))
             setLoading(true)
         }
 
         func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+            setPhase(.failed(error.localizedDescription))
             setLoading(false)
         }
 
         func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+            setPhase(.failed(error.localizedDescription))
             setLoading(false)
         }
 
@@ -192,14 +217,16 @@ struct GmailWebView: NSViewRepresentable {
             let path = url.absoluteString
 
             if path.contains("mail.google.com/mail") {
-                if !hasReachedInbox, let accountID {
+                let isFirstReach = !hasReachedInbox
+                if isFirstReach, let accountID {
                     NotificationCenter.default.post(
                         name: .gmailWebSessionDidSignIn,
                         object: accountID
                     )
                 }
                 hasReachedInbox = true
-                setLoading(false)
+                setPhase(.renderingMailbox)
+                waitForWebViewReady(webView, isFirstReach: isFirstReach)
                 startUnreadPolling(in: webView)
                 return
             }
@@ -216,13 +243,14 @@ struct GmailWebView: NSViewRepresentable {
 
             if needsSignIn {
                 if path.contains("accounts.google.com") {
-                    setLoading(false)
+                    setPhase(.signingIn)
                     if path.contains("signin/identifier") {
                         GmailWebView.prefillSignInEmail(in: webView, email: email)
                     }
                     return
                 }
 
+                setPhase(.redirecting)
                 let pendingSignIn = accountID.map { AppViewModel.current?.isMailSignInPending($0) == true } ?? false
                 let targetURL = pendingSignIn
                     ? GmailWebView.signInURL(for: email)
@@ -235,15 +263,47 @@ struct GmailWebView: NSViewRepresentable {
 
         func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
             if EmbeddedWebViewRegistry.hasLoadedContent(webView) {
+                setPhase(.loadingInbox)
                 setLoading(true)
                 webView.reload()
                 return
             }
             guard let email = accountEmail else { return }
+            setPhase(.connecting)
             setLoading(true)
             if let url = GmailWebView.inboxURL(for: email) {
                 webView.load(URLRequest(url: url))
             }
+        }
+
+        private func waitForWebViewReady(_ webView: WKWebView, isFirstReach: Bool) {
+            readyCheckGeneration += 1
+            let generation = readyCheckGeneration
+            var attempts = 0
+
+            func check() {
+                guard generation == readyCheckGeneration else { return }
+                attempts += 1
+                let progress = webView.estimatedProgress
+                let ready = progress >= 0.92 || attempts >= 30
+
+                if ready {
+                    if isFirstReach {
+                        setPhase(.syncingUnread)
+                        let syncing = AppViewModel.current?.isMailBackgroundSyncInProgress == true
+                        setLoading(syncing)
+                    } else {
+                        setLoading(false)
+                    }
+                    return
+                }
+
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                    check()
+                }
+            }
+
+            check()
         }
 
         func resumeUnreadPollingIfNeeded(in webView: WKWebView) {
@@ -366,6 +426,8 @@ struct MailWorkspaceView: View {
     @State private var renamingAccount: GoogleAccount?
     @State private var renameDraft = ""
     @State private var isInboxLoading = true
+    @State private var inboxLoadingPhase: MailInboxLoadingPhase = .connecting
+    @State private var awaitingPostSignInSync = false
 
     var body: some View {
         Group {
@@ -378,7 +440,27 @@ struct MailWorkspaceView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onChange(of: selectedAccount?.id) { _, _ in
+            inboxLoadingPhase = .connecting
             isInboxLoading = true
+            awaitingPostSignInSync = false
+        }
+        .onChange(of: viewModel.isMailBackgroundSyncInProgress) { _, syncing in
+            guard !syncing, isInboxLoading, inboxLoadingPhase == .syncingUnread else { return }
+            awaitingPostSignInSync = false
+            isInboxLoading = false
+            inboxLoadingPhase = .idle
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .gmailWebSessionDidSignIn)) { notification in
+            guard let accountID = notification.object as? UUID,
+                  accountID == selectedAccount?.id else { return }
+            inboxLoadingPhase = .syncingUnread
+            isInboxLoading = true
+            if viewModel.isMailBackgroundSyncInProgress {
+                awaitingPostSignInSync = true
+            } else {
+                isInboxLoading = false
+                inboxLoadingPhase = .idle
+            }
         }
         .sheet(item: $renamingAccount) { account in
             AccountCategoryEditorSheet(
@@ -414,13 +496,22 @@ struct MailWorkspaceView: View {
                         accountEmail: account.email,
                         isVisible: isVisible,
                         preferSignIn: viewModel.isMailSignInPending(account.id),
-                        isLoading: $isInboxLoading
+                        isLoading: $isInboxLoading,
+                        loadingPhase: $inboxLoadingPhase
                     )
                     .id(account.id)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
 
                     if isInboxLoading {
-                        inboxLoadingOverlay
+                        if inboxLoadingPhase == .signingIn {
+                            VStack {
+                                inboxLoadingBanner
+                                Spacer()
+                            }
+                            .allowsHitTesting(false)
+                        } else {
+                            inboxLoadingOverlay
+                        }
                     }
                 }
                 .clipShape(RoundedRectangle(cornerRadius: 12))
@@ -487,25 +578,102 @@ struct MailWorkspaceView: View {
         }
     }
 
+    private var inboxLoadingBanner: some View {
+        HStack(spacing: 10) {
+            ProgressView()
+                .controlSize(.small)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(inboxLoadingPhase.title)
+                    .font(.subheadline.weight(.semibold))
+                Text(inboxLoadingPhase.detail)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10))
+        .padding(12)
+    }
+
     private var inboxLoadingOverlay: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .fill(Color(nsColor: .windowBackgroundColor))
-            VStack(spacing: 12) {
-                ProgressView()
-                    .controlSize(.large)
-                Text("Loading inbox…")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 16) {
+                HStack(spacing: 12) {
+                    ProgressView()
+                        .controlSize(.regular)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(inboxLoadingPhase.title)
+                            .font(.headline)
+                        if let step = inboxLoadingPhase.stepNumber {
+                            Text("Step \(step) of \(MailInboxLoadingPhase.stepCount)")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+
+                if !inboxLoadingPhase.detail.isEmpty {
+                    Text(inboxLoadingPhase.detail)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                VStack(alignment: .leading, spacing: 8) {
+                    ForEach(MailInboxLoadingPhase.orderedSteps, id: \.self) { step in
+                        HStack(spacing: 8) {
+                            Image(systemName: inboxStepIcon(for: step))
+                                .foregroundStyle(inboxStepColor(for: step))
+                                .frame(width: 16)
+                            Text(step.title)
+                                .font(.caption)
+                                .foregroundStyle(inboxStepColor(for: step))
+                        }
+                    }
+                }
+                .padding(.top, 4)
             }
+            .padding(24)
+            .frame(maxWidth: 420, alignment: .leading)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
+    private func inboxStepIcon(for step: MailInboxLoadingPhase) -> String {
+        if inboxLoadingPhase.isCompleted(relativeTo: step) {
+            return "checkmark.circle.fill"
+        }
+        if step.isCurrent(inboxLoadingPhase) {
+            return "ellipsis.circle.fill"
+        }
+        return "circle"
+    }
+
+    private func inboxStepColor(for step: MailInboxLoadingPhase) -> Color {
+        if inboxLoadingPhase.isCompleted(relativeTo: step) {
+            return .green
+        }
+        if step.isCurrent(inboxLoadingPhase) {
+            return .accentColor
+        }
+        return .secondary.opacity(0.55)
+    }
+
     private func selectAccountTab(_ account: GoogleAccount) {
         settings.selectedMailAccountID = account.id
+        inboxLoadingPhase = .connecting
         isInboxLoading = true
-        GmailWebView.navigateToInbox(accountID: account.id, email: account.email, isLoading: $isInboxLoading)
+        awaitingPostSignInSync = false
+        GmailWebView.navigateToInbox(
+            accountID: account.id,
+            email: account.email,
+            isLoading: $isInboxLoading,
+            loadingPhase: $inboxLoadingPhase
+        )
     }
 
     private func mailAccountTabTooltip(for account: GoogleAccount) -> String {
