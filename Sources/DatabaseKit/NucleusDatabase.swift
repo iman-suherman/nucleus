@@ -166,6 +166,44 @@ public enum NucleusDatabase {
         return appSupport.appendingPathComponent("Nucleus/nucleus.store", isDirectory: false)
     }
 
+    /// Removes SwiftData store files from Application Support (Synced, Local, and legacy paths).
+    public static func removeAllLocalStoreFiles() throws {
+        let appSupport = try FileManager.default.url(
+            for: .applicationSupportDirectory,
+            in: .userDomainMask,
+            appropriateFor: nil,
+            create: false
+        )
+        let fileManager = FileManager.default
+
+        for baseName in ["Synced", "Local", "Nucleus", "default"] {
+            for suffix in ["", "-shm", "-wal"] {
+                let url = appSupport.appendingPathComponent("\(baseName).store\(suffix)")
+                if fileManager.fileExists(atPath: url.path) {
+                    try fileManager.removeItem(at: url)
+                }
+            }
+        }
+
+        for auxiliary in ["Synced_ckAssets", ".Synced_SUPPORT"] {
+            let url = appSupport.appendingPathComponent(auxiliary)
+            if fileManager.fileExists(atPath: url.path) {
+                try fileManager.removeItem(at: url)
+            }
+        }
+
+        let legacyDirectory = appSupport.appendingPathComponent("Nucleus", isDirectory: true)
+        if fileManager.fileExists(atPath: legacyDirectory.path) {
+            try fileManager.removeItem(at: legacyDirectory)
+        }
+    }
+
+    /// Clears CloudKit export flags so a fresh store re-exports to iCloud.
+    public static func resetCloudKitUserDefaults() {
+        UserDefaults.standard.removeObject(forKey: notesCloudKitExportDefaultsKey)
+        UserDefaults.standard.removeObject(forKey: developmentSchemaSeedDefaultsKey)
+    }
+
     /// Uploads SwiftData model metadata to the CloudKit **Development** schema.
     /// Invoke with `NUCLEUS_SEED_CLOUDKIT_SCHEMA=1` during local setup only.
     public static func seedDevelopmentCloudKitSchemaIfNeeded(force: Bool = false) {

@@ -3,15 +3,22 @@ import Foundation
 
 enum CloudKitErrorDescriber {
     static func describe(_ error: Error) -> String {
-        guard let ckError = error as? CKError else {
-            let nsError = error as NSError
-            if nsError.domain == CKError.errorDomain,
-               let code = CKError.Code(rawValue: nsError.code) {
-                return describe(CKError(_nsError: nsError))
-            }
-            return error.localizedDescription
+        if let ckError = error as? CKError {
+            return describe(ckError)
         }
-        return describe(ckError)
+
+        let nsError = error as NSError
+        if nsError.domain == CKError.errorDomain,
+           let code = CKError.Code(rawValue: nsError.code) {
+            return describe(CKError(_nsError: nsError))
+        }
+
+        let nested = nestedCloudKitMessages(for: nsError)
+        if !nested.isEmpty {
+            return nested.joined(separator: " — ")
+        }
+
+        return error.localizedDescription
     }
 
     static func describe(_ ckError: CKError) -> String {
@@ -22,7 +29,8 @@ enum CloudKitErrorDescriber {
             parts.append(description)
         }
 
-        if ckError.code == .partialFailure, let partial = ckError.partialErrorsByItemID, !partial.isEmpty {
+        let partial = partialErrors(from: ckError)
+        if ckError.code == .partialFailure, !partial.isEmpty {
             let details = partial.prefix(6).map { recordID, itemError in
                 let id = recordID as? CKRecord.ID
                 let name = id?.recordName.isEmpty == false ? id!.recordName : (id?.zoneID.zoneName ?? String(describing: recordID))
@@ -31,7 +39,7 @@ enum CloudKitErrorDescriber {
             parts.append("Failed records — \(details.joined(separator: "; "))")
         } else if ckError.code == .partialFailure {
             parts.append(
-                "Core Data did not expose which records failed. Common causes: Production schema not deployed, iCloud storage full, or account needs attention in System Settings → Apple ID → iCloud."
+                "Core Data did not expose which records failed. Common causes: iCloud storage full, stale local sync metadata, or account needs attention in System Settings → Apple ID → iCloud."
             )
         }
 
@@ -63,6 +71,40 @@ enum CloudKitErrorDescriber {
         default:
             return "iCloud upload failed: \(describe(ckError))"
         }
+    }
+
+    private static func partialErrors(from ckError: CKError) -> [AnyHashable: Error] {
+        if let partial = ckError.partialErrorsByItemID, !partial.isEmpty {
+            return partial
+        }
+        if let partial = ckError.userInfo[CKPartialErrorsByItemIDKey] as? [AnyHashable: Error], !partial.isEmpty {
+            return partial
+        }
+        if let partial = ckError.userInfo[CKPartialErrorsByItemIDKey] as? [AnyHashable: NSError], !partial.isEmpty {
+            return partial.mapValues { $0 as Error }
+        }
+        return [:]
+    }
+
+    private static func nestedCloudKitMessages(for error: NSError, depth: Int = 0) -> [String] {
+        guard depth < 4 else { return [] }
+
+        var messages: [String] = []
+        if error.domain == CKError.errorDomain,
+           let code = CKError.Code(rawValue: error.code) {
+            messages.append(headline(for: code))
+            let ckError = CKError(_nsError: error)
+            let partial = partialErrors(from: ckError)
+            for (_, itemError) in partial.prefix(6) {
+                messages.append(describe(itemError))
+            }
+        }
+
+        if let underlying = error.userInfo[NSUnderlyingErrorKey] as? NSError {
+            messages.append(contentsOf: nestedCloudKitMessages(for: underlying, depth: depth + 1))
+        }
+
+        return messages
     }
 
     private static func headline(for code: CKError.Code) -> String {

@@ -70,6 +70,8 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
             NucleusDatabase.seedDevelopmentCloudKitSchemaIfNeeded(force: true)
         }
 
+        CloudKitStoreMigration.resetIfNeeded()
+
         modelContainer = (try? NucleusDatabase.makeContainer()) ?? {
             fatalError("Failed to create Nucleus database container")
         }()
@@ -304,6 +306,12 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         startupProgressFraction = 0
 
         await beginStartupStep(.database, message: "Loading workspace data…")
+        if CloudKitStoreMigration.didResetThisLaunch {
+            syncService.syncLogStore.log(
+                "Local database reset for iCloud compatibility (v0.4.0). Re-add Google accounts and notes, then use Upload Notes to iCloud.",
+                level: .warning
+            )
+        }
         AuthStateMigration.resetStoredLoginIfNeeded(modelContainer: modelContainer)
         if NotesClipboardMigration.resetNotesForClipboardPolicyChange(modelContainer: modelContainer) {
             syncService.markNotesLocalChange()

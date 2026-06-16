@@ -115,6 +115,14 @@ public final class KeychainTokenStore: Sendable {
         (try? loadTokens(accountID: accountID)) != nil
     }
 
+    public func deleteAllTokens() {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+        ]
+        SecItemDelete(query as CFDictionary)
+    }
+
     public func migrateAllToSynchronizable(accountIDs: [UUID]) {
         for accountID in accountIDs {
             guard let tokens = try? loadTokens(accountID: accountID) else { continue }

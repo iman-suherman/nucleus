@@ -52,4 +52,37 @@ enum CloudKitRecordDiagnostics {
         }
         return parts.joined(separator: ", ")
     }
+
+    enum ProbeWriteOutcome: Sendable {
+        case success(String)
+        case failure(String)
+    }
+
+    /// Writes and deletes a minimal note record to distinguish schema/quota issues from local export queue problems.
+    static func probeNoteRecordWrite(
+        containerID: String,
+        zoneName: String
+    ) async -> ProbeWriteOutcome {
+        let container = CKContainer(identifier: containerID)
+        let database = container.privateCloudDatabase
+        let zoneID = CKRecordZone.ID(zoneName: zoneName, ownerName: CKCurrentUserDefaultName)
+        let recordID = CKRecord.ID(
+            recordName: "nucleus-export-probe-\(UUID().uuidString.lowercased())",
+            zoneID: zoneID
+        )
+        let record = CKRecord(recordType: "CD_NoteRecord", recordID: recordID)
+        record["CD_id"] = UUID().uuidString as CKRecordValue
+        record["CD_title"] = "Nucleus export probe" as CKRecordValue
+        record["CD_markdown"] = "" as CKRecordValue
+        record["CD_folderRaw"] = "notes" as CKRecordValue
+        record["CD_updatedAt"] = Date() as CKRecordValue
+
+        do {
+            let saved = try await database.save(record)
+            _ = try await database.deleteRecord(withID: saved.recordID)
+            return .success("CloudKit accepted a test CD_NoteRecord write — Production schema and permissions look OK.")
+        } catch {
+            return .failure(CloudKitErrorDescriber.describe(error))
+        }
+    }
 }

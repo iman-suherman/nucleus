@@ -352,10 +352,30 @@ public final class CloudKitSyncService: ObservableObject {
         log("CloudKit Production record counts: \(summary)")
 
         if summary.contains("CD_NoteRecord=0") {
+            await logExportFailureHints(containerID: containerID)
+        }
+    }
+
+    private func logExportFailureHints(containerID: String) async {
+        switch await CloudKitRecordDiagnostics.probeNoteRecordWrite(
+            containerID: containerID,
+            zoneName: NucleusDatabase.swiftDataCloudKitZoneName
+        ) {
+        case .success(let message):
+            log(message, level: .info)
             log(
-                "No notes in iCloud Production. Export is failing — deploy schema to Production in CloudKit Console.",
+                "No notes in iCloud yet, but CloudKit writes work. If export still fails, check iCloud storage in System Settings → Apple ID → iCloud, then quit Nucleus and rename ~/Library/Application Support/Nucleus to reset stale local sync metadata (back up first).",
                 level: .warning
             )
+        case .failure(let message):
+            log("CloudKit write probe failed: \(message)", level: .warning)
+            if message.localizedCaseInsensitiveContains("quota") {
+                log("iCloud storage may be full — free space in System Settings → Apple ID → iCloud.", level: .warning)
+            } else if message.localizedCaseInsensitiveContains("schema")
+                || message.localizedCaseInsensitiveContains("unknown field")
+                || message.localizedCaseInsensitiveContains("unknown item") {
+                log(CloudKitRecordDiagnostics.productionSchemaHint, level: .warning)
+            }
         }
     }
 
