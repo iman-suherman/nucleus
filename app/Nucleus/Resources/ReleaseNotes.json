@@ -1,21 +1,13 @@
 {
-  "version": "0.3.26",
-  "summary": "Manual clipboard-to-notes, iCloud status in Notes, and step-by-step inbox loading.",
+  "version": "0.3.27",
+  "summary": "Password notes include a Title field on macOS and iOS.",
   "releaseNotes": {
     "introduced": [
-      "Notes sidebar shows iCloud account, sync state, and last sync time",
-      "Inbox loader explains each step while Gmail connects, signs in, renders, and syncs unread counts"
+      "iOS password notes open a structured editor with Title, URL, username, email, and password fields"
     ],
     "changed": [
-      "Clipboard clips are only added to Notes when you tap Save to Note — not on every copy or pin",
-      "Google sign-in during inbox load uses a non-blocking banner so you can complete authentication"
+      "macOS password notes show Title in the credential form alongside URL, username, email, and password"
     ],
-    "fixed": [
-      "Inbox loading overlay stays visible until Gmail finishes rendering and background unread sync completes",
-      "Reduced delay before post-sign-in mail sync starts"
-    ],
-    "removed": [
-      "Automatic Save clipboard to Notes setting — use Save to Note on individual clips instead"
-    ]
+    "fixed": []
   }
 }
