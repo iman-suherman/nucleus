@@ -195,7 +195,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         webReportedUnread[accountID] = max(0, count)
         unreadByAccount[accountID] = max(0, count)
         totalUnread = unreadByAccount.values.reduce(0, +)
-        DockBadgeController.update(mailUnread: totalUnread, chatUnread: totalChatUnread)
+        updateDockBadge()
         statusMessage = statusMessageForCurrentState()
         unreadBaselineEstablished.insert(accountID)
 
@@ -285,7 +285,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         webReportedChatUnread[accountID] = max(0, count)
         chatUnreadByAccount[accountID] = max(0, count)
         totalChatUnread = chatUnreadByAccount.values.reduce(0, +)
-        DockBadgeController.update(mailUnread: totalUnread, chatUnread: totalChatUnread)
+        updateDockBadge()
         statusMessage = statusMessageForCurrentState()
 
         if chatUnreadBaselineEstablished.contains(accountID), count > previous {
@@ -408,7 +408,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         await syncMail()
         completeStartupStep(.mailSync)
 
-        DockBadgeController.update(mailUnread: totalUnread, chatUnread: totalChatUnread)
+        updateDockBadge()
         startupMessage = "Nucleus is ready"
         startupProgressFraction = 1
         try? await Task.sleep(nanoseconds: 250_000_000)
@@ -641,6 +641,22 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         }
 
         scheduleBillReminderRefresh()
+        updateDockBadge()
+    }
+
+    private func updateDockBadge() {
+        DockBadgeController.update(
+            mailUnread: totalUnread,
+            chatUnread: totalChatUnread,
+            billsDueSoon: billsDueDockBadgeCount
+        )
+    }
+
+    var billsDueDockBadgeCount: Int {
+        BillScheduleCalculator.dueWithinDaysOrOverdueCount(
+            bills: bills,
+            payments: billPayments
+        )
     }
 
     func reconcileSelectedAccounts(settings: AppSettings) {
@@ -773,7 +789,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         guard !accounts.isEmpty else {
             totalUnread = 0
             unreadByAccount = [:]
-            DockBadgeController.update(mailUnread: 0, chatUnread: 0)
+            updateDockBadge()
             return
         }
 
@@ -845,7 +861,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
 
         flushPendingMailNotifications()
 
-        DockBadgeController.update(mailUnread: totalUnread, chatUnread: totalChatUnread)
+        updateDockBadge()
         statusMessage = statusMessageForCurrentState()
     }
 

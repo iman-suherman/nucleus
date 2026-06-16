@@ -40,8 +40,13 @@ struct NucleusBrandMark: View {
 
             if showText {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Nucleus")
-                        .font(.title2.bold())
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        Text("Nucleus")
+                            .font(.title2.bold())
+                        Text("(v.\(AppSettings.currentAppVersion))")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                     Text("Personal Operating System")
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -49,7 +54,7 @@ struct NucleusBrandMark: View {
             }
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Nucleus, Personal Operating System")
+        .accessibilityLabel("Nucleus version \(AppSettings.currentAppVersion), Personal Operating System")
     }
 }
 

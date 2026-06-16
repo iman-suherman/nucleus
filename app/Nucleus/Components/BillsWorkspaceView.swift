@@ -25,13 +25,16 @@ struct BillsWorkspaceView: View {
     }
 
     var body: some View {
-        HSplitView {
+        HStack(alignment: .top, spacing: 0) {
             billList
-                .frame(minWidth: 520)
+                .frame(minWidth: 520, maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+
+            Divider()
 
             summarySidebar
-                .frame(minWidth: 280, idealWidth: 320, maxWidth: 360)
+                .frame(minWidth: 280, idealWidth: 320, maxWidth: 360, maxHeight: .infinity, alignment: .topLeading)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .sheet(isPresented: $showingAddBill) {
             BillEditorSheet(mode: .add) { bill in
                 viewModel.saveBill(bill)
@@ -130,31 +133,18 @@ struct BillsWorkspaceView: View {
         VStack(spacing: 0) {
             billListHeader
 
-            if viewModel.activeBills.isEmpty {
-                billsEmptyState
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                billColumnHeader
-
-                List(selection: $viewModel.selectedBillID) {
-                    ForEach(viewModel.activeBills) { bill in
-                        BillRowView(
-                            bill: bill,
-                            averageAmount: viewModel.averagePayment(for: bill.id) ?? bill.amount,
-                            remainingAmount: viewModel.remainingAmount(for: bill),
-                            status: viewModel.billDisplayStatus(for: bill),
-                            progress: viewModel.billStatusProgress(for: bill)
-                        )
-                        .tag(Optional(bill.id))
-                    }
+            Group {
+                if viewModel.activeBills.isEmpty {
+                    billsEmptyState
+                } else {
+                    billsTable
                 }
-                .listStyle(.inset(alternatesRowBackgrounds: true))
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
 
             billActionBar
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(Color(nsColor: .textBackgroundColor))
         .onAppear {
             calendarMonth = initialCalendarMonth()
@@ -162,6 +152,30 @@ struct BillsWorkspaceView: View {
         .onChange(of: viewModel.activeBills.count) { _, _ in
             calendarMonth = initialCalendarMonth()
         }
+    }
+
+    private var billsTable: some View {
+        VStack(spacing: 0) {
+            billColumnHeader
+
+            List(selection: $viewModel.selectedBillID) {
+                ForEach(viewModel.activeBills) { bill in
+                    BillRowView(
+                        bill: bill,
+                        averageAmount: viewModel.averagePayment(for: bill.id) ?? bill.amount,
+                        remainingAmount: viewModel.remainingAmount(for: bill),
+                        status: viewModel.billDisplayStatus(for: bill),
+                        progress: viewModel.billStatusProgress(for: bill)
+                    )
+                    .tag(Optional(bill.id))
+                }
+            }
+            .listStyle(.inset(alternatesRowBackgrounds: true))
+            .scrollContentBackground(.hidden)
+            .frame(minHeight: 0, maxHeight: .infinity, alignment: .topLeading)
+            .layoutPriority(1)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
     private func initialCalendarMonth() -> Date {
@@ -409,7 +423,9 @@ struct BillsWorkspaceView: View {
                 .disabled(!NucleusDatabase.usesCloudKitSync)
             }
             .padding(20)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(Color(nsColor: .windowBackgroundColor).opacity(0.55))
     }
 }

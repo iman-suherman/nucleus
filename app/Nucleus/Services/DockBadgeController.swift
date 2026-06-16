@@ -4,8 +4,15 @@ import NucleusKit
 
 @MainActor
 enum DockBadgeController {
-    static func update(mailUnread: Int, chatUnread: Int) {
-        if mailUnread == 0 && chatUnread == 0 {
+    private static let billBadgeColor = NSColor(
+        red: 129 / 255,
+        green: 201 / 255,
+        blue: 149 / 255,
+        alpha: 1
+    )
+
+    static func update(mailUnread: Int, chatUnread: Int, billsDueSoon: Int) {
+        if mailUnread == 0 && chatUnread == 0 && billsDueSoon == 0 {
             NSApp.dockTile.badgeLabel = nil
             NSApp.dockTile.contentView = nil
             NSApp.dockTile.display()
@@ -21,6 +28,12 @@ enum DockBadgeController {
             iconView.image = icon
             iconView.imageScaling = .scaleProportionallyUpOrDown
             contentView.addSubview(iconView)
+        }
+
+        if billsDueSoon > 0 {
+            contentView.addSubview(
+                makeBadge(count: billsDueSoon, color: billBadgeColor, corner: .topLeading)
+            )
         }
 
         if mailUnread > 0 {
@@ -40,6 +53,7 @@ enum DockBadgeController {
     }
 
     private enum BadgeCorner {
+        case topLeading
         case topTrailing
         case bottomTrailing
     }
@@ -55,9 +69,14 @@ enum DockBadgeController {
         label.alignment = .center
 
         let width = max(metrics.height, label.intrinsicContentSize.width + metrics.horizontalPadding * 2)
-        let x = tileSize.width - width - inset
+        let x: CGFloat = switch corner {
+        case .topLeading:
+            inset
+        case .topTrailing, .bottomTrailing:
+            tileSize.width - width - inset
+        }
         let y: CGFloat = switch corner {
-        case .topTrailing:
+        case .topLeading, .topTrailing:
             tileSize.height - metrics.height - inset
         case .bottomTrailing:
             inset

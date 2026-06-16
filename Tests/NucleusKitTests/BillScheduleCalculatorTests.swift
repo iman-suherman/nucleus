@@ -69,4 +69,76 @@ final class BillScheduleCalculatorTests: XCTestCase {
         XCTAssertEqual(summary.paidThisMonthAmount, 500, accuracy: 0.001)
         XCTAssertEqual(summary.okToSpend, 2500, accuracy: 0.001)
     }
+
+    func testDueWithinDaysOrOverdueCountIncludesOverdueAndUpcoming() {
+        let calendar = Calendar(identifier: .gregorian)
+        let reference = calendar.date(from: DateComponents(year: 2026, month: 6, day: 16))!
+
+        let overdueID = UUID()
+        let dueTodayID = UUID()
+        let dueInTwoDaysID = UUID()
+        let dueInFiveDaysID = UUID()
+        let paidID = UUID()
+
+        let bills = [
+            Bill(
+                id: overdueID,
+                name: "Overdue",
+                amount: 100,
+                recurrence: .monthly,
+                dueDayOfMonth: 1,
+                nextDueDate: calendar.date(from: DateComponents(year: 2026, month: 6, day: 10))!
+            ),
+            Bill(
+                id: dueTodayID,
+                name: "Due Today",
+                amount: 80,
+                recurrence: .monthly,
+                dueDayOfMonth: 16,
+                nextDueDate: calendar.date(from: DateComponents(year: 2026, month: 6, day: 16))!
+            ),
+            Bill(
+                id: dueInTwoDaysID,
+                name: "Due Soon",
+                amount: 50,
+                recurrence: .monthly,
+                dueDayOfMonth: 18,
+                nextDueDate: calendar.date(from: DateComponents(year: 2026, month: 6, day: 18))!
+            ),
+            Bill(
+                id: dueInFiveDaysID,
+                name: "Later",
+                amount: 40,
+                recurrence: .monthly,
+                dueDayOfMonth: 21,
+                nextDueDate: calendar.date(from: DateComponents(year: 2026, month: 6, day: 21))!
+            ),
+            Bill(
+                id: paidID,
+                name: "Paid",
+                amount: 90,
+                recurrence: .monthly,
+                dueDayOfMonth: 16,
+                nextDueDate: calendar.date(from: DateComponents(year: 2026, month: 6, day: 16))!
+            ),
+        ]
+
+        let payments = [
+            BillPayment(
+                billID: paidID,
+                amount: 90,
+                paidAt: calendar.date(from: DateComponents(year: 2026, month: 6, day: 15))!
+            ),
+        ]
+
+        let count = BillScheduleCalculator.dueWithinDaysOrOverdueCount(
+            bills: bills,
+            payments: payments,
+            withinDays: 3,
+            reference: reference,
+            calendar: calendar
+        )
+
+        XCTAssertEqual(count, 3)
+    }
 }

@@ -1,0 +1,15 @@
+{
+  "version": "0.5.3",
+  "summary": "Bills dock badge, layout fix, and version label in the sidebar.",
+  "releaseNotes": {
+    "introduced": [
+      "Green dock badge for unpaid bills due within three days or overdue"
+    ],
+    "changed": [
+      "Bills list now anchors to the top of the workspace instead of floating mid-pane",
+      "Sidebar shows the app version next to Nucleus, e.g. (v.0.5.3)"
+    ],
+    "fixed": [],
+    "breaking": []
+  }
+}

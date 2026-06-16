@@ -215,6 +215,28 @@ public enum BillScheduleCalculator {
         return dates
     }
 
+    /// Counts active bills with a remaining balance that are overdue or due within `withinDays` (inclusive).
+    public static func dueWithinDaysOrOverdueCount(
+        bills: [Bill],
+        payments: [BillPayment],
+        withinDays: Int = 3,
+        reference: Date = Date(),
+        calendar: Calendar = .current
+    ) -> Int {
+        let today = calendar.startOfDay(for: reference)
+        let horizon = calendar.date(byAdding: .day, value: withinDays, to: today) ?? today
+
+        return bills.reduce(into: 0) { count, bill in
+            guard !bill.isArchived else { return }
+            guard remainingAmount(bill: bill, payments: payments, calendar: calendar) > 0.009 else { return }
+
+            let dueDay = calendar.startOfDay(for: bill.nextDueDate)
+            if dueDay <= horizon {
+                count += 1
+            }
+        }
+    }
+
     public static func displayStatus(
         bill: Bill,
         payments: [BillPayment],
