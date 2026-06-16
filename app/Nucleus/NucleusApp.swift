@@ -129,6 +129,25 @@ struct ContentView: View {
     @EnvironmentObject private var appSettings: AppSettings
 
     var body: some View {
+        Group {
+            if viewModel.isStartingUp {
+                StartupSplashOverlay(
+                    version: AppSettings.currentAppVersion,
+                    currentMessage: viewModel.startupMessage,
+                    completedSteps: viewModel.startupCompletedSteps,
+                    activeStep: viewModel.startupActiveStep,
+                    progressFraction: viewModel.startupProgressFraction
+                )
+            } else {
+                mainWorkspace
+            }
+        }
+        .frame(minWidth: 1180, minHeight: 780)
+        .animation(.easeInOut(duration: 0.22), value: viewModel.isStartingUp)
+        .animation(.easeInOut(duration: 0.22), value: viewModel.showWhatsNew)
+    }
+
+    private var mainWorkspace: some View {
         ZStack {
             NavigationSplitView {
                 sidebar
@@ -158,16 +177,6 @@ struct ContentView: View {
             }
             .modifier(WindowToolbarChromeModifier())
 
-            if viewModel.isStartingUp {
-                StartupSplashOverlay(
-                    version: AppSettings.currentAppVersion,
-                    currentMessage: viewModel.startupMessage,
-                    completedSteps: viewModel.startupCompletedSteps,
-                    activeStep: viewModel.startupActiveStep,
-                    progressFraction: viewModel.startupProgressFraction
-                )
-            }
-
             if viewModel.showWhatsNew, let release = viewModel.whatsNewRelease {
                 WhatsNewOverlay(release: release) {
                     viewModel.dismissWhatsNew()
@@ -179,8 +188,6 @@ struct ContentView: View {
                 ChatUnreadPoller(accountID: account.id)
             }
         }
-        .animation(.easeInOut(duration: 0.22), value: viewModel.isStartingUp)
-        .animation(.easeInOut(duration: 0.22), value: viewModel.showWhatsNew)
         .onChange(of: appSettings.menuBarEnabled) { _, enabled in
             viewModel.menuBarController.applySettings(appSettings)
             if enabled {

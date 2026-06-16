@@ -77,6 +77,8 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
     private var billReminderSettingsObserver: AnyCancellable?
     private var menuBarSettingsObserver: AnyCancellable?
     private var dismissedPasswordSuggestionHashes = Set<String>()
+    private var isBootstrapping = false
+    private var hasFinishedBootstrap = false
 
     init() {
         if ProcessInfo.processInfo.environment["NUCLEUS_SEED_CLOUDKIT_SCHEMA"] == "1" {
@@ -103,7 +105,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         menuBarSettingsObserver = AppSettings.shared.objectWillChange
             .debounce(for: .milliseconds(200), scheduler: RunLoop.main)
             .sink { [weak self] _ in
-                guard let self else { return }
+                guard let self, !self.isStartingUp else { return }
                 self.menuBarController.applySettings(AppSettings.shared)
             }
     }
@@ -359,6 +361,11 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
     }
 
     func bootstrap(settings: AppSettings) async {
+        guard !hasFinishedBootstrap else { return }
+        guard !isBootstrapping else { return }
+        isBootstrapping = true
+        defer { isBootstrapping = false }
+
         isStartingUp = true
         startupCompletedSteps = []
         startupActiveStep = nil
@@ -452,6 +459,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         startupProgressFraction = 1
         try? await Task.sleep(nanoseconds: 250_000_000)
         isStartingUp = false
+        hasFinishedBootstrap = true
         sidebarSelection = .workspace(.dashboard)
         AppSettings.shared.selectedWorkspacePane = WorkspacePane.dashboard.rawValue
         statusMessage = statusMessageForCurrentState()
