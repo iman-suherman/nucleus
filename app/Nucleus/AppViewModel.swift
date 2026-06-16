@@ -58,6 +58,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
     @Published var webSessionStatus: [UUID: Bool] = [:]
     @Published var oauthConnectionStatus: [UUID: Bool] = [:]
     @Published private(set) var isMailBackgroundSyncInProgress = false
+    @Published private(set) var showMenuBarScene = false
 
     let modelContainer: ModelContainer
     let syncService = CloudKitSyncService.shared
@@ -92,6 +93,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
             fatalError("Failed to create Nucleus database container")
         }()
         AppViewModel.current = self
+        runSynchronousLaunchPrep()
         observeGmailWebSignIn()
         observeGmailWebUnreadCount()
         observeChatWebUnreadCount()
@@ -100,19 +102,35 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         observeMenuBarSettings()
         startWindowLayoutTracking()
         observeBillReminderSettings()
+        scheduleBootstrap(settings: AppSettings.shared)
+    }
+
+    private func runSynchronousLaunchPrep() {
+        NSLog("Nucleus: sync launch prep starting")
+        beginStartupStep(.database, message: "Loading workspace data…")
+        if CloudKitStoreMigration.didResetThisLaunch {
+            syncService.syncLogStore.log(
+                "Local database reset for iCloud compatibility (v0.4.0). Re-add Google accounts and notes, then use Sync to iCloud in Settings.",
+                level: .warning
+            )
+        }
+        AuthStateMigration.resetStoredLoginIfNeeded(modelContainer: modelContainer)
+        if NotesClipboardMigration.resetNotesForClipboardPolicyChange(modelContainer: modelContainer) {
+            syncService.markNotesLocalChange()
+        }
+        reloadLocalData()
+        completeStartupStep(.database)
+        NSLog("Nucleus: sync launch prep finished")
     }
 
     func scheduleBootstrap(settings: AppSettings) {
         guard !hasFinishedBootstrap else { return }
         guard bootstrapTask == nil else { return }
         NSLog("Nucleus: bootstrap scheduled")
-        DispatchQueue.main.async { [weak self] in
-            guard let self, !self.hasFinishedBootstrap, self.bootstrapTask == nil else { return }
-            self.bootstrapTask = Task(priority: .userInitiated) { @MainActor [weak self] in
-                guard let self else { return }
-                await self.bootstrap(settings: settings)
-                self.bootstrapTask = nil
-            }
+        bootstrapTask = Task(priority: .userInitiated) { @MainActor [weak self] in
+            guard let self else { return }
+            await self.bootstrap(settings: settings)
+            self.bootstrapTask = nil
         }
     }
 
@@ -388,19 +406,21 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         startupActiveStep = nil
         startupProgressFraction = 0
 
-        beginStartupStep(.database, message: "Loading workspace data…")
-        if CloudKitStoreMigration.didResetThisLaunch {
-            syncService.syncLogStore.log(
-                "Local database reset for iCloud compatibility (v0.4.0). Re-add Google accounts and notes, then use Sync to iCloud in Settings.",
-                level: .warning
-            )
+        if !startupCompletedSteps.contains(.database) {
+            beginStartupStep(.database, message: "Loading workspace data…")
+            if CloudKitStoreMigration.didResetThisLaunch {
+                syncService.syncLogStore.log(
+                    "Local database reset for iCloud compatibility (v0.4.0). Re-add Google accounts and notes, then use Sync to iCloud in Settings.",
+                    level: .warning
+                )
+            }
+            AuthStateMigration.resetStoredLoginIfNeeded(modelContainer: modelContainer)
+            if NotesClipboardMigration.resetNotesForClipboardPolicyChange(modelContainer: modelContainer) {
+                syncService.markNotesLocalChange()
+            }
+            reloadLocalData()
+            completeStartupStep(.database)
         }
-        AuthStateMigration.resetStoredLoginIfNeeded(modelContainer: modelContainer)
-        if NotesClipboardMigration.resetNotesForClipboardPolicyChange(modelContainer: modelContainer) {
-            syncService.markNotesLocalChange()
-        }
-        reloadLocalData()
-        completeStartupStep(.database)
 
         beginStartupStep(.accounts, message: "Restoring Google accounts…")
         completeStartupStep(.accounts)
@@ -465,6 +485,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         startupProgressFraction = 1
         try? await Task.sleep(nanoseconds: 250_000_000)
         isStartingUp = false
+        showMenuBarScene = true
         hasFinishedBootstrap = true
         sidebarSelection = .workspace(.dashboard)
         AppSettings.shared.selectedWorkspacePane = WorkspacePane.dashboard.rawValue

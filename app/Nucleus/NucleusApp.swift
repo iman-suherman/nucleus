@@ -120,7 +120,7 @@ struct NucleusApp: App {
             "Nucleus",
             systemImage: "doc.on.clipboard",
             isInserted: Binding(
-                get: { menuBarEnabled && !viewModel.isStartingUp },
+                get: { viewModel.showMenuBarScene && menuBarEnabled },
                 set: { menuBarEnabled = $0 }
             )
         ) {
