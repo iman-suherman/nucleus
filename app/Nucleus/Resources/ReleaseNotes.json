@@ -1,16 +1,16 @@
 {
-  "version": "0.5.21",
-  "summary": "Replace the SwiftUI menu bar scene with an AppKit status item so startup no longer hangs at 14%.",
+  "version": "0.5.22",
+  "summary": "Menu bar password actions and notification routing improvements, plus a cleaner dashboard passwords card.",
   "releaseNotes": {
     "introduced": [],
     "changed": [
-      "Menu bar uses an AppKit NSStatusItem (same pattern as DiskWise) instead of a separate SwiftUI MenuBarExtra scene",
-      "Menu bar icon appears only after startup completes; toggle it anytime in Settings → Menu bar"
+      "Menu bar password entries now offer Copy username, Copy password, and Open URL actions",
+      "Save to Passwords on the clipboard notification opens the menu bar popover instead of the main window"
     ],
-    "fixed": [
-      "Startup no longer hangs at 14% on “Loading workspace data” caused by status-item scene registration during launch"
+    "fixed": [],
+    "updated": [
+      "Passwords stored on the dashboard no longer uses the highlighted Vault styling"
     ],
-    "updated": [],
     "removed": [],
     "breaking": []
   }
