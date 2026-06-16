@@ -16,6 +16,16 @@ final class MenuBarController: ObservableObject {
     @Published var passwordDraftUsername = ""
     @Published var passwordDraftEmail = ""
 
+    @Published private(set) var editingPasswordID: UUID?
+    @Published var editingDraftName = ""
+    @Published var editingDraftURL = ""
+    @Published var editingDraftUsername = ""
+    @Published var editingDraftEmail = ""
+    @Published var editingDraftPassword = ""
+    @Published var passwordPendingDeletionID: UUID?
+
+    var isEditingPassword: Bool { editingPasswordID != nil }
+
     private var modelContainer: ModelContainer?
     private var onDataChanged: (() -> Void)?
     private var isMonitoring = false
@@ -98,6 +108,76 @@ final class MenuBarController: ObservableObject {
         }
         guard let url = URL(string: urlString) else { return }
         NSWorkspace.shared.open(url)
+    }
+
+    func beginEditingPassword(_ note: NoteDocument) {
+        let fields = PasswordNoteFields.parse(from: note.markdown, fallbackTitle: note.title)
+        editingPasswordID = note.id
+        editingDraftName = fields.name
+        editingDraftURL = fields.url
+        editingDraftUsername = fields.username
+        editingDraftEmail = fields.email
+        editingDraftPassword = fields.password
+    }
+
+    func cancelEditingPassword() {
+        editingPasswordID = nil
+        editingDraftName = ""
+        editingDraftURL = ""
+        editingDraftUsername = ""
+        editingDraftEmail = ""
+        editingDraftPassword = ""
+    }
+
+    func saveEditedPassword() {
+        guard let editingPasswordID, let modelContainer else { return }
+        guard let note = passwordNotes.first(where: { $0.id == editingPasswordID }) else {
+            cancelEditingPassword()
+            return
+        }
+
+        let fields = PasswordNoteFields(
+            name: editingDraftName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                ? note.title
+                : editingDraftName.trimmingCharacters(in: .whitespacesAndNewlines),
+            url: editingDraftURL,
+            username: editingDraftUsername,
+            email: editingDraftEmail,
+            password: editingDraftPassword
+        )
+
+        var updated = note
+        updated.title = fields.name
+        updated.markdown = fields.markdown()
+        updated.updatedAt = Date()
+
+        let context = ModelContext(modelContainer)
+        try? NoteRepository.upsert(updated, context: context)
+        cancelEditingPassword()
+        notifyDataChanged()
+    }
+
+    func requestDeletePassword(_ note: NoteDocument) {
+        passwordPendingDeletionID = note.id
+    }
+
+    func cancelDeletePassword() {
+        passwordPendingDeletionID = nil
+    }
+
+    func confirmDeletePassword() {
+        guard let passwordPendingDeletionID, let modelContainer else { return }
+        let context = ModelContext(modelContainer)
+        try? NoteRepository.delete(id: passwordPendingDeletionID, context: context)
+        if editingPasswordID == passwordPendingDeletionID {
+            cancelEditingPassword()
+        }
+        self.passwordPendingDeletionID = nil
+        notifyDataChanged()
+    }
+
+    func passwordNote(for id: UUID) -> NoteDocument? {
+        passwordNotes.first { $0.id == id }
     }
 
     func dismissSuggestion() {

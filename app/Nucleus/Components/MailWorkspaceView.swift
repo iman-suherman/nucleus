@@ -615,7 +615,7 @@ struct MailWorkspaceView: View {
                             renameDraft = account.displayName
                             renamingAccount = account
                         }
-                        Button("Remove Category", role: .destructive) {
+                        Button("Remove from Nucleus", role: .destructive) {
                             viewModel.removeAccount(account)
                         }
                     }

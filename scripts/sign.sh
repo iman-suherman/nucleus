@@ -9,6 +9,9 @@ APP_PATH="${1:-$ROOT_DIR/.build/DerivedData/Build/Products/Release/Nucleus.app}"
 IDENTITY="${DEVELOPER_ID_APPLICATION:-$MACOS_CODESIGN_IDENTITY}"
 ENTITLEMENTS="$ROOT_DIR/app/Nucleus/entitlements.mac.plist"
 PROVISIONING_PROFILE="${MACOS_DEVELOPER_ID_PROVISIONING_PROFILE:-$ROOT_DIR/app/Nucleus/Nucleus_DeveloperID.provisionprofile}"
+if [[ "$PROVISIONING_PROFILE" != /* ]]; then
+  PROVISIONING_PROFILE="$ROOT_DIR/$PROVISIONING_PROFILE"
+fi
 
 if [[ ! -d "$APP_PATH" ]]; then
   echo "App not found: $APP_PATH"

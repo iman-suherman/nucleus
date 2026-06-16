@@ -4,6 +4,13 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
+if [[ -f "$ROOT_DIR/.env" ]]; then
+  profile_from_env="$(grep -m1 '^MACOS_DEVELOPER_ID_PROVISIONING_PROFILE=' "$ROOT_DIR/.env" | cut -d= -f2- || true)"
+  if [[ -n "$profile_from_env" ]]; then
+    export MACOS_DEVELOPER_ID_PROVISIONING_PROFILE="$profile_from_env"
+  fi
+fi
+
 if [[ -f "$ROOT_DIR/.env.release" ]]; then
   set -a
   # shellcheck disable=SC1091

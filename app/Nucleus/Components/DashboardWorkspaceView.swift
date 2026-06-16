@@ -9,6 +9,7 @@ struct DashboardWorkspaceView: View {
     @ObservedObject private var syncService = CloudKitSyncService.shared
     @ObservedObject private var cloudSyncService = NucleusCloudSyncService.shared
     @ObservedObject private var weatherService = DashboardWeatherService.shared
+    @ObservedObject private var processMetricsService = DashboardProcessMetricsService.shared
 
     @State private var isConnectingNucleusCloud = false
     @State private var nucleusCloudMessage: String?
@@ -30,6 +31,7 @@ struct DashboardWorkspaceView: View {
                 VStack(alignment: .leading, spacing: 28) {
                     header
                     summaryCards
+                    resourceUsageSection
                     cloudSyncSection
                     summaryAndBillsRow
                     productivitySection
@@ -42,6 +44,10 @@ struct DashboardWorkspaceView: View {
         .background(Color(nsColor: .windowBackgroundColor))
         .onAppear {
             weatherService.refreshIfNeeded()
+            processMetricsService.startSamplingIfNeeded()
+        }
+        .onDisappear {
+            processMetricsService.stopSampling()
         }
     }
 
@@ -166,6 +172,32 @@ struct DashboardWorkspaceView: View {
                 tint: .purple,
                 action: { viewModel.sidebarSelection = .workspace(.bills) }
             )
+        }
+    }
+
+    private var resourceUsageSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Label("Resource usage", systemImage: "gauge.with.dots.needle.67percent")
+                .font(.headline)
+
+            Text("Live CPU and memory for Nucleus on this Mac.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            HStack(spacing: 16) {
+                ResourceMetricTile(
+                    title: "CPU",
+                    value: processMetricsService.metrics?.formattedCPU ?? "—",
+                    systemImage: "cpu",
+                    tint: .blue
+                )
+                ResourceMetricTile(
+                    title: "Memory",
+                    value: processMetricsService.metrics?.formattedMemory ?? "—",
+                    systemImage: "memorychip",
+                    tint: .teal
+                )
+            }
         }
     }
 
@@ -517,6 +549,38 @@ struct DashboardWorkspaceView: View {
         case .dueSoon: return .orange
         case .partial: return .yellow
         case .overdue: return .red
+        }
+    }
+}
+
+private struct ResourceMetricTile: View {
+    let title: String
+    let value: String
+    let systemImage: String
+    let tint: Color
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Image(systemName: systemImage)
+                    .foregroundStyle(tint)
+                Spacer()
+            }
+
+            Text(value)
+                .font(.system(size: 28, weight: .bold, design: .rounded))
+                .monospacedDigit()
+
+            Text(title)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(nsColor: .controlBackgroundColor).opacity(0.55), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(Color.primary.opacity(0.06), lineWidth: 1)
         }
     }
 }

@@ -8,7 +8,7 @@ const path = require("path");
 const { applyGcpEnv } = require("./apply-gcp-env.cjs");
 const { parseEnvFile, resolveGcpProjectId } = require("./gcp-config.cjs");
 const { resolveAdcPath } = require("./gcp-lib-adc.cjs");
-const { MANAGED_SECRETS, accessSecret } = require("./gcp-secrets.cjs");
+const { MANAGED_SECRETS, MANAGED_FILE_SECRETS, accessSecret } = require("./gcp-secrets.cjs");
 
 const repoRoot = path.join(__dirname, "..");
 const examplePath = path.join(repoRoot, ".env.example");
@@ -63,6 +63,13 @@ function orderedKeys(exampleContent, existingKeys, secretKeys) {
     }
   }
 
+  for (const { envKey } of MANAGED_FILE_SECRETS) {
+    if (!seen.has(envKey)) {
+      seen.add(envKey);
+      keys.push(envKey);
+    }
+  }
+
   return keys;
 }
 
@@ -99,6 +106,32 @@ function writeWebsiteEnvLocal(merged) {
   console.log(`generate-env: wrote ${websiteEnvPath}`);
 }
 
+function resolveRepoPath(relativePath) {
+  return path.join(repoRoot, relativePath);
+}
+
+function materializeManagedFileSecrets(projectId, existing, merged) {
+  for (const { secretId, envKey, outputPath, encoding = "binary" } of MANAGED_FILE_SECRETS) {
+    const absoluteOutputPath = resolveRepoPath(outputPath);
+    try {
+      const raw = accessSecret(projectId, secretId);
+      const contents =
+        encoding === "base64" ? Buffer.from(raw.trim(), "base64") : Buffer.from(raw, "binary");
+      fs.mkdirSync(path.dirname(absoluteOutputPath), { recursive: true });
+      fs.writeFileSync(absoluteOutputPath, contents);
+      merged[envKey] = outputPath;
+      console.log(`generate-env: wrote ${outputPath} from Secret Manager (${secretId})`);
+    } catch (error) {
+      if (fs.existsSync(absoluteOutputPath)) {
+        merged[envKey] = existing[envKey] || outputPath;
+        console.log(`generate-env: kept local ${outputPath} (Secret Manager unavailable)`);
+        continue;
+      }
+      console.log(`generate-env: skip ${secretId} (${error.message})`);
+    }
+  }
+}
+
 function main() {
   if (!fs.existsSync(examplePath)) {
     fail("missing .env.example");
@@ -131,6 +164,7 @@ function main() {
   }
 
   const merged = { ...example, ...existing, ...secrets };
+  materializeManagedFileSecrets(projectId, existing, merged);
   const adcPath = resolveAdcPath(repoRoot, { sync: true });
   if (adcPath) {
     merged.GOOGLE_APPLICATION_CREDENTIALS = adcPath;

@@ -1,25 +1,11 @@
 import AppKit
 import SwiftUI
 
-final class MenuBarClickableStatusView: NSView {
-    var onClick: (() -> Void)?
-
-    override func mouseUp(with event: NSEvent) {
-        onClick?()
-    }
-
-    override func resetCursorRects() {
-        discardCursorRects()
-        addCursorRect(bounds, cursor: .pointingHand)
-    }
-}
-
 @MainActor
 final class MenuBarStatusItemController: NSObject {
     static let shared = MenuBarStatusItemController()
 
     private var statusItem: NSStatusItem?
-    private var containerView: MenuBarClickableStatusView?
     private let popoverSession = MenuBarPopoverSession()
     private weak var controller: MenuBarController?
 
@@ -39,21 +25,18 @@ final class MenuBarStatusItemController: NSObject {
     private func installStatusItemIfNeeded() {
         guard statusItem == nil else { return }
 
-        let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        let hostingView = NSHostingView(rootView: MenuBarNucleusMark())
-        hostingView.frame.size = NSSize(width: 20, height: 18)
+        let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
+        guard let button = item.button else { return }
 
-        let container = MenuBarClickableStatusView(frame: hostingView.frame)
-        container.onClick = { [weak self, weak container] in
-            guard let container else { return }
-            self?.togglePopover(anchoredTo: container)
-        }
-        hostingView.frame.origin = .zero
-        container.addSubview(hostingView)
+        let icon = MenuBarNucleusIcon.templateImage()
+        icon.isTemplate = true
+        button.image = icon
+        button.imagePosition = .imageOnly
+        button.target = self
+        button.action = #selector(statusItemClicked)
+        button.sendAction(on: [.leftMouseUp])
 
-        item.view = container
         statusItem = item
-        containerView = container
     }
 
     private func removeStatusItem() {
@@ -62,7 +45,11 @@ final class MenuBarStatusItemController: NSObject {
             NSStatusBar.system.removeStatusItem(statusItem)
         }
         statusItem = nil
-        containerView = nil
+    }
+
+    @objc private func statusItemClicked() {
+        guard let anchorView = statusItem?.button else { return }
+        togglePopover(anchoredTo: anchorView)
     }
 
     private func togglePopover(anchoredTo anchorView: NSView) {
@@ -87,11 +74,11 @@ final class MenuBarStatusItemController: NSObject {
         NucleusNotificationService.shared.clearPasswordNotification(entryID: entryID)
         guard controller.presentPasswordSuggestion(entryID: entryID) else { return }
 
-        if containerView == nil {
+        if statusItem == nil {
             MenuBarCoordinator.sync(settings: AppSettings.shared, controller: controller)
         }
-        guard let containerView else { return }
-        presentPasswordPopover(anchoredTo: containerView, controller: controller)
+        guard let anchorView = statusItem?.button else { return }
+        presentPasswordPopover(anchoredTo: anchorView, controller: controller)
     }
 
     private func presentPasswordPopover(anchoredTo anchorView: NSView, controller: MenuBarController) {
