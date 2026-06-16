@@ -49,6 +49,7 @@ final class MobileAppViewModel: ObservableObject {
 
         normalizeSelectedTab()
         settingsSync.start(modelContainer: modelContainer)
+        CloudKitSyncService.shared.registerModelContainer(modelContainer)
         CloudKitSyncService.shared.start()
         await iCloudSync.refresh()
         await requestNotificationPermission()

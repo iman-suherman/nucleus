@@ -393,6 +393,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         completeStartupStep(.accounts)
 
         await beginStartupStep(.icloudSync, message: "Syncing configuration via iCloud…")
+        syncService.registerModelContainer(modelContainer)
         syncService.start()
         SettingsSyncBridge.shared.start(
             modelContainer: modelContainer,

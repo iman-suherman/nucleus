@@ -3,6 +3,7 @@ import Combine
 import CoreData
 import DatabaseKit
 import Foundation
+import SwiftData
 
 public enum NotesExportOutcome: Equatable {
     case idle
@@ -78,15 +79,21 @@ public final class CloudKitSyncService: ObservableObject {
     @Published public private(set) var syncLogStore = CloudKitSyncLogStore.shared
 
     private let ubiquityContainerIdentifier: String?
+    public weak var modelContainer: ModelContainer?
     private var remoteChangeObserver: NSObjectProtocol?
     private var cloudKitExportObserver: NSObjectProtocol?
     private var notesSyncClearTask: Task<Void, Never>?
     private var billsSyncClearTask: Task<Void, Never>?
     private var remoteChangeDebounceTask: Task<Void, Never>?
     private var activeUpload: ActiveCloudKitUpload?
+    private var didPurgeProbeArtifacts = false
 
     public init(ubiquityContainerIdentifier: String? = "iCloud.net.suherman.nucleus") {
         self.ubiquityContainerIdentifier = ubiquityContainerIdentifier
+    }
+
+    public func registerModelContainer(_ container: ModelContainer) {
+        modelContainer = container
     }
 
     public func start() {
@@ -665,6 +672,8 @@ public final class CloudKitSyncService: ObservableObject {
     }
 
     private func logCloudKitDiagnostics(containerID: String) async {
+        await purgeLegacyProbeArtifactsIfNeeded(containerID: containerID)
+
         let container = CKContainer(identifier: containerID)
         do {
             let zones = try await container.privateCloudDatabase.allRecordZones()
@@ -693,24 +702,49 @@ public final class CloudKitSyncService: ObservableObject {
     }
 
     private func logExportFailureHints(containerID: String) async {
-        let probeSummary = await CloudKitRecordDiagnostics.probeAllSyncedRecordTypes(
+        let validation = await CloudKitRecordDiagnostics.validateSyncedRecordTypesReadable(
             containerID: containerID,
             zoneName: NucleusDatabase.swiftDataCloudKitZoneName
         )
-        log("CloudKit write probes: \(probeSummary)", level: .info)
+        log("CloudKit schema readability: \(validation)", level: .info)
 
-        if probeSummary.contains("FAILED") {
+        if validation.localizedCaseInsensitiveContains("unreadable") {
             log(
-                "CloudKit rejected a test write — check iCloud storage in System Settings → Apple ID → iCloud, or deploy schema in CloudKit Console.",
+                "One or more synced record types could not be queried — deploy schema in CloudKit Console (see cloudkit/README.md), then retry sync.",
                 level: .warning
             )
             return
         }
 
         log(
-            "CloudKit accepts direct writes — Production schema looks OK. Add notes, then Settings → iCloud → Upload Notes to iCloud. An export error on an empty database is usually harmless until you have data to sync.",
+            "CloudKit Production schema looks readable. Add notes, then Settings → iCloud → Sync to iCloud. An export error on an empty database is usually harmless until you have data to sync.",
             level: .warning
         )
+    }
+
+    private func purgeLegacyProbeArtifactsIfNeeded(containerID: String) async {
+        guard !didPurgeProbeArtifacts else { return }
+        didPurgeProbeArtifacts = true
+
+        let zoneName = NucleusDatabase.swiftDataCloudKitZoneName
+        let remoteRemoved = await CloudKitProbeArtifactCleanup.purgeRemoteProbeArtifacts(
+            containerID: containerID,
+            zoneName: zoneName
+        )
+
+        var localRemoved = 0
+        if let container = modelContainer {
+            let context = ModelContext(container)
+            localRemoved = (try? CloudKitProbeArtifactCleanup.purgeLocalProbeArtifacts(context: context)) ?? 0
+        }
+
+        if remoteRemoved > 0 || localRemoved > 0 {
+            log(
+                "Removed legacy CloudKit diagnostic probe records (remote: \(remoteRemoved), local: \(localRemoved)).",
+                level: .info
+            )
+            NotificationCenter.default.post(name: .nucleusCloudKitDataDidChange, object: nil)
+        }
     }
 
     public func markNotesLocalChange() {
