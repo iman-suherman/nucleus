@@ -1,15 +1,17 @@
 {
-  "version": "0.3.34",
-  "summary": "Clearer iCloud upload errors when notes fail to reach CloudKit.",
+  "version": "0.4.0",
+  "summary": "Fresh local database for fixed iCloud sync — re-add accounts and notes after updating.",
   "releaseNotes": {
     "introduced": [],
     "changed": [
-      "Settings → iCloud shows the last CloudKit export error when upload fails",
-      "Upload timeout message reports Production record counts and schema fix steps",
-      "Sync log includes CD_* record counts from CloudKit Production on status refresh"
+      "First launch on v0.4.0 wipes the local SwiftData database and OAuth keychain tokens to clear incompatible CloudKit sync metadata from earlier releases",
+      "Settings → iCloud runs a CloudKit write probe and clearer export-failure diagnostics"
     ],
     "fixed": [
-      "Manual upload nudges SwiftData to export notes that were not marked dirty"
+      "iCloud note export can recover after the one-time local database reset on upgrade"
+    ],
+    "breaking": [
+      "Updating to v0.4.0 removes local notes, clipboard history, cached mail, and Google sign-in state on this Mac — re-add accounts and recreate or restore notes after updating"
     ]
   }
 }
