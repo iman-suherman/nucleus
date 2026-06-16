@@ -1,21 +1,21 @@
 {
-  "version": "0.3.24",
-  "summary": "More reliable mail alerts, clearer inbox loading, and easier-to-read dock badges.",
+  "version": "0.3.26",
+  "summary": "Manual clipboard-to-notes, iCloud status in Notes, and step-by-step inbox loading.",
   "releaseNotes": {
     "introduced": [
-      "Inbox shows a loading indicator while Gmail is loading instead of a blank panel"
+      "Notes sidebar shows iCloud account, sync state, and last sync time",
+      "Inbox loader explains each step while Gmail connects, signs in, renders, and syncs unread counts"
     ],
     "changed": [
-      "Dock unread badges are larger and scale with your Dock icon size",
-      "Add Gmail Account in Inbox opens the Accounts workspace instead of an inline sheet"
+      "Clipboard clips are only added to Notes when you tap Save to Note — not on every copy or pin",
+      "Google sign-in during inbox load uses a non-blocking banner so you can complete authentication"
     ],
     "fixed": [
-      "Mail notifications fire when unread count rises during background sync, including secondary mailboxes",
-      "Gmail atom feed sync tries multiple account URLs so non-primary inboxes stay in sync",
-      "Refreshing mail on app activation runs a full sync, not just a web unread poll"
+      "Inbox loading overlay stays visible until Gmail finishes rendering and background unread sync completes",
+      "Reduced delay before post-sign-in mail sync starts"
     ],
     "removed": [
-      "Use for Notes picker in Accounts — notes sync through iCloud instead of a Gmail account"
+      "Automatic Save clipboard to Notes setting — use Save to Note on individual clips instead"
     ]
   }
 }
