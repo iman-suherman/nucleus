@@ -1,0 +1,12 @@
+{
+  "version": "0.3.32",
+  "summary": "Clearer iCloud sync error messages in the sync log.",
+  "releaseNotes": {
+    "introduced": [],
+    "changed": [
+      "Sync log decodes CloudKit errors — partialFailure (code 2), quota, and auth issues show actionable detail instead of generic messages",
+      "Settings → iCloud runs a zone diagnostic on refresh and logs private CloudKit zones"
+    ],
+    "fixed": []
+  }
+}

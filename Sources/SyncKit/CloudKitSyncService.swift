@@ -268,9 +268,21 @@ public final class CloudKitSyncService: ObservableObject {
         if status.isAvailable {
             iCloudAccountProfile = await ICloudAccountProfileFetcher.fetch(containerIdentifier: containerID)
             log("iCloud available — \(iCloudAccountDisplayName)", level: .success)
+            await logCloudKitDiagnostics(containerID: containerID)
         } else {
             iCloudAccountProfile = ICloudAccountProfile()
             log("iCloud status: \(status.label)", level: .warning)
+        }
+    }
+
+    private func logCloudKitDiagnostics(containerID: String) async {
+        let container = CKContainer(identifier: containerID)
+        do {
+            let zones = try await container.privateCloudDatabase.allRecordZones()
+            let zoneNames = zones.map(\.zoneID.zoneName).sorted().joined(separator: ", ")
+            log("CloudKit private zones: \(zoneNames.isEmpty ? "(none)" : zoneNames)")
+        } catch {
+            log("CloudKit zone check failed: \(CloudKitErrorDescriber.describe(error))", level: .warning)
         }
     }
 
@@ -357,7 +369,7 @@ public final class CloudKitSyncService: ObservableObject {
         }
 
         if let error = event.error {
-            log("CloudKit \(typeLabel) \(phase): \(error.localizedDescription)", level: .error)
+            log("CloudKit \(typeLabel) \(phase): \(CloudKitErrorDescriber.describe(error))", level: .error)
             return
         }
 
@@ -365,11 +377,6 @@ public final class CloudKitSyncService: ObservableObject {
     }
 
     private nonisolated static func exportFailureMessage(_ error: Error) -> String {
-        let description = error.localizedDescription
-        if description.localizedCaseInsensitiveContains("schema") {
-            return "iCloud upload failed: CloudKit schema is not deployed to Production. "
-                + "Deploy the schema in CloudKit Console, then try again."
-        }
-        return "iCloud upload failed: \(description)"
+        CloudKitErrorDescriber.userFacingUploadFailure(error)
     }
 }
