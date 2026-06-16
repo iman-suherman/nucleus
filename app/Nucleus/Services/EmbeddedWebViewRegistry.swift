@@ -82,6 +82,7 @@ enum EmbeddedWebViewRegistry {
     static func hideSurfaceWebViews(_ surface: Surface, except accountID: UUID? = nil) {
         for (key, webView) in webViews where key.surface == surface {
             if accountID == nil || key.accountID != accountID {
+                webView.stopLoading()
                 webView.setEmbeddedVisibility(false)
             }
         }

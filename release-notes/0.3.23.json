@@ -1,0 +1,13 @@
+{
+  "version": "0.3.23",
+  "summary": "Fixes slow Gmail login and refresh caused by sign-in redirect loops.",
+  "releaseNotes": {
+    "fixed": [
+      "Gmail login no longer gets stuck in a redirect loop during Google sign-in",
+      "Returning users with saved sessions load the inbox directly instead of the sign-in page first",
+      "Sign-in URL is only used when adding a new Gmail account, with email still prefilled",
+      "Hidden mail web views stop loading in the background so the active inbox renders faster",
+      "Mail sync after sign-in is deferred so Gmail can finish rendering before background work runs"
+    ]
+  }
+}

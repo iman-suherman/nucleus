@@ -13,6 +13,7 @@ struct GmailWebView: NSViewRepresentable {
     let accountID: UUID
     let accountEmail: String
     var isVisible: Bool = true
+    var preferSignIn: Bool = false
 
     func makeNSView(context: Context) -> EmbeddedWebViewContainer {
         let container = EmbeddedWebViewContainer()
@@ -24,7 +25,7 @@ struct GmailWebView: NSViewRepresentable {
         container.embed(webView)
         applyVisibility(to: container)
         if !EmbeddedWebViewRegistry.hasLoadedContent(webView) {
-            loadInbox(into: webView, email: accountEmail, preferSignIn: true)
+            loadInbox(into: webView, email: accountEmail, preferSignIn: preferSignIn)
         } else {
             context.coordinator.resumeUnreadPollingIfNeeded(in: webView)
         }
@@ -175,11 +176,19 @@ struct GmailWebView: NSViewRepresentable {
                 || path.contains("google.com/intl/")
 
             if needsSignIn {
-                if GoogleWebSignInURL.isGoogleSignInPage(path),
-                   path.contains("signin/identifier") {
-                    GmailWebView.prefillSignInEmail(in: webView, email: email)
-                } else if let signInURL = GmailWebView.signInURL(for: email) {
-                    webView.load(URLRequest(url: signInURL))
+                if path.contains("accounts.google.com") {
+                    if path.contains("signin/identifier") {
+                        GmailWebView.prefillSignInEmail(in: webView, email: email)
+                    }
+                    return
+                }
+
+                let pendingSignIn = accountID.map { AppViewModel.current?.isMailSignInPending($0) == true } ?? false
+                let targetURL = pendingSignIn
+                    ? GmailWebView.signInURL(for: email)
+                    : GmailWebView.inboxURL(for: email)
+                if let targetURL {
+                    webView.load(URLRequest(url: targetURL))
                 }
             }
         }
@@ -369,7 +378,8 @@ struct MailWorkspaceView: View {
                 GmailWebView(
                     accountID: account.id,
                     accountEmail: account.email,
-                    isVisible: isVisible
+                    isVisible: isVisible,
+                    preferSignIn: viewModel.isMailSignInPending(account.id)
                 )
                 .id(account.id)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)

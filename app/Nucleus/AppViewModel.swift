@@ -61,6 +61,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
     private var chatUnreadBaselineEstablished = Set<UUID>()
     private var notifiedMessageIDs = Set<String>()
     private var pendingMailNotificationDeltas: [UUID: Int] = [:]
+    private var mailSignInPendingAccountIDs = Set<UUID>()
 
     init() {
         if ProcessInfo.processInfo.environment["NUCLEUS_SEED_CLOUDKIT_SCHEMA"] == "1" {
@@ -255,12 +256,29 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
             forName: .gmailWebSessionDidSignIn,
             object: nil,
             queue: .main
-        ) { [weak self] _ in
+        ) { [weak self] notification in
             Task { @MainActor in
+                if let accountID = notification.object as? UUID {
+                    self?.clearMailSignInPending(accountID)
+                }
                 await self?.refreshWebSessionStatus()
+                // Defer sync so Gmail can finish rendering after sign-in.
+                try? await Task.sleep(nanoseconds: 750_000_000)
                 await self?.syncMail()
             }
         }
+    }
+
+    func isMailSignInPending(_ accountID: UUID) -> Bool {
+        mailSignInPendingAccountIDs.contains(accountID)
+    }
+
+    func markMailSignInPending(_ accountID: UUID) {
+        mailSignInPendingAccountIDs.insert(accountID)
+    }
+
+    func clearMailSignInPending(_ accountID: UUID) {
+        mailSignInPendingAccountIDs.remove(accountID)
     }
 
     func bootstrap(settings: AppSettings) async {
@@ -447,6 +465,9 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         AppSettings.shared.selectedMailAccountID = account.id
         sidebarSelection = .workspace(.inbox)
         statusMessage = "Sign in to Gmail for \(account.displayName.isEmpty ? account.email : account.displayName)"
+        if account.authMode == .webSession {
+            markMailSignInPending(account.id)
+        }
     }
 
     func isAccountConnected(_ account: GoogleAccount) -> Bool {
@@ -609,6 +630,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         AppSettings.shared.selectedChatAccountID = account.id
         sidebarSelection = .workspace(.inbox)
         statusMessage = "Sign in to Gmail for \(trimmedEmail)"
+        markMailSignInPending(account.id)
         pushSyncedConfiguration()
     }
 
