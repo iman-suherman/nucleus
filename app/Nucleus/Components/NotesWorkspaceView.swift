@@ -163,11 +163,7 @@ struct NotesWorkspaceView: View {
 
     @ViewBuilder
     private func editorHeader(for note: NoteDocument) -> some View {
-        if note.folder == .passwords {
-            TextField("Title", text: $passwordFields.name)
-                .font(.title3.bold())
-                .textFieldStyle(.plain)
-        } else {
+        if note.folder != .passwords {
             TextField("Title", text: bindingTitle(for: note))
                 .font(.title3.bold())
                 .textFieldStyle(.plain)
@@ -392,6 +388,7 @@ private struct PasswordNoteEditor: View {
 
     var body: some View {
         Form {
+            TextField("Title", text: $fields.name)
             TextField("URL", text: $fields.url)
             TextField("Username", text: $fields.username)
             TextField("Email", text: $fields.email)

@@ -1,0 +1,13 @@
+{
+  "version": "0.3.27",
+  "summary": "Password notes include a Title field on macOS and iOS.",
+  "releaseNotes": {
+    "introduced": [
+      "iOS password notes open a structured editor with Title, URL, username, email, and password fields"
+    ],
+    "changed": [
+      "macOS password notes show Title in the credential form alongside URL, username, email, and password"
+    ],
+    "fixed": []
+  }
+}

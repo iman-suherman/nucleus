@@ -1,0 +1,49 @@
+name: NucleusIOS
+options:
+  bundleIdPrefix: net.suherman
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+packages:
+  NucleusCore:
+    path: ../../Packages/NucleusCore
+  NucleusUI:
+    path: ../../Packages/NucleusUI
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    IPHONEOS_DEPLOYMENT_TARGET: "17.0"
+targets:
+  NucleusIOS:
+    type: application
+    platform: iOS
+    sources:
+      - path: NucleusIOS
+        excludes:
+          - entitlements.ios.plist
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: net.suherman.nucleus.ios
+        INFOPLIST_FILE: NucleusIOS/Info.plist
+        CODE_SIGN_ENTITLEMENTS: NucleusIOS/entitlements.ios.plist
+        CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: Q3TXW887NM
+        CURRENT_PROJECT_VERSION: 1000
+        MARKETING_VERSION: 0.4.0
+        TARGETED_DEVICE_FAMILY: "1,2"
+        SUPPORTS_MACCATALYST: NO
+    dependencies:
+      - package: NucleusCore
+        product: NucleusCore
+      - package: NucleusUI
+        product: NucleusUI
+    scheme:
+      testTargets: []
+
+schemes:
+  NucleusIOS:
+    build:
+      targets:
+        NucleusIOS: all
+    run:
+      config: Debug
