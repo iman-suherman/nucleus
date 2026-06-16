@@ -352,6 +352,9 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         if let exported = try? NucleusDatabase.exportNotesToCloudKit(context: exportContext), exported > 0 {
             syncService.markNotesLocalChange()
         }
+        if let exported = try? NucleusDatabase.exportBillsToCloudKit(context: exportContext), exported > 0 {
+            syncService.log("Queued \(exported) bill/payment record(s) for iCloud export on launch")
+        }
         completeStartupStep(.database)
 
         await beginStartupStep(.accounts, message: "Restoring Google accounts…")
@@ -992,6 +995,9 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
     func deleteBill(id: UUID) {
         let context = ModelContext(modelContainer)
         try? BillRepository.delete(id: id, context: context)
+        if NucleusDatabase.usesCloudKitSync {
+            try? NucleusDatabase.exportBillsToCloudKit(context: context, force: true)
+        }
         reloadLocalData()
         statusMessage = "Deleted bill"
     }

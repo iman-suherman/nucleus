@@ -44,9 +44,14 @@ No CLOUDKIT_MANAGEMENT_TOKEN found. Import manually:
    - CD_NoteRecord
    - CD_SyncedSettingsRecord
    - CD_ClipboardItemRecord
+   - CD_BillRecord
+   - CD_BillPaymentRecord
 6. Footer → Deploy Schema Changes… → deploy to Production
 
-Optional CLI token (one-time):
+For the full CLI workflow (import Development + verify Production):
+  CLOUDKIT_MANAGEMENT_TOKEN=... bash scripts/deploy-cloudkit-production-schema.sh
+
+Optional Development-only import:
   CloudKit Console → Settings → API Access → Create Management Token
   CLOUDKIT_MANAGEMENT_TOKEN=... bash scripts/seed-cloudkit-development.sh
 

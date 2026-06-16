@@ -141,4 +141,29 @@ final class BillScheduleCalculatorTests: XCTestCase {
 
         XCTAssertEqual(count, 3)
     }
+
+    func testDueAccentUsesGreenWithinFifteenDaysAndRedWhenOverdue() {
+        let calmGreen = BillScheduleCalculator.dueAccent(daysUntilDue: 20, isPaid: false)
+        XCTAssertEqual(calmGreen.green, 201 / 255, accuracy: 0.01)
+
+        let nearDue = BillScheduleCalculator.dueAccent(daysUntilDue: 7, isPaid: false)
+        XCTAssertGreaterThan(nearDue.red, calmGreen.red)
+        XCTAssertLessThan(nearDue.green, calmGreen.green)
+
+        let overdue = BillScheduleCalculator.dueAccent(daysUntilDue: -2, isPaid: false)
+        XCTAssertEqual(overdue.red, 1.0, accuracy: 0.01)
+        XCTAssertEqual(overdue.green, 0.23, accuracy: 0.01)
+    }
+
+    func testDueCountdownUsesExactDayCounts() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        let reference = calendar.date(from: DateComponents(year: 2026, month: 6, day: 16))!
+        let due = calendar.date(from: DateComponents(year: 2026, month: 7, day: 1))!
+
+        XCTAssertEqual(
+            BillScheduleCalculator.dueCountdown(for: due, from: reference, calendar: calendar),
+            "Due in 15 days"
+        )
+    }
 }

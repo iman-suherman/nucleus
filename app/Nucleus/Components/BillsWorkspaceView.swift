@@ -165,7 +165,11 @@ struct BillsWorkspaceView: View {
                         averageAmount: viewModel.averagePayment(for: bill.id) ?? bill.amount,
                         remainingAmount: viewModel.remainingAmount(for: bill),
                         status: viewModel.billDisplayStatus(for: bill),
-                        progress: viewModel.billStatusProgress(for: bill)
+                        progress: viewModel.billStatusProgress(for: bill),
+                        onOpen: {
+                            viewModel.selectedBillID = bill.id
+                            showingBillDetail = true
+                        }
                     )
                     .tag(Optional(bill.id))
                 }
@@ -453,28 +457,20 @@ private struct BillCSVDocument: FileDocument {
 }
 
 private enum BillStatusStyle {
-    static func accent(for status: BillDisplayStatus) -> Color {
-        switch status {
-        case .paid, .upcoming:
-            return Color(red: 129 / 255, green: 201 / 255, blue: 149 / 255)
-        case .dueSoon:
-            return .orange
-        case .partial:
-            return .yellow
-        case .overdue:
-            return .red
-        }
+    static func accent(for bill: Bill, remainingAmount: Double) -> Color {
+        let accent = BillScheduleCalculator.dueAccent(
+            daysUntilDue: BillScheduleCalculator.daysUntilDue(for: bill.nextDueDate),
+            isPaid: remainingAmount <= 0.009
+        )
+        return Color(red: accent.red, green: accent.green, blue: accent.blue)
     }
 
-    static func countdownLabel(for bill: Bill, status: BillDisplayStatus) -> String {
-        switch status {
-        case .paid:
-            return "Paid this period"
-        case .overdue:
-            return BillScheduleCalculator.dueCountdown(for: bill.nextDueDate)
-        default:
-            return BillScheduleCalculator.dueCountdown(for: bill.nextDueDate)
+    static func dueLabel(for bill: Bill, remainingAmount: Double) -> String {
+        let relative = BillScheduleCalculator.dueCountdown(for: bill.nextDueDate)
+        if remainingAmount <= 0.009 {
+            return "Paid · \(relative)"
         }
+        return relative
     }
 }
 
@@ -484,8 +480,12 @@ private struct BillRowView: View {
     let remainingAmount: Double
     let status: BillDisplayStatus
     let progress: Double
+    var onOpen: (() -> Void)?
 
-    private var accent: Color { BillStatusStyle.accent(for: status) }
+    private var accent: Color { BillStatusStyle.accent(for: bill, remainingAmount: remainingAmount) }
+    private var isOverdue: Bool {
+        remainingAmount > 0.009 && BillScheduleCalculator.daysUntilDue(for: bill.nextDueDate) < 0
+    }
 
     var body: some View {
         HStack(spacing: 12) {
@@ -511,10 +511,10 @@ private struct BillRowView: View {
             Text(NucleusFormatters.currencyString(remainingAmount))
                 .frame(width: 90, alignment: .trailing)
                 .fontWeight(.medium)
-                .foregroundStyle(status == .overdue ? .red : .primary)
+                .foregroundStyle(isOverdue ? .red : .primary)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(BillStatusStyle.countdownLabel(for: bill, status: status))
+                Text(BillStatusStyle.dueLabel(for: bill, remainingAmount: remainingAmount))
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(accent)
                 Text(NucleusFormatters.dayHeader.string(from: bill.nextDueDate))
@@ -527,6 +527,11 @@ private struct BillRowView: View {
                 .frame(width: 8, height: 44)
         }
         .padding(.vertical, 4)
+        .contentShape(Rectangle())
+        .help("Double-click to view bill details")
+        .onTapGesture(count: 2) {
+            onOpen?()
+        }
     }
 }
 

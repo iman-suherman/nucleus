@@ -104,9 +104,7 @@ public enum BillScheduleCalculator {
     }
 
     public static func dueCountdown(for dueDate: Date, from reference: Date = Date(), calendar: Calendar = .current) -> String {
-        let start = calendar.startOfDay(for: reference)
-        let due = calendar.startOfDay(for: dueDate)
-        let days = calendar.dateComponents([.day], from: start, to: due).day ?? 0
+        let days = daysUntilDue(for: dueDate, from: reference, calendar: calendar)
 
         if days < 0 {
             return "Overdue by \(abs(days)) day\(abs(days) == 1 ? "" : "s")"
@@ -117,14 +115,77 @@ public enum BillScheduleCalculator {
         if days == 1 {
             return "Due tomorrow"
         }
-        if days < 14 {
+        if days < 60 {
             return "Due in \(days) days"
         }
-        if days < 45 {
-            return "Due in about 1 month"
+        if days < 365 {
+            let months = max(1, (days + 15) / 30)
+            return "Due in about \(months) month\(months == 1 ? "" : "s")"
         }
-        let months = max(1, days / 30)
-        return "Due in about \(months) month\(months == 1 ? "" : "s")"
+        let years = max(1, days / 365)
+        return "Due in about \(years) year\(years == 1 ? "" : "s")"
+    }
+
+    public static func daysUntilDue(
+        for dueDate: Date,
+        from reference: Date = Date(),
+        calendar: Calendar = .current
+    ) -> Int {
+        let start = calendar.startOfDay(for: reference)
+        let due = calendar.startOfDay(for: dueDate)
+        return calendar.dateComponents([.day], from: start, to: due).day ?? 0
+    }
+
+    /// Accent colour ramp: calm green when more than 15 days away, green→orange as due date nears, red when overdue.
+    public static func dueAccent(
+        daysUntilDue: Int,
+        isPaid: Bool
+    ) -> BillDueAccent {
+        if isPaid {
+            return BillDueAccent(red: 0.52, green: 0.75, blue: 0.58)
+        }
+        if daysUntilDue < 0 {
+            return BillDueAccent(red: 1.0, green: 0.23, blue: 0.19)
+        }
+        if daysUntilDue > 15 {
+            return BillDueAccent(red: 129.0 / 255.0, green: 201.0 / 255.0, blue: 149.0 / 255.0)
+        }
+
+        let progress = Double(daysUntilDue) / 15.0
+        let orangeRed = 1.0
+        let orangeGreen = 0.58
+        let orangeBlue = 0.0
+        let greenRed = 129.0 / 255.0
+        let greenGreen = 201.0 / 255.0
+        let greenBlue = 149.0 / 255.0
+        return BillDueAccent(
+            red: orangeRed + (greenRed - orangeRed) * progress,
+            green: orangeGreen + (greenGreen - orangeGreen) * progress,
+            blue: orangeBlue + (greenBlue - orangeBlue) * progress
+        )
+    }
+
+    public static func dueAccent(
+        bill: Bill,
+        payments: [BillPayment],
+        reference: Date = Date(),
+        calendar: Calendar = .current
+    ) -> BillDueAccent {
+        let isPaid = remainingAmount(bill: bill, payments: payments, calendar: calendar) <= 0.009
+        let days = daysUntilDue(for: bill.nextDueDate, from: reference, calendar: calendar)
+        return dueAccent(daysUntilDue: days, isPaid: isPaid)
+    }
+
+    public static func dueCountdownLabel(
+        bill: Bill,
+        payments: [BillPayment],
+        reference: Date = Date(),
+        calendar: Calendar = .current
+    ) -> String {
+        if remainingAmount(bill: bill, payments: payments, calendar: calendar) <= 0.009 {
+            return "Paid this period"
+        }
+        return dueCountdown(for: bill.nextDueDate, from: reference, calendar: calendar)
     }
 
     public static func progressUntilDue(
