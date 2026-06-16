@@ -33,11 +33,12 @@ struct GmailWebView: NSViewRepresentable {
         } else if webView.url?.absoluteString.contains("mail.google.com/mail") == true {
             loadingPhase = .idle
             isLoading = false
+            context.coordinator.hasReachedInbox = true
             context.coordinator.resumeUnreadPollingIfNeeded(in: webView)
         } else {
             loadingPhase = .connecting
             isLoading = true
-            context.coordinator.resumeUnreadPollingIfNeeded(in: webView)
+            loadInbox(into: webView, email: accountEmail, preferSignIn: preferSignIn)
         }
         return container
     }
@@ -79,6 +80,10 @@ struct GmailWebView: NSViewRepresentable {
         loadingPhase?.wrappedValue = .connecting
         isLoading?.wrappedValue = true
         webView.load(URLRequest(url: url))
+        if webView.url?.absoluteString.contains("mail.google.com/mail") == true, !webView.isLoading {
+            loadingPhase?.wrappedValue = .idle
+            isLoading?.wrappedValue = false
+        }
     }
 
     static func ensureUnreadSync(accountID: UUID, email: String) {
@@ -145,6 +150,7 @@ struct GmailWebView: NSViewRepresentable {
         private var unreadPollTimer: Timer?
         private var pollNowObserver: NSObjectProtocol?
         private var readyCheckGeneration = 0
+        private var loadWatchdog: Timer?
 
         init(isLoading: Binding<Bool>, loadingPhase: Binding<MailInboxLoadingPhase>) {
             self.isLoading = isLoading
@@ -153,10 +159,17 @@ struct GmailWebView: NSViewRepresentable {
 
         deinit {
             stopUnreadPolling()
+            loadWatchdog?.invalidate()
         }
 
         private func setLoading(_ loading: Bool) {
             DispatchQueue.main.async {
+                if loading {
+                    self.scheduleLoadWatchdog()
+                } else {
+                    self.loadWatchdog?.invalidate()
+                    self.loadWatchdog = nil
+                }
                 self.isLoading.wrappedValue = loading
                 if !loading {
                     self.loadingPhase.wrappedValue = .idle
@@ -170,9 +183,63 @@ struct GmailWebView: NSViewRepresentable {
             }
         }
 
+        private func isInboxURL(_ url: URL?) -> Bool {
+            url?.absoluteString.lowercased().contains("mail.google.com/mail") == true
+        }
+
+        private func scheduleLoadWatchdog() {
+            loadWatchdog?.invalidate()
+            loadWatchdog = Timer.scheduledTimer(withTimeInterval: 10, repeats: false) { [weak self] _ in
+                guard let self else { return }
+                Task { @MainActor in
+                    self.forceDismissOverlayIfStuck()
+                }
+            }
+            if let loadWatchdog {
+                RunLoop.main.add(loadWatchdog, forMode: .common)
+            }
+        }
+
+        private func forceDismissOverlayIfStuck() {
+            guard isLoading.wrappedValue else { return }
+            guard let webView = accountID.flatMap({
+                EmbeddedWebViewRegistry.existingWebView(accountID: $0, surface: .mail)
+            }) else {
+                setLoading(false)
+                return
+            }
+            if isInboxURL(webView.url) {
+                markInboxReached(webView, isFirstReach: !hasReachedInbox)
+            }
+        }
+
+        private func markInboxReached(_ webView: WKWebView, isFirstReach: Bool) {
+            let firstTime = !hasReachedInbox
+            hasReachedInbox = true
+            setLoading(false)
+
+            guard firstTime else { return }
+
+            if isFirstReach, let accountID {
+                NotificationCenter.default.post(
+                    name: .gmailWebSessionDidSignIn,
+                    object: accountID
+                )
+            }
+            setPhase(.renderingMailbox)
+            waitForWebViewReady(webView, isFirstReach: isFirstReach)
+            startUnreadPolling(in: webView)
+        }
+
         func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
+            guard !hasReachedInbox else { return }
             setPhase(MailInboxLoadingPhase.phase(for: webView.url))
             setLoading(true)
+        }
+
+        func webView(_ webView: WKWebView, didCommit navigation: WKNavigation!) {
+            guard !hasReachedInbox, isInboxURL(webView.url) else { return }
+            markInboxReached(webView, isFirstReach: true)
         }
 
         func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
@@ -216,18 +283,8 @@ struct GmailWebView: NSViewRepresentable {
             guard let email = accountEmail, let url = webView.url else { return }
             let path = url.absoluteString
 
-            if path.contains("mail.google.com/mail") {
-                let isFirstReach = !hasReachedInbox
-                if isFirstReach, let accountID {
-                    NotificationCenter.default.post(
-                        name: .gmailWebSessionDidSignIn,
-                        object: accountID
-                    )
-                }
-                hasReachedInbox = true
-                setPhase(.renderingMailbox)
-                waitForWebViewReady(webView, isFirstReach: isFirstReach)
-                startUnreadPolling(in: webView)
+            if isInboxURL(url) {
+                markInboxReached(webView, isFirstReach: !hasReachedInbox)
                 return
             }
 
@@ -262,6 +319,7 @@ struct GmailWebView: NSViewRepresentable {
         }
 
         func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
+            hasReachedInbox = false
             if EmbeddedWebViewRegistry.hasLoadedContent(webView) {
                 setPhase(.loadingInbox)
                 setLoading(true)
@@ -279,34 +337,31 @@ struct GmailWebView: NSViewRepresentable {
         private func waitForWebViewReady(_ webView: WKWebView, isFirstReach: Bool) {
             readyCheckGeneration += 1
             let generation = readyCheckGeneration
-            var attempts = 0
 
-            func check() {
+            func check(attempts: Int) {
                 guard generation == readyCheckGeneration else { return }
-                attempts += 1
 
                 webView.evaluateJavaScript(GmailWebView.inboxReadyScript) { result, _ in
                     guard generation == self.readyCheckGeneration else { return }
 
                     let domReady = (result as? Bool) == true
                     let progress = webView.estimatedProgress
-                    let ready = domReady || progress >= 0.85 || attempts >= 25
+                    let ready = domReady || progress >= 0.85 || attempts >= 15
 
                     if ready {
                         if isFirstReach {
                             self.setPhase(.syncingUnread)
                         }
-                        self.setLoading(false)
                         return
                     }
 
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                        check()
+                        check(attempts: attempts + 1)
                     }
                 }
             }
 
-            check()
+            check(attempts: 0)
         }
 
         func resumeUnreadPollingIfNeeded(in webView: WKWebView) {
@@ -369,10 +424,12 @@ struct GmailWebView: NSViewRepresentable {
 private extension GmailWebView {
     static let inboxReadyScript = """
     (function() {
+      if (document.readyState !== 'complete' && document.readyState !== 'interactive') return false;
       const main = document.querySelector('[role="main"]');
       if (main && main.children.length > 0) return true;
-      const inboxNav = document.querySelector('a[href*="#inbox"], [aria-label*="Inbox"]');
-      return Boolean(inboxNav);
+      const inboxNav = document.querySelector('a[href*="#inbox"], [aria-label*="Inbox"], [data-tooltip*="Inbox"]');
+      if (inboxNav) return true;
+      return document.body && document.body.children.length > 2;
     })();
     """
 

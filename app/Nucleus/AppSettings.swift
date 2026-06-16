@@ -158,6 +158,8 @@ final class AppSettings: ObservableObject {
         static let iCloudKeychainTokenSyncEnabled = "nucleus.settings.iCloudKeychainTokenSyncEnabled"
         static let selectedWorkspacePane = "nucleus.settings.selectedWorkspacePane"
         static let windowLayout = "nucleus.settings.windowLayout"
+        static let hourlyBeepEnabled = "nucleus.settings.hourlyBeepEnabled"
+        static let hourlyBeepSound = "nucleus.settings.hourlyBeepSound"
     }
 
     static let currentAppVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.1.0"
@@ -254,6 +256,14 @@ final class AppSettings: ObservableObject {
                 UserDefaults.standard.removeObject(forKey: Keys.windowLayout)
             }
         }
+    }
+
+    @Published var hourlyBeepEnabled: Bool {
+        didSet { UserDefaults.standard.set(hourlyBeepEnabled, forKey: Keys.hourlyBeepEnabled) }
+    }
+
+    @Published var hourlyBeepSound: HourlyBeepSound {
+        didSet { UserDefaults.standard.set(hourlyBeepSound.rawValue, forKey: Keys.hourlyBeepSound) }
     }
 
     var sidebarWidth: CGFloat {
@@ -378,6 +388,19 @@ final class AppSettings: ObservableObject {
             windowLayout = layout
         } else {
             windowLayout = nil
+        }
+
+        if UserDefaults.standard.object(forKey: Keys.hourlyBeepEnabled) != nil {
+            hourlyBeepEnabled = UserDefaults.standard.bool(forKey: Keys.hourlyBeepEnabled)
+        } else {
+            hourlyBeepEnabled = false
+        }
+
+        if let raw = UserDefaults.standard.string(forKey: Keys.hourlyBeepSound),
+           let sound = HourlyBeepSound(rawValue: raw) {
+            hourlyBeepSound = sound
+        } else {
+            hourlyBeepSound = .classic
         }
     }
 

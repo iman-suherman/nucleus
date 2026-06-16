@@ -360,6 +360,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         await NucleusNotificationService.shared.rescheduleMeetingReminders([])
         MailNotificationSound.prepareNotificationSounds()
         ChatNotificationSound.prepareNotificationSounds()
+        HourlyBeepService.shared.start()
         completeStartupStep(.notifications)
 
         await beginStartupStep(.mailSync, message: "Syncing mail…")

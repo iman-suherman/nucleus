@@ -181,10 +181,30 @@ struct AppSettingsView: View {
     }
 
     private var notificationsSection: some View {
-        Section("Notifications") {
-            Toggle("Email notifications", isOn: $settings.emailNotificationsEnabled)
-            Toggle("Chat notifications", isOn: $settings.chatNotificationsEnabled)
-            Toggle("Calendar notifications", isOn: $settings.calendarNotificationsEnabled)
+        Group {
+            Section("Notifications") {
+                Toggle("Email notifications", isOn: $settings.emailNotificationsEnabled)
+                Toggle("Chat notifications", isOn: $settings.chatNotificationsEnabled)
+                Toggle("Calendar notifications", isOn: $settings.calendarNotificationsEnabled)
+            }
+
+            Section("Hourly beep") {
+                Toggle("Play beep every hour", isOn: $settings.hourlyBeepEnabled)
+
+                Picker("Sound", selection: $settings.hourlyBeepSound) {
+                    ForEach(HourlyBeepSound.allCases) { sound in
+                        Text(sound.label).tag(sound)
+                    }
+                }
+
+                Button("Play preview") {
+                    settings.hourlyBeepSound.playAlert()
+                }
+
+                Text("A short beep on the hour, like a Casio watch hourly signal. Nucleus must be running.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         }
     }
 
@@ -325,7 +345,7 @@ enum SettingsTab: String, CaseIterable, Identifiable {
         case .keychain:
             return "Keep Google OAuth tokens available for automatic reconnection."
         case .notifications:
-            return "Choose which alerts Nucleus can send."
+            return "Choose which alerts Nucleus can send and optional hourly beeps."
         case .mail:
             return "Notification sounds and background mail sync intervals."
         case .chat:

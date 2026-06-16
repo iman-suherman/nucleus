@@ -1,0 +1,14 @@
+{
+  "version": "0.3.29",
+  "summary": "Fix inbox loader stuck on step 4 and add optional hourly beep.",
+  "releaseNotes": {
+    "introduced": [
+      "Optional hourly beep in Settings — Casio-style chime on the hour while Nucleus is running"
+    ],
+    "changed": [],
+    "fixed": [
+      "Inbox loading overlay no longer gets stuck on “Loading inbox” — Gmail’s in-page navigations no longer re-trigger the loader",
+      "Overlay dismisses as soon as the inbox URL loads, with a 10-second fallback if navigation callbacks lag"
+    ]
+  }
+}
