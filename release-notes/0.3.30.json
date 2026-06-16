@@ -1,0 +1,14 @@
+{
+  "version": "0.3.30",
+  "summary": "Fix iCloud note upload hanging on Settings.",
+  "releaseNotes": {
+    "introduced": [],
+    "changed": [
+      "Upload Notes to iCloud now waits for CloudKit export and reports success, failure, or timeout instead of showing a permanent “Uploading…” message"
+    ],
+    "fixed": [
+      "Settings → iCloud upload no longer appears stuck after queuing notes for sync",
+      "CloudKit export errors (including schema issues) are surfaced in Settings with clear feedback"
+    ]
+  }
+}

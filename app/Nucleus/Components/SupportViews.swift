@@ -139,7 +139,7 @@ struct AppSettingsView: View {
                 if let notesCloudKitMessage {
                     Text(notesCloudKitMessage)
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(notesCloudKitMessageColor)
                 }
             }
 
@@ -263,6 +263,21 @@ struct AppSettingsView: View {
             LabeledContent("Version", value: AppSettings.currentAppVersion)
             LabeledContent("Tagline", value: "Personal Operating System for macOS")
         }
+    }
+
+    private var notesCloudKitMessageColor: Color {
+        guard let notesCloudKitMessage else { return .secondary }
+        let lowered = notesCloudKitMessage.lowercased()
+        if lowered.contains("failed") {
+            return .red
+        }
+        if lowered.contains("has not finished") {
+            return .orange
+        }
+        if lowered.contains("uploaded") {
+            return .green
+        }
+        return .secondary
     }
 
     private func mailSoundRow(for account: GoogleAccount) -> some View {

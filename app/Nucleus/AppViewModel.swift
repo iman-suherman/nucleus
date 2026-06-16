@@ -882,19 +882,15 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
             return "Notes are stored on this Mac only. Sign in to iCloud and restart Nucleus."
         }
 
+        if notes.isEmpty {
+            return "No notes to upload."
+        }
+
         let context = ModelContext(modelContainer)
-        do {
+        return await syncService.queueNotesExportAndWait { [self] in
             let count = try NucleusDatabase.exportNotesToCloudKit(context: context, force: force)
-            syncService.markNotesLocalChange()
-            reloadLocalData()
-            if count > 0 {
-                return "Uploading \(count) note\(count == 1 ? "" : "s") to iCloud…"
-            }
-            return notes.isEmpty
-                ? "No notes to upload."
-                : "Notes are already queued for iCloud sync."
-        } catch {
-            return error.localizedDescription
+            self.reloadLocalData()
+            return count
         }
     }
 
