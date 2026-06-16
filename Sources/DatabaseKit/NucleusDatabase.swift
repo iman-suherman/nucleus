@@ -4,8 +4,17 @@ import NucleusKit
 import SwiftData
 
 public enum NucleusDatabase {
-    private static let cloudKitContainerIdentifier = "iCloud.net.suherman.nucleus"
+    public static let cloudKitContainerIdentifier = "iCloud.net.suherman.nucleus"
+    /// SwiftData stores synced records in this custom zone, not `_defaultZone`.
+    public static let swiftDataCloudKitZoneName = "com.apple.coredata.cloudkit.zone"
     private static let developmentSchemaSeedDefaultsKey = "NucleusCloudKitDevelopmentSchemaSeeded"
+    private static let notesCloudKitExportDefaultsKey = "NucleusCloudKitNotesExportedToCloudKit"
+
+    /// Whether the active store configuration is syncing notes via CloudKit.
+    public private(set) static var usesCloudKitSync = false
+    /// Set when CloudKit container creation fails and the app falls back to local-only storage.
+    public private(set) static var lastCloudKitSetupError: String?
+
     public static let syncedSchema = Schema([
         GoogleAccountRecord.self,
         NoteRecord.self,
@@ -44,13 +53,51 @@ public enum NucleusDatabase {
 
         if enableCloudKit && isCloudKitAvailable {
             do {
-                return try makeCloudKitContainer()
+                let container = try makeCloudKitContainer()
+                usesCloudKitSync = true
+                lastCloudKitSetupError = nil
+                NSLog(
+                    "Nucleus: CloudKit notes sync enabled (container=%@, zone=%@)",
+                    cloudKitContainerIdentifier,
+                    swiftDataCloudKitZoneName
+                )
+                return container
             } catch {
+                usesCloudKitSync = false
+                lastCloudKitSetupError = error.localizedDescription
+                NSLog(
+                    "Nucleus: CloudKit notes sync unavailable, using local store only: %@",
+                    error.localizedDescription
+                )
                 return try makeLocalContainer()
             }
         }
 
+        usesCloudKitSync = false
+        lastCloudKitSetupError = isCloudKitAvailable
+            ? "CloudKit sync was disabled for this launch."
+            : "Sign in to iCloud to sync notes across devices."
+        NSLog(
+            "Nucleus: CloudKit notes sync disabled: %@",
+            lastCloudKitSetupError ?? "unknown"
+        )
         return try makeLocalContainer()
+    }
+
+    /// Re-saves every note so SwiftData exports them to CloudKit (e.g. after enabling sync).
+    @discardableResult
+    public static func exportNotesToCloudKit(context: ModelContext, force: Bool = false) throws -> Int {
+        guard usesCloudKitSync else { return 0 }
+        if !force, UserDefaults.standard.bool(forKey: notesCloudKitExportDefaultsKey) {
+            return 0
+        }
+
+        let count = try NoteRepository.touchAllForCloudKitExport(context: context)
+        if count > 0 || force {
+            UserDefaults.standard.set(true, forKey: notesCloudKitExportDefaultsKey)
+            NSLog("Nucleus: Queued %ld note(s) for CloudKit export.", count)
+        }
+        return count
     }
 
     private static var isCloudKitAvailable: Bool {
@@ -61,7 +108,7 @@ public enum NucleusDatabase {
         let syncedConfiguration = ModelConfiguration(
             "Synced",
             schema: syncedSchema,
-            cloudKitDatabase: .automatic
+            cloudKitDatabase: .private(cloudKitContainerIdentifier)
         )
 
         let localConfiguration = ModelConfiguration(
@@ -444,6 +491,19 @@ public enum NoteRepository {
             ))
         }
         try context.save()
+    }
+
+    /// Bumps `updatedAt` on every note and saves once to trigger a CloudKit export.
+    public static func touchAllForCloudKitExport(context: ModelContext) throws -> Int {
+        let records = try context.fetch(FetchDescriptor<NoteRecord>())
+        guard !records.isEmpty else { return 0 }
+
+        let exportStamp = Date()
+        for record in records {
+            record.updatedAt = exportStamp
+        }
+        try context.save()
+        return records.count
     }
 
     public static func delete(id: UUID, context: ModelContext) throws {

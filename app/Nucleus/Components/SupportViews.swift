@@ -1,4 +1,5 @@
 import AppKit
+import DatabaseKit
 import NucleusKit
 import SwiftUI
 import SyncKit
@@ -48,6 +49,8 @@ struct AppSettingsView: View {
     @ObservedObject var viewModel: AppViewModel
     var accounts: [GoogleAccount]
     let selectedTab: SettingsTab
+    @State private var notesCloudKitMessage: String?
+    @State private var isUploadingNotesToCloudKit = false
 
     var body: some View {
         ScrollView {
@@ -96,6 +99,46 @@ struct AppSettingsView: View {
                     Image(systemName: syncService.status.isAvailable ? "checkmark.icloud" : "icloud.slash")
                         .foregroundStyle(syncService.status.isAvailable ? .green : .secondary)
                     Text(syncService.status.label)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            LabeledContent("Notes storage") {
+                Text(NucleusDatabase.usesCloudKitSync ? "iCloud CloudKit" : "This Mac only")
+                    .foregroundStyle(NucleusDatabase.usesCloudKitSync ? .secondary : .orange)
+            }
+
+            LabeledContent("Notes on this Mac") {
+                Text("\(viewModel.notes.count)")
+                    .foregroundStyle(.secondary)
+            }
+
+            if !NucleusDatabase.usesCloudKitSync, let error = NucleusDatabase.lastCloudKitSetupError {
+                Text(error)
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+            }
+
+            if NucleusDatabase.usesCloudKitSync {
+                Text(
+                    "In CloudKit Console, query Private Database → zone \(NucleusDatabase.swiftDataCloudKitZoneName) → record type CD_NoteRecord (not _defaultZone)."
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+                Button(isUploadingNotesToCloudKit ? "Uploading…" : "Upload Notes to iCloud") {
+                    isUploadingNotesToCloudKit = true
+                    notesCloudKitMessage = nil
+                    Task {
+                        notesCloudKitMessage = await viewModel.pushNotesToCloudKit(force: true)
+                        isUploadingNotesToCloudKit = false
+                    }
+                }
+                .disabled(isUploadingNotesToCloudKit || viewModel.notes.isEmpty)
+
+                if let notesCloudKitMessage {
+                    Text(notesCloudKitMessage)
+                        .font(.caption)
                         .foregroundStyle(.secondary)
                 }
             }

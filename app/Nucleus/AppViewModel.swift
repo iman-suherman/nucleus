@@ -305,6 +305,8 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         await beginStartupStep(.database, message: "Loading workspace data…")
         AuthStateMigration.resetStoredLoginIfNeeded(modelContainer: modelContainer)
         reloadLocalData()
+        let exportContext = ModelContext(modelContainer)
+        try? NucleusDatabase.exportNotesToCloudKit(context: exportContext)
         completeStartupStep(.database)
 
         await beginStartupStep(.accounts, message: "Restoring Google accounts…")
@@ -860,6 +862,29 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         reloadLocalData()
         if selectNote {
             selectedNoteID = updated.id
+        }
+    }
+
+    func pushNotesToCloudKit(force: Bool = true) async -> String {
+        guard NucleusDatabase.usesCloudKitSync else {
+            if let error = NucleusDatabase.lastCloudKitSetupError {
+                return error
+            }
+            return "Notes are stored on this Mac only. Sign in to iCloud and restart Nucleus."
+        }
+
+        let context = ModelContext(modelContainer)
+        do {
+            let count = try NucleusDatabase.exportNotesToCloudKit(context: context, force: force)
+            reloadLocalData()
+            if count > 0 {
+                return "Uploading \(count) note\(count == 1 ? "" : "s") to iCloud…"
+            }
+            return notes.isEmpty
+                ? "No notes to upload."
+                : "Notes are already queued for iCloud sync."
+        } catch {
+            return error.localizedDescription
         }
     }
 
