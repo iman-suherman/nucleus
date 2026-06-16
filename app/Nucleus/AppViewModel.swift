@@ -100,16 +100,19 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         observeMenuBarSettings()
         startWindowLayoutTracking()
         observeBillReminderSettings()
-        scheduleBootstrap(settings: AppSettings.shared)
     }
 
     func scheduleBootstrap(settings: AppSettings) {
         guard !hasFinishedBootstrap else { return }
         guard bootstrapTask == nil else { return }
-        bootstrapTask = Task { @MainActor [weak self] in
-            guard let self else { return }
-            await self.bootstrap(settings: settings)
-            self.bootstrapTask = nil
+        NSLog("Nucleus: bootstrap scheduled")
+        DispatchQueue.main.async { [weak self] in
+            guard let self, !self.hasFinishedBootstrap, self.bootstrapTask == nil else { return }
+            self.bootstrapTask = Task(priority: .userInitiated) { @MainActor [weak self] in
+                guard let self else { return }
+                await self.bootstrap(settings: settings)
+                self.bootstrapTask = nil
+            }
         }
     }
 

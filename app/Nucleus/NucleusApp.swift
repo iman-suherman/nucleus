@@ -15,6 +15,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         DispatchQueue.main.async {
             _ = SparkleUpdaterController.shared
+            Self.kickBootstrap(attempt: 0)
+        }
+    }
+
+    private static func kickBootstrap(attempt: Int) {
+        Task { @MainActor in
+            guard let viewModel = AppViewModel.current else {
+                guard attempt < 100 else {
+                    NSLog("Nucleus: bootstrap aborted — AppViewModel never became available")
+                    return
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                    kickBootstrap(attempt: attempt + 1)
+                }
+                return
+            }
+            viewModel.scheduleBootstrap(settings: AppSettings.shared)
         }
     }
 
@@ -30,6 +47,7 @@ struct NucleusApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var viewModel = AppViewModel()
     @StateObject private var appSettings = AppSettings.shared
+    @AppStorage("nucleus.settings.menuBarEnabled") private var menuBarEnabled = true
 
     var body: some Scene {
         mainWindowScene
@@ -41,7 +59,6 @@ struct NucleusApp: App {
             ContentView()
                 .environmentObject(viewModel)
                 .environmentObject(appSettings)
-                .modelContainer(viewModel.modelContainer)
                 .frame(minWidth: 1180, minHeight: 780)
                 .sheet(item: $viewModel.quickReplyContext) { context in
                     QuickReplySheet(context: context)
@@ -63,6 +80,11 @@ struct NucleusApp: App {
                         WindowLayoutController.shared.attach(to: window)
                     }
                 )
+                .onChange(of: menuBarEnabled) { _, enabled in
+                    if appSettings.menuBarEnabled != enabled {
+                        appSettings.menuBarEnabled = enabled
+                    }
+                }
         }
         .defaultSize(width: 1320, height: 880)
         .windowStyle(.automatic)
@@ -98,8 +120,8 @@ struct NucleusApp: App {
             "Nucleus",
             systemImage: "doc.on.clipboard",
             isInserted: Binding(
-                get: { appSettings.menuBarEnabled },
-                set: { appSettings.menuBarEnabled = $0 }
+                get: { menuBarEnabled && !viewModel.isStartingUp },
+                set: { menuBarEnabled = $0 }
             )
         ) {
             MenuBarPopoverView(controller: viewModel.menuBarController)
@@ -140,8 +162,6 @@ struct ContentView: View {
             }
         }
         .frame(minWidth: 1180, minHeight: 780)
-        .animation(.easeInOut(duration: 0.22), value: viewModel.isStartingUp)
-        .animation(.easeInOut(duration: 0.22), value: viewModel.showWhatsNew)
         .onAppear {
             viewModel.scheduleBootstrap(settings: appSettings)
         }
@@ -201,6 +221,8 @@ struct ContentView: View {
         .onAppear {
             EmbeddedWebViewRegistry.syncVisibility(activePane: activeWorkspacePane(from: viewModel.sidebarSelection))
         }
+        .modelContainer(viewModel.modelContainer)
+        .animation(.easeInOut(duration: 0.22), value: viewModel.showWhatsNew)
     }
 
     @ViewBuilder
