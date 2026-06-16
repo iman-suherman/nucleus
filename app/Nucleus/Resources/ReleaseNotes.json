@@ -1,13 +1,15 @@
 {
-  "version": "0.3.27",
-  "summary": "Password notes include a Title field on macOS and iOS.",
+  "version": "0.3.28",
+  "summary": "Faster inbox reveal and sidebar layout fixes.",
   "releaseNotes": {
-    "introduced": [
-      "iOS password notes open a structured editor with Title, URL, username, email, and password fields"
-    ],
+    "introduced": [],
     "changed": [
-      "macOS password notes show Title in the credential form alongside URL, username, email, and password"
+      "Inbox overlay dismisses once Gmail finishes rendering — unread sync continues in the background"
     ],
-    "fixed": []
+    "fixed": [
+      "Inbox loading step checklist showed completed steps in the wrong order",
+      "Sidebar overlapped macOS window close button when no Gmail account was set up",
+      "Empty inbox state no longer shows a loading overlay or account tabs before any account exists"
+    ]
   }
 }
