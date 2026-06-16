@@ -29,9 +29,9 @@
 		5AB3E566D34F7195E90F8AF2 /* NucleusTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FE025998DE849CA2FCBCC91 /* NucleusTheme.swift */; };
 		5C5D19FBE763E1524A4E831C /* RegistryReleaseNotesClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDFFBFACBD2632D34A43FC55 /* RegistryReleaseNotesClient.swift */; };
 		5E7C65A062AF7D911926A67F /* StartupSplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F2DE343844F3EF7B493842C /* StartupSplashView.swift */; };
-		601D3FDE60E2EDC1B789ADB8 /* nucleus-bills-import.csv in Resources */ = {isa = PBXBuildFile; fileRef = C55E22A4365D68D8D8BBC410 /* nucleus-bills-import.csv */; };
 		627462CDC0887CCD00A910E4 /* NucleusMail.caf in Resources */ = {isa = PBXBuildFile; fileRef = A1ADB4D8B805C7C16E7A1939 /* NucleusMail.caf */; };
 		642590B42B17C9B63C0BB830 /* HourlyBeepService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68AD664CB4410FC8FBE21B1C /* HourlyBeepService.swift */; };
+		650D21C4C88640C42F258396 /* nucleus-bills-import-demo.csv in Resources */ = {isa = PBXBuildFile; fileRef = E79434496C370BC490D26F0A /* nucleus-bills-import-demo.csv */; };
 		67D16211CC02FDAF4A0379CD /* ReleaseNotes.json in Resources */ = {isa = PBXBuildFile; fileRef = 2F1A694368885A964F497B45 /* ReleaseNotes.json */; };
 		68556500C668B7A54CCA4BA4 /* SparkleUpdater.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6238A17B183A8059CB7A2C0 /* SparkleUpdater.swift */; };
 		68F673476FAE5D0CA8204F89 /* MailWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 948AE221487288E373756BDD /* MailWorkspaceView.swift */; };
@@ -114,12 +114,12 @@
 		BF4B3460305D779B31B79D8C /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		C201B6D32546E035E9D04B57 /* MailInboxLoadingPhase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MailInboxLoadingPhase.swift; sourceTree = "<group>"; };
 		C2698972D63EAE12C5F050DE /* NucleusApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NucleusApp.swift; sourceTree = "<group>"; };
-		C55E22A4365D68D8D8BBC410 /* nucleus-bills-import.csv */ = {isa = PBXFileReference; path = "nucleus-bills-import.csv"; sourceTree = "<group>"; };
 		C643F64124025FA6F196C435 /* ClipboardWorkspaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardWorkspaceView.swift; sourceTree = "<group>"; };
 		C6C43800AFF7B02A1B95466D /* Nucleus_DeveloperID.provisionprofile */ = {isa = PBXFileReference; path = Nucleus_DeveloperID.provisionprofile; sourceTree = "<group>"; };
 		CDFFBFACBD2632D34A43FC55 /* RegistryReleaseNotesClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegistryReleaseNotesClient.swift; sourceTree = "<group>"; };
 		E4CEADA0142869F8949F55DD /* SupportViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupportViews.swift; sourceTree = "<group>"; };
 		E5971F41F5427FCE836471DA /* EmbeddedWebViewContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmbeddedWebViewContainer.swift; sourceTree = "<group>"; };
+		E79434496C370BC490D26F0A /* nucleus-bills-import-demo.csv */ = {isa = PBXFileReference; path = "nucleus-bills-import-demo.csv"; sourceTree = "<group>"; };
 		EBE67C288974FF5B2F8524E6 /* CloudKitStoreMigration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitStoreMigration.swift; sourceTree = "<group>"; };
 		F73321C16D7956F50F538A6E /* ClipboardPasteController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardPasteController.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -199,7 +199,7 @@
 		6F6FFB061DF1DABAB49226B9 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
-				C55E22A4365D68D8D8BBC410 /* nucleus-bills-import.csv */,
+				E79434496C370BC490D26F0A /* nucleus-bills-import-demo.csv */,
 				2F1A694368885A964F497B45 /* ReleaseNotes.json */,
 			);
 			path = Resources;
@@ -347,7 +347,7 @@
 				E3AA1CB51FE3D2B0B15677A0 /* Nucleus_DeveloperID.provisionprofile in Resources */,
 				67D16211CC02FDAF4A0379CD /* ReleaseNotes.json in Resources */,
 				4EDBD1DF9444754090238320 /* entitlements.mac.development.plist in Resources */,
-				601D3FDE60E2EDC1B789ADB8 /* nucleus-bills-import.csv in Resources */,
+				650D21C4C88640C42F258396 /* nucleus-bills-import-demo.csv in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

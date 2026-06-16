@@ -146,6 +146,12 @@ final class SettingsSyncBridge {
             clipboardSyncEnabled: settings.clipboardSyncEnabled,
             clipboardSaveToNotesEnabled: settings.clipboardSaveToNotesEnabled,
             iCloudKeychainTokenSyncEnabled: settings.iCloudKeychainTokenSyncEnabled,
+            billNotificationsEnabled: settings.billNotificationsEnabled,
+            billNotificationHour: settings.billNotificationHour,
+            billNotifySevenDaysBefore: settings.billNotifySevenDaysBefore,
+            billNotifyThreeDaysBefore: settings.billNotifyThreeDaysBefore,
+            billNotifyOneDayBefore: settings.billNotifyOneDayBefore,
+            billNotifyOnDueDate: settings.billNotifyOnDueDate,
             updatedAt: Date()
         )
     }
@@ -192,5 +198,11 @@ extension AppSettings {
         clipboardSyncEnabled = remoteConfiguration.clipboardSyncEnabled
         clipboardSaveToNotesEnabled = remoteConfiguration.clipboardSaveToNotesEnabled
         iCloudKeychainTokenSyncEnabled = remoteConfiguration.iCloudKeychainTokenSyncEnabled
+        billNotificationsEnabled = remoteConfiguration.billNotificationsEnabled
+        billNotificationHour = remoteConfiguration.billNotificationHour
+        billNotifySevenDaysBefore = remoteConfiguration.billNotifySevenDaysBefore
+        billNotifyThreeDaysBefore = remoteConfiguration.billNotifyThreeDaysBefore
+        billNotifyOneDayBefore = remoteConfiguration.billNotifyOneDayBefore
+        billNotifyOnDueDate = remoteConfiguration.billNotifyOnDueDate
     }
 }

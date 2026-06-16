@@ -173,6 +173,53 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
         }
     }
 
+    func rescheduleBillReminders(
+        bills: [Bill],
+        payments: [BillPayment],
+        configuration: BillDueReminderConfiguration
+    ) async {
+        let center = UNUserNotificationCenter.current()
+        let pending = await center.pendingNotificationRequests()
+        let billIDs = pending.filter { $0.identifier.hasPrefix("bill-") }.map(\.identifier)
+        center.removePendingNotificationRequests(withIdentifiers: billIDs)
+
+        guard configuration.enabled else { return }
+
+        let settings = await center.notificationSettings()
+        guard settings.authorizationStatus == .authorized else { return }
+
+        let reminders = BillDueReminderPlanner.reminders(
+            bills: bills,
+            payments: payments,
+            configuration: configuration
+        )
+
+        for reminder in reminders {
+            let content = billReminderContent(for: reminder)
+            let components = Calendar.current.dateComponents(
+                [.year, .month, .day, .hour, .minute, .second],
+                from: reminder.fireDate
+            )
+            let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+            let identifier = BillDueReminderPlanner.notificationIdentifier(for: reminder)
+            let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
+            try? await center.add(request)
+        }
+    }
+
+    private func billReminderContent(for reminder: BillDueReminderPlanner.Reminder) -> UNMutableNotificationContent {
+        let content = UNMutableNotificationContent()
+        content.title = BillDueReminderPlanner.notificationTitle(for: reminder)
+        content.body = BillDueReminderPlanner.notificationBody(for: reminder)
+        content.categoryIdentifier = "NUCLEUS_BILL"
+        content.sound = .default
+        content.userInfo = [
+            "billID": reminder.bill.id.uuidString,
+            "reminderKind": reminder.kind.rawValue,
+        ]
+        return content
+    }
+
     func notifyMeetingReminder(_ event: CalendarEventSummary, kind: MeetingReminderPlanner.Reminder.Kind) {
         guard AppSettings.shared.calendarNotificationsEnabled else { return }
         let content = meetingContent(for: event, kind: kind)
@@ -230,8 +277,11 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
         let joinCategory = UNNotificationCategory(identifier: "NUCLEUS_MEETING_JOIN", actions: [join], intentIdentifiers: [])
         let meetingCategory = UNNotificationCategory(identifier: "NUCLEUS_MEETING", actions: [], intentIdentifiers: [])
         let chatCategory = UNNotificationCategory(identifier: "NUCLEUS_CHAT", actions: [open], intentIdentifiers: [])
+        let billCategory = UNNotificationCategory(identifier: "NUCLEUS_BILL", actions: [open], intentIdentifiers: [])
 
-        UNUserNotificationCenter.current().setNotificationCategories([mailCategory, joinCategory, meetingCategory, chatCategory])
+        UNUserNotificationCenter.current().setNotificationCategories([
+            mailCategory, joinCategory, meetingCategory, chatCategory, billCategory,
+        ])
     }
 
     nonisolated func userNotificationCenter(
@@ -268,7 +318,13 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
         await MainActor.run {
             switch response.actionIdentifier {
             case "OPEN":
-                if let messageID = info["messageID"] as? String,
+                if response.notification.request.identifier.hasPrefix("bill-"),
+                   let billIDRaw = info["billID"] as? String,
+                   let billID = UUID(uuidString: billIDRaw) {
+                    AppSettings.shared.selectedWorkspacePane = WorkspacePane.bills.rawValue
+                    AppViewModel.current?.sidebarSelection = .workspace(.bills)
+                    AppViewModel.current?.selectedBillID = billID
+                } else if let messageID = info["messageID"] as? String,
                    let accountIDRaw = info["accountID"] as? String,
                    let accountID = UUID(uuidString: accountIDRaw) {
                     onMailAction?(.open(messageID: messageID, accountID: accountID))
@@ -300,6 +356,13 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
                     ChromeLauncher.open(url: url)
                 }
             default:
+                if response.notification.request.identifier.hasPrefix("bill-"),
+                   let billIDRaw = info["billID"] as? String,
+                   let billID = UUID(uuidString: billIDRaw) {
+                    AppSettings.shared.selectedWorkspacePane = WorkspacePane.bills.rawValue
+                    AppViewModel.current?.sidebarSelection = .workspace(.bills)
+                    AppViewModel.current?.selectedBillID = billID
+                }
                 break
             }
         }

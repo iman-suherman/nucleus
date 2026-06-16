@@ -67,6 +67,8 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
     private var pendingMailNotificationDeltas: [UUID: Int] = [:]
     private var mailUnreadSyncBaselineEstablished = Set<UUID>()
     private var mailSignInPendingAccountIDs = Set<UUID>()
+    private var billReminderRefreshTask: Task<Void, Never>?
+    private var billReminderSettingsObserver: AnyCancellable?
 
     init() {
         if ProcessInfo.processInfo.environment["NUCLEUS_SEED_CLOUDKIT_SCHEMA"] == "1" {
@@ -84,6 +86,32 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         observeChatWebUnreadCount()
         observeCloudKitChanges()
         startWindowLayoutTracking()
+        observeBillReminderSettings()
+    }
+
+    private func observeBillReminderSettings() {
+        billReminderSettingsObserver = AppSettings.shared.objectWillChange
+            .debounce(for: .milliseconds(500), scheduler: RunLoop.main)
+            .sink { [weak self] _ in
+                self?.scheduleBillReminderRefresh()
+            }
+    }
+
+    func refreshBillReminders(settings: AppSettings = AppSettings.shared) async {
+        await NucleusNotificationService.shared.rescheduleBillReminders(
+            bills: activeBills,
+            payments: billPayments,
+            configuration: settings.billDueReminderConfiguration
+        )
+    }
+
+    private func scheduleBillReminderRefresh() {
+        billReminderRefreshTask?.cancel()
+        billReminderRefreshTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 250_000_000)
+            guard !Task.isCancelled else { return }
+            await refreshBillReminders()
+        }
     }
 
     func applySyncedLayout(from settings: AppSettings) {
@@ -369,6 +397,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         }
         NucleusNotificationService.shared.onMeetingReminder = nil
         await NucleusNotificationService.shared.rescheduleMeetingReminders([])
+        await refreshBillReminders(settings: settings)
         MailNotificationSound.prepareNotificationSounds()
         ChatNotificationSound.prepareNotificationSounds()
         HourlyBeepService.shared.start()
@@ -610,6 +639,8 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         } else if !activeBills.contains(where: { $0.id == selectedBillID }) {
             selectedBillID = activeBills.first?.id
         }
+
+        scheduleBillReminderRefresh()
     }
 
     func reconcileSelectedAccounts(settings: AppSettings) {
@@ -899,7 +930,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
     }
 
     func sampleBillsCSV() -> String {
-        guard let url = Bundle.main.url(forResource: "nucleus-bills-import", withExtension: "csv"),
+        guard let url = Bundle.main.url(forResource: "nucleus-bills-import-demo", withExtension: "csv"),
               let text = try? String(contentsOf: url, encoding: .utf8) else {
             return BillCSVCodec.exportCSV(bills: [], payments: [])
         }

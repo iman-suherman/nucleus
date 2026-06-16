@@ -161,6 +161,12 @@ final class AppSettings: ObservableObject {
         static let hourlyBeepEnabled = "nucleus.settings.hourlyBeepEnabled"
         static let hourlyBeepSound = "nucleus.settings.hourlyBeepSound"
         static let expectedMonthlyIncome = "nucleus.settings.expectedMonthlyIncome"
+        static let billNotificationsEnabled = "nucleus.settings.billNotificationsEnabled"
+        static let billNotificationHour = "nucleus.settings.billNotificationHour"
+        static let billNotifySevenDaysBefore = "nucleus.settings.billNotifySevenDaysBefore"
+        static let billNotifyThreeDaysBefore = "nucleus.settings.billNotifyThreeDaysBefore"
+        static let billNotifyOneDayBefore = "nucleus.settings.billNotifyOneDayBefore"
+        static let billNotifyOnDueDate = "nucleus.settings.billNotifyOnDueDate"
     }
 
     static let currentAppVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.1.0"
@@ -269,6 +275,41 @@ final class AppSettings: ObservableObject {
 
     @Published var expectedMonthlyIncome: Double {
         didSet { UserDefaults.standard.set(expectedMonthlyIncome, forKey: Keys.expectedMonthlyIncome) }
+    }
+
+    @Published var billNotificationsEnabled: Bool {
+        didSet { UserDefaults.standard.set(billNotificationsEnabled, forKey: Keys.billNotificationsEnabled) }
+    }
+
+    @Published var billNotificationHour: Int {
+        didSet { UserDefaults.standard.set(billNotificationHour, forKey: Keys.billNotificationHour) }
+    }
+
+    @Published var billNotifySevenDaysBefore: Bool {
+        didSet { UserDefaults.standard.set(billNotifySevenDaysBefore, forKey: Keys.billNotifySevenDaysBefore) }
+    }
+
+    @Published var billNotifyThreeDaysBefore: Bool {
+        didSet { UserDefaults.standard.set(billNotifyThreeDaysBefore, forKey: Keys.billNotifyThreeDaysBefore) }
+    }
+
+    @Published var billNotifyOneDayBefore: Bool {
+        didSet { UserDefaults.standard.set(billNotifyOneDayBefore, forKey: Keys.billNotifyOneDayBefore) }
+    }
+
+    @Published var billNotifyOnDueDate: Bool {
+        didSet { UserDefaults.standard.set(billNotifyOnDueDate, forKey: Keys.billNotifyOnDueDate) }
+    }
+
+    var billDueReminderConfiguration: BillDueReminderConfiguration {
+        BillDueReminderConfiguration(
+            enabled: billNotificationsEnabled,
+            hour: billNotificationHour,
+            notifySevenDaysBefore: billNotifySevenDaysBefore,
+            notifyThreeDaysBefore: billNotifyThreeDaysBefore,
+            notifyOneDayBefore: billNotifyOneDayBefore,
+            notifyOnDueDate: billNotifyOnDueDate
+        )
     }
 
     var sidebarWidth: CGFloat {
@@ -409,6 +450,42 @@ final class AppSettings: ObservableObject {
         }
 
         expectedMonthlyIncome = UserDefaults.standard.object(forKey: Keys.expectedMonthlyIncome) as? Double ?? 0
+
+        if UserDefaults.standard.object(forKey: Keys.billNotificationsEnabled) != nil {
+            billNotificationsEnabled = UserDefaults.standard.bool(forKey: Keys.billNotificationsEnabled)
+        } else {
+            billNotificationsEnabled = true
+        }
+
+        if UserDefaults.standard.object(forKey: Keys.billNotificationHour) != nil {
+            billNotificationHour = UserDefaults.standard.integer(forKey: Keys.billNotificationHour)
+        } else {
+            billNotificationHour = 7
+        }
+
+        if UserDefaults.standard.object(forKey: Keys.billNotifySevenDaysBefore) != nil {
+            billNotifySevenDaysBefore = UserDefaults.standard.bool(forKey: Keys.billNotifySevenDaysBefore)
+        } else {
+            billNotifySevenDaysBefore = true
+        }
+
+        if UserDefaults.standard.object(forKey: Keys.billNotifyThreeDaysBefore) != nil {
+            billNotifyThreeDaysBefore = UserDefaults.standard.bool(forKey: Keys.billNotifyThreeDaysBefore)
+        } else {
+            billNotifyThreeDaysBefore = true
+        }
+
+        if UserDefaults.standard.object(forKey: Keys.billNotifyOneDayBefore) != nil {
+            billNotifyOneDayBefore = UserDefaults.standard.bool(forKey: Keys.billNotifyOneDayBefore)
+        } else {
+            billNotifyOneDayBefore = true
+        }
+
+        if UserDefaults.standard.object(forKey: Keys.billNotifyOnDueDate) != nil {
+            billNotifyOnDueDate = UserDefaults.standard.bool(forKey: Keys.billNotifyOnDueDate)
+        } else {
+            billNotifyOnDueDate = true
+        }
     }
 
     private func persistMailNotificationSoundOverrides() {

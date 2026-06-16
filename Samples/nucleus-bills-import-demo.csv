@@ -1,0 +1,27 @@
+type,name,amount,category,recurrence,custom_interval_days,due_day_of_month,next_due_date,notes,archived,bill_name,paid_at,payment_amount,payment_note
+bill,Demo: Riverview Bank Mortgage,1850.00,housing,monthly,,1,2026-07-01,Primary home loan,false,,,,
+bill,Demo: Community Fund Donation,50.00,gift,monthly,,15,2026-07-01,Monthly charity contribution,false,,,,
+bill,Demo: Capital One Visa,275.00,credit,monthly,,20,2026-07-01,Rewards credit card,false,,,,
+bill,Demo: IRS Payment Plan,450.00,other,monthly,,1,2026-07-01,Tax instalment plan,false,,,,
+bill,Demo: Office Wishlist Savings,75.00,gift,monthly,,10,2026-07-01,Planned purchase fund,false,,,,
+bill,Demo: Verizon Wireless,89.00,utilities,every30Days,30,,2026-07-05,Mobile phone plan,false,,,,
+bill,Demo: Pacific Gas & Electric,115.00,utilities,monthly,,25,2026-07-01,Electricity service,false,,,,
+bill,Demo: ConEd Electric,95.00,utilities,monthly,,12,2026-07-12,Apartment power,false,,,,
+bill,Demo: City Water Department,62.00,utilities,monthly,,8,2026-07-08,Water and sewer,false,,,,
+bill,Demo: Disney+ Subscription,15.99,subscription,monthly,,3,2026-07-03,Streaming service,false,,,,
+bill,Demo: Google One Storage,9.99,subscription,monthly,,3,2026-07-03,Cloud backup,false,,,,
+bill,Demo: State Farm Auto,128.00,insurance,monthly,,18,2026-07-18,Vehicle insurance,false,,,,
+bill,Demo: County Property Tax,380.00,housing,monthly,,28,2026-06-28,Property tax escrow,false,,,,
+payment,,,,,,,,,,Demo: Riverview Bank Mortgage,2026-06-01T10:00:00Z,1850.00,June mortgage
+payment,,,,,,,,,,Demo: Capital One Visa,2026-06-03T09:15:00Z,275.00,June statement
+payment,,,,,,,,,,Demo: IRS Payment Plan,2026-06-01T11:00:00Z,450.00,June tax instalment
+payment,,,,,,,,,,Demo: Verizon Wireless,2026-06-05T08:00:00Z,89.00,June mobile
+payment,,,,,,,,,,Demo: Office Wishlist Savings,2026-06-08T14:30:00Z,75.00,Wishlist deposit
+payment,,,,,,,,,,Demo: Community Fund Donation,2026-06-08T14:35:00Z,50.00,June donation
+payment,,,,,,,,,,Demo: Pacific Gas & Electric,2026-06-10T07:00:00Z,115.00,June electricity
+payment,,,,,,,,,,Demo: ConEd Electric,2026-06-12T16:00:00Z,95.00,June power
+payment,,,,,,,,,,Demo: City Water Department,2026-06-08T12:00:00Z,62.00,June water
+payment,,,,,,,,,,Demo: Disney+ Subscription,2026-06-03T06:00:00Z,15.99,June streaming
+payment,,,,,,,,,,Demo: Google One Storage,2026-06-03T06:05:00Z,9.99,June cloud storage
+payment,,,,,,,,,,Demo: State Farm Auto,2026-06-18T09:00:00Z,128.00,June insurance
+payment,,,,,,,,,,Demo: County Property Tax,2026-05-28T10:00:00Z,380.00,May property tax

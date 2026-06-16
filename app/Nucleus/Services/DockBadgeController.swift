@@ -25,13 +25,13 @@ enum DockBadgeController {
 
         if mailUnread > 0 {
             contentView.addSubview(
-                makeBadge(count: mailUnread, color: NSColor.systemBlue, alignment: .leading)
+                makeBadge(count: mailUnread, color: .systemRed, corner: .topTrailing)
             )
         }
 
         if chatUnread > 0 {
             contentView.addSubview(
-                makeBadge(count: chatUnread, color: chatBadgeColor, alignment: .trailing)
+                makeBadge(count: chatUnread, color: .systemBlue, corner: .bottomTrailing)
             )
         }
 
@@ -39,21 +39,15 @@ enum DockBadgeController {
         NSApp.dockTile.display()
     }
 
-    private static let chatBadgeColor = NSColor(
-        red: 129 / 255,
-        green: 201 / 255,
-        blue: 149 / 255,
-        alpha: 1
-    )
-
-    private enum BadgeAlignment {
-        case leading
-        case trailing
+    private enum BadgeCorner {
+        case topTrailing
+        case bottomTrailing
     }
 
-    private static func makeBadge(count: Int, color: NSColor, alignment: BadgeAlignment) -> NSView {
+    private static func makeBadge(count: Int, color: NSColor, corner: BadgeCorner) -> NSView {
         let tileSize = NSApp.dockTile.size
         let metrics = badgeMetrics(for: tileSize)
+        let inset = tileSize.width * 0.03
 
         let label = NSTextField(labelWithString: "\(count)")
         label.font = .systemFont(ofSize: metrics.fontSize, weight: .bold)
@@ -61,13 +55,16 @@ enum DockBadgeController {
         label.alignment = .center
 
         let width = max(metrics.height, label.intrinsicContentSize.width + metrics.horizontalPadding * 2)
-        let x: CGFloat = switch alignment {
-        case .leading: tileSize.width * 0.50
-        case .trailing: tileSize.width - width - tileSize.width * 0.03
+        let x = tileSize.width - width - inset
+        let y: CGFloat = switch corner {
+        case .topTrailing:
+            tileSize.height - metrics.height - inset
+        case .bottomTrailing:
+            inset
         }
 
         let container = NSView(
-            frame: NSRect(x: x, y: tileSize.height * 0.05, width: width, height: metrics.height)
+            frame: NSRect(x: x, y: y, width: width, height: metrics.height)
         )
         container.wantsLayer = true
         container.layer?.backgroundColor = color.cgColor

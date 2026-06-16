@@ -6,15 +6,15 @@ final class BillCSVCodecTests: XCTestCase {
     func testImportSampleBillsAndPayments() {
         let csv = """
         type,name,amount,category,recurrence,custom_interval_days,due_day_of_month,next_due_date,notes,archived,bill_name,paid_at,payment_amount,payment_note
-        bill,AU: Pay St George Mortgages,1000.00,housing,monthly,,1,2026-07-01,,false,,,,
-        payment,,,,,,,,,,AU: Pay St George Mortgages,2026-06-01T10:00:00Z,1000.00,June mortgage
+        bill,Demo: Riverview Bank Mortgage,1850.00,housing,monthly,,1,2026-07-01,,false,,,,
+        payment,,,,,,,,,,Demo: Riverview Bank Mortgage,2026-06-01T10:00:00Z,1850.00,June mortgage
         """
 
         let parsed = BillCSVCodec.importCSV(csv)
         XCTAssertEqual(parsed.bills.count, 1)
         XCTAssertEqual(parsed.payments.count, 1)
-        XCTAssertEqual(parsed.bills.first?.name, "AU: Pay St George Mortgages")
-        XCTAssertEqual(parsed.payments.first?.amount, 1000)
+        XCTAssertEqual(parsed.bills.first?.name, "Demo: Riverview Bank Mortgage")
+        XCTAssertEqual(parsed.payments.first?.amount, 1850)
         XCTAssertTrue(parsed.result.errors.isEmpty)
     }
 

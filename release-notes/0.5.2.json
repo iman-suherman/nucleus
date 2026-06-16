@@ -1,0 +1,17 @@
+{
+  "version": "0.5.2",
+  "summary": "Bill due reminders and a sanitized sample CSV for imports.",
+  "releaseNotes": {
+    "introduced": [
+      "Bill due reminders at 7, 3, and 1 day before plus on the due date",
+      "Bill reminder settings in Notifications with a configurable daily time",
+      "Tap a bill notification to open the Bills workspace"
+    ],
+    "changed": [
+      "Bundled sample CSV now uses fictional demo data instead of personal bill details",
+      "Dock badge for bills and chat uses top and bottom corners when both are present"
+    ],
+    "fixed": [],
+    "breaking": []
+  }
+}

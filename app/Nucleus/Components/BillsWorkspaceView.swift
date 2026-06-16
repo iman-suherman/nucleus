@@ -135,6 +135,7 @@ struct BillsWorkspaceView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 billColumnHeader
+
                 List(selection: $viewModel.selectedBillID) {
                     ForEach(viewModel.activeBills) { bill in
                         BillRowView(
@@ -144,16 +145,32 @@ struct BillsWorkspaceView: View {
                             status: viewModel.billDisplayStatus(for: bill),
                             progress: viewModel.billStatusProgress(for: bill)
                         )
-                        .tag(bill.id)
+                        .tag(Optional(bill.id))
                     }
                 }
-                .listStyle(.inset)
+                .listStyle(.inset(alternatesRowBackgrounds: true))
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
 
             billActionBar
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(nsColor: .textBackgroundColor))
+        .onAppear {
+            calendarMonth = initialCalendarMonth()
+        }
+        .onChange(of: viewModel.activeBills.count) { _, _ in
+            calendarMonth = initialCalendarMonth()
+        }
+    }
+
+    private func initialCalendarMonth() -> Date {
+        let calendar = Calendar.current
+        let nearestDue = viewModel.activeBills
+            .map(\.nextDueDate)
+            .min()
+        guard let nearestDue else { return Date() }
+        return calendar.date(from: calendar.dateComponents([.year, .month], from: nearestDue)) ?? Date()
     }
 
     private var billsEmptyState: some View {

@@ -348,6 +348,12 @@ public struct NucleusSyncedConfiguration: Codable, Hashable, Sendable {
     public var clipboardSyncEnabled: Bool
     public var clipboardSaveToNotesEnabled: Bool
     public var iCloudKeychainTokenSyncEnabled: Bool
+    public var billNotificationsEnabled: Bool
+    public var billNotificationHour: Int
+    public var billNotifySevenDaysBefore: Bool
+    public var billNotifyThreeDaysBefore: Bool
+    public var billNotifyOneDayBefore: Bool
+    public var billNotifyOnDueDate: Bool
     public var updatedAt: Date
 
     public init(
@@ -369,6 +375,12 @@ public struct NucleusSyncedConfiguration: Codable, Hashable, Sendable {
         clipboardSyncEnabled: Bool = true,
         clipboardSaveToNotesEnabled: Bool = false,
         iCloudKeychainTokenSyncEnabled: Bool = true,
+        billNotificationsEnabled: Bool = true,
+        billNotificationHour: Int = 7,
+        billNotifySevenDaysBefore: Bool = true,
+        billNotifyThreeDaysBefore: Bool = true,
+        billNotifyOneDayBefore: Bool = true,
+        billNotifyOnDueDate: Bool = true,
         updatedAt: Date = Date()
     ) {
         self.version = version
@@ -389,6 +401,12 @@ public struct NucleusSyncedConfiguration: Codable, Hashable, Sendable {
         self.clipboardSyncEnabled = clipboardSyncEnabled
         self.clipboardSaveToNotesEnabled = clipboardSaveToNotesEnabled
         self.iCloudKeychainTokenSyncEnabled = iCloudKeychainTokenSyncEnabled
+        self.billNotificationsEnabled = billNotificationsEnabled
+        self.billNotificationHour = billNotificationHour
+        self.billNotifySevenDaysBefore = billNotifySevenDaysBefore
+        self.billNotifyThreeDaysBefore = billNotifyThreeDaysBefore
+        self.billNotifyOneDayBefore = billNotifyOneDayBefore
+        self.billNotifyOnDueDate = billNotifyOnDueDate
         self.updatedAt = updatedAt
     }
 
@@ -412,6 +430,12 @@ public struct NucleusSyncedConfiguration: Codable, Hashable, Sendable {
         clipboardSyncEnabled = try container.decodeIfPresent(Bool.self, forKey: .clipboardSyncEnabled) ?? true
         clipboardSaveToNotesEnabled = try container.decodeIfPresent(Bool.self, forKey: .clipboardSaveToNotesEnabled) ?? false
         iCloudKeychainTokenSyncEnabled = try container.decodeIfPresent(Bool.self, forKey: .iCloudKeychainTokenSyncEnabled) ?? true
+        billNotificationsEnabled = try container.decodeIfPresent(Bool.self, forKey: .billNotificationsEnabled) ?? true
+        billNotificationHour = try container.decodeIfPresent(Int.self, forKey: .billNotificationHour) ?? 7
+        billNotifySevenDaysBefore = try container.decodeIfPresent(Bool.self, forKey: .billNotifySevenDaysBefore) ?? true
+        billNotifyThreeDaysBefore = try container.decodeIfPresent(Bool.self, forKey: .billNotifyThreeDaysBefore) ?? true
+        billNotifyOneDayBefore = try container.decodeIfPresent(Bool.self, forKey: .billNotifyOneDayBefore) ?? true
+        billNotifyOnDueDate = try container.decodeIfPresent(Bool.self, forKey: .billNotifyOnDueDate) ?? true
         updatedAt = try container.decodeIfPresent(Date.self, forKey: .updatedAt) ?? Date()
     }
 }

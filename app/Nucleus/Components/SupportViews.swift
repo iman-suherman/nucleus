@@ -215,7 +215,41 @@ struct AppSettingsView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
+
+            Section("Bill reminders") {
+                Toggle("Bill due reminders", isOn: $settings.billNotificationsEnabled)
+
+                Stepper(
+                    "Notify at \(billNotificationHourLabel(settings.billNotificationHour))",
+                    value: $settings.billNotificationHour,
+                    in: 5...12
+                )
+                .disabled(!settings.billNotificationsEnabled)
+
+                Toggle("7 days before due", isOn: $settings.billNotifySevenDaysBefore)
+                    .disabled(!settings.billNotificationsEnabled)
+                Toggle("3 days before due", isOn: $settings.billNotifyThreeDaysBefore)
+                    .disabled(!settings.billNotificationsEnabled)
+                Toggle("1 day before due", isOn: $settings.billNotifyOneDayBefore)
+                    .disabled(!settings.billNotificationsEnabled)
+                Toggle("On due date", isOn: $settings.billNotifyOnDueDate)
+                    .disabled(!settings.billNotificationsEnabled)
+
+                Text("Local macOS notifications for active bills with an amount still due. Reminders reschedule automatically when bills change.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         }
+    }
+
+    private func billNotificationHourLabel(_ hour: Int) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "h a"
+        var components = DateComponents()
+        components.hour = hour
+        components.minute = 0
+        let date = Calendar.current.date(from: components) ?? Date()
+        return formatter.string(from: date)
     }
 
     private var mailSection: some View {
