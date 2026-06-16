@@ -507,6 +507,17 @@ public enum MailRepository {
         return try context.fetchCount(descriptor)
     }
 
+    public static func fetchRecent(context: ModelContext, limit: Int = 200) throws -> [MailMessageSummary] {
+        let descriptor = FetchDescriptor<MailMessageRecord>(
+            sortBy: [SortDescriptor(\.receivedAt, order: .reverse)]
+        )
+        let records = try context.fetch(descriptor)
+        if limit <= 0 {
+            return records.map(\.summary)
+        }
+        return records.prefix(limit).map(\.summary)
+    }
+
     public static func replaceMessages(_ messages: [MailMessageSummary], context: ModelContext) throws {
         let existing = try context.fetch(FetchDescriptor<MailMessageRecord>())
         for record in existing {

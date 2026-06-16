@@ -11,14 +11,46 @@ public enum GmailWebSessionClient {
             return MailSyncResult(unreadByAccount: [account.id: 0], messages: [], newMessages: [])
         }
 
+        for feedURL in atomFeedURLs(for: account.email) {
+            if let result = await fetchAndParseFeed(
+                url: feedURL,
+                account: account,
+                cookies: cookies,
+                knownMessageIDs: knownMessageIDs
+            ) {
+                return result
+            }
+        }
+
+        return MailSyncResult(unreadByAccount: [account.id: 0], messages: [], newMessages: [])
+    }
+
+    private static func atomFeedURLs(for email: String) -> [URL] {
+        let encodedQuery = email.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? email
+        var candidates: [URL] = [
+            URL(string: "https://mail.google.com/mail/feed/atom?authuser=\(encodedQuery)")!,
+        ]
+        for index in 0...3 {
+            candidates.append(
+                URL(string: "https://mail.google.com/mail/u/\(index)/feed/atom?authuser=\(encodedQuery)")!
+            )
+        }
+        return candidates
+    }
+
+    private static func fetchAndParseFeed(
+        url: URL,
+        account: GoogleAccount,
+        cookies: [HTTPCookie],
+        knownMessageIDs: Set<String>
+    ) async -> MailSyncResult? {
         do {
-            let feedURL = atomFeedURL(for: account.email)
-            let (data, response) = try await fetchFeed(url: feedURL, cookies: cookies)
+            let (data, response) = try await fetchFeed(url: url, cookies: cookies)
             guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
-                return MailSyncResult(unreadByAccount: [account.id: 0], messages: [], newMessages: [])
+                return nil
             }
             guard let xml = String(data: data, encoding: .utf8), xml.contains("<feed") else {
-                return MailSyncResult(unreadByAccount: [account.id: 0], messages: [], newMessages: [])
+                return nil
             }
 
             let feedUnread = parseFeedUnreadCount(xml)
@@ -31,16 +63,8 @@ public enum GmailWebSessionClient {
                 newMessages: newMessages
             )
         } catch {
-            return MailSyncResult(unreadByAccount: [account.id: 0], messages: [], newMessages: [])
+            return nil
         }
-    }
-
-    private static func atomFeedURL(for email: String) -> URL {
-        var components = URLComponents(string: "https://mail.google.com/mail/u/0/feed/atom")!
-        components.queryItems = [
-            URLQueryItem(name: "authuser", value: email),
-        ]
-        return components.url!
     }
 
     private static func fetchFeed(url: URL, cookies: [HTTPCookie]) async throws -> (Data, URLResponse) {

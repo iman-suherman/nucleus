@@ -61,6 +61,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
     private var chatUnreadBaselineEstablished = Set<UUID>()
     private var notifiedMessageIDs = Set<String>()
     private var pendingMailNotificationDeltas: [UUID: Int] = [:]
+    private var mailUnreadSyncBaselineEstablished = Set<UUID>()
     private var mailSignInPendingAccountIDs = Set<UUID>()
 
     init() {
@@ -200,6 +201,20 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         }
 
         return delivered
+    }
+
+    private func accumulateMailUnreadDeltas(from mergedUnread: [UUID: Int]) {
+        for account in accounts {
+            let accountID = account.id
+            let newCount = mergedUnread[accountID] ?? 0
+            let previous = unreadByAccount[accountID] ?? 0
+            let hadBaseline = mailUnreadSyncBaselineEstablished.contains(accountID)
+
+            if hadBaseline, newCount > previous {
+                pendingMailNotificationDeltas[accountID, default: 0] += newCount - previous
+            }
+            mailUnreadSyncBaselineEstablished.insert(accountID)
+        }
     }
 
     private func flushPendingMailNotifications() {
@@ -489,6 +504,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
 
     func refreshMailUnreadNow() {
         NotificationCenter.default.post(name: .gmailWebUnreadPollNow, object: nil)
+        Task { await syncMail() }
     }
 
     private func statusMessageForCurrentState() -> String {
@@ -544,7 +560,25 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         accounts = (try? AccountRepository.fetchAll(context: context)) ?? []
         clipboardEntries = (try? ClipboardRepository.fetchRecent(context: context)) ?? []
         notes = (try? NoteRepository.fetchAll(context: context)) ?? []
-        totalUnread = (try? MailRepository.unreadCount(context: context)) ?? 0
+
+        let storedMessages = (try? MailRepository.fetchRecent(context: context)) ?? []
+        mailMessages = storedMessages
+        knownMessageIDs = Set(storedMessages.map(\.id))
+
+        var storedUnreadByAccount: [UUID: Int] = [:]
+        for account in accounts {
+            storedUnreadByAccount[account.id] = (try? MailRepository.unreadCount(for: account.id, context: context)) ?? 0
+        }
+        if !storedUnreadByAccount.isEmpty {
+            unreadByAccount = storedUnreadByAccount
+            totalUnread = storedUnreadByAccount.values.reduce(0, +)
+        } else {
+            totalUnread = (try? MailRepository.unreadCount(context: context)) ?? 0
+        }
+
+        if !knownMessageIDs.isEmpty {
+            mailUnreadSyncBaselineEstablished.formUnion(accounts.map(\.id))
+        }
 
         if selectedNoteID == nil {
             selectedNoteID = notes.first?.id
@@ -660,13 +694,6 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         pushSyncedConfiguration()
     }
 
-    func setPrimaryNotesAccount(_ account: GoogleAccount) {
-        let context = ModelContext(modelContainer)
-        try? AccountRepository.setPrimaryNotesAccount(id: account.id, context: context)
-        reloadLocalData()
-        pushSyncedConfiguration()
-    }
-
     func updateAccountCategory(_ account: GoogleAccount, name: String) {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
@@ -725,6 +752,8 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
             mergedMessages.append(contentsOf: result.messages)
             mergedNew.append(contentsOf: result.newMessages)
         }
+
+        accumulateMailUnreadDeltas(from: mergedUnread)
 
         unreadByAccount = mergedUnread
         totalUnread = mergedUnread.values.reduce(0, +)

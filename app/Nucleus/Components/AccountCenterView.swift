@@ -24,7 +24,7 @@ struct AccountCenterView: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Account Center")
                 .font(.title2.bold())
-            Text("Manage multiple Google identities, default inbox, and notes storage account.")
+            Text("Manage multiple Google identities and default inbox. Notes sync through iCloud.")
                 .foregroundStyle(.secondary)
 
             HStack(spacing: 12) {
@@ -75,7 +75,6 @@ struct AccountCenterView: View {
                         needsReconnect: viewModel.needsReconnect(for: account),
                         isOAuthConnected: viewModel.isOAuthConnected(account),
                         onSetPrimary: { viewModel.setPrimaryAccount(account) },
-                        onSetNotesAccount: { viewModel.setPrimaryNotesAccount(account) },
                         onRename: { viewModel.updateAccountCategory(account, name: $0) },
                         onReconnect: { viewModel.reconnectAccount(account) },
                         onRemove: { viewModel.removeAccount(account) }
@@ -92,7 +91,6 @@ private struct AccountCard: View {
     let needsReconnect: Bool
     let isOAuthConnected: Bool
     let onSetPrimary: () -> Void
-    let onSetNotesAccount: () -> Void
     let onRename: (String) -> Void
     let onReconnect: () -> Void
     let onRemove: () -> Void
@@ -105,7 +103,6 @@ private struct AccountCard: View {
         needsReconnect: Bool,
         isOAuthConnected: Bool,
         onSetPrimary: @escaping () -> Void,
-        onSetNotesAccount: @escaping () -> Void,
         onRename: @escaping (String) -> Void,
         onReconnect: @escaping () -> Void,
         onRemove: @escaping () -> Void
@@ -115,7 +112,6 @@ private struct AccountCard: View {
         self.needsReconnect = needsReconnect
         self.isOAuthConnected = isOAuthConnected
         self.onSetPrimary = onSetPrimary
-        self.onSetNotesAccount = onSetNotesAccount
         self.onRename = onRename
         self.onReconnect = onReconnect
         self.onRemove = onRemove
@@ -175,14 +171,6 @@ private struct AccountCard: View {
                         .font(.caption)
                 } else {
                     Button("Set Primary", action: onSetPrimary)
-                        .buttonStyle(.borderless)
-                }
-
-                if account.isPrimaryNotesAccount {
-                    Label("Notes account", systemImage: "note.text")
-                        .font(.caption)
-                } else {
-                    Button("Use for Notes", action: onSetNotesAccount)
                         .buttonStyle(.borderless)
                 }
 

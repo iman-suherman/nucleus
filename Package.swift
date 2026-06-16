@@ -5,6 +5,7 @@ let package = Package(
     name: "Nucleus",
     platforms: [
         .macOS(.v14),
+        .iOS(.v17),
     ],
     products: [
         .library(name: "NucleusKit", targets: ["NucleusKit"]),

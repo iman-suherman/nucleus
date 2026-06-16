@@ -14,6 +14,7 @@ struct GmailWebView: NSViewRepresentable {
     let accountEmail: String
     var isVisible: Bool = true
     var preferSignIn: Bool = false
+    @Binding var isLoading: Bool
 
     func makeNSView(context: Context) -> EmbeddedWebViewContainer {
         let container = EmbeddedWebViewContainer()
@@ -25,8 +26,13 @@ struct GmailWebView: NSViewRepresentable {
         container.embed(webView)
         applyVisibility(to: container)
         if !EmbeddedWebViewRegistry.hasLoadedContent(webView) {
+            isLoading = true
             loadInbox(into: webView, email: accountEmail, preferSignIn: preferSignIn)
+        } else if webView.url?.absoluteString.contains("mail.google.com/mail") == true {
+            isLoading = false
+            context.coordinator.resumeUnreadPollingIfNeeded(in: webView)
         } else {
+            isLoading = true
             context.coordinator.resumeUnreadPollingIfNeeded(in: webView)
         }
         return container
@@ -55,18 +61,27 @@ struct GmailWebView: NSViewRepresentable {
     }
 
     func makeCoordinator() -> Coordinator {
-        Coordinator()
+        Coordinator(isLoading: $isLoading)
     }
 
-    static func navigateToInbox(accountID: UUID, email: String) {
+    static func navigateToInbox(accountID: UUID, email: String, isLoading: Binding<Bool>? = nil) {
         guard let webView = EmbeddedWebViewRegistry.existingWebView(accountID: accountID, surface: .mail),
               let url = inboxURL(for: email) else { return }
+        isLoading?.wrappedValue = true
         webView.load(URLRequest(url: url))
+    }
+
+    static func ensureUnreadSync(accountID: UUID, email: String) {
+        let webView = EmbeddedWebViewRegistry.webView(accountID: accountID, surface: .mail)
+        if !EmbeddedWebViewRegistry.hasLoadedContent(webView),
+           let url = inboxURL(for: email) {
+            webView.load(URLRequest(url: url))
+        }
+        pollUnreadCount(accountID: accountID)
     }
 
     static func pollUnreadCount(accountID: UUID) {
         guard let webView = EmbeddedWebViewRegistry.existingWebView(accountID: accountID, surface: .mail),
-              webView.window != nil,
               webView.url?.absoluteString.contains("mail.google.com/mail") == true else { return }
 
         webView.evaluateJavaScript(unreadCountScript) { result, _ in
@@ -112,14 +127,37 @@ struct GmailWebView: NSViewRepresentable {
     }
 
     final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate {
+        var isLoading: Binding<Bool>
         var accountID: UUID?
         var accountEmail: String?
         var hasReachedInbox = false
         private var unreadPollTimer: Timer?
         private var pollNowObserver: NSObjectProtocol?
 
+        init(isLoading: Binding<Bool>) {
+            self.isLoading = isLoading
+        }
+
         deinit {
             stopUnreadPolling()
+        }
+
+        private func setLoading(_ loading: Bool) {
+            DispatchQueue.main.async {
+                self.isLoading.wrappedValue = loading
+            }
+        }
+
+        func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
+            setLoading(true)
+        }
+
+        func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+            setLoading(false)
+        }
+
+        func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+            setLoading(false)
         }
 
         func webView(
@@ -161,6 +199,7 @@ struct GmailWebView: NSViewRepresentable {
                     )
                 }
                 hasReachedInbox = true
+                setLoading(false)
                 startUnreadPolling(in: webView)
                 return
             }
@@ -177,6 +216,7 @@ struct GmailWebView: NSViewRepresentable {
 
             if needsSignIn {
                 if path.contains("accounts.google.com") {
+                    setLoading(false)
                     if path.contains("signin/identifier") {
                         GmailWebView.prefillSignInEmail(in: webView, email: email)
                     }
@@ -195,10 +235,12 @@ struct GmailWebView: NSViewRepresentable {
 
         func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
             if EmbeddedWebViewRegistry.hasLoadedContent(webView) {
+                setLoading(true)
                 webView.reload()
                 return
             }
             guard let email = accountEmail else { return }
+            setLoading(true)
             if let url = GmailWebView.inboxURL(for: email) {
                 webView.load(URLRequest(url: url))
             }
@@ -214,7 +256,7 @@ struct GmailWebView: NSViewRepresentable {
             stopUnreadPolling()
             reportUnreadCount(from: webView)
             let timer = Timer(timeInterval: 30, repeats: true) { [weak self, weak webView] _ in
-                guard let webView, webView.window != nil else { return }
+                guard let webView else { return }
                 self?.reportUnreadCount(from: webView)
             }
             RunLoop.main.add(timer, forMode: .common)
@@ -225,7 +267,7 @@ struct GmailWebView: NSViewRepresentable {
                 object: nil,
                 queue: .main
             ) { [weak self, weak webView] _ in
-                guard let webView, webView.window != nil else { return }
+                guard let webView else { return }
                 self?.reportUnreadCount(from: webView)
             }
         }
@@ -302,15 +344,16 @@ private extension GmailWebView {
 
 struct GmailUnreadPoller: View {
     let accountID: UUID
+    let accountEmail: String
 
     var body: some View {
         Color.clear
             .frame(width: 0, height: 0)
             .onAppear {
-                GmailWebView.pollUnreadCount(accountID: accountID)
+                GmailWebView.ensureUnreadSync(accountID: accountID, email: accountEmail)
             }
             .onReceive(NotificationCenter.default.publisher(for: .gmailWebUnreadPollNow)) { _ in
-                GmailWebView.pollUnreadCount(accountID: accountID)
+                GmailWebView.ensureUnreadSync(accountID: accountID, email: accountEmail)
             }
     }
 }
@@ -322,9 +365,7 @@ struct MailWorkspaceView: View {
 
     @State private var renamingAccount: GoogleAccount?
     @State private var renameDraft = ""
-    @State private var isAddingCategory = false
-    @State private var newCategoryName = ""
-    @State private var newCategoryEmail = ""
+    @State private var isInboxLoading = true
 
     var body: some View {
         Group {
@@ -336,6 +377,9 @@ struct MailWorkspaceView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .onChange(of: selectedAccount?.id) { _, _ in
+            isInboxLoading = true
+        }
         .sheet(item: $renamingAccount) { account in
             AccountCategoryEditorSheet(
                 title: "Rename Category",
@@ -346,17 +390,6 @@ struct MailWorkspaceView: View {
                     renamingAccount = nil
                 },
                 onCancel: { renamingAccount = nil }
-            )
-        }
-        .sheet(isPresented: $isAddingCategory) {
-            AddWebGmailAccountSheet(
-                email: $newCategoryEmail,
-                categoryName: $newCategoryName,
-                onSubmit: {
-                    isAddingCategory = false
-                    viewModel.addWebGmailAccount(email: newCategoryEmail, categoryName: newCategoryName)
-                },
-                onCancel: { isAddingCategory = false }
             )
         }
     }
@@ -375,14 +408,21 @@ struct MailWorkspaceView: View {
                     description: Text("Add a Gmail account and sign in with Google to begin.")
                 )
             } else if let account = selectedAccount {
-                GmailWebView(
-                    accountID: account.id,
-                    accountEmail: account.email,
-                    isVisible: isVisible,
-                    preferSignIn: viewModel.isMailSignInPending(account.id)
-                )
-                .id(account.id)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                ZStack {
+                    GmailWebView(
+                        accountID: account.id,
+                        accountEmail: account.email,
+                        isVisible: isVisible,
+                        preferSignIn: viewModel.isMailSignInPending(account.id),
+                        isLoading: $isInboxLoading
+                    )
+                    .id(account.id)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+                    if isInboxLoading {
+                        inboxLoadingOverlay
+                    }
+                }
                 .clipShape(RoundedRectangle(cornerRadius: 12))
                 .padding(.horizontal, 16)
                 .padding(.bottom, 16)
@@ -434,22 +474,38 @@ struct MailWorkspaceView: View {
                 }
 
                 Button {
-                    newCategoryName = ""
-                    newCategoryEmail = ""
-                    isAddingCategory = true
+                    viewModel.sidebarSelection = .workspace(.accounts)
                 } label: {
                     Label("Add Gmail Account", systemImage: "plus")
                         .font(.subheadline.weight(.semibold))
                         .nucleusAccountTab(isSelected: false)
                 }
                 .buttonStyle(.plain)
+                .pointerCursor()
+                .help("Open Accounts to add a Gmail account")
             }
         }
     }
 
+    private var inboxLoadingOverlay: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color(nsColor: .windowBackgroundColor))
+            VStack(spacing: 12) {
+                ProgressView()
+                    .controlSize(.large)
+                Text("Loading inbox…")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
     private func selectAccountTab(_ account: GoogleAccount) {
         settings.selectedMailAccountID = account.id
-        GmailWebView.navigateToInbox(accountID: account.id, email: account.email)
+        isInboxLoading = true
+        GmailWebView.navigateToInbox(accountID: account.id, email: account.email, isLoading: $isInboxLoading)
     }
 
     private func mailAccountTabTooltip(for account: GoogleAccount) -> String {

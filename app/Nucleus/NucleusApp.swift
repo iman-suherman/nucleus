@@ -140,7 +140,7 @@ struct ContentView: View {
             }
 
             ForEach(viewModel.webSessionAccounts) { account in
-                GmailUnreadPoller(accountID: account.id)
+                GmailUnreadPoller(accountID: account.id, accountEmail: account.email)
                 ChatUnreadPoller(accountID: account.id)
             }
         }

@@ -52,28 +52,42 @@ enum DockBadgeController {
     }
 
     private static func makeBadge(count: Int, color: NSColor, alignment: BadgeAlignment) -> NSView {
+        let tileSize = NSApp.dockTile.size
+        let metrics = badgeMetrics(for: tileSize)
+
         let label = NSTextField(labelWithString: "\(count)")
-        label.font = .systemFont(ofSize: 11, weight: .bold)
+        label.font = .systemFont(ofSize: metrics.fontSize, weight: .bold)
         label.textColor = .white
         label.alignment = .center
 
-        let horizontalPadding: CGFloat = 6
-        let height: CGFloat = 18
-        let width = max(height, label.intrinsicContentSize.width + horizontalPadding * 2)
-        let tileSize = NSApp.dockTile.size
+        let width = max(metrics.height, label.intrinsicContentSize.width + metrics.horizontalPadding * 2)
         let x: CGFloat = switch alignment {
-        case .leading: tileSize.width * 0.54
-        case .trailing: tileSize.width - width - tileSize.width * 0.04
+        case .leading: tileSize.width * 0.50
+        case .trailing: tileSize.width - width - tileSize.width * 0.03
         }
 
-        let container = NSView(frame: NSRect(x: x, y: tileSize.height * 0.08, width: width, height: height))
+        let container = NSView(
+            frame: NSRect(x: x, y: tileSize.height * 0.05, width: width, height: metrics.height)
+        )
         container.wantsLayer = true
         container.layer?.backgroundColor = color.cgColor
-        container.layer?.cornerRadius = height / 2
+        container.layer?.cornerRadius = metrics.height / 2
 
-        label.frame = NSRect(x: 0, y: 1, width: width, height: height - 2)
+        label.frame = NSRect(x: 0, y: 2, width: width, height: metrics.height - 4)
         container.addSubview(label)
         return container
+    }
+
+    private static func badgeMetrics(for tileSize: NSSize) -> (
+        height: CGFloat,
+        fontSize: CGFloat,
+        horizontalPadding: CGFloat
+    ) {
+        // Scale with the dock tile so counts stay readable at every Dock icon size.
+        let height = max(26, tileSize.height * 0.24)
+        let fontSize = max(16, height * 0.56)
+        let horizontalPadding = max(9, height * 0.32)
+        return (height, fontSize, horizontalPadding)
     }
 }
 
