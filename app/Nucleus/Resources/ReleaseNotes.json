@@ -1,15 +1,19 @@
 {
-  "version": "0.5.3",
-  "summary": "Bills dock badge, layout fix, and version label in the sidebar.",
+  "version": "0.5.4",
+  "summary": "Bill due colours, double-click details, iCloud sync fixes, and CloudKit schema deploy tooling.",
   "releaseNotes": {
     "introduced": [
-      "Green dock badge for unpaid bills due within three days or overdue"
+      "Bill row colours ramp from green to orange as the due date approaches, red when overdue",
+      "Double-click a bill row to open its detail sheet"
     ],
     "changed": [
-      "Bills list now anchors to the top of the workspace instead of floating mid-pane",
-      "Sidebar shows the app version next to Nucleus, e.g. (v.0.5.3)"
+      "Next due column shows relative timing and the formatted due date together",
+      "Bills and deletions queue for iCloud export on launch and after delete",
+      "CloudKit schema scripts now include CD_BillRecord and CD_BillPaymentRecord"
     ],
-    "fixed": [],
+    "fixed": [
+      "Existing bills on one Mac were not always uploaded to iCloud on app launch"
+    ],
     "breaking": []
   }
 }
