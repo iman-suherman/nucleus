@@ -1,15 +1,14 @@
 {
-  "version": "0.3.28",
-  "summary": "Faster inbox reveal and sidebar layout fixes.",
+  "version": "0.3.29",
+  "summary": "Fix inbox loader stuck on step 4 and add optional hourly beep.",
   "releaseNotes": {
-    "introduced": [],
-    "changed": [
-      "Inbox overlay dismisses once Gmail finishes rendering — unread sync continues in the background"
+    "introduced": [
+      "Optional hourly beep in Settings — Casio-style chime on the hour while Nucleus is running"
     ],
+    "changed": [],
     "fixed": [
-      "Inbox loading step checklist showed completed steps in the wrong order",
-      "Sidebar overlapped macOS window close button when no Gmail account was set up",
-      "Empty inbox state no longer shows a loading overlay or account tabs before any account exists"
+      "Inbox loading overlay no longer gets stuck on “Loading inbox” — Gmail’s in-page navigations no longer re-trigger the loader",
+      "Overlay dismisses as soon as the inbox URL loads, with a 10-second fallback if navigation callbacks lag"
     ]
   }
 }
