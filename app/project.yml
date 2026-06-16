@@ -30,6 +30,7 @@ targets:
       - path: Nucleus/Assets/AppIcon.icns
       - path: Nucleus/Assets/Sounds
       - path: Nucleus/Resources/ReleaseNotes.json
+      - path: Nucleus/Resources/DashboardQuotes.json
       - path: Nucleus/Resources/nucleus-bills-import-demo.csv
     settings:
       base:

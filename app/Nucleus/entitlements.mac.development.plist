@@ -16,6 +16,8 @@
 	</array>
 	<key>com.apple.developer.team-identifier</key>
 	<string>Q3TXW887NM</string>
+	<key>com.apple.developer.weatherkit</key>
+	<true/>
 	<key>com.apple.developer.ubiquity-container-identifiers</key>
 	<array>
 		<string>iCloud.net.suherman.nucleus</string>

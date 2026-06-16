@@ -31,9 +31,10 @@ struct DashboardWorkspaceView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 28) {
                     header
-                    weatherForecastSection
-                    summaryCards
-                    resourceAndCloudSyncRow
+                    if weatherService.isWeatherSectionVisible {
+                        weatherForecastSection
+                    }
+                    summaryAndResourceCards
                     summaryAndBillsRow
                     productivitySection
                 }
@@ -44,8 +45,9 @@ struct DashboardWorkspaceView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(Color(nsColor: .windowBackgroundColor))
         .onAppear {
-            weatherService.refreshIfNeeded()
+            weatherService.beginWeatherAccessFlow()
             processMetricsService.startSamplingIfNeeded()
+            Task { await syncService.refreshAccountStatus() }
         }
         .onDisappear {
             processMetricsService.stopSampling()
@@ -53,33 +55,70 @@ struct DashboardWorkspaceView: View {
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             weatherService.refreshIfNeeded()
         }
+        .alert("Show today's weather?", isPresented: $weatherService.showLocationPermissionPrompt) {
+            Button("Allow Location Access") {
+                weatherService.confirmLocationPermissionRequest()
+            }
+            Button("Not Now", role: .cancel) {
+                weatherService.declineLocationPermission()
+            }
+        } message: {
+            Text("Nucleus uses your location to show today's forecast on the Dashboard. You can enable this later in System Settings.")
+        }
     }
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .top, spacing: 16) {
+            HStack(alignment: .top, spacing: 20) {
                 Text("\(DashboardGreeting.timeOfDay()), \(DashboardGreeting.firstName)")
                     .font(.largeTitle.bold())
+                    .frame(maxWidth: .infinity, alignment: .leading)
 
-                Spacer(minLength: 0)
-
-                Image(systemName: "sparkles")
-                    .font(.title2)
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [.orange, .pink, .purple],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .padding(.top, 4)
+                headerCloudSyncPanel
             }
 
-            Text("Your workspace at a glance — bills, messages, passwords, and activity patterns.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+            HStack(alignment: .firstTextBaseline, spacing: 16) {
+                Text("\"\(viewModel.dashboardQuote)\"")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .italic()
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .frame(maxWidth: .infinity, alignment: .leading)
 
-            analysisStatusRow
+                analysisStatusRow
+            }
+        }
+    }
+
+    private var analysisStatusRow: some View {
+        TimelineView(.periodic(from: .now, by: 1)) { context in
+            HStack(alignment: .center, spacing: 10) {
+                if let analyzedAt = viewModel.dashboardAnalyzedAt {
+                    Text("Last analysis \(DashboardDurationFormatting.ago(from: analyzedAt, now: context.date)).")
+                } else {
+                    Text("No analysis yet.")
+                }
+
+                Button("Analyze Now") {
+                    viewModel.refreshDashboardAnalysisNow()
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+
+                if let nextAt = viewModel.nextDashboardAnalysisAt {
+                    if nextAt <= context.date {
+                        Text("Next analysis due now.")
+                    } else {
+                        Text("Next analysis \(DashboardDurationFormatting.until(nextAt, now: context.date)).")
+                    }
+                } else {
+                    Text("Next analysis runs every 30 minutes.")
+                }
+            }
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .fixedSize(horizontal: true, vertical: false)
         }
     }
 
@@ -128,15 +167,15 @@ struct DashboardWorkspaceView: View {
                 .background(.quaternary.opacity(0.25), in: RoundedRectangle(cornerRadius: 14))
             } else if let statusMessage = weatherService.statusMessage {
                 HStack(alignment: .center, spacing: 12) {
-                    Image(systemName: "location.slash")
+                    Image(systemName: "cloud.slash")
                         .foregroundStyle(.secondary)
                     Text(statusMessage)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                     Spacer(minLength: 0)
-                    Button("Open Settings") {
-                        weatherService.openLocationSettings()
+                    Button("Try Again") {
+                        weatherService.retryWeatherFetch()
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.small)
@@ -148,43 +187,17 @@ struct DashboardWorkspaceView: View {
         }
     }
 
-    private var analysisStatusRow: some View {
-        HStack(alignment: .center, spacing: 12) {
-            VStack(alignment: .leading, spacing: 2) {
-                if let analyzedAt = viewModel.dashboardAnalyzedAt {
-                    Text("Last analysis \(analyzedAt, style: .relative)")
-                } else {
-                    Text("No analysis yet")
-                }
-
-                if let nextAt = viewModel.nextDashboardAnalysisAt {
-                    if nextAt <= Date() {
-                        Text("Next analysis due now")
-                    } else {
-                        Text("Next analysis \(nextAt, style: .relative)")
-                    }
-                } else {
-                    Text("Next analysis runs every 30 minutes")
-                }
-            }
-            .font(.caption)
-            .foregroundStyle(.secondary)
-
-            Button("Analyze Now") {
-                viewModel.refreshDashboardAnalysisNow()
-            }
-            .buttonStyle(.bordered)
-            .controlSize(.small)
-        }
-    }
-
-    private var summaryCards: some View {
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 180), spacing: 16)], spacing: 16) {
+    private var summaryAndResourceCards: some View {
+        LazyVGrid(
+            columns: Array(repeating: GridItem(.flexible(minimum: 128), spacing: 12), count: 5),
+            spacing: 12
+        ) {
             SummaryMetricCard(
                 title: "Unread email",
                 value: "\(snapshot.unreadMailCount)",
                 systemImage: "envelope.badge",
                 tint: .blue,
+                compact: true,
                 action: { viewModel.sidebarSelection = .workspace(.inbox) }
             )
             SummaryMetricCard(
@@ -192,6 +205,7 @@ struct DashboardWorkspaceView: View {
                 value: "\(snapshot.unreadChatCount)",
                 systemImage: "message.badge",
                 tint: Color(red: 129 / 255, green: 201 / 255, blue: 149 / 255),
+                compact: true,
                 action: { viewModel.sidebarSelection = .workspace(.chat) }
             )
             SummaryMetricCard(
@@ -199,6 +213,7 @@ struct DashboardWorkspaceView: View {
                 value: "\(snapshot.passwordCount)",
                 systemImage: "key.fill",
                 tint: .orange,
+                compact: true,
                 action: { viewModel.sidebarSelection = .workspace(.notes) }
             )
             SummaryMetricCard(
@@ -206,50 +221,17 @@ struct DashboardWorkspaceView: View {
                 value: "\(snapshot.upcomingBills.count)",
                 systemImage: "dollarsign.circle",
                 tint: .purple,
+                compact: true,
                 action: { viewModel.sidebarSelection = .workspace(.bills) }
             )
+            ResourceUsageSummaryCard(metrics: processMetricsService.metrics)
         }
     }
 
-    private var resourceAndCloudSyncRow: some View {
-        HStack(alignment: .top, spacing: 20) {
-            resourceUsageSection
-                .frame(maxWidth: .infinity, alignment: .leading)
-            cloudSyncSection
-                .frame(maxWidth: .infinity, alignment: .leading)
-        }
-    }
-
-    private var resourceUsageSection: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Label("Resource usage", systemImage: "gauge.with.dots.needle.67percent")
-                .font(.headline)
-
-            Text("Live CPU and memory for Nucleus on this Mac.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-
-            HStack(spacing: 16) {
-                ResourceMetricTile(
-                    title: "CPU",
-                    value: processMetricsService.metrics?.formattedCPU ?? "—",
-                    systemImage: "cpu",
-                    tint: .blue
-                )
-                ResourceMetricTile(
-                    title: "Memory",
-                    value: processMetricsService.metrics?.formattedMemory ?? "—",
-                    systemImage: "memorychip",
-                    tint: .teal
-                )
-            }
-        }
-    }
-
-    private var cloudSyncSection: some View {
-        VStack(alignment: .leading, spacing: 14) {
+    private var headerCloudSyncPanel: some View {
+        VStack(alignment: .leading, spacing: 8) {
             Label("Cloud sync", systemImage: "icloud")
-                .font(.headline)
+                .font(.subheadline.weight(.semibold))
 
             VStack(spacing: 0) {
                 cloudSyncRow(
@@ -259,6 +241,7 @@ struct DashboardWorkspaceView: View {
                     statusLabel: cloudSyncService.status.label,
                     connectTitle: isConnectingNucleusCloud ? "Opening Browser…" : "Connect",
                     isConnectDisabled: isConnectingNucleusCloud,
+                    compact: true,
                     onConnect: {
                         isConnectingNucleusCloud = true
                         nucleusCloudMessage = "Authorize this Mac in your browser…"
@@ -278,6 +261,7 @@ struct DashboardWorkspaceView: View {
                     statusLabel: iCloudStatusLabel,
                     connectTitle: iCloudConnectTitle,
                     isConnectDisabled: false,
+                    compact: true,
                     onConnect: connectICloud
                 )
             }
@@ -285,13 +269,13 @@ struct DashboardWorkspaceView: View {
 
             if let nucleusCloudMessage {
                 Text(nucleusCloudMessage)
-                    .font(.caption)
+                    .font(.caption2)
                     .foregroundStyle(.secondary)
+                    .lineLimit(2)
+                    .frame(maxWidth: 280, alignment: .leading)
             }
         }
-        .onAppear {
-            Task { await syncService.refreshAccountStatus() }
-        }
+        .frame(width: 280, alignment: .topLeading)
     }
 
     private var iCloudIsConnected: Bool {
@@ -333,33 +317,36 @@ struct DashboardWorkspaceView: View {
         statusLabel: String,
         connectTitle: String,
         isConnectDisabled: Bool,
+        compact: Bool = false,
         onConnect: @escaping () -> Void
     ) -> some View {
-        HStack(spacing: 12) {
+        HStack(alignment: .top, spacing: compact ? 8 : 12) {
             Image(systemName: isConnected ? "checkmark.circle.fill" : systemImage)
                 .foregroundStyle(isConnected ? .green : .secondary)
-                .frame(width: 22)
+                .font(compact ? .caption : .body)
+                .frame(width: compact ? 16 : 22)
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: compact ? 2 : 4) {
                 Text(title)
-                    .font(.subheadline.weight(.semibold))
+                    .font(compact ? .caption.weight(.semibold) : .subheadline.weight(.semibold))
                 Text(statusLabel)
-                    .font(.caption)
+                    .font(compact ? .caption2 : .caption)
                     .foregroundStyle(.secondary)
-                    .lineLimit(2)
+                    .lineLimit(compact ? 2 : 2)
+                    .fixedSize(horizontal: false, vertical: true)
             }
 
-            Spacer()
+            Spacer(minLength: 0)
 
             if !isConnected {
                 Button(connectTitle, action: onConnect)
                     .buttonStyle(.bordered)
-                    .controlSize(.small)
+                    .controlSize(.mini)
                     .disabled(isConnectDisabled)
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+        .padding(.horizontal, compact ? 12 : 16)
+        .padding(.vertical, compact ? 8 : 12)
     }
 
     private var summaryAndBillsRow: some View {
@@ -533,30 +520,51 @@ struct DashboardWorkspaceView: View {
     }
 }
 
-private struct ResourceMetricTile: View {
-    let title: String
-    let value: String
-    let systemImage: String
-    let tint: Color
+private struct ResourceUsageSummaryCard: View {
+    let metrics: DashboardProcessMetrics?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Image(systemName: systemImage)
-                    .foregroundStyle(tint)
-                Spacer()
+        VStack(alignment: .leading, spacing: 8) {
+            Image(systemName: "gauge.with.dots.needle.67percent")
+                .foregroundStyle(.indigo)
+
+            HStack(alignment: .firstTextBaseline, spacing: 10) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(metrics?.formattedCPU ?? "—")
+                        .font(.system(size: 22, weight: .bold, design: .rounded))
+                        .monospacedDigit()
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                    Text("CPU")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(metrics?.formattedMemory ?? "—")
+                        .font(.system(size: 22, weight: .bold, design: .rounded))
+                        .monospacedDigit()
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                    Text("Memory")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
             }
 
-            Text(value)
-                .font(.system(size: 28, weight: .bold, design: .rounded))
-                .monospacedDigit()
-
-            Text(title)
-                .font(.subheadline)
+            Text("Resource usage")
+                .font(.caption)
                 .foregroundStyle(.secondary)
+                .lineLimit(1)
+
+            Text("Live CPU and memory for Nucleus on this Mac.")
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+                .lineLimit(1)
+                .truncationMode(.tail)
         }
-        .padding(18)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(14)
+        .frame(maxWidth: .infinity, minHeight: 118, alignment: .leading)
         .background(Color(nsColor: .controlBackgroundColor).opacity(0.55), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: 14, style: .continuous)
@@ -571,11 +579,15 @@ private struct SummaryMetricCard: View {
     let systemImage: String
     let tint: Color
     var highlighted: Bool = false
+    var compact: Bool = false
     let action: () -> Void
+
+    private var valueFontSize: CGFloat { compact ? 28 : 34 }
+    private var cardPadding: CGFloat { compact ? 14 : 18 }
 
     var body: some View {
         Button(action: action) {
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: compact ? 8 : 10) {
                 HStack {
                     Image(systemName: systemImage)
                         .foregroundStyle(tint)
@@ -591,15 +603,19 @@ private struct SummaryMetricCard: View {
                 }
 
                 Text(value)
-                    .font(.system(size: 34, weight: .bold, design: .rounded))
+                    .font(.system(size: valueFontSize, weight: .bold, design: .rounded))
                     .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
 
                 Text(title)
-                    .font(.subheadline)
+                    .font(compact ? .caption : .subheadline)
                     .foregroundStyle(.secondary)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            .padding(18)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(cardPadding)
+            .frame(maxWidth: .infinity, minHeight: compact ? 118 : nil, alignment: .leading)
             .background(
                 highlighted ? tint.opacity(0.1) : Color(nsColor: .controlBackgroundColor).opacity(0.55),
                 in: RoundedRectangle(cornerRadius: 14, style: .continuous)

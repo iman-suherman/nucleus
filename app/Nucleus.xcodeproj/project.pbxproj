@@ -54,11 +54,13 @@
 		8AA22D21D12A34FDC718D87B /* EmbeddedWebViewRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D37475DD0560D594BCD02DC /* EmbeddedWebViewRegistry.swift */; };
 		914183577EE397F3EA7C0EF7 /* WhatsNewOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31C5C1AF3794BF5FF1456573 /* WhatsNewOverlay.swift */; };
 		92F3296DC4AFB5C4A78EF11D /* ClipboardPasteController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F73321C16D7956F50F538A6E /* ClipboardPasteController.swift */; };
+		945B9D5BE4AF3E47C2EB2A85 /* DashboardQuotes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DE2251B69DA22713A864959 /* DashboardQuotes.swift */; };
 		98D83C9FEF7CEB8DF54441FE /* HourlyBeep.swift in Sources */ = {isa = PBXBuildFile; fileRef = 046B650FCA89CA8C322D0A3B /* HourlyBeep.swift */; };
 		9B0DCC0F8A21372D7F8D82F1 /* WorkspaceStatusBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95F9299FA19C03821267F616 /* WorkspaceStatusBadge.swift */; };
 		9DD421879CE8E2380986DE94 /* GmailWebSessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C19EFA3DE919CAF339A8D6E /* GmailWebSessionStore.swift */; };
 		A1A5748F0C26C23E62073279 /* DashboardProcessMetricsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5A1AEBE23399CD601B924A8 /* DashboardProcessMetricsService.swift */; };
 		AA2B9B165190FE2E23E7AD95 /* MailInboxLoadingPhase.swift in Sources */ = {isa = PBXBuildFile; fileRef = C201B6D32546E035E9D04B57 /* MailInboxLoadingPhase.swift */; };
+		B78F1CBC004C7A7D60CE6175 /* DashboardQuotes.json in Resources */ = {isa = PBXBuildFile; fileRef = B1446CE8EB0EF69B17A5FEAE /* DashboardQuotes.json */; };
 		B9E2844DD110DC0608825A91 /* AppViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9169DE152DD2077D9F7C4DB3 /* AppViewModel.swift */; };
 		C0DBC257A8BAB9C658468527 /* NucleusApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2698972D63EAE12C5F050DE /* NucleusApp.swift */; };
 		C442A46B050B3F01536FCC47 /* DockBadgeController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 035D0E9FC4A418A7C52523C6 /* DockBadgeController.swift */; };
@@ -111,6 +113,7 @@
 		6F58A8AC449384291C26E26C /* CalendarWorkspaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarWorkspaceView.swift; sourceTree = "<group>"; };
 		7A0BFA8EFB82901232FB9B24 /* NotificationUserInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationUserInfo.swift; sourceTree = "<group>"; };
 		7C19EFA3DE919CAF339A8D6E /* GmailWebSessionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GmailWebSessionStore.swift; sourceTree = "<group>"; };
+		7DE2251B69DA22713A864959 /* DashboardQuotes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardQuotes.swift; sourceTree = "<group>"; };
 		81F61F31E82EC125D210B051 /* NotesClipboardMigration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotesClipboardMigration.swift; sourceTree = "<group>"; };
 		8D37475DD0560D594BCD02DC /* EmbeddedWebViewRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmbeddedWebViewRegistry.swift; sourceTree = "<group>"; };
 		9169DE152DD2077D9F7C4DB3 /* AppViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppViewModel.swift; sourceTree = "<group>"; };
@@ -129,6 +132,7 @@
 		A5A1AEBE23399CD601B924A8 /* DashboardProcessMetricsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardProcessMetricsService.swift; sourceTree = "<group>"; };
 		A5BDDEC8A6712481CBFAABBE /* DashboardAnalysisService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardAnalysisService.swift; sourceTree = "<group>"; };
 		A6EDADCCF24985DEF2C1A2DB /* ReleaseNotesDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReleaseNotesDetailView.swift; sourceTree = "<group>"; };
+		B1446CE8EB0EF69B17A5FEAE /* DashboardQuotes.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = DashboardQuotes.json; sourceTree = "<group>"; };
 		B42E9D0E0216144EA63B3A7F /* MenuBarNucleusIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarNucleusIcon.swift; sourceTree = "<group>"; };
 		B6238A17B183A8059CB7A2C0 /* SparkleUpdater.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SparkleUpdater.swift; sourceTree = "<group>"; };
 		B95AA6B0D2A2C4F3ACD4653E /* GoogleOAuthConfigurationLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoogleOAuthConfigurationLoader.swift; sourceTree = "<group>"; };
@@ -232,6 +236,7 @@
 		6F6FFB061DF1DABAB49226B9 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				B1446CE8EB0EF69B17A5FEAE /* DashboardQuotes.json */,
 				E79434496C370BC490D26F0A /* nucleus-bills-import-demo.csv */,
 				2F1A694368885A964F497B45 /* ReleaseNotes.json */,
 			);
@@ -248,6 +253,7 @@
 				EBE67C288974FF5B2F8524E6 /* CloudKitStoreMigration.swift */,
 				A5BDDEC8A6712481CBFAABBE /* DashboardAnalysisService.swift */,
 				A5A1AEBE23399CD601B924A8 /* DashboardProcessMetricsService.swift */,
+				7DE2251B69DA22713A864959 /* DashboardQuotes.swift */,
 				C4AB09CEFF7019C07BF7A676 /* DashboardWeatherService.swift */,
 				035D0E9FC4A418A7C52523C6 /* DockBadgeController.swift */,
 				E5971F41F5427FCE836471DA /* EmbeddedWebViewContainer.swift */,
@@ -391,6 +397,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				3F48A8BA617C1BF575B71A17 /* Assets.xcassets in Resources */,
+				B78F1CBC004C7A7D60CE6175 /* DashboardQuotes.json in Resources */,
 				4E988604D8181071BA70B0EF /* Funky.caf in Resources */,
 				627462CDC0887CCD00A910E4 /* NucleusMail.caf in Resources */,
 				E3AA1CB51FE3D2B0B15677A0 /* Nucleus_DeveloperID.provisionprofile in Resources */,
@@ -425,6 +432,7 @@
 				F0D6500DCFA05119C86E72BE /* CloudKitStoreMigration.swift in Sources */,
 				54097C655AC0AD8DD2FCFDFC /* DashboardAnalysisService.swift in Sources */,
 				A1A5748F0C26C23E62073279 /* DashboardProcessMetricsService.swift in Sources */,
+				945B9D5BE4AF3E47C2EB2A85 /* DashboardQuotes.swift in Sources */,
 				4145571152831419B598BCD1 /* DashboardWeatherService.swift in Sources */,
 				369B622F3177919D55C55827 /* DashboardWorkspaceView.swift in Sources */,
 				C442A46B050B3F01536FCC47 /* DockBadgeController.swift in Sources */,

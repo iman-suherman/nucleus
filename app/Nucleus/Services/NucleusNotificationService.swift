@@ -28,7 +28,8 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
     private var pendingPasswordSuggestions: [UUID: ClipboardPasswordSuggestion] = [:]
     private var passwordNotificationHasPlayedSound: Set<UUID> = []
 
-    private let passwordNotificationRepostInterval: TimeInterval = 4
+    /// How long the password notification stays visible before auto-dismiss.
+    private let passwordNotificationDisplayDuration: TimeInterval = 45
 
     func prepare() {
         UNUserNotificationCenter.current().delegate = self
@@ -111,11 +112,13 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
     func notifyClipboardPasswordSuggestion(_ suggestion: ClipboardPasswordSuggestion) {
         guard AppSettings.shared.clipboardPasswordDetectionEnabled else { return }
         guard !isAppActive else { return }
+        guard pendingPasswordSuggestions[suggestion.id] == nil else { return }
+        guard !pendingPasswordSuggestions.values.contains(where: { $0.password == suggestion.password }) else { return }
 
         pendingPasswordSuggestions[suggestion.id] = suggestion
         postPasswordNotification(suggestion, playSound: !passwordNotificationHasPlayedSound.contains(suggestion.id))
         passwordNotificationHasPlayedSound.insert(suggestion.id)
-        startPasswordNotificationPersistence(for: suggestion.id)
+        schedulePasswordNotificationAutoDismiss(for: suggestion.id)
     }
 
     func clearPasswordNotification(entryID: UUID) {
@@ -153,19 +156,14 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
         UNUserNotificationCenter.current().add(request)
     }
 
-    private func startPasswordNotificationPersistence(for entryID: UUID) {
+    private func schedulePasswordNotificationAutoDismiss(for entryID: UUID) {
         passwordNotificationTimers[entryID]?.invalidate()
         passwordNotificationTimers[entryID] = Timer.scheduledTimer(
-            withTimeInterval: passwordNotificationRepostInterval,
-            repeats: true
-        ) { [weak self] timer in
+            withTimeInterval: passwordNotificationDisplayDuration,
+            repeats: false
+        ) { [weak self] _ in
             Task { @MainActor in
-                guard let self,
-                      let suggestion = self.pendingPasswordSuggestions[entryID] else {
-                    timer.invalidate()
-                    return
-                }
-                self.postPasswordNotification(suggestion, playSound: false)
+                self?.clearPasswordNotification(entryID: entryID)
             }
         }
     }
@@ -358,8 +356,7 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
         let clipboardPasswordCategory = UNNotificationCategory(
             identifier: "NUCLEUS_CLIPBOARD_PASSWORD",
             actions: [savePassword, dismissPassword],
-            intentIdentifiers: [],
-            options: [.customDismissAction]
+            intentIdentifiers: []
         )
 
         UNUserNotificationCenter.current().setNotificationCategories([
@@ -448,13 +445,6 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
                 }
             case "DISMISS_PASSWORD":
                 if let entryIDRaw = info["entryID"] as? String,
-                   let entryID = UUID(uuidString: entryIDRaw) {
-                    clearPasswordNotification(entryID: entryID)
-                    onClipboardPasswordAction?(.dismiss(entryID: entryID))
-                }
-            case UNNotificationDismissActionIdentifier:
-                if response.notification.request.identifier.hasPrefix("clipboard-password-"),
-                   let entryIDRaw = info["entryID"] as? String,
                    let entryID = UUID(uuidString: entryIDRaw) {
                     clearPasswordNotification(entryID: entryID)
                     onClipboardPasswordAction?(.dismiss(entryID: entryID))

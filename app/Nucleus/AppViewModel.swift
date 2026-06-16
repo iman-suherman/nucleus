@@ -55,6 +55,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
     @Published var clipboardPasswordSuggestion: ClipboardPasswordSuggestion?
     @Published private(set) var storedDashboardAnalysis: StoredDashboardAnalysis?
     @Published var dashboardAnalyzedAt: Date?
+    @Published var dashboardQuote: String = DashboardQuotes.currentOrRandom()
     @Published var accountError: String?
     @Published var webSessionStatus: [UUID: Bool] = [:]
     @Published var oauthConnectionStatus: [UUID: Bool] = [:]
@@ -820,6 +821,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         try? DashboardAnalysisRepository.upsert(stored, context: context)
         storedDashboardAnalysis = stored
         dashboardAnalyzedAt = stored.analyzedAt
+        dashboardQuote = DashboardQuotes.pickRandom(excluding: dashboardQuote)
     }
 
     var nextDashboardAnalysisAt: Date? {
