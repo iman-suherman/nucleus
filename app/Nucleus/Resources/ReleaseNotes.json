@@ -1,16 +1,17 @@
 {
-  "version": "0.6.5",
-  "summary": "Dashboard summary box, resource usage layout, and weather error handling.",
+  "version": "0.6.6",
+  "summary": "Dashboard header layout, greeting polish, weather loading fixes, and website share icon.",
   "releaseNotes": {
     "introduced": [],
     "changed": [
-      "Dashboard metrics (unread email, chat, passwords, bills) sit in one Summary box with live resource usage underneath",
-      "Resource card title is now Live Nucleus resource usage"
+      "Live Nucleus resource usage sits in the Dashboard header between Today's weather and Cloud sync",
+      "Daily quote flows naturally from the greeting — Good morning, Iman! May every routine bring you wise laughter",
+      "Website link previews use the Nucleus app icon when sharing nucleus.suherman.net"
     ],
     "fixed": [
-      "Weather errors no longer get overwritten by transient location failures",
-      "Location lookup retries automatically when the fix is temporarily unavailable",
-      "WeatherKit authentication failures show a clearer message instead of a misleading location error"
+      "Today's weather no longer stays on Loading forever when WeatherKit returns an error",
+      "Weather fetch retries are debounced so dashboard refreshes do not restart failed lookups in a loop",
+      "Weather error messages appear instead of a spinner when the forecast cannot load"
     ],
     "updated": [],
     "removed": [],
