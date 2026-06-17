@@ -1,20 +1,18 @@
 {
-  "version": "0.6.2",
-  "summary": "Dashboard polish with quotes, compact metrics, header cloud sync, and weather permission flow.",
+  "version": "0.6.3",
+  "summary": "Dashboard header with intelligent insight, weather beside cloud sync, and city forecasts.",
   "releaseNotes": {
     "introduced": [
-      "Quote of the day on the Dashboard — one of 1,000 wishful quotes rotates after each analysis",
-      "First-open location prompt for weather; Today's weather stays hidden if you choose Not Now",
-      "Resource usage card sits beside unread, chat, passwords, and bills in one compact metric row"
+      "Intelligent insight under the daily quote — tailored analysis of inbox, bills, passwords, and productivity",
+      "Today's weather shows your city name alongside the forecast"
     ],
     "changed": [
-      "Cloud sync moved to the top-right of the Dashboard beside the greeting",
-      "Analysis timing and Analyze Now sit on one line beside the daily quote",
-      "Password clipboard notifications show once for 45 seconds instead of reposting every few seconds"
+      "Weather panel and cloud sync sit side by side with analysis timing and Analyse Now",
+      "Analysis times use plain minutes — Last analysis 2 minutes ago, Next analyse in 28 minutes",
+      "Payment preparation spans the full dashboard width; duplicate Intelligent summary removed"
     ],
     "fixed": [
-      "WeatherKit failures now show a clearer message and Try Again instead of a generic unavailable state",
-      "WeatherKit entitlement added to development entitlements for Debug builds"
+      "WeatherKit diagnostic test script for verifying signed builds"
     ],
     "updated": [],
     "removed": [],
