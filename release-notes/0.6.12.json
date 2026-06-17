@@ -1,12 +1,11 @@
 {
-  "version": "0.7.0",
+  "version": "0.6.12",
   "summary": "Dashboard Your day analysis turns clipboard captures into productivity insights and improvement suggestions.",
   "releaseNotes": {
     "introduced": [
       "Your day analyses today's clipboard captures every 30 minutes — category breakdown, behavioral insights, and suggestions to improve how you work",
       "Dashboard settings let you show or hide quote, intelligent insight, Your day, metrics, bills, weather, resource usage, cloud sync, holidays, news, and the productivity chart",
-      "News feed ticker, next public holiday card, and collapsible intelligent insight and Your day sections on the Dashboard",
-      "Nucleus Cloud token store and dashboard analysis caching for smoother periodic refresh"
+      "News feed ticker, next public holiday card, and collapsible intelligent insight and Your day sections on the Dashboard"
     ],
     "changed": [
       "Productivity insights highlight dominant categories, source apps, context-switching patterns, and capture pace instead of generic summaries",
