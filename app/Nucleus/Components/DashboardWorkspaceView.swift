@@ -69,11 +69,7 @@ struct DashboardWorkspaceView: View {
             greetingWithQuote
             intelligentInsightSection
 
-            if weatherService.isWeatherSectionVisible {
-                weatherResourceAndSidebarRow
-            } else {
-                resourceAndSidebarRow
-            }
+            weatherResourceAndSidebarRow
         }
     }
 
@@ -161,17 +157,6 @@ struct DashboardWorkspaceView: View {
         }
     }
 
-    private var resourceAndSidebarRow: some View {
-        HStack(alignment: .top, spacing: 16) {
-            ResourceUsageSummaryCard(metrics: processMetricsService.metrics)
-                .frame(width: 200, alignment: .leading)
-
-            sidebarPanel
-
-            Spacer(minLength: 0)
-        }
-    }
-
     private var sidebarPanel: some View {
         headerCloudSyncPanel
             .frame(width: 280, alignment: .topLeading)
@@ -190,7 +175,9 @@ struct DashboardWorkspaceView: View {
                     .symbolRenderingMode(.multicolor)
             }
 
-            if let weather = weatherService.weather {
+            if let prompt = weatherService.locationAccessPrompt {
+                locationAccessPromptCard(prompt)
+            } else if let weather = weatherService.weather {
                 HStack(alignment: .top, spacing: 14) {
                     Image(systemName: weather.conditionSymbol)
                         .font(.system(size: 32))
@@ -266,6 +253,29 @@ struct DashboardWorkspaceView: View {
                 .background(.quaternary.opacity(0.25), in: RoundedRectangle(cornerRadius: 12))
             }
         }
+    }
+
+    private func locationAccessPromptCard(_ prompt: DashboardWeatherLocationPrompt) -> some View {
+        HStack(alignment: .center, spacing: 10) {
+            Image(systemName: "location.slash")
+                .foregroundStyle(.secondary)
+
+            Text(prompt.message)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Spacer(minLength: 0)
+
+            Button(prompt.buttonTitle) {
+                weatherService.performLocationAccessAction(prompt.action)
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.quaternary.opacity(0.25), in: RoundedRectangle(cornerRadius: 12))
     }
 
     private var metricsAndBillsRow: some View {

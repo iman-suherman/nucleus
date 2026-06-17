@@ -13,6 +13,18 @@ struct DashboardTodayWeather: Equatable {
     var rainSummary: String?
 }
 
+struct DashboardWeatherLocationPrompt: Equatable {
+    enum Action: Equatable {
+        case requestAuthorization
+        case openSettings
+        case reenableAfterDecline
+    }
+
+    let message: String
+    let buttonTitle: String
+    let action: Action
+}
+
 enum DashboardGreeting {
     static var firstName: String {
         let fullName = NSFullUserName().trimmingCharacters(in: .whitespacesAndNewlines)
@@ -140,6 +152,59 @@ final class DashboardWeatherService: NSObject, ObservableObject {
     func openLocationSettings() {
         if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_LocationServices") {
             NSWorkspace.shared.open(url)
+        }
+    }
+
+    /// Shown in the Dashboard weather card when location access prevents a forecast.
+    var locationAccessPrompt: DashboardWeatherLocationPrompt? {
+        guard !isWeatherSectionVisible else { return nil }
+
+        if UserDefaults.standard.bool(forKey: Self.locationDeclinedKey) {
+            return DashboardWeatherLocationPrompt(
+                message: "Today's weather is hidden because location access is off. Turn it on to see the forecast here.",
+                buttonTitle: "Enable Weather",
+                action: .reenableAfterDecline
+            )
+        }
+
+        switch locationManager.authorizationStatus {
+        case .denied:
+            return DashboardWeatherLocationPrompt(
+                message: "Allow Nucleus to use your location in System Settings to show today's forecast.",
+                buttonTitle: "Open Settings",
+                action: .openSettings
+            )
+        case .restricted:
+            return DashboardWeatherLocationPrompt(
+                message: "Location access is restricted on this Mac, so today's weather can't be shown.",
+                buttonTitle: "Open Settings",
+                action: .openSettings
+            )
+        case .notDetermined:
+            return DashboardWeatherLocationPrompt(
+                message: "Allow location access to show today's forecast on your Dashboard.",
+                buttonTitle: "Enable Location",
+                action: .requestAuthorization
+            )
+        case .authorized, .authorizedAlways:
+            return nil
+        @unknown default:
+            return nil
+        }
+    }
+
+    func performLocationAccessAction(_ action: DashboardWeatherLocationPrompt.Action) {
+        switch action {
+        case .requestAuthorization:
+            confirmLocationPermissionRequest()
+        case .openSettings:
+            openLocationSettings()
+        case .reenableAfterDecline:
+            UserDefaults.standard.set(false, forKey: Self.locationDeclinedKey)
+            UserDefaults.standard.set(false, forKey: Self.locationPromptCompletedKey)
+            updateWeatherSectionVisibility()
+            hasStarted = false
+            beginWeatherAccessFlow()
         }
     }
 
