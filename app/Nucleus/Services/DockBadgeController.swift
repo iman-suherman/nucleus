@@ -68,12 +68,10 @@ enum DockBadgeController {
         let metrics = badgeMetrics(for: tileSize, scale: scale)
         let inset = tileSize.width * 0.03
 
-        let label = NSTextField(labelWithString: "\(count)")
-        label.font = .systemFont(ofSize: metrics.fontSize, weight: .bold)
-        label.textColor = .white
-        label.alignment = .center
-
-        let width = max(metrics.height, label.intrinsicContentSize.width + metrics.horizontalPadding * 2)
+        let font = NSFont.systemFont(ofSize: metrics.fontSize, weight: .bold)
+        let text = "\(count)"
+        let textWidth = (text as NSString).size(withAttributes: [.font: font]).width
+        let width = max(metrics.height, textWidth + metrics.horizontalPadding * 2)
         let x: CGFloat = switch corner {
         case .topLeading:
             inset
@@ -94,7 +92,10 @@ enum DockBadgeController {
         container.layer?.backgroundColor = color.cgColor
         container.layer?.cornerRadius = metrics.height / 2
 
-        label.frame = NSRect(x: 0, y: 2, width: width, height: metrics.height - 4)
+        let label = DockBadgeLabelView(frame: container.bounds)
+        label.autoresizingMask = [.width, .height]
+        label.text = text
+        label.font = font
         container.addSubview(label)
         return container
     }
@@ -112,6 +113,31 @@ enum DockBadgeController {
         let fontSize = max(18, height * 0.58)
         let horizontalPadding = max(11, height * 0.34)
         return (height, fontSize, horizontalPadding)
+    }
+}
+
+private final class DockBadgeLabelView: NSView {
+    var text = ""
+    var font = NSFont.systemFont(ofSize: 12, weight: .bold)
+
+    override func draw(_ dirtyRect: NSRect) {
+        let paragraph = NSMutableParagraphStyle()
+        paragraph.alignment = .center
+
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: font,
+            .foregroundColor: NSColor.white,
+            .paragraphStyle: paragraph,
+        ]
+
+        let lineHeight = font.ascender - font.descender + font.leading
+        let textRect = NSRect(
+            x: 0,
+            y: (bounds.height - lineHeight) / 2,
+            width: bounds.width,
+            height: lineHeight
+        )
+        (text as NSString).draw(in: textRect, withAttributes: attributes)
     }
 }
 

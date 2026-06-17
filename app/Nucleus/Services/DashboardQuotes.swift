@@ -1,4 +1,5 @@
 import Foundation
+import NucleusKit
 
 enum DashboardQuotes {
     static let storageKey = "nucleus.dashboard.quote"
@@ -132,5 +133,51 @@ enum DashboardDurationFormatting {
             return "in 1 hour"
         }
         return "in \(hours) hours"
+    }
+}
+
+enum DashboardInsightFormatting {
+    static func formattedDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .full
+        formatter.timeStyle = .none
+        return formatter.string(from: date)
+    }
+
+    static func formattedTime(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .none
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
+    }
+
+    static func insightParagraphs(from snapshot: DashboardSnapshot, asOf date: Date) -> [String] {
+        var paragraphs = snapshot.activitySummary
+        guard !paragraphs.isEmpty else {
+            return ["As of \(formattedDate(date)) at \(formattedTime(date)), you have limited activity to report yet."]
+        }
+
+        paragraphs[0] = prefaceFirstParagraph(paragraphs[0], asOf: date)
+        if !snapshot.productivitySummary.isEmpty {
+            paragraphs.append(snapshot.productivitySummary)
+        }
+        return paragraphs
+    }
+
+    private static func prefaceFirstParagraph(_ paragraph: String, asOf date: Date) -> String {
+        let preface = "As of \(formattedDate(date)) at \(formattedTime(date)), you have"
+        let trimmed = paragraph.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if trimmed.hasPrefix("You have ") {
+            let remainder = String(trimmed.dropFirst("You have ".count))
+            return "\(preface) \(remainder)"
+        }
+
+        if trimmed.hasPrefix("Your inbox and chat are clear") {
+            let remainder = trimmed.replacingOccurrences(of: "Your inbox and chat are clear", with: "a clear inbox and chat")
+            return "\(preface) \(remainder)"
+        }
+
+        return "\(preface) \(trimmed.prefix(1).lowercased())\(trimmed.dropFirst())"
     }
 }

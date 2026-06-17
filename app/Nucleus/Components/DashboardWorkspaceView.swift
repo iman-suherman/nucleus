@@ -31,8 +31,7 @@ struct DashboardWorkspaceView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 28) {
                     header
-                    summaryAndResourceCards
-                    upcomingBillsSection
+                    metricsAndBillsRow
                     productivitySection
                 }
                 .padding(28)
@@ -66,15 +65,7 @@ struct DashboardWorkspaceView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("\(DashboardGreeting.timeOfDay()), \(DashboardGreeting.firstName)")
-                .font(.largeTitle.bold())
-
-            Text("\"\(viewModel.dashboardQuote)\"")
-                .font(.title3)
-                .foregroundStyle(.primary)
-                .italic()
-                .fixedSize(horizontal: false, vertical: true)
-
+            greetingWithQuote
             intelligentInsightSection
 
             if weatherService.isWeatherSectionVisible {
@@ -85,34 +76,72 @@ struct DashboardWorkspaceView: View {
         }
     }
 
+    private var greetingWithQuote: some View {
+        (
+            Text("\(DashboardGreeting.timeOfDay()), \(DashboardGreeting.firstName) — ")
+                .font(.largeTitle.bold())
+            + Text(sanitizedDashboardQuote)
+                .font(.largeTitle)
+                .italic()
+        )
+        .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private var sanitizedDashboardQuote: String {
+        viewModel.dashboardQuote
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .trimmingCharacters(in: CharacterSet(charactersIn: "\""))
+    }
+
     private var intelligentInsightSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Label("Intelligent insight", systemImage: "sparkles")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(
-                    LinearGradient(
-                        colors: [.orange, .pink, .purple],
-                        startPoint: .leading,
-                        endPoint: .trailing
+        TimelineView(.periodic(from: .now, by: 60)) { context in
+            let paragraphs = DashboardInsightFormatting.insightParagraphs(from: snapshot, asOf: context.date)
+
+            VStack(alignment: .leading, spacing: 12) {
+                Label("Intelligent insight", systemImage: "sparkles")
+                    .font(.headline)
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [.orange, .pink, .purple],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
                     )
-                )
 
-            VStack(alignment: .leading, spacing: 8) {
-                ForEach(Array(snapshot.activitySummary.enumerated()), id: \.offset) { _, paragraph in
-                    Text(paragraph)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
+                VStack(alignment: .leading, spacing: 10) {
+                    ForEach(Array(paragraphs.enumerated()), id: \.offset) { index, paragraph in
+                        Text(paragraph)
+                            .font(index == 0 ? .body.weight(.semibold) : .body)
+                            .foregroundStyle(index == 0 ? Color.primary : Color.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
-
-                Text(snapshot.productivitySummary)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                .padding(18)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(
+                    LinearGradient(
+                        colors: [
+                            Color.orange.opacity(0.12),
+                            Color.purple.opacity(0.10),
+                            Color.pink.opacity(0.08),
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    in: RoundedRectangle(cornerRadius: 14)
+                )
+                .overlay {
+                    RoundedRectangle(cornerRadius: 14)
+                        .strokeBorder(
+                            LinearGradient(
+                                colors: [.orange.opacity(0.45), .pink.opacity(0.35), .purple.opacity(0.35)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 1.5
+                        )
+                }
             }
-            .padding(14)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(.quaternary.opacity(0.25), in: RoundedRectangle(cornerRadius: 12))
         }
     }
 
@@ -238,9 +267,22 @@ struct DashboardWorkspaceView: View {
         }
     }
 
+    private var metricsAndBillsRow: some View {
+        HStack(alignment: .top, spacing: 20) {
+            summaryAndResourceCards
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            upcomingBillsSection
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
     private var summaryAndResourceCards: some View {
         LazyVGrid(
-            columns: Array(repeating: GridItem(.flexible(minimum: 128), spacing: 12), count: 5),
+            columns: [
+                GridItem(.flexible(minimum: 120), spacing: 12),
+                GridItem(.flexible(minimum: 120), spacing: 12),
+            ],
             spacing: 12
         ) {
             SummaryMetricCard(
@@ -276,6 +318,7 @@ struct DashboardWorkspaceView: View {
                 action: { viewModel.sidebarSelection = .workspace(.bills) }
             )
             ResourceUsageSummaryCard(metrics: processMetricsService.metrics)
+                .gridCellColumns(2)
         }
     }
 
