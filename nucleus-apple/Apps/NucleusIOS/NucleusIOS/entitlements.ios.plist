@@ -19,10 +19,12 @@
 		<string>iCloud.net.suherman.nucleus</string>
 	</array>
 	<key>com.apple.developer.ubiquity-kvstore-identifier</key>
-	<string>Q3TXW887NM.*</string>
+	<string>Q3TXW887NM.net.suherman.nucleus</string>
 	<key>keychain-access-groups</key>
 	<array>
-		<string>$(AppIdentifierPrefix)net.suherman.nucleus.ios</string>
+		<string>$(AppIdentifierPrefix)net.suherman.nucleus</string>
 	</array>
+	<key>com.apple.developer.weatherkit</key>
+	<true/>
 </dict>
 </plist>

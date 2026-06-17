@@ -1,37 +1,140 @@
 import Foundation
 import NucleusKit
 
+enum DashboardTimePeriod {
+    case morning, afternoon, evening, night
+
+    static func current(now: Date = Date(), calendar: Calendar = .current) -> DashboardTimePeriod {
+        let hour = calendar.component(.hour, from: now)
+        switch hour {
+        case 5..<12: return .morning
+        case 12..<17: return .afternoon
+        case 17..<22: return .evening
+        default: return .night
+        }
+    }
+}
+
+enum DashboardQuoteSchedule: String {
+    case weekday, leisure
+}
+
 enum DashboardQuotes {
     static let storageKey = "nucleus.dashboard.quote"
+    static let contextKey = "nucleus.dashboard.quote.context"
 
-    private static let quotes: [String] = {
+    struct Context: Equatable {
+        let schedule: DashboardQuoteSchedule
+        let period: DashboardTimePeriod
+
+        var storageToken: String {
+            "\(schedule.rawValue).\(periodToken)"
+        }
+
+        private var periodToken: String {
+            switch period {
+            case .morning: return "morning"
+            case .afternoon: return "afternoon"
+            case .evening: return "evening"
+            case .night: return "night"
+            }
+        }
+
+        static func current(isPublicHoliday: Bool = false) -> Context {
+            let schedule: DashboardQuoteSchedule
+            if DashboardGreeting.isWeekend() || isPublicHoliday {
+                schedule = .leisure
+            } else {
+                schedule = .weekday
+            }
+            return Context(schedule: schedule, period: DashboardTimePeriod.current())
+        }
+    }
+
+    private struct QuoteLibrary: Decodable {
+        let weekday: PeriodQuotes
+        let leisure: PeriodQuotes
+    }
+
+    private struct PeriodQuotes: Decodable {
+        let morning: [String]
+        let afternoon: [String]
+        let evening: [String]
+        let night: [String]
+
+        func quotes(for period: DashboardTimePeriod) -> [String] {
+            switch period {
+            case .morning: return morning
+            case .afternoon: return afternoon
+            case .evening: return evening
+            case .night: return night
+            }
+        }
+    }
+
+    private static let library: QuoteLibrary = {
         guard let url = Bundle.main.url(forResource: "DashboardQuotes", withExtension: "json"),
               let data = try? Data(contentsOf: url),
-              let decoded = try? JSONDecoder().decode([String].self, from: data),
-              !decoded.isEmpty
+              let decoded = try? JSONDecoder().decode(QuoteLibrary.self, from: data)
         else {
-            return [fallbackQuote]
+            return QuoteLibrary(
+                weekday: PeriodQuotes(
+                    morning: [fallbackQuote],
+                    afternoon: [fallbackQuote],
+                    evening: [fallbackQuote],
+                    night: [fallbackQuote]
+                ),
+                leisure: PeriodQuotes(
+                    morning: [fallbackQuote],
+                    afternoon: [fallbackQuote],
+                    evening: [fallbackQuote],
+                    night: [fallbackQuote]
+                )
+            )
         }
         return decoded
     }()
 
     private static let fallbackQuote = "May your path be calm, focused, and full of small wins."
 
-    static func currentOrRandom() -> String {
+    static func currentOrRandom(isPublicHoliday: Bool = false) -> String {
+        let context = Context.current(isPublicHoliday: isPublicHoliday)
         if let saved = UserDefaults.standard.string(forKey: storageKey),
-           quotes.contains(saved) {
+           UserDefaults.standard.string(forKey: contextKey) == context.storageToken,
+           quotes(for: context).contains(saved) {
             return saved
         }
-        return pickRandom()
+        return pickRandom(excluding: nil, context: context)
     }
 
-    static func pickRandom(excluding current: String? = nil) -> String {
-        guard quotes.count > 1 else { return quotes.first ?? fallbackQuote }
+    @discardableResult
+    static func refreshIfContextChanged(
+        excluding current: String? = nil,
+        isPublicHoliday: Bool = false
+    ) -> String? {
+        let context = Context.current(isPublicHoliday: isPublicHoliday)
+        let savedContext = UserDefaults.standard.string(forKey: contextKey)
+        if savedContext == context.storageToken,
+           let current,
+           quotes(for: context).contains(current) {
+            return nil
+        }
+        return pickRandom(excluding: current, context: context)
+    }
 
-        var candidate = quotes.randomElement() ?? fallbackQuote
-        if let current, candidate == current {
+    static func pickRandom(excluding current: String? = nil, isPublicHoliday: Bool = false) -> String {
+        pickRandom(excluding: current, context: Context.current(isPublicHoliday: isPublicHoliday))
+    }
+
+    @discardableResult
+    private static func pickRandom(excluding current: String?, context: Context) -> String {
+        let pool = quotes(for: context)
+        guard !pool.isEmpty else { return fallbackQuote }
+
+        var candidate = pool.randomElement() ?? fallbackQuote
+        if let current, candidate == current, pool.count > 1 {
             for _ in 0..<8 {
-                let next = quotes.randomElement() ?? fallbackQuote
+                let next = pool.randomElement() ?? fallbackQuote
                 if next != current {
                     candidate = next
                     break
@@ -40,7 +143,17 @@ enum DashboardQuotes {
         }
 
         UserDefaults.standard.set(candidate, forKey: storageKey)
+        UserDefaults.standard.set(context.storageToken, forKey: contextKey)
         return candidate
+    }
+
+    private static func quotes(for context: Context) -> [String] {
+        switch context.schedule {
+        case .weekday:
+            return library.weekday.quotes(for: context.period)
+        case .leisure:
+            return library.leisure.quotes(for: context.period)
+        }
     }
 
     static func quoteBody(from quote: String) -> String {
@@ -148,51 +261,5 @@ enum DashboardDurationFormatting {
             return "in 1 hour"
         }
         return "in \(hours) hours"
-    }
-}
-
-enum DashboardInsightFormatting {
-    static func formattedDate(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .full
-        formatter.timeStyle = .none
-        return formatter.string(from: date)
-    }
-
-    static func formattedTime(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .none
-        formatter.timeStyle = .short
-        return formatter.string(from: date)
-    }
-
-    static func insightParagraphs(from snapshot: DashboardSnapshot, asOf date: Date) -> [String] {
-        var paragraphs = snapshot.activitySummary
-        guard !paragraphs.isEmpty else {
-            return ["As of \(formattedDate(date)) at \(formattedTime(date)), you have limited activity to report yet."]
-        }
-
-        paragraphs[0] = prefaceFirstParagraph(paragraphs[0], asOf: date)
-        if !snapshot.productivitySummary.isEmpty {
-            paragraphs.append(snapshot.productivitySummary)
-        }
-        return paragraphs
-    }
-
-    private static func prefaceFirstParagraph(_ paragraph: String, asOf date: Date) -> String {
-        let preface = "As of \(formattedDate(date)) at \(formattedTime(date)), you have"
-        let trimmed = paragraph.trimmingCharacters(in: .whitespacesAndNewlines)
-
-        if trimmed.hasPrefix("You have ") {
-            let remainder = String(trimmed.dropFirst("You have ".count))
-            return "\(preface) \(remainder)"
-        }
-
-        if trimmed.hasPrefix("Your inbox and chat are clear") {
-            let remainder = trimmed.replacingOccurrences(of: "Your inbox and chat are clear", with: "a clear inbox and chat")
-            return "\(preface) \(remainder)"
-        }
-
-        return "\(preface) \(trimmed.prefix(1).lowercased())\(trimmed.dropFirst())"
     }
 }

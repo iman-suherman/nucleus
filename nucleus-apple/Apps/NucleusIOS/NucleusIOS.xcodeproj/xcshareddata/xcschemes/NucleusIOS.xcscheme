@@ -39,6 +39,17 @@
          </BuildableReference>
       </MacroExpansion>
       <Testables>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "1D7CC19FF529FBE9A73301BE"
+               BuildableName = "NucleusIOSScreenshots.xctest"
+               BlueprintName = "NucleusIOSScreenshots"
+               ReferencedContainer = "container:NucleusIOS.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
       <CommandLineArguments>
       </CommandLineArguments>

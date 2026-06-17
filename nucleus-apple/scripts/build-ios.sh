@@ -15,6 +15,16 @@ fi
 
 (cd "$IOS_APP" && xcodegen generate)
 
+if rg -q 'nucleus\.ios' "$IOS_APP"; then
+  echo "error: forbidden bundle id net.suherman.nucleus.ios found under $IOS_APP"
+  exit 1
+fi
+
+if ! rg -q 'PRODUCT_BUNDLE_IDENTIFIER: net\.suherman\.nucleus' "$IOS_APP/project.yml"; then
+  echo "error: iOS app must use PRODUCT_BUNDLE_IDENTIFIER net.suherman.nucleus"
+  exit 1
+fi
+
 echo "Building NucleusIOS (requires iOS Simulator runtime in Xcode)…"
 xcodebuild \
   -project "$IOS_APP/NucleusIOS.xcodeproj" \

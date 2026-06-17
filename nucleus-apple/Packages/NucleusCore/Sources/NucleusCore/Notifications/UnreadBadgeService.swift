@@ -14,6 +14,11 @@ public final class UnreadBadgeService: ObservableObject {
         totalUnread = unreadByAccount.values.reduce(0, +)
     }
 
+    public func removeUnread(accountID: UUID) {
+        unreadByAccount.removeValue(forKey: accountID)
+        totalUnread = unreadByAccount.values.reduce(0, +)
+    }
+
     public func reset() {
         unreadByAccount = [:]
         totalUnread = 0

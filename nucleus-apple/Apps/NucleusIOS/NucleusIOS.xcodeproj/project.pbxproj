@@ -9,24 +9,53 @@
 /* Begin PBXBuildFile section */
 		1454EB4D3E94990105825767 /* MobileRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05AD418210F4B4E322618BDF /* MobileRootView.swift */; };
 		210904D3A99922AF428A222B /* NucleusUI in Frameworks */ = {isa = PBXBuildFile; productRef = 21BB636267DAD37E532C79F5 /* NucleusUI */; };
+		263D2B374908679EA2154EDA /* AppStoreScreenshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 664B62CB990EAF86B1A20539 /* AppStoreScreenshotTests.swift */; };
+		27C07F83C8C5581BCD9A725E /* MobileNotificationDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64AD094B689190356A982FEF /* MobileNotificationDelegate.swift */; };
 		2934702A576CAA7A5E412CF9 /* TabletRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36C8A3C6ACCEE859BEB6EE7C /* TabletRootView.swift */; };
+		343ED9D7A3DB07CA56DE964F /* MobileDashboardWeatherService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FA2D6C93EDBFFA33EBD7712 /* MobileDashboardWeatherService.swift */; };
+		6004B7EC765FD21122D95F5B /* DashboardScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06B9D41100EF35CD76112D20 /* DashboardScreen.swift */; };
 		67B42FF4E7AC2C6B3A30D967 /* NucleusCore in Frameworks */ = {isa = PBXBuildFile; productRef = EA9A5099159BBEB6D87E9569 /* NucleusCore */; };
 		6AE673DB077E872544D16D7D /* WorkspaceScreens.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB8D424370D4A85FA42CBEB2 /* WorkspaceScreens.swift */; };
+		73C3FCE24C929A63EE09CFEE /* WeatherKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 940BAA1A70243455673B9C37 /* WeatherKit.framework */; };
+		8BD82BEA490EAE694B3C985A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D5CF62ADA8B73D867AA59582 /* Assets.xcassets */; };
 		9D77CD6F6518920313EAE8C4 /* NucleusIOSApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81DD1C5C00FFB3720FFE53A4 /* NucleusIOSApp.swift */; };
+		A7FC776FE5B29C9CEF8639F3 /* MobileDeviceLockScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EDD708A0AACBD1CAC9D42DE /* MobileDeviceLockScreen.swift */; };
+		DF8F38694F218A3EC1FB55A2 /* MobileDeviceLockService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6646175307521CA4FB7197 /* MobileDeviceLockService.swift */; };
 		E6FFEB68ED5C8F1C806D61CA /* PhoneRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 582D4ABB589982477F4F9438 /* PhoneRootView.swift */; };
 		EE8B885912FCE650739554D7 /* MobileAppViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 410288DECCDA6B0F278D517A /* MobileAppViewModel.swift */; };
+		F10991CF120092F92BC07F3F /* BillsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CCFCF3D2F070C5ECDA783A6 /* BillsScreen.swift */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		8CA0A0F19B274235D66D3312 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 2F57A50CCAE4FAC65E2916B9 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = B94E763CD502A8AC37AEB2A4;
+			remoteInfo = NucleusIOS;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		05AD418210F4B4E322618BDF /* MobileRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileRootView.swift; sourceTree = "<group>"; };
+		06B9D41100EF35CD76112D20 /* DashboardScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardScreen.swift; sourceTree = "<group>"; };
+		1EDD708A0AACBD1CAC9D42DE /* MobileDeviceLockScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileDeviceLockScreen.swift; sourceTree = "<group>"; };
 		36C8A3C6ACCEE859BEB6EE7C /* TabletRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabletRootView.swift; sourceTree = "<group>"; };
 		410288DECCDA6B0F278D517A /* MobileAppViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileAppViewModel.swift; sourceTree = "<group>"; };
 		582D4ABB589982477F4F9438 /* PhoneRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneRootView.swift; sourceTree = "<group>"; };
+		64AD094B689190356A982FEF /* MobileNotificationDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileNotificationDelegate.swift; sourceTree = "<group>"; };
 		65A27B273653311642704710 /* NucleusIOS.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = NucleusIOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		664B62CB990EAF86B1A20539 /* AppStoreScreenshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStoreScreenshotTests.swift; sourceTree = "<group>"; };
+		6CCFCF3D2F070C5ECDA783A6 /* BillsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BillsScreen.swift; sourceTree = "<group>"; };
+		6FA2D6C93EDBFFA33EBD7712 /* MobileDashboardWeatherService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileDashboardWeatherService.swift; sourceTree = "<group>"; };
 		76477181A5EF88E4D7FD011E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		7A6646175307521CA4FB7197 /* MobileDeviceLockService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileDeviceLockService.swift; sourceTree = "<group>"; };
 		81DD1C5C00FFB3720FFE53A4 /* NucleusIOSApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NucleusIOSApp.swift; sourceTree = "<group>"; };
+		90AA261687C8A9C21E2382A9 /* NucleusIOSScreenshots.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = NucleusIOSScreenshots.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		940BAA1A70243455673B9C37 /* WeatherKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WeatherKit.framework; path = System/Library/Frameworks/WeatherKit.framework; sourceTree = SDKROOT; };
 		AB1164DBF72FEE31F022714C /* NucleusUI */ = {isa = PBXFileReference; lastKnownFileType = folder; name = NucleusUI; path = ../../Packages/NucleusUI; sourceTree = SOURCE_ROOT; };
 		C422A213738E75FF396833E5 /* NucleusCore */ = {isa = PBXFileReference; lastKnownFileType = folder; name = NucleusCore; path = ../../Packages/NucleusCore; sourceTree = SOURCE_ROOT; };
+		D5CF62ADA8B73D867AA59582 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		FB8D424370D4A85FA42CBEB2 /* WorkspaceScreens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceScreens.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -37,6 +66,7 @@
 			files = (
 				67B42FF4E7AC2C6B3A30D967 /* NucleusCore in Frameworks */,
 				210904D3A99922AF428A222B /* NucleusUI in Frameworks */,
+				73C3FCE24C929A63EE09CFEE /* WeatherKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -55,6 +85,9 @@
 		2C9423901469B4FB8AD518F6 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				6CCFCF3D2F070C5ECDA783A6 /* BillsScreen.swift */,
+				06B9D41100EF35CD76112D20 /* DashboardScreen.swift */,
+				1EDD708A0AACBD1CAC9D42DE /* MobileDeviceLockScreen.swift */,
 				05AD418210F4B4E322618BDF /* MobileRootView.swift */,
 				582D4ABB589982477F4F9438 /* PhoneRootView.swift */,
 				36C8A3C6ACCEE859BEB6EE7C /* TabletRootView.swift */,
@@ -67,6 +100,7 @@
 			isa = PBXGroup;
 			children = (
 				65A27B273653311642704710 /* NucleusIOS.app */,
+				90AA261687C8A9C21E2382A9 /* NucleusIOSScreenshots.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -74,8 +108,12 @@
 		8CABE07558BD7A3860C30D9E /* NucleusIOS */ = {
 			isa = PBXGroup;
 			children = (
+				D5CF62ADA8B73D867AA59582 /* Assets.xcassets */,
 				76477181A5EF88E4D7FD011E /* Info.plist */,
 				410288DECCDA6B0F278D517A /* MobileAppViewModel.swift */,
+				6FA2D6C93EDBFFA33EBD7712 /* MobileDashboardWeatherService.swift */,
+				7A6646175307521CA4FB7197 /* MobileDeviceLockService.swift */,
+				64AD094B689190356A982FEF /* MobileNotificationDelegate.swift */,
 				81DD1C5C00FFB3720FFE53A4 /* NucleusIOSApp.swift */,
 				2C9423901469B4FB8AD518F6 /* Views */,
 			);
@@ -86,19 +124,56 @@
 			isa = PBXGroup;
 			children = (
 				8CABE07558BD7A3860C30D9E /* NucleusIOS */,
+				F476A1F883AD22CC0C5CE107 /* NucleusIOSScreenshots */,
 				26E6A3569465C997679EA11D /* Packages */,
+				DC09FF9D1D685649FC7EDFF0 /* Frameworks */,
 				87AC0E0EBF0626B21BF3AC9F /* Products */,
 			);
+			sourceTree = "<group>";
+		};
+		DC09FF9D1D685649FC7EDFF0 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				940BAA1A70243455673B9C37 /* WeatherKit.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		F476A1F883AD22CC0C5CE107 /* NucleusIOSScreenshots */ = {
+			isa = PBXGroup;
+			children = (
+				664B62CB990EAF86B1A20539 /* AppStoreScreenshotTests.swift */,
+			);
+			path = NucleusIOSScreenshots;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		1D7CC19FF529FBE9A73301BE /* NucleusIOSScreenshots */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 476A23DBAF78CC92F7022AF6 /* Build configuration list for PBXNativeTarget "NucleusIOSScreenshots" */;
+			buildPhases = (
+				A35AB991A2309A20B8E66BA2 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				17AC7A425D365123A931A2A5 /* PBXTargetDependency */,
+			);
+			name = NucleusIOSScreenshots;
+			packageProductDependencies = (
+			);
+			productName = NucleusIOSScreenshots;
+			productReference = 90AA261687C8A9C21E2382A9 /* NucleusIOSScreenshots.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 		B94E763CD502A8AC37AEB2A4 /* NucleusIOS */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 90A4C1972F5FCB4C4FE324E4 /* Build configuration list for PBXNativeTarget "NucleusIOS" */;
 			buildPhases = (
 				8282BDEAB2D94F16C5D9D854 /* Sources */,
+				51ECFF6E3E8B98515BC715CA /* Resources */,
 				454C2E09A42CCC00F35B69CF /* Frameworks */,
 			);
 			buildRules = (
@@ -123,6 +198,10 @@
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
+					1D7CC19FF529FBE9A73301BE = {
+						DevelopmentTeam = Q3TXW887NM;
+						TestTargetID = B94E763CD502A8AC37AEB2A4;
+					};
 					B94E763CD502A8AC37AEB2A4 = {
 						DevelopmentTeam = Q3TXW887NM;
 						ProvisioningStyle = Automatic;
@@ -148,16 +227,34 @@
 			projectRoot = "";
 			targets = (
 				B94E763CD502A8AC37AEB2A4 /* NucleusIOS */,
+				1D7CC19FF529FBE9A73301BE /* NucleusIOSScreenshots */,
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		51ECFF6E3E8B98515BC715CA /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8BD82BEA490EAE694B3C985A /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		8282BDEAB2D94F16C5D9D854 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F10991CF120092F92BC07F3F /* BillsScreen.swift in Sources */,
+				6004B7EC765FD21122D95F5B /* DashboardScreen.swift in Sources */,
 				EE8B885912FCE650739554D7 /* MobileAppViewModel.swift in Sources */,
+				343ED9D7A3DB07CA56DE964F /* MobileDashboardWeatherService.swift in Sources */,
+				A7FC776FE5B29C9CEF8639F3 /* MobileDeviceLockScreen.swift in Sources */,
+				DF8F38694F218A3EC1FB55A2 /* MobileDeviceLockService.swift in Sources */,
+				27C07F83C8C5581BCD9A725E /* MobileNotificationDelegate.swift in Sources */,
 				1454EB4D3E94990105825767 /* MobileRootView.swift in Sources */,
 				9D77CD6F6518920313EAE8C4 /* NucleusIOSApp.swift in Sources */,
 				E6FFEB68ED5C8F1C806D61CA /* PhoneRootView.swift in Sources */,
@@ -166,7 +263,23 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A35AB991A2309A20B8E66BA2 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				263D2B374908679EA2154EDA /* AppStoreScreenshotTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		17AC7A425D365123A931A2A5 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = B94E763CD502A8AC37AEB2A4 /* NucleusIOS */;
+			targetProxy = 8CA0A0F19B274235D66D3312 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		02B18CEAF34D31373B0385AE /* Release */ = {
@@ -232,15 +345,15 @@
 				CODE_SIGN_ENTITLEMENTS = NucleusIOS/entitlements.ios.plist;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1000;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = Q3TXW887NM;
 				INFOPLIST_FILE = NucleusIOS/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.4.0;
-				PRODUCT_BUNDLE_IDENTIFIER = net.suherman.nucleus.ios;
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = net.suherman.nucleus;
 				SDKROOT = iphoneos;
 				SUPPORTS_MACCATALYST = NO;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -254,15 +367,15 @@
 				CODE_SIGN_ENTITLEMENTS = NucleusIOS/entitlements.ios.plist;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1000;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = Q3TXW887NM;
 				INFOPLIST_FILE = NucleusIOS/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.4.0;
-				PRODUCT_BUNDLE_IDENTIFIER = net.suherman.nucleus.ios;
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = net.suherman.nucleus;
 				SDKROOT = iphoneos;
 				SUPPORTS_MACCATALYST = NO;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -332,9 +445,54 @@
 			};
 			name = Debug;
 		};
+		B58DFF6BF3CDC4D753249BB9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				DEVELOPMENT_TEAM = Q3TXW887NM;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = net.suherman.nucleus.screenshots;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = NucleusIOS;
+			};
+			name = Release;
+		};
+		FA95777EE3D46D5014B8D3BE /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				DEVELOPMENT_TEAM = Q3TXW887NM;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = net.suherman.nucleus.screenshots;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = NucleusIOS;
+			};
+			name = Debug;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		476A23DBAF78CC92F7022AF6 /* Build configuration list for PBXNativeTarget "NucleusIOSScreenshots" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				FA95777EE3D46D5014B8D3BE /* Debug */,
+				B58DFF6BF3CDC4D753249BB9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
 		90A4C1972F5FCB4C4FE324E4 /* Build configuration list for PBXNativeTarget "NucleusIOS" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

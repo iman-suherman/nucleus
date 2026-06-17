@@ -32,6 +32,8 @@ The root `Sources/` kits (`NucleusKit`, `DatabaseKit`, `AccountKit`, etc.) remai
 
 ## Build iOS app
 
+Bundle ID: **`net.suherman.nucleus`** (same as macOS — do not use `net.suherman.nucleus.ios`).
+
 ```bash
 # From repo root
 npm run build:ios

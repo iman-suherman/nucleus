@@ -25,6 +25,9 @@ let package = Package(
                 .product(name: "NotesKit", package: "Nucleus"),
                 .product(name: "SyncKit", package: "Nucleus"),
             ],
+            resources: [
+                .copy("Resources/DashboardQuotes.json"),
+            ],
             linkerSettings: [
                 .linkedFramework("Accounts", .when(platforms: [.iOS])),
             ]

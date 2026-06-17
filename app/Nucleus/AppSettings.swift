@@ -169,6 +169,7 @@ final class AppSettings: ObservableObject {
         static let billNotifyThreeDaysBefore = "nucleus.settings.billNotifyThreeDaysBefore"
         static let billNotifyOneDayBefore = "nucleus.settings.billNotifyOneDayBefore"
         static let billNotifyOnDueDate = "nucleus.settings.billNotifyOnDueDate"
+        static let dashboardPreferences = "nucleus.settings.dashboardPreferences"
     }
 
     static let currentAppVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.1.0"
@@ -316,6 +317,10 @@ final class AppSettings: ObservableObject {
 
     @Published var billNotifyOnDueDate: Bool {
         didSet { UserDefaults.standard.set(billNotifyOnDueDate, forKey: Keys.billNotifyOnDueDate) }
+    }
+
+    @Published var dashboardPreferences: DashboardPreferences {
+        didSet { Self.persistDashboardPreferences(dashboardPreferences) }
     }
 
     var billDueReminderConfiguration: BillDueReminderConfiguration {
@@ -515,6 +520,37 @@ final class AppSettings: ObservableObject {
         } else {
             billNotifyOnDueDate = true
         }
+
+        dashboardPreferences = Self.loadDashboardPreferences()
+    }
+
+    func resetDashboardPreferences() {
+        dashboardPreferences = DashboardPreferences()
+    }
+
+    private static func persistDashboardPreferences(_ preferences: DashboardPreferences) {
+        guard let data = try? JSONEncoder().encode(preferences) else { return }
+        UserDefaults.standard.set(data, forKey: Keys.dashboardPreferences)
+    }
+
+    private static func loadDashboardPreferences() -> DashboardPreferences {
+        if let data = UserDefaults.standard.data(forKey: Keys.dashboardPreferences),
+           let preferences = try? JSONDecoder().decode(DashboardPreferences.self, from: data) {
+            return preferences
+        }
+
+        var preferences = DashboardPreferences()
+        if UserDefaults.standard.object(forKey: "nucleus.dashboard.intelligentInsightExpanded") != nil {
+            preferences.intelligentInsightExpanded = UserDefaults.standard.bool(
+                forKey: "nucleus.dashboard.intelligentInsightExpanded"
+            )
+        }
+        if UserDefaults.standard.object(forKey: "nucleus.dashboard.clipboardDayExpanded") != nil {
+            preferences.clipboardDayExpanded = UserDefaults.standard.bool(
+                forKey: "nucleus.dashboard.clipboardDayExpanded"
+            )
+        }
+        return preferences
     }
 
     private func persistMailNotificationSoundOverrides() {
@@ -557,5 +593,51 @@ final class AppSettings: ObservableObject {
             overrides[accountID] = sound
         }
         return overrides
+    }
+}
+
+struct DashboardPreferences: Codable, Equatable {
+    var quoteEnabled: Bool
+    var intelligentInsightEnabled: Bool
+    var clipboardDayEnabled: Bool
+    var summaryMetricsEnabled: Bool
+    var billPreparationEnabled: Bool
+    var weatherEnabled: Bool
+    var resourceUsageEnabled: Bool
+    var cloudSyncPanelEnabled: Bool
+    var publicHolidayEnabled: Bool
+    var newsFeedEnabled: Bool
+    var productivityChartEnabled: Bool
+    var intelligentInsightExpanded: Bool
+    var clipboardDayExpanded: Bool
+
+    init(
+        quoteEnabled: Bool = true,
+        intelligentInsightEnabled: Bool = true,
+        clipboardDayEnabled: Bool = true,
+        summaryMetricsEnabled: Bool = true,
+        billPreparationEnabled: Bool = true,
+        weatherEnabled: Bool = true,
+        resourceUsageEnabled: Bool = true,
+        cloudSyncPanelEnabled: Bool = true,
+        publicHolidayEnabled: Bool = true,
+        newsFeedEnabled: Bool = true,
+        productivityChartEnabled: Bool = true,
+        intelligentInsightExpanded: Bool = true,
+        clipboardDayExpanded: Bool = true
+    ) {
+        self.quoteEnabled = quoteEnabled
+        self.intelligentInsightEnabled = intelligentInsightEnabled
+        self.clipboardDayEnabled = clipboardDayEnabled
+        self.summaryMetricsEnabled = summaryMetricsEnabled
+        self.billPreparationEnabled = billPreparationEnabled
+        self.weatherEnabled = weatherEnabled
+        self.resourceUsageEnabled = resourceUsageEnabled
+        self.cloudSyncPanelEnabled = cloudSyncPanelEnabled
+        self.publicHolidayEnabled = publicHolidayEnabled
+        self.newsFeedEnabled = newsFeedEnabled
+        self.productivityChartEnabled = productivityChartEnabled
+        self.intelligentInsightExpanded = intelligentInsightExpanded
+        self.clipboardDayExpanded = clipboardDayExpanded
     }
 }

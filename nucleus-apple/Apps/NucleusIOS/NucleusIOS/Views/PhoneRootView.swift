@@ -7,13 +7,31 @@ struct PhoneRootView: View {
 
     var body: some View {
         TabView(selection: tabBinding) {
-            NotesWorkspaceScreen()
-                .tabItem { Label(MobileWorkspaceTab.notes.title, systemImage: MobileWorkspaceTab.notes.icon) }
-                .tag(MobileWorkspaceTab.notes)
+            ForEach(MobileWorkspaceTab.iosTabs) { tab in
+                tabContent(for: tab)
+                    .tabItem {
+                        Label(tab.title, systemImage: tab.icon)
+                    }
+                    .tag(tab)
+            }
+        }
+    }
 
+    @ViewBuilder
+    private func tabContent(for tab: MobileWorkspaceTab) -> some View {
+        switch tab {
+        case .dashboard:
+            DashboardWorkspaceScreen()
+        case .notes:
+            NotesWorkspaceScreen()
+        case .passwords:
+            PasswordsWorkspaceScreen()
+        case .bills:
+            BillsWorkspaceScreen()
+        case .settings:
             SettingsWorkspaceScreen()
-                .tabItem { Label(MobileWorkspaceTab.settings.title, systemImage: MobileWorkspaceTab.settings.icon) }
-                .tag(MobileWorkspaceTab.settings)
+        default:
+            DashboardWorkspaceScreen()
         }
     }
 

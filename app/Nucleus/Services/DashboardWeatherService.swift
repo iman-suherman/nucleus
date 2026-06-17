@@ -38,13 +38,20 @@ enum DashboardGreeting {
     }
 
     static func timeOfDay(now: Date = Date(), calendar: Calendar = .current) -> String {
-        let hour = calendar.component(.hour, from: now)
-        switch hour {
-        case 5..<12: return "Good morning"
-        case 12..<17: return "Good afternoon"
-        case 17..<22: return "Good evening"
-        default: return "Good evening"
+        timeOfDay(for: DashboardTimePeriod.current(now: now, calendar: calendar))
+    }
+
+    static func timeOfDay(for period: DashboardTimePeriod) -> String {
+        switch period {
+        case .morning: return "Good morning"
+        case .afternoon: return "Good afternoon"
+        case .evening: return "Good evening"
+        case .night: return "Good night"
         }
+    }
+
+    static func isWeekend(now: Date = Date(), calendar: Calendar = .current) -> Bool {
+        calendar.isDateInWeekend(now)
     }
 }
 
@@ -384,12 +391,24 @@ final class DashboardWeatherService: NSObject, ObservableObject {
             let forecast = try await weatherService.weather(for: location)
             guard !Task.isCancelled, generation == weatherFetchGeneration else { return }
 
-            let cityName = await Self.resolveCityName(for: location)
+            let locationContext = await Self.resolveLocationContext(for: location)
+            let fallbackCityName = await Self.resolveCityName(for: location)
+            let cityName = locationContext?.localityName
+                ?? locationContext?.subdivisionName
+                ?? fallbackCityName
             guard !Task.isCancelled, generation == weatherFetchGeneration else { return }
 
             weather = Self.makeTodayWeather(from: forecast, cityName: cityName)
             statusMessage = nil
             lastSuccessfulFetchAt = Date()
+
+            let countryCode = locationContext?.countryCode ?? Self.fallbackCountryCode()
+            DashboardPublicHolidayService.shared.refresh(
+                countryCode: countryCode,
+                subdivisionCode: locationContext?.subdivisionCode,
+                locationLabel: locationContext?.dashboardLocationLabel
+            )
+            DashboardNewsFeedService.shared.startAutoRefresh(countryCode: countryCode)
         } catch {
             guard !Task.isCancelled, generation == weatherFetchGeneration else { return }
 
@@ -468,6 +487,25 @@ final class DashboardWeatherService: NSObject, ObservableObject {
         } catch {
             return nil
         }
+    }
+
+    private static func resolveLocationContext(for location: CLLocation) async -> DashboardLocationContext? {
+        let geocoder = CLGeocoder()
+        do {
+            let placemarks = try await geocoder.reverseGeocodeLocation(location)
+            guard let placemark = placemarks.first else { return nil }
+            return DashboardLocationSubdivisionResolver.context(from: placemark)
+        } catch {
+            return nil
+        }
+    }
+
+    private static func resolveCountryCode(for location: CLLocation) async -> String? {
+        await resolveLocationContext(for: location)?.countryCode
+    }
+
+    private static func fallbackCountryCode() -> String? {
+        Locale.current.region?.identifier.uppercased()
     }
 
     private static func makeTodayWeather(from weather: Weather, cityName: String?) -> DashboardTodayWeather {

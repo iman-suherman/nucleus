@@ -1,0 +1,26 @@
+---
+description: Nucleus uses one App ID on all Apple platforms
+globs:
+  - nucleus-apple/**
+  - app/**
+  - Sources/**
+alwaysApply: false
+---
+
+# Nucleus bundle identifier
+
+Use **`net.suherman.nucleus`** for every Nucleus Apple app target (macOS and iOS).
+
+## Forbidden
+
+- `net.suherman.nucleus.ios` or any other iOS-specific bundle suffix
+- Separate WeatherKit / CloudKit / Keychain App IDs for mobile
+
+## Required alignment
+
+- Xcode `PRODUCT_BUNDLE_IDENTIFIER`: `net.suherman.nucleus`
+- iCloud container: `iCloud.net.suherman.nucleus`
+- Keychain access group: `$(AppIdentifierPrefix)net.suherman.nucleus`
+- URL scheme / deep links: `net.suherman.nucleus`
+
+Prefer `NucleusAppIdentity.bundleIdentifier` from NucleusCore when referencing the bundle ID in Swift.

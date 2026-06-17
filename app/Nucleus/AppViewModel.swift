@@ -57,6 +57,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
     @Published var dashboardAnalyzedAt: Date?
     @Published var dashboardQuote: String = DashboardQuotes.currentOrRandom()
     @Published var dashboardQuoteEmojis: String = ""
+    @Published var clipboardDayAnalysis: DashboardClipboardDayAnalysis?
     @Published var accountError: String?
     @Published var webSessionStatus: [UUID: Bool] = [:]
     @Published var oauthConnectionStatus: [UUID: Bool] = [:]
@@ -79,6 +80,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
     private var billReminderSettingsObserver: AnyCancellable?
     private var menuBarSettingsObserver: AnyCancellable?
     private var dashboardQuoteEmojiTask: Task<Void, Never>?
+    private var clipboardDayAnalysisTask: Task<Void, Never>?
     private var dismissedPasswordSuggestionHashes = Set<String>()
     private var isBootstrapping = false
     private var hasFinishedBootstrap = false
@@ -290,6 +292,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
 
         if hadBaseline, count > previous {
             pendingMailNotificationDeltas[accountID, default: 0] += count - previous
+            flushPendingMailNotifications()
             Task { await syncMail() }
         }
     }
@@ -741,6 +744,10 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         let context = ModelContext(modelContainer)
         accounts = (try? AccountRepository.fetchAll(context: context)) ?? []
         clipboardEntries = (try? ClipboardRepository.fetchRecent(context: context)) ?? []
+        if clipboardDayAnalysis == nil,
+           let cached = DashboardClipboardDayAnalysisService.cachedAnalysis() {
+            clipboardDayAnalysis = cached
+        }
         bills = (try? BillRepository.fetchAll(context: context)) ?? []
         billPayments = (try? BillRepository.fetchPayments(context: context)) ?? []
         notes = (try? NoteRepository.fetchAll(context: context)) ?? []
@@ -824,8 +831,69 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         try? DashboardAnalysisRepository.upsert(stored, context: context)
         storedDashboardAnalysis = stored
         dashboardAnalyzedAt = stored.analyzedAt
-        dashboardQuote = DashboardQuotes.pickRandom(excluding: dashboardQuote)
+        refreshDashboardQuoteForCurrentContext(forceNew: true)
         refreshDashboardQuoteEmojis()
+        refreshClipboardDayAnalysis(force: true)
+    }
+
+    func refreshClipboardDayAnalysisIfNeeded() {
+        refreshClipboardDayAnalysis(force: false)
+    }
+
+    func refreshClipboardDayAnalysis(force: Bool = false) {
+        let snapshot = computeDashboardSnapshot()
+        let entries = clipboardEntries
+        let lastAnalyzedAt = clipboardDayAnalysis?.analyzedAt
+            ?? DashboardClipboardDayAnalysisService.cachedAnalysis()?.analyzedAt
+
+        if !DashboardClipboardDayAnalysisService.shouldRefresh(
+            lastAnalyzedAt: lastAnalyzedAt,
+            force: force
+        ) {
+            if clipboardDayAnalysis == nil,
+               let cached = DashboardClipboardDayAnalysisService.cachedAnalysis() {
+                clipboardDayAnalysis = cached
+            }
+            return
+        }
+
+        clipboardDayAnalysis = DashboardClipboardDayAnalysisEngine.fallback(
+            entries: entries,
+            snapshot: snapshot
+        )
+
+        clipboardDayAnalysisTask?.cancel()
+        clipboardDayAnalysisTask = Task { @MainActor in
+            let analysis = await DashboardClipboardDayAnalysisService.resolveAnalysis(
+                entries: entries,
+                snapshot: snapshot,
+                force: force
+            )
+            guard !Task.isCancelled else { return }
+            clipboardDayAnalysis = analysis
+        }
+    }
+
+    var nextClipboardDayAnalysisAt: Date? {
+        guard let analyzedAt = clipboardDayAnalysis?.analyzedAt else { return nil }
+        return analyzedAt.addingTimeInterval(DashboardClipboardDayAnalysisService.analysisInterval)
+    }
+
+    func refreshDashboardQuoteForCurrentContext(forceNew: Bool = false) {
+        let isHoliday = DashboardPublicHolidayService.shared.isTodayPublicHoliday
+        if forceNew {
+            dashboardQuote = DashboardQuotes.pickRandom(
+                excluding: dashboardQuote,
+                isPublicHoliday: isHoliday
+            )
+            return
+        }
+        if let refreshed = DashboardQuotes.refreshIfContextChanged(
+            excluding: dashboardQuote,
+            isPublicHoliday: isHoliday
+        ) {
+            dashboardQuote = refreshed
+        }
     }
 
     func refreshDashboardQuoteEmojis() {
@@ -1132,6 +1200,11 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         }
 
         flushPendingMailNotifications()
+
+        for account in accounts where account.authMode == .webSession {
+            GmailWebView.ensureUnreadSync(accountID: account.id, email: account.email)
+        }
+        NotificationCenter.default.post(name: .gmailWebUnreadPollNow, object: nil)
 
         updateDockBadge()
         statusMessage = statusMessageForCurrentState()

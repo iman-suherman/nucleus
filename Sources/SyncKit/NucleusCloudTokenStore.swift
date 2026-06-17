@@ -1,5 +1,8 @@
 import Foundation
 import Security
+#if canImport(UIKit)
+import UIKit
+#endif
 
 public enum NucleusCloudTokenError: Error, LocalizedError {
     case encodingFailed
@@ -110,6 +113,12 @@ public enum NucleusCloudDeviceIdentity {
     }
 
     public static var deviceName: String {
-        Host.current().localizedName ?? "Nucleus Mac"
+        #if os(macOS)
+        return Host.current().localizedName ?? "Nucleus Mac"
+        #elseif canImport(UIKit)
+        return UIDevice.current.name
+        #else
+        return "Nucleus Device"
+        #endif
     }
 }

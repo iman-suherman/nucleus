@@ -28,7 +28,7 @@ export function Hero() {
           <p className="mt-4 max-w-3xl text-base leading-7 text-slate-400 sm:mt-6 sm:text-lg sm:leading-8 md:text-xl md:leading-9">
             Nucleus unifies Gmail, Google Chat, Calendar, clipboard intelligence, markdown notes,
             password vault, monthly bills, and Funky alerts across multiple Google accounts — with a
-            Dashboard that greets you, shows today&apos;s weather, and summarizes what needs
+            Dashboard that greets you, analyses your clipboard day, and summarizes what needs
             attention before you dive in.
           </p>
 
@@ -58,6 +58,7 @@ export function Hero() {
           </div>
 
           <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm text-slate-500 sm:mt-8 sm:gap-x-8 sm:text-base">
+            <span>Your day analysis</span>
             <span>Dashboard</span>
             <span>Multi-account Gmail</span>
             <span>Google Chat</span>

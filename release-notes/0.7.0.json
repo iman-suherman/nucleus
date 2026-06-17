@@ -1,0 +1,27 @@
+{
+  "version": "0.7.0",
+  "summary": "Dashboard Your day analysis turns clipboard captures into productivity insights and improvement suggestions.",
+  "releaseNotes": {
+    "introduced": [
+      "Your day analyses today's clipboard captures every 30 minutes — category breakdown, behavioral insights, and suggestions to improve how you work",
+      "Dashboard settings let you show or hide quote, intelligent insight, Your day, metrics, bills, weather, resource usage, cloud sync, holidays, news, and the productivity chart",
+      "News feed ticker, next public holiday card, and collapsible intelligent insight and Your day sections on the Dashboard",
+      "Nucleus Cloud token store and dashboard analysis caching for smoother periodic refresh"
+    ],
+    "changed": [
+      "Productivity insights highlight dominant categories, source apps, context-switching patterns, and capture pace instead of generic summaries",
+      "Clipboard day analysis uses Apple Intelligence on macOS 26+ with a rule-based fallback everywhere else",
+      "Dashboard layout places resource usage and cloud sync above the public holiday row; news feed shows more rows with slower scroll",
+      "Marketing website updated with a Dashboard showcase and the latest app screenshot"
+    ],
+    "fixed": [
+      "Empty bullet points no longer appear in Your day productivity insights or improvement suggestions",
+      "Sensitive clipboard captures are excluded from analysis examples"
+    ],
+    "updated": [],
+    "removed": [
+      "Work from your clipboard task cards removed from Your day — insights and suggestions remain"
+    ],
+    "breaking": []
+  }
+}

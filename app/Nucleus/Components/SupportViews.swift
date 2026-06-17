@@ -85,6 +85,8 @@ struct AppSettingsView: View {
             nucleusCloudSection
         case .iCloud:
             iCloudSyncSection
+        case .dashboard:
+            dashboardPreferencesSection
         case .menuBar:
             menuBarSection
         case .keychain:
@@ -263,6 +265,61 @@ struct AppSettingsView: View {
                 Task { await syncService.refreshAccountStatus() }
             }
         }
+    }
+
+    private var dashboardPreferencesSection: some View {
+        Group {
+            Section("Insights") {
+                Toggle("Daily quote under greeting", isOn: dashboardPreferenceBinding(\.quoteEnabled))
+                Toggle("Intelligent insight", isOn: dashboardPreferenceBinding(\.intelligentInsightEnabled))
+                Toggle("Your day (clipboard work analysis)", isOn: dashboardPreferenceBinding(\.clipboardDayEnabled))
+            }
+
+            Section("At a glance") {
+                Toggle("Summary metrics", isOn: dashboardPreferenceBinding(\.summaryMetricsEnabled))
+                Toggle("Payment preparation", isOn: dashboardPreferenceBinding(\.billPreparationEnabled))
+            }
+
+            Section("Live panels") {
+                Toggle("Today's weather", isOn: dashboardPreferenceBinding(\.weatherEnabled))
+                Toggle("Resource usage", isOn: dashboardPreferenceBinding(\.resourceUsageEnabled))
+                Toggle("Cloud sync panel", isOn: dashboardPreferenceBinding(\.cloudSyncPanelEnabled))
+                Toggle("Next public holiday", isOn: dashboardPreferenceBinding(\.publicHolidayEnabled))
+                Toggle("News feed", isOn: dashboardPreferenceBinding(\.newsFeedEnabled))
+            }
+
+            Section("Productivity") {
+                Toggle("Productivity chart and analysis", isOn: dashboardPreferenceBinding(\.productivityChartEnabled))
+            }
+
+            Section("Section defaults") {
+                Toggle("Start with Intelligent insight expanded", isOn: dashboardPreferenceBinding(\.intelligentInsightExpanded))
+                    .disabled(!settings.dashboardPreferences.intelligentInsightEnabled)
+                Toggle("Start with Your day expanded", isOn: dashboardPreferenceBinding(\.clipboardDayExpanded))
+                    .disabled(!settings.dashboardPreferences.clipboardDayEnabled)
+            }
+
+            Section {
+                Button("Reset dashboard to defaults") {
+                    settings.resetDashboardPreferences()
+                }
+
+                Text("Choose which dashboard sections appear and whether collapsible panels open expanded by default.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private func dashboardPreferenceBinding(_ keyPath: WritableKeyPath<DashboardPreferences, Bool>) -> Binding<Bool> {
+        Binding(
+            get: { settings.dashboardPreferences[keyPath: keyPath] },
+            set: { newValue in
+                var preferences = settings.dashboardPreferences
+                preferences[keyPath: keyPath] = newValue
+                settings.dashboardPreferences = preferences
+            }
+        )
     }
 
     private var iCloudKeychainSection: some View {
@@ -552,6 +609,7 @@ private struct ICloudSyncLogPanel: View {
 enum SettingsTab: String, CaseIterable, Identifiable {
     case nucleusCloud
     case iCloud
+    case dashboard
     case menuBar
     case keychain
     case notifications
@@ -565,6 +623,7 @@ enum SettingsTab: String, CaseIterable, Identifiable {
         switch self {
         case .nucleusCloud: return "Nucleus Cloud"
         case .iCloud: return "iCloud"
+        case .dashboard: return "Dashboard"
         case .menuBar: return "Menu Bar"
         case .keychain: return "Keychain"
         case .notifications: return "Notifications"
@@ -578,6 +637,7 @@ enum SettingsTab: String, CaseIterable, Identifiable {
         switch self {
         case .nucleusCloud: return "cloud"
         case .iCloud: return "icloud"
+        case .dashboard: return "square.grid.2x2"
         case .menuBar: return "menubar.rectangle"
         case .keychain: return "key"
         case .notifications: return "bell"
@@ -593,6 +653,8 @@ enum SettingsTab: String, CaseIterable, Identifiable {
             return "Cross-platform sync without Apple iCloud."
         case .iCloud:
             return "Sync accounts, notes, bills, and preferences across your Macs."
+        case .dashboard:
+            return "Show or hide dashboard sections and set default panel states."
         case .menuBar:
             return "Clipboard history, passwords, and password detection from the menu bar."
         case .keychain:

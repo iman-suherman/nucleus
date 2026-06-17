@@ -7,7 +7,7 @@ import SyncKit
 public final class ICloudSyncDisplayService: ObservableObject {
     public static let shared = ICloudSyncDisplayService()
 
-    public let containerIdentifier = "iCloud.net.suherman.nucleus"
+    public let containerIdentifier = NucleusAppIdentity.iCloudContainerIdentifier
 
     @Published public private(set) var syncStatus: CloudKitSyncService.SyncStatus = .checking
     @Published public private(set) var isSignedIn = false

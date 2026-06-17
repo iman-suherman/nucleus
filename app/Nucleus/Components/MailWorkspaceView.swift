@@ -86,13 +86,23 @@ struct GmailWebView: NSViewRepresentable {
         }
     }
 
-    static func ensureUnreadSync(accountID: UUID, email: String) {
+    static func ensureUnreadSync(accountID: UUID, email: String, retryAttempt: Int = 0) {
         let webView = EmbeddedWebViewRegistry.webView(accountID: accountID, surface: .mail)
         if !EmbeddedWebViewRegistry.hasLoadedContent(webView),
            let url = inboxURL(for: email) {
             webView.load(URLRequest(url: url))
         }
-        pollUnreadCount(accountID: accountID)
+
+        if webView.url?.absoluteString.contains("mail.google.com/mail") == true {
+            pollUnreadCount(accountID: accountID)
+            return
+        }
+
+        guard retryAttempt < 12 else { return }
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 2_500_000_000)
+            ensureUnreadSync(accountID: accountID, email: email, retryAttempt: retryAttempt + 1)
+        }
     }
 
     static func pollUnreadCount(accountID: UUID) {

@@ -1,39 +1,53 @@
 import Foundation
 
 public enum MobileWorkspaceTab: String, CaseIterable, Identifiable, Codable, Sendable {
+    case dashboard
+    case notes
+    case passwords
+    case bills
+    case settings
     case mail
     case calendar
     case chat
-    case notes
-    case settings
 
     public var id: String { rawValue }
 
-    /// Tabs shown in the iOS companion app (Mail, Calendar, and Chat are macOS-only).
-    public static let iosTabs: [MobileWorkspaceTab] = [.notes, .settings]
+    /// Tabs shown in the iOS / iPadOS app.
+    public static let iosTabs: [MobileWorkspaceTab] = [.dashboard, .notes, .passwords, .bills, .settings]
 
     public var title: String {
         switch self {
+        case .dashboard: return "Dashboard"
+        case .notes: return "Notes"
+        case .passwords: return "Passwords"
+        case .bills: return "Bills"
+        case .settings: return "Settings"
         case .mail: return "Mail"
         case .calendar: return "Calendar"
         case .chat: return "Chat"
-        case .notes: return "Notes"
-        case .settings: return "Settings"
         }
     }
 
     public var icon: String {
         switch self {
+        case .dashboard: return "square.grid.2x2.fill"
+        case .notes: return "note.text"
+        case .passwords: return "key.fill"
+        case .bills: return "dollarsign.circle"
+        case .settings: return "gearshape"
         case .mail: return "tray.full"
         case .calendar: return "calendar"
         case .chat: return "message"
-        case .notes: return "note.text"
-        case .settings: return "gearshape"
         }
     }
 
     public static func normalizedForIOS(_ tab: MobileWorkspaceTab) -> MobileWorkspaceTab {
-        iosTabs.contains(tab) ? tab : .notes
+        switch tab {
+        case .mail, .calendar, .chat:
+            return .dashboard
+        default:
+            return iosTabs.contains(tab) ? tab : .dashboard
+        }
     }
 }
 
@@ -50,7 +64,7 @@ public struct MobilePreferences: Codable, Hashable, Sendable {
 
     public init(
         version: Int = MobilePreferences.currentVersion,
-        selectedTab: MobileWorkspaceTab = .notes,
+        selectedTab: MobileWorkspaceTab = .dashboard,
         selectedMailAccountID: String? = nil,
         selectedCalendarAccountID: String? = nil,
         selectedChatAccountID: String? = nil,

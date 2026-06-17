@@ -4,15 +4,21 @@ import { BRAND_NAME } from "@/lib/brand";
 
 const features = [
   {
+    title: "Your day",
+    description:
+      "Clipboard-powered productivity analysis refreshes every 30 minutes. See today's capture breakdown, behavioral insights — dominant categories, source apps, context switching — and concrete suggestions to consolidate drafts, batch commands, or reduce copy-paste fragmentation.",
+    icon: "📊",
+  },
+  {
     title: "Dashboard",
     description:
-      "A morning greeting with a daily quote, intelligent insight, today's weather, live resource usage, and Cloud sync status — plus summary metrics and a seven-day productivity chart from your clipboard activity.",
+      "A morning greeting with daily quote, intelligent insight, Your day analysis, today's weather, live resource usage, Cloud sync, public holidays, news feed, summary metrics, payment preparation, and a seven-day productivity chart — with toggles for every section in Settings.",
     icon: "✨",
   },
   {
     title: "Intelligent insight",
     description:
-      "Rule-based analysis turns unread mail, chat, passwords, bills, and clipboard captures into a dated narrative — with manual Analyse Now and automatic refresh every 30 minutes.",
+      "Rule-based analysis turns unread mail, chat, passwords, bills, and clipboard captures into a dated workspace narrative. Collapsible on the Dashboard with manual Analyse Now and automatic refresh every 30 minutes.",
     icon: "🧠",
   },
   {
@@ -42,7 +48,7 @@ const features = [
   {
     title: "Clipboard memory",
     description:
-      "Automatic clipboard history with search, pinning, and save-to-notes. Paste from history with ⌘⇧V. Intelligent clipboard detects password-like content and offers to save it to your vault.",
+      "Automatic clipboard history with search, pinning, and save-to-notes. Paste from history with ⌘⇧V. Intelligent clipboard detects password-like content and offers to save it to your vault — and feeds Your day productivity analysis on the Dashboard.",
     icon: "📋",
   },
   {

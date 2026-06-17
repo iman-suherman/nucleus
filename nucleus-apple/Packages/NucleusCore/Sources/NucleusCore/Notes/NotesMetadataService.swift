@@ -65,6 +65,13 @@ public final class NotesMetadataService: ObservableObject {
         reload()
     }
 
+    public func deleteNote(_ note: NoteDocument) throws {
+        let context = ModelContext(modelContainer)
+        try NoteRepository.delete(id: note.id, context: context)
+        CloudKitSyncService.shared.markNotesLocalChange()
+        reload()
+    }
+
     private static func statusMessage() -> String {
         if NucleusDatabase.usesCloudKitSync {
             return "Syncing notes via iCloud CloudKit"

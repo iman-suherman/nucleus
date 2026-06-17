@@ -150,6 +150,8 @@ public enum DashboardInsightsEngine {
         clipboardEntries: [ClipboardEntry],
         withinDays: Int = 14,
         clipboardLookbackDays: Int = 7,
+        includeCommunicationActivity: Bool = true,
+        includeClipboardActivity: Bool = true,
         now: Date = Date(),
         calendar: Calendar = .current
     ) -> DashboardSnapshot {
@@ -178,9 +180,11 @@ public enum DashboardInsightsEngine {
                 lookbackDays: clipboardLookbackDays,
                 now: now,
                 calendar: calendar
-            )
+            ),
+            includeCommunicationActivity: includeCommunicationActivity,
+            includeClipboardActivity: includeClipboardActivity
         )
-        let productivity = productivityAssessment(from: buckets)
+        let productivity = includeClipboardActivity ? productivityAssessment(from: buckets) : ""
 
         return DashboardSnapshot(
             unreadMailCount: unreadMailCount,
@@ -239,7 +243,8 @@ public enum DashboardInsightsEngine {
         payments: [BillPayment],
         withinDays: Int = 14,
         now: Date = Date(),
-        calendar: Calendar = .current
+        calendar: Calendar = .current,
+        includeDueDates: Bool = true
     ) -> DashboardBillPaymentSummary {
         let upcoming = upcomingBills(
             bills: bills,
@@ -294,13 +299,68 @@ public enum DashboardInsightsEngine {
 
         return DashboardBillPaymentSummary(
             groups: groups,
-            preparationNotes: billPreparationNarrative(groups: groups, calendar: calendar)
+            preparationNotes: billPreparationNarrative(
+                groups: groups,
+                now: now,
+                calendar: calendar,
+                includeDueDates: includeDueDates
+            )
         )
+    }
+
+    public static func dueWindowDisplayLabel(
+        from earliest: Date,
+        to latest: Date,
+        now: Date = Date(),
+        calendar: Calendar = .current
+    ) -> String {
+        let datePhrase = dueWindowDatePhrase(from: earliest, to: latest, calendar: calendar)
+        let relativePhrase = dueWindowRelativePhrase(from: earliest, to: latest, now: now, calendar: calendar)
+        return "\(datePhrase) · \(relativePhrase)"
+    }
+
+    public static func dueWindowRelativePhrase(
+        from earliest: Date,
+        to latest: Date,
+        now: Date = Date(),
+        calendar: Calendar = .current
+    ) -> String {
+        let start = calendar.startOfDay(for: earliest)
+        let end = calendar.startOfDay(for: latest)
+        if start == end {
+            return BillScheduleCalculator.dueCountdown(for: earliest, from: now, calendar: calendar)
+        }
+
+        let minDays = BillScheduleCalculator.daysUntilDue(for: earliest, from: now, calendar: calendar)
+        let maxDays = BillScheduleCalculator.daysUntilDue(for: latest, from: now, calendar: calendar)
+
+        if minDays >= 0 && maxDays >= 0 {
+            if minDays == maxDays {
+                return BillScheduleCalculator.dueCountdown(for: earliest, from: now, calendar: calendar)
+            }
+            if minDays == 1 && maxDays == 1 {
+                return "Due tomorrow"
+            }
+            return "Due in \(minDays)–\(maxDays) days"
+        }
+
+        if minDays < 0 && maxDays < 0 {
+            if minDays == maxDays {
+                return BillScheduleCalculator.dueCountdown(for: earliest, from: now, calendar: calendar)
+            }
+            return "Overdue by \(abs(minDays))–\(abs(maxDays)) days"
+        }
+
+        let earliestPhrase = BillScheduleCalculator.dueCountdown(for: earliest, from: now, calendar: calendar)
+        let latestPhrase = BillScheduleCalculator.dueCountdown(for: latest, from: now, calendar: calendar)
+        return "\(earliestPhrase)–\(latestPhrase)"
     }
 
     public static func billPreparationNarrative(
         groups: [DashboardBillPaymentSummaryGroup],
-        calendar: Calendar = .current
+        now: Date = Date(),
+        calendar: Calendar = .current,
+        includeDueDates: Bool = true
     ) -> String {
         guard !groups.isEmpty else {
             return "You're all set — no payments to prepare for in the next two weeks."
@@ -311,7 +371,9 @@ public enum DashboardInsightsEngine {
             let duePhrase = dueWindowPhrase(
                 from: group.earliestDueDate,
                 to: group.latestDueDate,
-                calendar: calendar
+                now: now,
+                calendar: calendar,
+                includeDueDates: includeDueDates
             )
             let billPhrase = group.billCount == 1 ? "1 bill" : "\(group.billCount) bills"
             return "Prepare \(amount) for \(group.category.label.lowercased()) (\(billPhrase) due \(duePhrase))."
@@ -324,7 +386,20 @@ public enum DashboardInsightsEngine {
         return "Payment prep for the next two weeks: " + sentences.joined(separator: " ")
     }
 
-    private static func dueWindowPhrase(from earliest: Date, to latest: Date, calendar: Calendar) -> String {
+    private static func dueWindowPhrase(
+        from earliest: Date,
+        to latest: Date,
+        now: Date = Date(),
+        calendar: Calendar = .current,
+        includeDueDates: Bool = true
+    ) -> String {
+        if includeDueDates {
+            return dueWindowDisplayLabel(from: earliest, to: latest, now: now, calendar: calendar)
+        }
+        return dueWindowRelativePhrase(from: earliest, to: latest, now: now, calendar: calendar)
+    }
+
+    private static func dueWindowDatePhrase(from earliest: Date, to latest: Date, calendar: Calendar) -> String {
         let start = calendar.startOfDay(for: earliest)
         let end = calendar.startOfDay(for: latest)
         if start == end {
@@ -421,25 +496,31 @@ public enum DashboardInsightsEngine {
         notesCount: Int,
         upcomingBills: [DashboardUpcomingBill],
         buckets: [ClipboardProductivityBucket],
-        clipboardCount: Int
+        clipboardCount: Int,
+        includeCommunicationActivity: Bool = true,
+        includeClipboardActivity: Bool = true
     ) -> [String] {
         var openingParts: [String] = []
 
-        if unreadMailCount == 0, unreadChatCount == 0 {
-            openingParts.append("Your inbox and chat are clear right now.")
-        } else {
-            var comms: [String] = []
-            if unreadMailCount > 0 {
-                comms.append("\(unreadMailCount) unread email\(unreadMailCount == 1 ? "" : "s")")
+        if includeCommunicationActivity {
+            if unreadMailCount == 0, unreadChatCount == 0 {
+                openingParts.append("Your inbox and chat are clear right now.")
+            } else {
+                var comms: [String] = []
+                if unreadMailCount > 0 {
+                    comms.append("\(unreadMailCount) unread email\(unreadMailCount == 1 ? "" : "s")")
+                }
+                if unreadChatCount > 0 {
+                    comms.append("\(unreadChatCount) unread chat message\(unreadChatCount == 1 ? "" : "s")")
+                }
+                openingParts.append("You have \(comms.joined(separator: " and ")) waiting for attention.")
             }
-            if unreadChatCount > 0 {
-                comms.append("\(unreadChatCount) unread chat message\(unreadChatCount == 1 ? "" : "s")")
-            }
-            openingParts.append("You have \(comms.joined(separator: " and ")) waiting for attention.")
         }
 
         if upcomingBills.isEmpty {
-            openingParts.append("No bills are due in the next two weeks.")
+            openingParts.append(includeCommunicationActivity
+                ? "No bills are due in the next two weeks."
+                : "no bills due in the next two weeks")
         } else {
             let billPhrase = upcomingBills.count == 1 ? "1 upcoming bill" : "\(upcomingBills.count) upcoming bills"
             var totalsByCurrency: [String: Double] = [:]
@@ -450,30 +531,43 @@ public enum DashboardInsightsEngine {
                 NucleusFormatters.currencyString(totalsByCurrency[code, default: 0], currencyCode: code)
             }.joined(separator: ", ")
             openingParts.append(
-                "\(billPhrase) are due soon with \(amountPhrase) still outstanding."
+                includeCommunicationActivity
+                    ? "\(billPhrase) are due soon with \(amountPhrase) still outstanding."
+                    : "\(billPhrase) due soon with \(amountPhrase) still outstanding"
             )
         }
 
         let passwordPhrase = passwordCount == 1
-            ? "1 password is stored"
-            : "\(passwordCount) passwords are stored"
+            ? (includeCommunicationActivity ? "1 password is stored" : "1 password stored")
+            : (includeCommunicationActivity ? "\(passwordCount) passwords are stored" : "\(passwordCount) passwords stored")
         openingParts.append("\(passwordPhrase) securely in Nucleus.")
 
-        let paragraphOne = openingParts.joined(separator: " ")
+        let paragraphOne: String
+        if includeCommunicationActivity {
+            paragraphOne = openingParts.joined(separator: " ")
+        } else {
+            paragraphOne = "You have \(openingParts.joined(separator: ", and "))"
+        }
 
         var focusParts: [String] = []
-        if let dominant = buckets.max(by: { $0.count < $1.count }), dominant.count > 0, clipboardCount > 0 {
-            focusParts.append(
-                "Over the last week, most of your clipboard activity falls under \(dominant.category.rawValue.lowercased()) work (\(dominant.count) capture\(dominant.count == 1 ? "" : "s"))."
-            )
-        } else if clipboardCount == 0 {
-            focusParts.append("Clipboard activity has been quiet this week, so Nucleus has less signal about your day-to-day focus.")
-        } else {
-            focusParts.append("Your clipboard captures this week are spread across several kinds of work.")
+        if includeClipboardActivity {
+            if let dominant = buckets.max(by: { $0.count < $1.count }), dominant.count > 0, clipboardCount > 0 {
+                focusParts.append(
+                    "Over the last week, most of your clipboard activity falls under \(dominant.category.rawValue.lowercased()) work (\(dominant.count) capture\(dominant.count == 1 ? "" : "s"))."
+                )
+            } else if clipboardCount == 0 {
+                focusParts.append("Clipboard activity has been quiet this week, so Nucleus has less signal about your day-to-day focus.")
+            } else {
+                focusParts.append("Your clipboard captures this week are spread across several kinds of work.")
+            }
         }
 
         if notesCount > 0 {
             focusParts.append("You maintain \(notesCount) note\(notesCount == 1 ? "" : "s") across your knowledge base.")
+        }
+
+        if focusParts.isEmpty {
+            return [paragraphOne]
         }
 
         let paragraphTwo = focusParts.joined(separator: " ")
@@ -525,5 +619,51 @@ public struct StoredDashboardAnalysis: Sendable, Equatable, Codable {
     public init(snapshot: DashboardSnapshot, analyzedAt: Date = Date()) {
         self.snapshot = snapshot
         self.analyzedAt = analyzedAt
+    }
+}
+
+public enum DashboardInsightFormatting {
+    public static func formattedDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .full
+        formatter.timeStyle = .none
+        return formatter.string(from: date)
+    }
+
+    public static func formattedTime(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .none
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
+    }
+
+    public static func insightParagraphs(from snapshot: DashboardSnapshot, asOf date: Date) -> [String] {
+        var paragraphs = snapshot.activitySummary
+        guard !paragraphs.isEmpty else {
+            return ["As of \(formattedDate(date)) at \(formattedTime(date)), you have limited activity to report yet."]
+        }
+
+        paragraphs[0] = prefaceFirstParagraph(paragraphs[0], asOf: date)
+        if !snapshot.productivitySummary.isEmpty {
+            paragraphs.append(snapshot.productivitySummary)
+        }
+        return paragraphs
+    }
+
+    private static func prefaceFirstParagraph(_ paragraph: String, asOf date: Date) -> String {
+        let preface = "As of \(formattedDate(date)) at \(formattedTime(date)), you have"
+        let trimmed = paragraph.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if trimmed.hasPrefix("You have ") {
+            let remainder = String(trimmed.dropFirst("You have ".count))
+            return "\(preface) \(remainder)"
+        }
+
+        if trimmed.hasPrefix("Your inbox and chat are clear") {
+            let remainder = trimmed.replacingOccurrences(of: "Your inbox and chat are clear", with: "a clear inbox and chat")
+            return "\(preface) \(remainder)"
+        }
+
+        return "\(preface) \(trimmed.prefix(1).lowercased())\(trimmed.dropFirst())"
     }
 }

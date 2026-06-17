@@ -25,6 +25,8 @@
     "build:ios": "bash nucleus-apple/scripts/build-ios.sh",
     "xcode:ios": "cd nucleus-apple/Apps/NucleusIOS && xcodegen generate && open NucleusIOS.xcodeproj",
     "prepare:icon": "bash scripts/prepare-app-icon.sh && swift scripts/generate-app-icon.swift app/Nucleus/Assets.xcassets/AppIcon.appiconset app/Nucleus/Assets/AppIconSource.png",
+    "prepare:ios-icon": "bash nucleus-apple/scripts/prepare-ios-app-icon.sh",
+    "capture:ios-screenshots": "bash nucleus-apple/scripts/capture-app-store-screenshots.sh",
     "prepare:website": "swift scripts/prepare-website-assets.swift",
     "build:app:release": "bash scripts/build.sh release",
     "sign": "bash scripts/sign.sh",

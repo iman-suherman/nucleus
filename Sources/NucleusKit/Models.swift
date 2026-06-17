@@ -444,6 +444,19 @@ public struct NucleusSyncedConfiguration: Codable, Hashable, Sendable {
     }
 }
 
+public extension NucleusSyncedConfiguration {
+    var billDueReminderConfiguration: BillDueReminderConfiguration {
+        BillDueReminderConfiguration(
+            enabled: billNotificationsEnabled,
+            hour: billNotificationHour,
+            notifySevenDaysBefore: billNotifySevenDaysBefore,
+            notifyThreeDaysBefore: billNotifyThreeDaysBefore,
+            notifyOneDayBefore: billNotifyOneDayBefore,
+            notifyOnDueDate: billNotifyOnDueDate
+        )
+    }
+}
+
 public enum NucleusFormatters {
     public static let relativeDate: RelativeDateTimeFormatter = {
         let formatter = RelativeDateTimeFormatter()

@@ -7,7 +7,8 @@ export function Footer() {
       <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 sm:py-6">
         <p className="max-w-5xl text-sm leading-6 text-slate-400">
           {BRAND_NAME} is a native macOS personal operating system for Gmail, Google Chat, calendar,
-          bills, clipboard, notes, passwords, and Funky alerts — with Nucleus Cloud and iCloud sync.
+          bills, clipboard, notes, passwords, and Funky alerts — with a Dashboard that analyses your
+          day from clipboard activity, plus Nucleus Cloud and iCloud sync.
           Your Google web sessions stay in isolated cookie stores on your Mac. Contributions and
           issue reports are welcome on{" "}
           <a
@@ -37,6 +38,9 @@ export function Footer() {
           <div className="flex flex-wrap gap-4">
             <Link href="/install" className="transition hover:text-brand-blue">
               Install guide
+            </Link>
+            <Link href="/privacy" className="transition hover:text-brand-blue">
+              Privacy policy
             </Link>
             <Link href="/versions" className="transition hover:text-brand-blue">
               Versions

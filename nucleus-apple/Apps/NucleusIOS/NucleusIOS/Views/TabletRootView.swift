@@ -2,37 +2,20 @@ import NucleusCore
 import NucleusUI
 import SwiftUI
 
-private enum TabletSection: String, CaseIterable, Identifiable, Hashable {
-    case notes
-    case settings
-
-    var id: String { rawValue }
-
-    var tab: MobileWorkspaceTab {
-        switch self {
-        case .notes: return .notes
-        case .settings: return .settings
-        }
-    }
-
-    var title: String { tab.title }
-    var icon: String { tab.icon }
-}
-
 struct TabletRootView: View {
     @EnvironmentObject private var viewModel: MobileAppViewModel
-    @State private var selection: TabletSection = .notes
+    @State private var selection: MobileWorkspaceTab = .dashboard
     @State private var columnVisibility: NavigationSplitViewVisibility = .all
 
     var body: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
             List {
-                ForEach(TabletSection.allCases) { section in
+                ForEach(MobileWorkspaceTab.iosTabs) { tab in
                     SidebarRow(
-                        section: section,
-                        isSelected: selection == section
+                        tab: tab,
+                        isSelected: selection == tab
                     ) {
-                        selection = section
+                        selection = tab
                     }
                 }
             }
@@ -42,33 +25,43 @@ struct TabletRootView: View {
                 .navigationBarTitleDisplayMode(.inline)
         }
         .onChange(of: selection) { _, newValue in
-            viewModel.selectedTab = newValue.tab
+            viewModel.selectedTab = newValue
+        }
+        .onChange(of: viewModel.selectedTab) { _, newValue in
+            selection = newValue
         }
         .onAppear {
-            let tab = MobileWorkspaceTab.normalizedForIOS(viewModel.selectedTab)
-            selection = TabletSection(rawValue: tab.rawValue) ?? .notes
+            selection = MobileWorkspaceTab.normalizedForIOS(viewModel.selectedTab)
         }
     }
 
     @ViewBuilder
-    private func detailView(for section: TabletSection) -> some View {
-        switch section {
+    private func detailView(for tab: MobileWorkspaceTab) -> some View {
+        switch tab {
+        case .dashboard:
+            DashboardWorkspaceScreen()
         case .notes:
             NotesWorkspaceScreen()
+        case .passwords:
+            PasswordsWorkspaceScreen()
+        case .bills:
+            BillsWorkspaceScreen()
         case .settings:
             SettingsWorkspaceScreen()
+        default:
+            DashboardWorkspaceScreen()
         }
     }
 }
 
 private struct SidebarRow: View {
-    let section: TabletSection
+    let tab: MobileWorkspaceTab
     let isSelected: Bool
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            Label(section.title, systemImage: section.icon)
+            Label(tab.title, systemImage: tab.icon)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
         .buttonStyle(.plain)

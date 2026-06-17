@@ -32,6 +32,7 @@ public final class MobileSettingsSyncService: ObservableObject {
         emailEnabled: Bool,
         chatEnabled: Bool,
         calendarEnabled: Bool,
+        billConfiguration: BillDueReminderConfiguration,
         iCloudKeychainTokenSyncEnabled: Bool
     ) {
         guard let modelContainer else { return }
@@ -44,6 +45,12 @@ public final class MobileSettingsSyncService: ObservableObject {
         configuration.chatNotificationsEnabled = chatEnabled
         configuration.calendarNotificationsEnabled = calendarEnabled
         configuration.iCloudKeychainTokenSyncEnabled = iCloudKeychainTokenSyncEnabled
+        configuration.billNotificationsEnabled = billConfiguration.enabled
+        configuration.billNotificationHour = billConfiguration.hour
+        configuration.billNotifySevenDaysBefore = billConfiguration.notifySevenDaysBefore
+        configuration.billNotifyThreeDaysBefore = billConfiguration.notifyThreeDaysBefore
+        configuration.billNotifyOneDayBefore = billConfiguration.notifyOneDayBefore
+        configuration.billNotifyOnDueDate = billConfiguration.notifyOnDueDate
         configuration.updatedAt = Date()
 
         try? SyncedSettingsRepository.upsert(configuration, context: context)
