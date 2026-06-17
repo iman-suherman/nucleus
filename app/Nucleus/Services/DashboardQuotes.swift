@@ -43,6 +43,22 @@ enum DashboardQuotes {
         return candidate
     }
 
+    static func quoteBody(from quote: String) -> String {
+        var text = quote.trimmingCharacters(in: .whitespacesAndNewlines)
+        text = text.trimmingCharacters(in: CharacterSet(charactersIn: "\""))
+        while text.hasSuffix(".") {
+            text = String(text.dropLast()).trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        return text
+    }
+
+    static func displayBody(from quote: String, emojis: String) -> String {
+        let body = quoteBody(from: quote)
+        let trimmedEmojis = emojis.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedEmojis.isEmpty else { return body }
+        return "\(body) \(trimmedEmojis) "
+    }
+
     static func theme(for quote: String) -> String {
         let lower = quote.lowercased()
 

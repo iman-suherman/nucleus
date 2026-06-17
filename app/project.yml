@@ -44,6 +44,7 @@ targets:
         MARKETING_VERSION: 0.6.7
         ENABLE_HARDENED_RUNTIME: YES
         SPARKLE_PUBLIC_ED_KEY: B6P7+AkeawAfMFk4f5j3+0diuQWorDuCYNrVX0vJeV0=
+        OTHER_LDFLAGS: $(inherited) -weak_framework FoundationModels
       configs:
         Debug:
           SPARKLE_FEED_URL: http://127.0.0.1:3000/appcast.xml
@@ -70,6 +71,7 @@ targets:
         product: SyncKit
       - sdk: WeatherKit.framework
       - sdk: CoreLocation.framework
+      - sdk: FoundationModels.framework
     scheme:
       testTargets: []
 

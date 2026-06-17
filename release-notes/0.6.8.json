@@ -1,0 +1,18 @@
+{
+  "version": "0.6.8",
+  "summary": "Dashboard quote emoji matching and resource usage layout polish.",
+  "releaseNotes": {
+    "introduced": [
+      "Daily quotes pick matching emoji with Apple Intelligence on supported Macs, with a keyword fallback elsewhere"
+    ],
+    "changed": [
+      "Quote emoji replace the trailing period and sit at the end of the greeting line",
+      "Live Nucleus resource usage is a titled section above the CPU and Memory box",
+      "Analysis status reads as one sentence: Last analysis just now, next analyse in 30 minutes."
+    ],
+    "fixed": [],
+    "updated": [],
+    "removed": [],
+    "breaking": []
+  }
+}

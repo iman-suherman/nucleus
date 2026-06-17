@@ -56,6 +56,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
     @Published private(set) var storedDashboardAnalysis: StoredDashboardAnalysis?
     @Published var dashboardAnalyzedAt: Date?
     @Published var dashboardQuote: String = DashboardQuotes.currentOrRandom()
+    @Published var dashboardQuoteEmojis: String = ""
     @Published var accountError: String?
     @Published var webSessionStatus: [UUID: Bool] = [:]
     @Published var oauthConnectionStatus: [UUID: Bool] = [:]
@@ -77,6 +78,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
     private var billReminderRefreshTask: Task<Void, Never>?
     private var billReminderSettingsObserver: AnyCancellable?
     private var menuBarSettingsObserver: AnyCancellable?
+    private var dashboardQuoteEmojiTask: Task<Void, Never>?
     private var dismissedPasswordSuggestionHashes = Set<String>()
     private var isBootstrapping = false
     private var hasFinishedBootstrap = false
@@ -494,6 +496,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
             await syncMail()
         }
         DashboardAnalysisService.shared.start(viewModel: self)
+        refreshDashboardQuoteEmojis()
 
         updateDockBadge()
         startupMessage = "Nucleus is ready"
@@ -822,6 +825,23 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         storedDashboardAnalysis = stored
         dashboardAnalyzedAt = stored.analyzedAt
         dashboardQuote = DashboardQuotes.pickRandom(excluding: dashboardQuote)
+        refreshDashboardQuoteEmojis()
+    }
+
+    func refreshDashboardQuoteEmojis() {
+        let quote = dashboardQuote
+        if let cached = DashboardQuoteEmojiService.cachedEmojis(for: quote) {
+            dashboardQuoteEmojis = cached
+            return
+        }
+
+        dashboardQuoteEmojis = DashboardQuoteEmojiService.keywordEmojis(for: quote)
+        dashboardQuoteEmojiTask?.cancel()
+        dashboardQuoteEmojiTask = Task { @MainActor in
+            let emojis = await DashboardQuoteEmojiService.resolveEmojis(for: quote)
+            guard !Task.isCancelled, quote == dashboardQuote else { return }
+            dashboardQuoteEmojis = emojis
+        }
     }
 
     var nextDashboardAnalysisAt: Date? {

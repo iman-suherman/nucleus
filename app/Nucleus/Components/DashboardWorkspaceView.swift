@@ -43,6 +43,7 @@ struct DashboardWorkspaceView: View {
         .onAppear {
             weatherService.beginWeatherAccessFlow()
             processMetricsService.startSamplingIfNeeded()
+            viewModel.refreshDashboardQuoteEmojis()
             Task { await syncService.refreshAccountStatus() }
         }
         .onDisappear {
@@ -86,7 +87,8 @@ struct DashboardWorkspaceView: View {
         let quote = sanitizedDashboardQuote
         let greeting = "\(DashboardGreeting.timeOfDay()), \(DashboardGreeting.firstName)!"
         guard !quote.isEmpty else { return greeting }
-        return "\(greeting) \(quote)"
+        let quoteDisplay = DashboardQuotes.displayBody(from: quote, emojis: viewModel.dashboardQuoteEmojis)
+        return "\(greeting) \(quoteDisplay)"
     }
 
     private var sanitizedDashboardQuote: String {
@@ -551,11 +553,8 @@ struct DashboardWorkspaceView: View {
     private var analysisStatusBar: some View {
         TimelineView(.periodic(from: .now, by: 60)) { context in
             HStack(spacing: 12) {
-                if let analyzedAt = viewModel.dashboardAnalyzedAt {
-                    Text("Last analysis \(DashboardDurationFormatting.analysisAgo(from: analyzedAt, now: context.date))")
-                } else {
-                    Text("No analysis yet")
-                }
+                Text(analysisStatusSentence(now: context.date))
+                    .fixedSize(horizontal: false, vertical: true)
 
                 Button("Analyse Now") {
                     viewModel.refreshDashboardAnalysisNow()
@@ -563,22 +562,34 @@ struct DashboardWorkspaceView: View {
                 .buttonStyle(.bordered)
                 .controlSize(.small)
 
-                if let nextAt = viewModel.nextDashboardAnalysisAt {
-                    if nextAt <= context.date {
-                        Text("Next analyse due now")
-                    } else {
-                        Text("Next analyse \(DashboardDurationFormatting.analysisUntil(nextAt, now: context.date))")
-                    }
-                } else {
-                    Text("Next analyse in 30 minutes")
-                }
-
                 Spacer(minLength: 0)
             }
             .font(.caption)
             .foregroundStyle(.secondary)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+    }
+
+    private func analysisStatusSentence(now: Date) -> String {
+        let lastAnalysis: String
+        if let analyzedAt = viewModel.dashboardAnalyzedAt {
+            lastAnalysis = "Last analysis \(DashboardDurationFormatting.analysisAgo(from: analyzedAt, now: now))"
+        } else {
+            lastAnalysis = "No analysis yet"
+        }
+
+        let nextAnalysis: String
+        if let nextAt = viewModel.nextDashboardAnalysisAt {
+            if nextAt <= now {
+                nextAnalysis = "next analyse due now"
+            } else {
+                nextAnalysis = "next analyse \(DashboardDurationFormatting.analysisUntil(nextAt, now: now))"
+            }
+        } else {
+            nextAnalysis = "next analyse in 30 minutes"
+        }
+
+        return "\(lastAnalysis), \(nextAnalysis)."
     }
 }
 
@@ -690,9 +701,16 @@ private struct ResourceUsageSummaryCard: View {
     let metrics: DashboardProcessMetrics?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Image(systemName: "gauge.with.dots.needle.67percent")
-                .foregroundStyle(.indigo)
+        VStack(alignment: .leading, spacing: 10) {
+            Label {
+                Text("Live Nucleus resource usage")
+            } icon: {
+                Image(systemName: "gauge.with.dots.needle.67percent")
+                    .foregroundStyle(.indigo)
+            }
+            .font(.headline)
+            .lineLimit(2)
+            .fixedSize(horizontal: false, vertical: true)
 
             HStack(alignment: .firstTextBaseline, spacing: 10) {
                 VStack(alignment: .leading, spacing: 2) {
@@ -717,19 +735,13 @@ private struct ResourceUsageSummaryCard: View {
                         .foregroundStyle(.secondary)
                 }
             }
-
-            Text("Live Nucleus resource usage")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .lineLimit(2)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .padding(14)
-        .frame(maxWidth: .infinity, minHeight: 118, alignment: .leading)
-        .background(Color(nsColor: .controlBackgroundColor).opacity(0.55), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .strokeBorder(Color.primary.opacity(0.06), lineWidth: 1)
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color(nsColor: .controlBackgroundColor).opacity(0.55), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .strokeBorder(Color.primary.opacity(0.06), lineWidth: 1)
+            }
         }
     }
 }
