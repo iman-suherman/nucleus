@@ -10,8 +10,9 @@ export function CtaBanner() {
             Ready to open one workspace every morning?
           </h2>
           <p className="mt-3 max-w-2xl text-slate-400">
-            Download {BRAND_NAME} for macOS and open one Dashboard for Gmail, Google Chat,
-            calendar, bills, clipboard, notes, and meeting alerts across your Google accounts.
+            Download {BRAND_NAME} for macOS and open one Dashboard for Gmail, Google Chat, calendar,
+            bills, clipboard, notes, passwords, and alerts across your Google accounts — synced with
+            Nucleus Cloud or iCloud.
           </p>
         </div>
         <Link href="/install" className="btn-primary shrink-0">

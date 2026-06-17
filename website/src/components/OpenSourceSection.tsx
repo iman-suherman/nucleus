@@ -6,7 +6,8 @@ export function OpenSourceSection() {
       <div className="card p-8">
         <h2 className="text-2xl font-bold text-slate-50 sm:text-3xl">Open source</h2>
         <p className="mt-4 max-w-3xl text-slate-400">
-          Nucleus is built in Swift with modular kits for mail, calendar, clipboard, and notes. Contributions and issue reports are welcome on GitHub.
+          Nucleus is built in Swift with modular kits for mail, calendar, clipboard, notes, bills,
+          and sync. Contributions and issue reports are welcome on GitHub.
         </p>
         <a
           href={GITHUB_REPO_URL}

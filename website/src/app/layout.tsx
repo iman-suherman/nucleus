@@ -8,7 +8,7 @@ import { SHARE_IMAGE, SITE_URL } from "@/lib/site";
 
 const inter = Inter({ subsets: ["latin"] });
 
-const defaultDescription = `${BRAND_TAGLINE}. Unify Gmail, Google Chat, Calendar, bills, notes, clipboard intelligence, and Funky alerts across multiple Google accounts — with a Dashboard at a glance.`;
+const defaultDescription = `${BRAND_TAGLINE}. Unify Gmail, Google Chat, Calendar, bills, notes, passwords, clipboard intelligence, and Funky alerts across multiple Google accounts — with a Dashboard that greets you, shows today's weather, and summarizes your workspace at a glance.`;
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),

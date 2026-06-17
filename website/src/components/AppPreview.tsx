@@ -5,12 +5,12 @@ const previews = [
   {
     image: "/app-screenshot-dashboard.png",
     width: 1024,
-    height: 829,
-    alt: `${BRAND_NAME} Dashboard showing unread counts, intelligent summary, upcoming bills, and clipboard productivity chart`,
+    height: 856,
+    alt: `${BRAND_NAME} Dashboard showing greeting, intelligent insight, today's weather, resource usage, cloud sync, summary metrics, payment preparation, and productivity chart`,
     title: "Dashboard",
     headline: "Your workspace at a glance — before you open a single tab.",
     description:
-      "The Dashboard summarizes unread email and chat, Vault password totals, and bills due in the next two weeks. An intelligent summary turns activity into plain-language status — inbox load, bill deadlines, and a productivity profile from your recent clipboard captures. A seven-day bar chart breaks clipboard usage into Development, Communication, Research, and more so you can see how your day actually flows.",
+      "Start with a personal greeting and daily quote, then read an intelligent insight that turns inbox load, bill deadlines, and clipboard activity into plain-language status. Today's weather, live CPU and memory for Nucleus, and Cloud sync status sit in the header row. Summary metrics jump you straight into mail, chat, passwords, or bills — and Payment preparation groups what's due in the next two weeks by category and currency. A seven-day productivity chart breaks clipboard captures into Development, Communication, Research, Notes & drafts, Admin & text, and Data & numbers.",
     imageFirst: true,
     large: true,
   },
@@ -33,8 +33,8 @@ export function AppPreview() {
           Open one cockpit every morning.
         </h2>
         <p className="mt-3 text-base leading-7 text-slate-400">
-          {BRAND_NAME} keeps mail, chat, calendar, bills, clipboard, and notes in one SwiftUI
-          workspace — with a Dashboard that tells you what needs attention first.
+          {BRAND_NAME} keeps mail, chat, calendar, bills, clipboard, notes, and passwords in one
+          SwiftUI workspace — with a Dashboard that tells you what needs attention first.
         </p>
       </div>
 
