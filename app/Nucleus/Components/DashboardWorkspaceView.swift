@@ -256,21 +256,37 @@ struct DashboardWorkspaceView: View {
     }
 
     private func locationAccessPromptCard(_ prompt: DashboardWeatherLocationPrompt) -> some View {
-        HStack(alignment: .center, spacing: 10) {
-            Image(systemName: "location.slash")
-                .foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 10) {
+                Image(systemName: "location.slash")
+                    .font(.title3)
+                    .foregroundStyle(.secondary)
+                    .frame(width: 28)
 
-            Text(prompt.message)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+                Text(prompt.message)
+                    .font(.subheadline.weight(.medium))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
 
-            Spacer(minLength: 0)
+            VStack(alignment: .leading, spacing: 8) {
+                ForEach(Array(prompt.steps.enumerated()), id: \.offset) { index, step in
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Text("\(index + 1).")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                            .frame(width: 16, alignment: .trailing)
+                        Text(step)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+            }
 
             Button(prompt.buttonTitle) {
                 weatherService.performLocationAccessAction(prompt.action)
             }
-            .buttonStyle(.bordered)
+            .buttonStyle(.borderedProminent)
             .controlSize(.small)
         }
         .padding(14)

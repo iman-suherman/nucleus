@@ -1,0 +1,15 @@
+{
+  "version": "0.6.11",
+  "summary": "Step-by-step location instructions in the Dashboard weather slot.",
+  "releaseNotes": {
+    "introduced": [],
+    "changed": [
+      "Weather card shows numbered steps for enabling location when access is off, denied, or declined in Nucleus",
+      "Open Settings and Enable Location buttons sit below the instructions for each situation"
+    ],
+    "fixed": [],
+    "updated": [],
+    "removed": [],
+    "breaking": []
+  }
+}

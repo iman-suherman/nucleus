@@ -21,6 +21,7 @@ struct DashboardWeatherLocationPrompt: Equatable {
     }
 
     let message: String
+    let steps: [String]
     let buttonTitle: String
     let action: Action
 }
@@ -161,7 +162,8 @@ final class DashboardWeatherService: NSObject, ObservableObject {
 
         if UserDefaults.standard.bool(forKey: Self.locationDeclinedKey) {
             return DashboardWeatherLocationPrompt(
-                message: "Today's weather is hidden because location access is off. Turn it on to see the forecast here.",
+                message: "Today's weather is hidden because location access is off in Nucleus.",
+                steps: Self.settingsSteps,
                 buttonTitle: "Enable Weather",
                 action: .reenableAfterDecline
             )
@@ -170,19 +172,22 @@ final class DashboardWeatherService: NSObject, ObservableObject {
         switch locationManager.authorizationStatus {
         case .denied:
             return DashboardWeatherLocationPrompt(
-                message: "Allow Nucleus to use your location in System Settings to show today's forecast.",
+                message: "Nucleus needs location access to show today's forecast.",
+                steps: Self.settingsSteps,
                 buttonTitle: "Open Settings",
                 action: .openSettings
             )
         case .restricted:
             return DashboardWeatherLocationPrompt(
                 message: "Location access is restricted on this Mac, so today's weather can't be shown.",
+                steps: Self.restrictedSteps,
                 buttonTitle: "Open Settings",
                 action: .openSettings
             )
         case .notDetermined:
             return DashboardWeatherLocationPrompt(
                 message: "Allow location access to show today's forecast on your Dashboard.",
+                steps: Self.firstRequestSteps,
                 buttonTitle: "Enable Location",
                 action: .requestAuthorization
             )
@@ -192,6 +197,28 @@ final class DashboardWeatherService: NSObject, ObservableObject {
             return nil
         }
     }
+
+    private static let settingsSteps = [
+        "Open System Settings (click Open Settings below).",
+        "Go to Privacy & Security → Location Services.",
+        "Turn on Location Services if it is off.",
+        "Find Nucleus in the list and enable location access.",
+        "Return to Nucleus — the forecast appears here automatically.",
+    ]
+
+    private static let firstRequestSteps = [
+        "Click Enable Location below.",
+        "When macOS asks, choose Allow.",
+        "If no prompt appears, open System Settings → Privacy & Security → Location Services.",
+        "Turn on Location Services, then enable Nucleus.",
+        "Return here to see today's forecast.",
+    ]
+
+    private static let restrictedSteps = [
+        "Open System Settings → Privacy & Security → Location Services.",
+        "If Nucleus appears in the list, enable location access.",
+        "If access stays blocked, your Mac may be managed by work or school policy.",
+    ]
 
     func performLocationAccessAction(_ action: DashboardWeatherLocationPrompt.Action) {
         switch action {
