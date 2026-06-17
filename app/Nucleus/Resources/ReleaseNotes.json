@@ -1,11 +1,11 @@
 {
-  "version": "0.6.10",
-  "summary": "Dashboard weather shows location guidance when access is off.",
+  "version": "0.6.11",
+  "summary": "Step-by-step location instructions in the Dashboard weather slot.",
   "releaseNotes": {
     "introduced": [],
     "changed": [
-      "Today's weather column stays visible and explains how to enable location when access is off or declined",
-      "Open Settings and Turn On Weather actions guide users back to the forecast without leaving the Dashboard"
+      "Weather card shows numbered steps for enabling location when access is off, denied, or declined in Nucleus",
+      "Open Settings and Enable Location buttons sit below the instructions for each situation"
     ],
     "fixed": [],
     "updated": [],
