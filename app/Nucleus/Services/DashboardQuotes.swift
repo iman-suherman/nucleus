@@ -15,7 +15,7 @@ enum DashboardQuotes {
         return decoded
     }()
 
-    private static let fallbackQuote = "May your day be calm, focused, and full of small wins."
+    private static let fallbackQuote = "May your path be calm, focused, and full of small wins."
 
     static func currentOrRandom() -> String {
         if let saved = UserDefaults.standard.string(forKey: storageKey),
@@ -95,12 +95,11 @@ enum DashboardQuotes {
             return "About joy, lightness, and small moments of delight."
         }
 
-        if lower.contains("rain") || lower.contains("weather") || lower.contains("sun")
-            || lower.contains("morning") || lower.contains("evening") {
-            return "About moving through the day with ease and acceptance."
+        if lower.contains("rain") || lower.contains("weather") || lower.contains("sun") {
+            return "About moving through the moment with ease and acceptance."
         }
 
-        return "A gentle wish for a thoughtful, balanced day."
+        return "A gentle wish for a thoughtful, balanced path."
     }
 }
 

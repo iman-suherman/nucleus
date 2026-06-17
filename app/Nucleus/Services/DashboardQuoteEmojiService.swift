@@ -66,7 +66,7 @@ enum DashboardQuoteEmojiService {
             append("💡")
         }
         if lower.contains("energy") || lower.contains("spark") || lower.contains("sun")
-            || lower.contains("morning") || lower.contains("bright") {
+            || lower.contains("bright") {
             append("☀️")
         }
         if lower.contains("rain") || lower.contains("weather") || lower.contains("cloud") {
@@ -74,9 +74,6 @@ enum DashboardQuoteEmojiService {
         }
         if lower.contains("heart") || lower.contains("warm") || lower.contains("love") {
             append("💛")
-        }
-        if lower.contains("evening") || lower.contains("night") {
-            append("🌙")
         }
 
         if matches.isEmpty {

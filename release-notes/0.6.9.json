@@ -1,0 +1,17 @@
+{
+  "version": "0.6.9",
+  "summary": "Ten thousand time-neutral dashboard quotes.",
+  "releaseNotes": {
+    "introduced": [
+      "Dashboard quote library expanded to 10,000 unique inspirational quotes"
+    ],
+    "changed": [
+      "Daily quotes no longer mention morning, afternoon, evening, or night",
+      "Quote generator script added for future refreshes"
+    ],
+    "fixed": [],
+    "updated": [],
+    "removed": [],
+    "breaking": []
+  }
+}
