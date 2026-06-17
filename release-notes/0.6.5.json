@@ -1,0 +1,19 @@
+{
+  "version": "0.6.5",
+  "summary": "Dashboard summary box, resource usage layout, and weather error handling.",
+  "releaseNotes": {
+    "introduced": [],
+    "changed": [
+      "Dashboard metrics (unread email, chat, passwords, bills) sit in one Summary box with live resource usage underneath",
+      "Resource card title is now Live Nucleus resource usage"
+    ],
+    "fixed": [
+      "Weather errors no longer get overwritten by transient location failures",
+      "Location lookup retries automatically when the fix is temporarily unavailable",
+      "WeatherKit authentication failures show a clearer message instead of a misleading location error"
+    ],
+    "updated": [],
+    "removed": [],
+    "breaking": []
+  }
+}

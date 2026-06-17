@@ -278,47 +278,19 @@ struct DashboardWorkspaceView: View {
     }
 
     private var summaryAndResourceCards: some View {
-        LazyVGrid(
-            columns: [
-                GridItem(.flexible(minimum: 120), spacing: 12),
-                GridItem(.flexible(minimum: 120), spacing: 12),
-            ],
-            spacing: 12
-        ) {
-            SummaryMetricCard(
-                title: "Unread email",
-                value: "\(snapshot.unreadMailCount)",
-                systemImage: "envelope.badge",
-                tint: .blue,
-                compact: true,
-                action: { viewModel.sidebarSelection = .workspace(.inbox) }
+        VStack(alignment: .leading, spacing: 12) {
+            DashboardMetricsSummaryBox(
+                unreadMailCount: snapshot.unreadMailCount,
+                unreadChatCount: snapshot.unreadChatCount,
+                passwordCount: snapshot.passwordCount,
+                upcomingBillsCount: snapshot.upcomingBills.count,
+                onUnreadEmail: { viewModel.sidebarSelection = .workspace(.inbox) },
+                onUnreadChat: { viewModel.sidebarSelection = .workspace(.chat) },
+                onPasswords: { viewModel.sidebarSelection = .workspace(.notes) },
+                onBills: { viewModel.sidebarSelection = .workspace(.bills) }
             )
-            SummaryMetricCard(
-                title: "Unread chat",
-                value: "\(snapshot.unreadChatCount)",
-                systemImage: "message.badge",
-                tint: Color(red: 129 / 255, green: 201 / 255, blue: 149 / 255),
-                compact: true,
-                action: { viewModel.sidebarSelection = .workspace(.chat) }
-            )
-            SummaryMetricCard(
-                title: "Passwords stored",
-                value: "\(snapshot.passwordCount)",
-                systemImage: "key.fill",
-                tint: .orange,
-                compact: true,
-                action: { viewModel.sidebarSelection = .workspace(.notes) }
-            )
-            SummaryMetricCard(
-                title: "Bills due soon",
-                value: "\(snapshot.upcomingBills.count)",
-                systemImage: "dollarsign.circle",
-                tint: .purple,
-                compact: true,
-                action: { viewModel.sidebarSelection = .workspace(.bills) }
-            )
+
             ResourceUsageSummaryCard(metrics: processMetricsService.metrics)
-                .gridCellColumns(2)
         }
     }
 
@@ -580,6 +552,110 @@ struct DashboardWorkspaceView: View {
     }
 }
 
+private struct DashboardMetricsSummaryBox: View {
+    let unreadMailCount: Int
+    let unreadChatCount: Int
+    let passwordCount: Int
+    let upcomingBillsCount: Int
+    let onUnreadEmail: () -> Void
+    let onUnreadChat: () -> Void
+    let onPasswords: () -> Void
+    let onBills: () -> Void
+
+    private static let chatTint = Color(red: 129 / 255, green: 201 / 255, blue: 149 / 255)
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label("Summary", systemImage: "square.grid.2x2")
+                .font(.subheadline.weight(.semibold))
+
+            VStack(spacing: 0) {
+                HStack(spacing: 0) {
+                    SummaryMetricItem(
+                        title: "Unread email",
+                        value: "\(unreadMailCount)",
+                        systemImage: "envelope.badge",
+                        tint: .blue,
+                        action: onUnreadEmail
+                    )
+
+                    Divider()
+
+                    SummaryMetricItem(
+                        title: "Unread chat",
+                        value: "\(unreadChatCount)",
+                        systemImage: "message.badge",
+                        tint: Self.chatTint,
+                        action: onUnreadChat
+                    )
+                }
+
+                Divider()
+
+                HStack(spacing: 0) {
+                    SummaryMetricItem(
+                        title: "Passwords stored",
+                        value: "\(passwordCount)",
+                        systemImage: "key.fill",
+                        tint: .orange,
+                        action: onPasswords
+                    )
+
+                    Divider()
+
+                    SummaryMetricItem(
+                        title: "Bills due soon",
+                        value: "\(upcomingBillsCount)",
+                        systemImage: "dollarsign.circle",
+                        tint: .purple,
+                        action: onBills
+                    )
+                }
+            }
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(nsColor: .controlBackgroundColor).opacity(0.55), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(Color.primary.opacity(0.06), lineWidth: 1)
+        }
+    }
+}
+
+private struct SummaryMetricItem: View {
+    let title: String
+    let value: String
+    let systemImage: String
+    let tint: Color
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: 6) {
+                Image(systemName: systemImage)
+                    .foregroundStyle(tint)
+
+                Text(value)
+                    .font(.system(size: 28, weight: .bold, design: .rounded))
+                    .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
+
+                Text(title)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(12)
+            .frame(maxWidth: .infinity, minHeight: 96, alignment: .leading)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+}
+
 private struct ResourceUsageSummaryCard: View {
     let metrics: DashboardProcessMetrics?
 
@@ -612,16 +688,11 @@ private struct ResourceUsageSummaryCard: View {
                 }
             }
 
-            Text("Resource usage")
+            Text("Live Nucleus resource usage")
                 .font(.caption)
                 .foregroundStyle(.secondary)
-                .lineLimit(1)
-
-            Text("Live CPU and memory for Nucleus on this Mac.")
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
-                .lineLimit(1)
-                .truncationMode(.tail)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .padding(14)
         .frame(maxWidth: .infinity, minHeight: 118, alignment: .leading)
@@ -630,61 +701,5 @@ private struct ResourceUsageSummaryCard: View {
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .strokeBorder(Color.primary.opacity(0.06), lineWidth: 1)
         }
-    }
-}
-
-private struct SummaryMetricCard: View {
-    let title: String
-    let value: String
-    let systemImage: String
-    let tint: Color
-    var highlighted: Bool = false
-    var compact: Bool = false
-    let action: () -> Void
-
-    private var valueFontSize: CGFloat { compact ? 28 : 34 }
-    private var cardPadding: CGFloat { compact ? 14 : 18 }
-
-    var body: some View {
-        Button(action: action) {
-            VStack(alignment: .leading, spacing: compact ? 8 : 10) {
-                HStack {
-                    Image(systemName: systemImage)
-                        .foregroundStyle(tint)
-                    Spacer()
-                    if highlighted {
-                        Text("Vault")
-                            .font(.caption2.weight(.semibold))
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 3)
-                            .background(tint.opacity(0.18), in: Capsule())
-                            .foregroundStyle(tint)
-                    }
-                }
-
-                Text(value)
-                    .font(.system(size: valueFontSize, weight: .bold, design: .rounded))
-                    .monospacedDigit()
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.75)
-
-                Text(title)
-                    .font(compact ? .caption : .subheadline)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(2)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .padding(cardPadding)
-            .frame(maxWidth: .infinity, minHeight: compact ? 118 : nil, alignment: .leading)
-            .background(
-                highlighted ? tint.opacity(0.1) : Color(nsColor: .controlBackgroundColor).opacity(0.55),
-                in: RoundedRectangle(cornerRadius: 14, style: .continuous)
-            )
-            .overlay {
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .strokeBorder(highlighted ? tint.opacity(0.35) : Color.primary.opacity(0.06), lineWidth: 1)
-            }
-        }
-        .buttonStyle(.plain)
     }
 }

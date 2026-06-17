@@ -55,6 +55,13 @@ final class DashboardWeatherService: NSObject, ObservableObject {
     private let logger = Logger(subsystem: "net.suherman.nucleus", category: "DashboardWeather")
     private var hasStarted = false
     private var pendingLocationRequest = false
+    private var locationRetryCount = 0
+    private var locationRetryTask: Task<Void, Never>?
+    private var weatherFetchTask: Task<Void, Never>?
+    private var isFetchingWeather = false
+
+    private static let maxLocationRetries = 2
+    private static let locationRetryDelay: Duration = .seconds(2)
 
     private override init() {
         super.init()
@@ -89,6 +96,10 @@ final class DashboardWeatherService: NSObject, ObservableObject {
     }
 
     func retryWeatherFetch() {
+        locationRetryCount = 0
+        locationRetryTask?.cancel()
+        locationRetryTask = nil
+        pendingLocationRequest = false
         statusMessage = nil
         requestWeatherIfAuthorized()
     }
@@ -143,13 +154,10 @@ final class DashboardWeatherService: NSObject, ObservableObject {
 
         switch locationManager.authorizationStatus {
         case .authorized, .authorizedAlways:
-            statusMessage = nil
             if let location = locationManager.location {
-                Task { await fetchWeather(for: location) }
+                startWeatherFetch(for: location)
             } else {
-                isLoading = true
-                pendingLocationRequest = true
-                locationManager.requestLocation()
+                requestSingleLocationUpdate()
             }
         case .denied, .restricted, .notDetermined:
             weather = nil
@@ -161,6 +169,79 @@ final class DashboardWeatherService: NSObject, ObservableObject {
         }
     }
 
+    private func requestSingleLocationUpdate() {
+        guard !pendingLocationRequest else { return }
+
+        pendingLocationRequest = true
+        isLoading = true
+        if !Self.isWeatherKitErrorMessage(statusMessage) {
+            statusMessage = locationRetryCount > 0 ? "Finding your location…" : nil
+        }
+        locationManager.requestLocation()
+    }
+
+    private func scheduleLocationRetry() {
+        locationRetryTask?.cancel()
+        locationRetryTask = Task { @MainActor in
+            try? await Task.sleep(for: Self.locationRetryDelay)
+            guard !Task.isCancelled else { return }
+            requestSingleLocationUpdate()
+        }
+    }
+
+    private func startWeatherFetch(for location: CLLocation) {
+        locationRetryTask?.cancel()
+        locationRetryTask = nil
+        locationRetryCount = 0
+        pendingLocationRequest = false
+
+        weatherFetchTask?.cancel()
+        weatherFetchTask = Task { @MainActor in
+            await fetchWeather(for: location)
+        }
+    }
+
+    private func handleLocationFailure(_ error: Error) {
+        pendingLocationRequest = false
+
+        if isFetchingWeather {
+            logger.warning("Ignoring location failure during active weather fetch")
+            return
+        }
+
+        if Self.isWeatherKitErrorMessage(statusMessage) {
+            logger.warning("Keeping WeatherKit error after location failure")
+            isLoading = false
+            return
+        }
+
+        if let clError = error as? CLError {
+            switch clError.code {
+            case .denied:
+                weather = nil
+                isLoading = false
+                statusMessage = "Allow location access in System Settings to show today's weather."
+                logger.error("Location denied: \(String(describing: error), privacy: .public)")
+                return
+            case .locationUnknown, .network:
+                if locationRetryCount < Self.maxLocationRetries {
+                    locationRetryCount += 1
+                    logger.info("Retrying location request (\(self.locationRetryCount)/\(Self.maxLocationRetries))")
+                    statusMessage = "Finding your location…"
+                    scheduleLocationRetry()
+                    return
+                }
+            default:
+                break
+            }
+        }
+
+        weather = nil
+        isLoading = false
+        statusMessage = Self.locationFailureMessage(for: error)
+        logger.error("Location request failed: \(String(describing: error), privacy: .public)")
+    }
+
     private func handleAuthorizationChange() {
         if locationManager.authorizationStatus == .denied || locationManager.authorizationStatus == .restricted {
             UserDefaults.standard.set(true, forKey: Self.locationPromptCompletedKey)
@@ -170,20 +251,52 @@ final class DashboardWeatherService: NSObject, ObservableObject {
     }
 
     private func fetchWeather(for location: CLLocation) async {
+        isFetchingWeather = true
         isLoading = true
         statusMessage = nil
-        defer { isLoading = false }
+        defer {
+            isLoading = false
+            isFetchingWeather = false
+        }
 
         do {
             let forecast = try await weatherService.weather(for: location)
+            guard !Task.isCancelled else { return }
+
             let cityName = await Self.resolveCityName(for: location)
+            guard !Task.isCancelled else { return }
+
             weather = Self.makeTodayWeather(from: forecast, cityName: cityName)
             statusMessage = nil
         } catch {
+            guard !Task.isCancelled else { return }
+
             weather = nil
             statusMessage = Self.userMessage(for: error)
             logger.error("WeatherKit fetch failed: \(String(describing: error), privacy: .public)")
         }
+    }
+
+    private static func isWeatherKitErrorMessage(_ message: String?) -> Bool {
+        guard let message else { return false }
+        let lower = message.lowercased()
+        return lower.contains("weatherkit")
+            || lower.contains("weather service")
+            || lower.contains("apple's weather")
+    }
+
+    private static func locationFailureMessage(for error: Error) -> String {
+        if let clError = error as? CLError {
+            switch clError.code {
+            case .network:
+                return "Location lookup needs a network connection. Check Wi‑Fi and try again."
+            case .locationUnknown:
+                return "Couldn't determine your location yet. Try again in a moment."
+            default:
+                break
+            }
+        }
+        return "Couldn't determine your location for weather."
     }
 
     private static func userMessage(for error: Error) -> String {
@@ -203,7 +316,9 @@ final class DashboardWeatherService: NSObject, ObservableObject {
         if combined.contains("jwt")
             || combined.contains("weatherdaemon")
             || combined.contains("authservice")
-            || combined.contains("permission") {
+            || combined.contains("permission")
+            || combined.contains("401")
+            || combined.contains("unauthorized") {
             return "WeatherKit authentication failed. Enable WeatherKit under App Services for net.suherman.nucleus in Apple Developer, then rebuild."
         }
         if combined.contains("network") || combined.contains("offline") || combined.contains("internet") {
@@ -333,22 +448,17 @@ extension DashboardWeatherService: CLLocationManagerDelegate {
     nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let location = locations.last else { return }
         Task { @MainActor in
-            await fetchWeather(for: location)
+            pendingLocationRequest = false
+            locationRetryCount = 0
+            locationRetryTask?.cancel()
+            locationRetryTask = nil
+            startWeatherFetch(for: location)
         }
     }
 
     nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
         Task { @MainActor in
-            pendingLocationRequest = false
-            weather = nil
-            isLoading = false
-
-            if let clError = error as? CLError, clError.code == .denied {
-                statusMessage = "Allow location access in System Settings to show today's weather."
-            } else {
-                statusMessage = "Couldn't determine your location for weather."
-            }
-            logger.error("Location request failed: \(String(describing: error), privacy: .public)")
+            handleLocationFailure(error)
         }
     }
 }
