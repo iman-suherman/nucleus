@@ -1,0 +1,15 @@
+{
+  "version": "0.6.7",
+  "summary": "Dashboard analysis controls moved below the productivity chart.",
+  "releaseNotes": {
+    "introduced": [],
+    "changed": [
+      "Last analysis, Analyse Now, and next analysis time sit on one line below the productivity chart",
+      "Cloud sync panel in the header shows only Nucleus Cloud and iCloud status"
+    ],
+    "fixed": [],
+    "updated": [],
+    "removed": [],
+    "breaking": []
+  }
+}

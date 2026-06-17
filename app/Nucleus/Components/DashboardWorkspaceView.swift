@@ -171,44 +171,8 @@ struct DashboardWorkspaceView: View {
     }
 
     private var sidebarPanel: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            headerCloudSyncPanel
-            analysisStatusRow
-        }
-        .frame(width: 280, alignment: .topLeading)
-    }
-
-    private var analysisStatusRow: some View {
-        TimelineView(.periodic(from: .now, by: 60)) { context in
-            HStack(alignment: .center, spacing: 12) {
-                VStack(alignment: .leading, spacing: 4) {
-                    if let analyzedAt = viewModel.dashboardAnalyzedAt {
-                        Text("Last analysis \(DashboardDurationFormatting.analysisAgo(from: analyzedAt, now: context.date))")
-                    } else {
-                        Text("No analysis yet")
-                    }
-
-                    if let nextAt = viewModel.nextDashboardAnalysisAt {
-                        if nextAt <= context.date {
-                            Text("Next analyse due now")
-                        } else {
-                            Text("Next analyse \(DashboardDurationFormatting.analysisUntil(nextAt, now: context.date))")
-                        }
-                    } else {
-                        Text("Next analyse in 30 minutes")
-                    }
-                }
-
-                Button("Analyse Now") {
-                    viewModel.refreshDashboardAnalysisNow()
-                }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
-            }
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            .fixedSize(horizontal: true, vertical: false)
-        }
+        headerCloudSyncPanel
+            .frame(width: 280, alignment: .topLeading)
     }
 
     @ViewBuilder
@@ -579,6 +543,41 @@ struct DashboardWorkspaceView: View {
                 .padding(16)
                 .background(.quaternary.opacity(0.25), in: RoundedRectangle(cornerRadius: 12))
             }
+
+            analysisStatusBar
+        }
+    }
+
+    private var analysisStatusBar: some View {
+        TimelineView(.periodic(from: .now, by: 60)) { context in
+            HStack(spacing: 12) {
+                if let analyzedAt = viewModel.dashboardAnalyzedAt {
+                    Text("Last analysis \(DashboardDurationFormatting.analysisAgo(from: analyzedAt, now: context.date))")
+                } else {
+                    Text("No analysis yet")
+                }
+
+                Button("Analyse Now") {
+                    viewModel.refreshDashboardAnalysisNow()
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+
+                if let nextAt = viewModel.nextDashboardAnalysisAt {
+                    if nextAt <= context.date {
+                        Text("Next analyse due now")
+                    } else {
+                        Text("Next analyse \(DashboardDurationFormatting.analysisUntil(nextAt, now: context.date))")
+                    }
+                } else {
+                    Text("Next analyse in 30 minutes")
+                }
+
+                Spacer(minLength: 0)
+            }
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 }
