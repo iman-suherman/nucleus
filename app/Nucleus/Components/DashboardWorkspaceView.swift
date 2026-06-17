@@ -69,22 +69,24 @@ struct DashboardWorkspaceView: View {
             intelligentInsightSection
 
             if weatherService.isWeatherSectionVisible {
-                weatherAndSidebarRow
+                weatherResourceAndSidebarRow
             } else {
-                sidebarPanel
+                resourceAndSidebarRow
             }
         }
     }
 
     private var greetingWithQuote: some View {
-        (
-            Text("\(DashboardGreeting.timeOfDay()), \(DashboardGreeting.firstName) — ")
-                .font(.largeTitle.bold())
-            + Text(sanitizedDashboardQuote)
-                .font(.largeTitle)
-                .italic()
-        )
-        .fixedSize(horizontal: false, vertical: true)
+        Text(greetingWithQuoteText)
+            .font(.largeTitle.bold())
+            .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private var greetingWithQuoteText: String {
+        let quote = sanitizedDashboardQuote
+        let greeting = "\(DashboardGreeting.timeOfDay()), \(DashboardGreeting.firstName)!"
+        guard !quote.isEmpty else { return greeting }
+        return "\(greeting) \(quote)"
     }
 
     private var sanitizedDashboardQuote: String {
@@ -145,12 +147,26 @@ struct DashboardWorkspaceView: View {
         }
     }
 
-    private var weatherAndSidebarRow: some View {
+    private var weatherResourceAndSidebarRow: some View {
         HStack(alignment: .top, spacing: 16) {
             weatherForecastSection
                 .frame(maxWidth: .infinity, alignment: .leading)
 
+            ResourceUsageSummaryCard(metrics: processMetricsService.metrics)
+                .frame(width: 200, alignment: .leading)
+
             sidebarPanel
+        }
+    }
+
+    private var resourceAndSidebarRow: some View {
+        HStack(alignment: .top, spacing: 16) {
+            ResourceUsageSummaryCard(metrics: processMetricsService.metrics)
+                .frame(width: 200, alignment: .leading)
+
+            sidebarPanel
+
+            Spacer(minLength: 0)
         }
     }
 
@@ -234,6 +250,26 @@ struct DashboardWorkspaceView: View {
                 .padding(14)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 12))
+            } else if let statusMessage = weatherService.statusMessage {
+                HStack(alignment: .center, spacing: 10) {
+                    Image(systemName: weatherService.isLoading ? "location" : "cloud.slash")
+                        .foregroundStyle(.secondary)
+                    Text(statusMessage)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 0)
+                    if !weatherService.isLoading {
+                        Button("Try Again") {
+                            weatherService.retryWeatherFetch()
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                    }
+                }
+                .padding(14)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(.quaternary.opacity(0.25), in: RoundedRectangle(cornerRadius: 12))
             } else if weatherService.isLoading {
                 HStack(spacing: 10) {
                     ProgressView()
@@ -245,14 +281,13 @@ struct DashboardWorkspaceView: View {
                 .padding(14)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(.quaternary.opacity(0.25), in: RoundedRectangle(cornerRadius: 12))
-            } else if let statusMessage = weatherService.statusMessage {
+            } else {
                 HStack(alignment: .center, spacing: 10) {
                     Image(systemName: "cloud.slash")
                         .foregroundStyle(.secondary)
-                    Text(statusMessage)
+                    Text("Weather is unavailable right now.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
                     Spacer(minLength: 0)
                     Button("Try Again") {
                         weatherService.retryWeatherFetch()
@@ -278,20 +313,16 @@ struct DashboardWorkspaceView: View {
     }
 
     private var summaryAndResourceCards: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            DashboardMetricsSummaryBox(
-                unreadMailCount: snapshot.unreadMailCount,
-                unreadChatCount: snapshot.unreadChatCount,
-                passwordCount: snapshot.passwordCount,
-                upcomingBillsCount: snapshot.upcomingBills.count,
-                onUnreadEmail: { viewModel.sidebarSelection = .workspace(.inbox) },
-                onUnreadChat: { viewModel.sidebarSelection = .workspace(.chat) },
-                onPasswords: { viewModel.sidebarSelection = .workspace(.notes) },
-                onBills: { viewModel.sidebarSelection = .workspace(.bills) }
-            )
-
-            ResourceUsageSummaryCard(metrics: processMetricsService.metrics)
-        }
+        DashboardMetricsSummaryBox(
+            unreadMailCount: snapshot.unreadMailCount,
+            unreadChatCount: snapshot.unreadChatCount,
+            passwordCount: snapshot.passwordCount,
+            upcomingBillsCount: snapshot.upcomingBills.count,
+            onUnreadEmail: { viewModel.sidebarSelection = .workspace(.inbox) },
+            onUnreadChat: { viewModel.sidebarSelection = .workspace(.chat) },
+            onPasswords: { viewModel.sidebarSelection = .workspace(.notes) },
+            onBills: { viewModel.sidebarSelection = .workspace(.bills) }
+        )
     }
 
     private var headerCloudSyncPanel: some View {

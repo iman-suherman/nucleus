@@ -5,11 +5,33 @@ import { FeatureShowcase } from "@/components/FeatureShowcase";
 import { CtaBanner } from "@/components/CtaBanner";
 import { VersionHistoryShowcase } from "@/components/VersionHistoryShowcase";
 import { OpenSourceSection } from "@/components/OpenSourceSection";
+import { SHARE_IMAGE, SITE_URL } from "@/lib/site";
+
+const homeTitle = "Nucleus — Personal Operating System for macOS";
+const homeDescription =
+  "Unify Gmail, Google Chat, Calendar, bills, clipboard intelligence, markdown notes, and Funky alerts across multiple Google accounts — with a Dashboard that summarizes your workspace at a glance.";
 
 export const metadata: Metadata = {
-  title: "Nucleus — Personal Operating System for macOS",
-  description:
-    "Unify Gmail, Google Chat, Calendar, bills, clipboard intelligence, markdown notes, and Funky alerts across multiple Google accounts — with a Dashboard that summarizes your workspace at a glance.",
+  title: homeTitle,
+  description: homeDescription,
+  openGraph: {
+    title: homeTitle,
+    description: homeDescription,
+    url: SITE_URL,
+    images: [
+      {
+        url: SHARE_IMAGE.path,
+        width: SHARE_IMAGE.width,
+        height: SHARE_IMAGE.height,
+        alt: SHARE_IMAGE.alt,
+      },
+    ],
+  },
+  twitter: {
+    title: homeTitle,
+    description: homeDescription,
+    images: [SHARE_IMAGE.path],
+  },
 };
 
 export default function HomePage() {

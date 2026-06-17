@@ -59,9 +59,12 @@ final class DashboardWeatherService: NSObject, ObservableObject {
     private var locationRetryTask: Task<Void, Never>?
     private var weatherFetchTask: Task<Void, Never>?
     private var isFetchingWeather = false
+    private var weatherFetchGeneration = 0
+    private var lastSuccessfulFetchAt: Date?
 
     private static let maxLocationRetries = 2
     private static let locationRetryDelay: Duration = .seconds(2)
+    private static let weatherRefreshInterval: TimeInterval = 15 * 60
 
     private override init() {
         super.init()
@@ -76,7 +79,8 @@ final class DashboardWeatherService: NSObject, ObservableObject {
         guard isWeatherSectionVisible || shouldOfferLocationPrompt else { return }
 
         guard !hasStarted else {
-            requestWeatherIfAuthorized()
+            guard shouldAttemptWeatherFetch(force: false) else { return }
+            requestWeatherIfAuthorized(force: false)
             return
         }
         hasStarted = true
@@ -101,7 +105,7 @@ final class DashboardWeatherService: NSObject, ObservableObject {
         locationRetryTask = nil
         pendingLocationRequest = false
         statusMessage = nil
-        requestWeatherIfAuthorized()
+        requestWeatherIfAuthorized(force: true)
     }
 
     func declineLocationPermission() {
@@ -115,7 +119,22 @@ final class DashboardWeatherService: NSObject, ObservableObject {
     }
 
     func refreshIfNeeded() {
+        guard shouldAttemptWeatherFetch(force: false) else { return }
         beginWeatherAccessFlow()
+    }
+
+    private func shouldAttemptWeatherFetch(force: Bool) -> Bool {
+        if force { return true }
+        if isFetchingWeather || pendingLocationRequest { return false }
+        if weather != nil,
+           let lastSuccessfulFetchAt,
+           Date().timeIntervalSince(lastSuccessfulFetchAt) < Self.weatherRefreshInterval {
+            return false
+        }
+        if weather == nil, Self.isWeatherKitErrorMessage(statusMessage) {
+            return false
+        }
+        return true
     }
 
     func openLocationSettings() {
@@ -148,15 +167,16 @@ final class DashboardWeatherService: NSObject, ObservableObject {
         }
     }
 
-    private func requestWeatherIfAuthorized() {
+    private func requestWeatherIfAuthorized(force: Bool = false) {
         updateWeatherSectionVisibility()
         guard isWeatherSectionVisible else { return }
+        guard force || shouldAttemptWeatherFetch(force: false) else { return }
 
         switch locationManager.authorizationStatus {
         case .authorized, .authorizedAlways:
             if let location = locationManager.location {
-                startWeatherFetch(for: location)
-            } else {
+                startWeatherFetch(for: location, force: force)
+            } else if force || !pendingLocationRequest {
                 requestSingleLocationUpdate()
             }
         case .denied, .restricted, .notDetermined:
@@ -189,15 +209,19 @@ final class DashboardWeatherService: NSObject, ObservableObject {
         }
     }
 
-    private func startWeatherFetch(for location: CLLocation) {
+    private func startWeatherFetch(for location: CLLocation, force: Bool = false) {
+        if isFetchingWeather, !force { return }
+
         locationRetryTask?.cancel()
         locationRetryTask = nil
         locationRetryCount = 0
         pendingLocationRequest = false
 
+        weatherFetchGeneration += 1
+        let generation = weatherFetchGeneration
         weatherFetchTask?.cancel()
         weatherFetchTask = Task { @MainActor in
-            await fetchWeather(for: location)
+            await fetchWeather(for: location, generation: generation)
         }
     }
 
@@ -228,6 +252,7 @@ final class DashboardWeatherService: NSObject, ObservableObject {
                     locationRetryCount += 1
                     logger.info("Retrying location request (\(self.locationRetryCount)/\(Self.maxLocationRetries))")
                     statusMessage = "Finding your location…"
+                    isLoading = true
                     scheduleLocationRetry()
                     return
                 }
@@ -250,26 +275,31 @@ final class DashboardWeatherService: NSObject, ObservableObject {
         requestWeatherIfAuthorized()
     }
 
-    private func fetchWeather(for location: CLLocation) async {
+    private func fetchWeather(for location: CLLocation, generation: Int) async {
         isFetchingWeather = true
         isLoading = true
-        statusMessage = nil
+        if !Self.isWeatherKitErrorMessage(statusMessage) {
+            statusMessage = nil
+        }
         defer {
-            isLoading = false
-            isFetchingWeather = false
+            if generation == weatherFetchGeneration {
+                isLoading = false
+                isFetchingWeather = false
+            }
         }
 
         do {
             let forecast = try await weatherService.weather(for: location)
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled, generation == weatherFetchGeneration else { return }
 
             let cityName = await Self.resolveCityName(for: location)
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled, generation == weatherFetchGeneration else { return }
 
             weather = Self.makeTodayWeather(from: forecast, cityName: cityName)
             statusMessage = nil
+            lastSuccessfulFetchAt = Date()
         } catch {
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled, generation == weatherFetchGeneration else { return }
 
             weather = nil
             statusMessage = Self.userMessage(for: error)
