@@ -1,0 +1,21 @@
+{
+  "version": "0.6.3",
+  "summary": "Dashboard header with intelligent insight, weather beside cloud sync, and city forecasts.",
+  "releaseNotes": {
+    "introduced": [
+      "Intelligent insight under the daily quote — tailored analysis of inbox, bills, passwords, and productivity",
+      "Today's weather shows your city name alongside the forecast"
+    ],
+    "changed": [
+      "Weather panel and cloud sync sit side by side with analysis timing and Analyse Now",
+      "Analysis times use plain minutes — Last analysis 2 minutes ago, Next analyse in 28 minutes",
+      "Payment preparation spans the full dashboard width; duplicate Intelligent summary removed"
+    ],
+    "fixed": [
+      "WeatherKit diagnostic test script for verifying signed builds"
+    ],
+    "updated": [],
+    "removed": [],
+    "breaking": []
+  }
+}

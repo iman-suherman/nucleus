@@ -41,25 +41,96 @@ enum DashboardQuotes {
         UserDefaults.standard.set(candidate, forKey: storageKey)
         return candidate
     }
+
+    static func theme(for quote: String) -> String {
+        let lower = quote.lowercased()
+
+        if lower.contains("work") || lower.contains("focus") || lower.contains("effort")
+            || lower.contains("momentum") || lower.contains("progress") {
+            if lower.contains("heart") || lower.contains("kind") || lower.contains("gentle") {
+                return "About letting meaningful work guide your priorities with warmth."
+            }
+            return "About meaningful work, focus, and steady progress."
+        }
+
+        if lower.contains("calm") || lower.contains("peace") || lower.contains("rest")
+            || lower.contains("balance") || lower.contains("quiet") || lower.contains("breath") {
+            return "About calm, balance, and making space to breathe."
+        }
+
+        if lower.contains("gratitude") || lower.contains("thank") || lower.contains("kindness")
+            || lower.contains("generous") || lower.contains("warm") {
+            return "About gratitude, kindness, and appreciating the day."
+        }
+
+        if lower.contains("hope") || lower.contains("dream") || lower.contains("grow")
+            || lower.contains("bloom") || lower.contains("fresh") {
+            return "About hope, growth, and welcoming what is ahead."
+        }
+
+        if lower.contains("clarity") || lower.contains("clear") || lower.contains("simple")
+            || lower.contains("priority") || lower.contains("plan") {
+            return "About clarity, simplicity, and knowing what matters."
+        }
+
+        if lower.contains("joy") || lower.contains("delight") || lower.contains("laugh")
+            || lower.contains("light") || lower.contains("spark") {
+            return "About joy, lightness, and small moments of delight."
+        }
+
+        if lower.contains("rain") || lower.contains("weather") || lower.contains("sun")
+            || lower.contains("morning") || lower.contains("evening") {
+            return "About moving through the day with ease and acceptance."
+        }
+
+        return "A gentle wish for a thoughtful, balanced day."
+    }
 }
 
 enum DashboardDurationFormatting {
-    static func ago(from date: Date, now: Date = Date()) -> String {
-        formatDuration(now.timeIntervalSince(date))
-    }
-
-    static func until(_ date: Date, now: Date = Date()) -> String {
-        formatDuration(max(0, date.timeIntervalSince(now)))
-    }
-
-    private static func formatDuration(_ interval: TimeInterval) -> String {
-        let totalSeconds = max(0, Int(interval.rounded()))
-        let minutes = totalSeconds / 60
-        let seconds = totalSeconds % 60
-
-        if minutes > 0 {
-            return "\(minutes) min, \(seconds) sec."
+    static func analysisAgo(from date: Date, now: Date = Date()) -> String {
+        let minutes = max(0, Int(now.timeIntervalSince(date) / 60))
+        if minutes == 0 {
+            return "just now"
         }
-        return "\(seconds) sec."
+        if minutes == 1 {
+            return "1 minute ago"
+        }
+        if minutes < 60 {
+            return "\(minutes) minutes ago"
+        }
+
+        let hours = minutes / 60
+        if hours == 1 {
+            return "1 hour ago"
+        }
+        if hours < 24 {
+            return "\(hours) hours ago"
+        }
+
+        let days = hours / 24
+        if days == 1 {
+            return "1 day ago"
+        }
+        return "\(days) days ago"
+    }
+
+    static func analysisUntil(_ date: Date, now: Date = Date()) -> String {
+        let minutes = max(0, Int(ceil(date.timeIntervalSince(now) / 60)))
+        if minutes == 0 {
+            return "due now"
+        }
+        if minutes == 1 {
+            return "in 1 minute"
+        }
+        if minutes < 60 {
+            return "in \(minutes) minutes"
+        }
+
+        let hours = Int(ceil(Double(minutes) / 60))
+        if hours == 1 {
+            return "in 1 hour"
+        }
+        return "in \(hours) hours"
     }
 }

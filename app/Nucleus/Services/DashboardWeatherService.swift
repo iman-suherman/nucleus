@@ -5,6 +5,7 @@ import OSLog
 import WeatherKit
 
 struct DashboardTodayWeather: Equatable {
+    var cityName: String?
     var conditionSymbol: String
     var conditionDescription: String
     var highTemperature: String
@@ -175,7 +176,8 @@ final class DashboardWeatherService: NSObject, ObservableObject {
 
         do {
             let forecast = try await weatherService.weather(for: location)
-            weather = Self.makeTodayWeather(from: forecast)
+            let cityName = await Self.resolveCityName(for: location)
+            weather = Self.makeTodayWeather(from: forecast, cityName: cityName)
             statusMessage = nil
         } catch {
             weather = nil
@@ -214,7 +216,24 @@ final class DashboardWeatherService: NSObject, ObservableObject {
         return "Weather is unavailable right now."
     }
 
-    private static func makeTodayWeather(from weather: Weather) -> DashboardTodayWeather {
+    private static func resolveCityName(for location: CLLocation) async -> String? {
+        let geocoder = CLGeocoder()
+        do {
+            let placemarks = try await geocoder.reverseGeocodeLocation(location)
+            guard let placemark = placemarks.first else { return nil }
+            if let locality = placemark.locality, !locality.isEmpty {
+                return locality
+            }
+            if let area = placemark.administrativeArea, !area.isEmpty {
+                return area
+            }
+            return placemark.name
+        } catch {
+            return nil
+        }
+    }
+
+    private static func makeTodayWeather(from weather: Weather, cityName: String?) -> DashboardTodayWeather {
         let calendar = Calendar.current
         let now = Date()
         let today = weather.dailyForecast.first { day in
@@ -231,6 +250,7 @@ final class DashboardWeatherService: NSObject, ObservableObject {
         let description = condition.description
 
         return DashboardTodayWeather(
+            cityName: cityName,
             conditionSymbol: symbolName(for: condition),
             conditionDescription: description,
             highTemperature: high,

@@ -31,11 +31,8 @@ struct DashboardWorkspaceView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 28) {
                     header
-                    if weatherService.isWeatherSectionVisible {
-                        weatherForecastSection
-                    }
                     summaryAndResourceCards
-                    summaryAndBillsRow
+                    upcomingBillsSection
                     productivitySection
                 }
                 .padding(28)
@@ -68,53 +65,100 @@ struct DashboardWorkspaceView: View {
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .top, spacing: 20) {
-                Text("\(DashboardGreeting.timeOfDay()), \(DashboardGreeting.firstName)")
-                    .font(.largeTitle.bold())
-                    .frame(maxWidth: .infinity, alignment: .leading)
+        VStack(alignment: .leading, spacing: 16) {
+            Text("\(DashboardGreeting.timeOfDay()), \(DashboardGreeting.firstName)")
+                .font(.largeTitle.bold())
 
-                headerCloudSyncPanel
-            }
+            Text("\"\(viewModel.dashboardQuote)\"")
+                .font(.title3)
+                .foregroundStyle(.primary)
+                .italic()
+                .fixedSize(horizontal: false, vertical: true)
 
-            HStack(alignment: .firstTextBaseline, spacing: 16) {
-                Text("\"\(viewModel.dashboardQuote)\"")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .italic()
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+            intelligentInsightSection
 
-                analysisStatusRow
+            if weatherService.isWeatherSectionVisible {
+                weatherAndSidebarRow
+            } else {
+                sidebarPanel
             }
         }
     }
 
-    private var analysisStatusRow: some View {
-        TimelineView(.periodic(from: .now, by: 1)) { context in
-            HStack(alignment: .center, spacing: 10) {
-                if let analyzedAt = viewModel.dashboardAnalyzedAt {
-                    Text("Last analysis \(DashboardDurationFormatting.ago(from: analyzedAt, now: context.date)).")
-                } else {
-                    Text("No analysis yet.")
+    private var intelligentInsightSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label("Intelligent insight", systemImage: "sparkles")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: [.orange, .pink, .purple],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+
+            VStack(alignment: .leading, spacing: 8) {
+                ForEach(Array(snapshot.activitySummary.enumerated()), id: \.offset) { _, paragraph in
+                    Text(paragraph)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
 
-                Button("Analyze Now") {
+                Text(snapshot.productivitySummary)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(.quaternary.opacity(0.25), in: RoundedRectangle(cornerRadius: 12))
+        }
+    }
+
+    private var weatherAndSidebarRow: some View {
+        HStack(alignment: .top, spacing: 16) {
+            weatherForecastSection
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            sidebarPanel
+        }
+    }
+
+    private var sidebarPanel: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            headerCloudSyncPanel
+            analysisStatusRow
+        }
+        .frame(width: 280, alignment: .topLeading)
+    }
+
+    private var analysisStatusRow: some View {
+        TimelineView(.periodic(from: .now, by: 60)) { context in
+            HStack(alignment: .center, spacing: 12) {
+                VStack(alignment: .leading, spacing: 4) {
+                    if let analyzedAt = viewModel.dashboardAnalyzedAt {
+                        Text("Last analysis \(DashboardDurationFormatting.analysisAgo(from: analyzedAt, now: context.date))")
+                    } else {
+                        Text("No analysis yet")
+                    }
+
+                    if let nextAt = viewModel.nextDashboardAnalysisAt {
+                        if nextAt <= context.date {
+                            Text("Next analyse due now")
+                        } else {
+                            Text("Next analyse \(DashboardDurationFormatting.analysisUntil(nextAt, now: context.date))")
+                        }
+                    } else {
+                        Text("Next analyse in 30 minutes")
+                    }
+                }
+
+                Button("Analyse Now") {
                     viewModel.refreshDashboardAnalysisNow()
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
-
-                if let nextAt = viewModel.nextDashboardAnalysisAt {
-                    if nextAt <= context.date {
-                        Text("Next analysis due now.")
-                    } else {
-                        Text("Next analysis \(DashboardDurationFormatting.until(nextAt, now: context.date)).")
-                    }
-                } else {
-                    Text("Next analysis runs every 30 minutes.")
-                }
             }
             .font(.caption)
             .foregroundStyle(.secondary)
@@ -124,19 +168,25 @@ struct DashboardWorkspaceView: View {
 
     @ViewBuilder
     private var weatherForecastSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Label("Today's weather", systemImage: "cloud.sun.fill")
-                .font(.headline)
-                .symbolRenderingMode(.multicolor)
+        VStack(alignment: .leading, spacing: 10) {
+            if let weather = weatherService.weather, let cityName = weather.cityName {
+                Label("Today's weather · \(cityName)", systemImage: "cloud.sun.fill")
+                    .font(.headline)
+                    .symbolRenderingMode(.multicolor)
+            } else {
+                Label("Today's weather", systemImage: "cloud.sun.fill")
+                    .font(.headline)
+                    .symbolRenderingMode(.multicolor)
+            }
 
             if let weather = weatherService.weather {
-                HStack(alignment: .top, spacing: 16) {
+                HStack(alignment: .top, spacing: 14) {
                     Image(systemName: weather.conditionSymbol)
-                        .font(.system(size: 36))
+                        .font(.system(size: 32))
                         .symbolRenderingMode(.multicolor)
-                        .frame(width: 44)
+                        .frame(width: 40)
 
-                    VStack(alignment: .leading, spacing: 6) {
+                    VStack(alignment: .leading, spacing: 4) {
                         Text(weather.conditionDescription)
                             .font(.title3.weight(.semibold))
                         Text("High \(weather.highTemperature) · Low \(weather.lowTemperature)")
@@ -144,16 +194,17 @@ struct DashboardWorkspaceView: View {
                             .foregroundStyle(.secondary)
                         if let rainSummary = weather.rainSummary {
                             Text(rainSummary)
-                                .font(.subheadline)
+                                .font(.caption)
                                 .foregroundStyle(.secondary)
+                                .lineLimit(2)
                         }
                     }
 
                     Spacer(minLength: 0)
                 }
-                .padding(18)
+                .padding(14)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 14))
+                .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 12))
             } else if weatherService.isLoading {
                 HStack(spacing: 10) {
                     ProgressView()
@@ -162,15 +213,15 @@ struct DashboardWorkspaceView: View {
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
-                .padding(18)
+                .padding(14)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(.quaternary.opacity(0.25), in: RoundedRectangle(cornerRadius: 14))
+                .background(.quaternary.opacity(0.25), in: RoundedRectangle(cornerRadius: 12))
             } else if let statusMessage = weatherService.statusMessage {
-                HStack(alignment: .center, spacing: 12) {
+                HStack(alignment: .center, spacing: 10) {
                     Image(systemName: "cloud.slash")
                         .foregroundStyle(.secondary)
                     Text(statusMessage)
-                        .font(.subheadline)
+                        .font(.caption)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                     Spacer(minLength: 0)
@@ -180,9 +231,9 @@ struct DashboardWorkspaceView: View {
                     .buttonStyle(.bordered)
                     .controlSize(.small)
                 }
-                .padding(18)
+                .padding(14)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(.quaternary.opacity(0.25), in: RoundedRectangle(cornerRadius: 14))
+                .background(.quaternary.opacity(0.25), in: RoundedRectangle(cornerRadius: 12))
             }
         }
     }
@@ -272,10 +323,9 @@ struct DashboardWorkspaceView: View {
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                     .lineLimit(2)
-                    .frame(maxWidth: 280, alignment: .leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
-        .frame(width: 280, alignment: .topLeading)
     }
 
     private var iCloudIsConnected: Bool {
@@ -347,39 +397,6 @@ struct DashboardWorkspaceView: View {
         }
         .padding(.horizontal, compact ? 12 : 16)
         .padding(.vertical, compact ? 8 : 12)
-    }
-
-    private var summaryAndBillsRow: some View {
-        HStack(alignment: .top, spacing: 20) {
-            intelligentSummary
-                .frame(maxWidth: .infinity, alignment: .leading)
-            upcomingBillsSection
-                .frame(maxWidth: .infinity, alignment: .leading)
-        }
-    }
-
-    private var intelligentSummary: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Label("Intelligent summary", systemImage: "sparkles")
-                .font(.headline)
-                .foregroundStyle(.orange)
-
-            VStack(alignment: .leading, spacing: 12) {
-                ForEach(Array(snapshot.activitySummary.enumerated()), id: \.offset) { _, paragraph in
-                    Text(paragraph)
-                        .font(.body)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-
-                Text(snapshot.productivitySummary)
-                    .font(.body)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .padding(18)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 14))
-        }
     }
 
     @ViewBuilder
