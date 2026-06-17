@@ -1,17 +1,16 @@
 {
-  "version": "0.6.4",
-  "summary": "Dashboard layout polish, dated intelligent insight, and centered dock badges.",
+  "version": "0.6.5",
+  "summary": "Dashboard summary box, resource usage layout, and weather error handling.",
   "releaseNotes": {
-    "introduced": [
-      "Intelligent insight opens with today's date and time — As of Wednesday, 17 June 2026 at 10:15 am, you have…"
-    ],
+    "introduced": [],
     "changed": [
-      "Daily quote flows naturally from the greeting — Good morning, Iman — May your flow be filled with refreshing gratitude",
-      "Metric cards and payment preparation sit side by side on the Dashboard",
-      "Intelligent insight uses a gradient card so tailored analysis stands out"
+      "Dashboard metrics (unread email, chat, passwords, bills) sit in one Summary box with live resource usage underneath",
+      "Resource card title is now Live Nucleus resource usage"
     ],
     "fixed": [
-      "Dock notification badge numbers are centered in the circle"
+      "Weather errors no longer get overwritten by transient location failures",
+      "Location lookup retries automatically when the fix is temporarily unavailable",
+      "WeatherKit authentication failures show a clearer message instead of a misleading location error"
     ],
     "updated": [],
     "removed": [],
