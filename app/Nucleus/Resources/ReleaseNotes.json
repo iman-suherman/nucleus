@@ -1,21 +1,24 @@
 {
-  "version": "0.7.0",
-  "summary": "Smarter news with mood-aware summaries, plus Dashboard alerts when new email arrives.",
+  "version": "0.8.0",
+  "summary": "Removes Calendar and Chat workspaces to focus Nucleus on mail, bills, clipboard, notes, and passwords.",
   "releaseNotes": {
-    "introduced": [
-      "News feed analyzes each headline for mood — uplifting, informative, analytical, concerning, or breaking — with color-coded cards and a plain-language summary",
-      "Each news story includes a short mood explanation so you know why it feels urgent, concerning, or positive before you open it",
-      "Dashboard modal when new email arrives while you are on the Dashboard — shows the count, a preview, and Open inbox to jump straight to mail",
-      "Unread email in the Summary metrics box is highlighted in yellow whenever you have mail waiting"
-    ],
+    "introduced": [],
     "changed": [
-      "News summaries are rewritten for everyday readers — In brief explains what happened and why it matters",
-      "Apple Intelligence improves news summaries and mood notes when available, with smart fallbacks offline",
-      "New email alerts queue while you are away from the Dashboard and appear when you return"
+      "Sidebar workspace list now covers Dashboard, Inbox, Clipboard, Notes and Passwords, and Bills",
+      "Dashboard summary metrics focus on unread email, saved passwords, and upcoming bills",
+      "Intelligent insight copy describes inbox status without chat mentions"
     ],
     "fixed": [],
-    "updated": [],
-    "removed": [],
-    "breaking": []
+    "updated": [
+      "Marketing website copy updated to match the slimmer workspace scope"
+    ],
+    "removed": [
+      "Google Calendar workspace and embedded week view",
+      "Google Chat workspace, unread polling, dock badges, and chat notification settings tab",
+      "Chat and calendar notification toggles from Settings"
+    ],
+    "breaking": [
+      "Saved sidebar selection for Calendar or Chat resets to Dashboard on upgrade"
+    ]
   }
 }
