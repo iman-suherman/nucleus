@@ -15,8 +15,9 @@ struct DashboardWorkspaceView: View {
     @ObservedObject private var holidayService = DashboardPublicHolidayService.shared
     @ObservedObject private var newsFeedService = DashboardNewsFeedService.shared
 
-    @State private var holidayExplanation: String?
-    @State private var holidayExplanationTask: Task<Void, Never>?
+    @State private var holidayExplanations: [String: String] = [:]
+    @State private var holidayIcons: [String: String] = [:]
+    @State private var holidayMetadataTask: Task<Void, Never>?
 
     @State private var isConnectingNucleusCloud = false
     @State private var nucleusCloudMessage: String?
@@ -42,11 +43,11 @@ struct DashboardWorkspaceView: View {
                 VStack(alignment: .leading, spacing: 28) {
                     header
                     metricsAndBillsRow
+                    if dashboardPreferences.productivityChartEnabled {
+                        productivityCollapsibleSection
+                    }
                     if showsDashboardAnalysisStatus {
                         analysisStatusBar
-                    }
-                    if dashboardPreferences.productivityChartEnabled {
-                        productivitySection
                     }
                 }
                 .padding(28)
@@ -65,7 +66,7 @@ struct DashboardWorkspaceView: View {
         .onDisappear {
             processMetricsService.stopSampling()
             newsFeedService.stopAutoRefresh()
-            holidayExplanationTask?.cancel()
+            holidayMetadataTask?.cancel()
         }
         .onChange(of: settings.dashboardPreferences) { _, _ in
             applyDashboardServiceState()
@@ -74,10 +75,10 @@ struct DashboardWorkspaceView: View {
             weatherService.refreshIfNeeded()
             newsFeedService.refresh(countryCode: holidayService.nextHoliday?.countryCode, force: false)
         }
-        .onChange(of: holidayService.nextHoliday?.date) { _, _ in
+        .onChange(of: holidayService.displayHolidays.map(\.name)) { _, _ in
             viewModel.refreshDashboardQuoteForCurrentContext()
             viewModel.refreshDashboardQuoteEmojis()
-            refreshHolidayExplanation()
+            refreshHolidayMetadata()
             if let countryCode = holidayService.nextHoliday?.countryCode {
                 newsFeedService.refresh(countryCode: countryCode, force: false)
             }
@@ -173,6 +174,26 @@ struct DashboardWorkspaceView: View {
         dashboardPreferenceBinding(\.clipboardDayExpanded)
     }
 
+    private var contextPanelsExpanded: Binding<Bool> {
+        dashboardPreferenceBinding(\.contextPanelsExpanded)
+    }
+
+    private var newsFeedExpanded: Binding<Bool> {
+        dashboardPreferenceBinding(\.newsFeedExpanded)
+    }
+
+    private var summaryExpanded: Binding<Bool> {
+        dashboardPreferenceBinding(\.summaryExpanded)
+    }
+
+    private var paymentPreparationExpanded: Binding<Bool> {
+        dashboardPreferenceBinding(\.paymentPreparationExpanded)
+    }
+
+    private var productivityExpanded: Binding<Bool> {
+        dashboardPreferenceBinding(\.productivityExpanded)
+    }
+
     private func dashboardPreferenceBinding(_ keyPath: WritableKeyPath<DashboardPreferences, Bool>) -> Binding<Bool> {
         Binding(
             get: { settings.dashboardPreferences[keyPath: keyPath] },
@@ -224,6 +245,24 @@ struct DashboardWorkspaceView: View {
                                 .font(.body)
                                 .foregroundStyle(.primary)
                                 .fixedSize(horizontal: false, vertical: true)
+
+                            if let highlight = analysis.keyProductivityHighlight,
+                               !DashboardClipboardDayAnalysisEngine.sanitizeDisplayText(highlight).isEmpty {
+                                HStack(alignment: .top, spacing: 10) {
+                                    Image(systemName: "arrow.triangle.2.circlepath")
+                                        .font(.subheadline.weight(.semibold))
+                                        .foregroundStyle(.teal)
+                                        .frame(width: 20)
+
+                                    Text(DashboardClipboardDayAnalysisEngine.sanitizeDisplayText(highlight))
+                                        .font(.subheadline.weight(.semibold))
+                                        .foregroundStyle(.primary)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
+                                .padding(12)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(Color.teal.opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
+                            }
 
                             if !DashboardClipboardDayAnalysisEngine.nonEmptyDisplayLines(analysis.behaviorInsights).isEmpty {
                                 clipboardAnalysisBulletSection(
@@ -415,25 +454,72 @@ struct DashboardWorkspaceView: View {
     private var weatherResourceAndSidebarRow: some View {
         HStack(alignment: .top, spacing: 16) {
             if showsLeftDashboardPanels {
-                VStack(alignment: .leading, spacing: 16) {
-                    if dashboardPreferences.weatherEnabled {
-                        weatherForecastSection
+                collapsibleDashboardSection(
+                    isExpanded: contextPanelsExpanded,
+                    title: contextPanelsTitle,
+                    systemImage: "cloud.sun.fill"
+                ) {
+                    VStack(alignment: .leading, spacing: 16) {
+                        if dashboardPreferences.weatherEnabled {
+                            weatherForecastSection
+                        }
+                        if dashboardPreferences.resourceUsageEnabled || dashboardPreferences.cloudSyncPanelEnabled {
+                            resourceAndCloudSyncRow
+                        }
+                        if dashboardPreferences.publicHolidayEnabled {
+                            publicHolidaySection
+                        }
                     }
-                    if dashboardPreferences.resourceUsageEnabled || dashboardPreferences.cloudSyncPanelEnabled {
-                        resourceAndCloudSyncRow
-                    }
-                    if dashboardPreferences.publicHolidayEnabled {
-                        publicHolidaySection
-                    }
+                }
+                .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 14))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 14)
+                        .strokeBorder(Color.teal.opacity(0.2), lineWidth: 1)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
 
             if dashboardPreferences.newsFeedEnabled {
-                newsFeedSection
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                collapsibleDashboardSection(
+                    isExpanded: newsFeedExpanded,
+                    title: newsFeedTitle,
+                    systemImage: "newspaper.fill"
+                ) {
+                    newsFeedSection
+                }
+                .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 14))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 14)
+                        .strokeBorder(Color.teal.opacity(0.2), lineWidth: 1)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
+    }
+
+    private var contextPanelsTitle: String {
+        var parts: [String] = []
+        if dashboardPreferences.weatherEnabled {
+            if let city = weatherService.weather?.cityName {
+                parts.append("Weather · \(city)")
+            } else {
+                parts.append("Weather")
+            }
+        }
+        if dashboardPreferences.resourceUsageEnabled || dashboardPreferences.cloudSyncPanelEnabled {
+            parts.append("Sync")
+        }
+        if dashboardPreferences.publicHolidayEnabled {
+            parts.append("Holidays")
+        }
+        return parts.isEmpty ? "Live panels" : parts.joined(separator: " · ")
+    }
+
+    private var newsFeedTitle: String {
+        if newsFeedService.headlines.isEmpty {
+            return "News feed"
+        }
+        return "News feed · \(newsFeedService.headlines.count) headline\(newsFeedService.headlines.count == 1 ? "" : "s")"
     }
 
     private var showsLeftDashboardPanels: Bool {
@@ -461,83 +547,83 @@ struct DashboardWorkspaceView: View {
         DashboardNewsTickerView(
             headlines: newsFeedService.headlines,
             isLoading: newsFeedService.isLoading,
-            statusMessage: newsFeedService.statusMessage
+            statusMessage: newsFeedService.statusMessage,
+            showsHeader: false
         )
     }
 
-    private func refreshHolidayExplanation() {
-        holidayExplanationTask?.cancel()
-        guard let holiday = holidayService.nextHoliday else {
-            holidayExplanation = nil
+    private func holidayCacheToken(for holiday: DashboardNextPublicHoliday) -> String {
+        DashboardPublicHolidayIconService.cacheToken(for: holiday)
+    }
+
+    private func refreshHolidayMetadata() {
+        holidayMetadataTask?.cancel()
+        let holidays = holidayService.displayHolidays
+        guard !holidays.isEmpty else {
+            holidayExplanations = [:]
             return
         }
 
-        if let cached = DashboardPublicHolidayExplanationService.cachedExplanation(for: holiday) {
-            holidayExplanation = cached
-            return
+        var icons = holidayIcons
+        var explanations = holidayExplanations
+        for holiday in holidays {
+            let token = holidayCacheToken(for: holiday)
+            if icons[token] == nil {
+                icons[token] = DashboardPublicHolidayIconService.cachedSymbol(for: holiday)
+                    ?? DashboardPublicHolidayIconService.fallbackSymbol(for: holiday)
+            }
+            if explanations[token] == nil {
+                explanations[token] = DashboardPublicHolidayExplanationService.cachedExplanation(for: holiday)
+                    ?? DashboardPublicHolidayExplanationService.fallbackExplanation(for: holiday)
+            }
         }
+        holidayIcons = icons
+        holidayExplanations = explanations
 
-        holidayExplanation = DashboardPublicHolidayExplanationService.fallbackExplanation(for: holiday)
-        holidayExplanationTask = Task {
-            let explanation = await DashboardPublicHolidayExplanationService.resolveExplanation(for: holiday)
-            guard !Task.isCancelled else { return }
-            holidayExplanation = explanation
+        holidayMetadataTask = Task {
+            for holiday in holidays {
+                guard !Task.isCancelled else { return }
+                let token = holidayCacheToken(for: holiday)
+                async let icon = DashboardPublicHolidayIconService.resolveSymbol(for: holiday)
+                async let explanation = DashboardPublicHolidayExplanationService.resolveExplanation(for: holiday)
+                let resolvedIcon = await icon
+                let resolvedExplanation = await explanation
+                guard !Task.isCancelled else { return }
+                holidayIcons[token] = resolvedIcon
+                holidayExplanations[token] = resolvedExplanation
+            }
         }
     }
 
     @ViewBuilder
     private var publicHolidaySection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            if let holiday = holidayService.nextHoliday {
+            let holidays = holidayService.displayHolidays
+            let locationName = holidayService.locationLabel
+                ?? holidays.first.map {
+                    Locale.current.localizedString(forRegionCode: $0.countryCode) ?? $0.countryCode
+                }
+
+            if !holidays.isEmpty {
                 Label(
-                    "Next public holiday · \(holidayService.locationLabel ?? Locale.current.localizedString(forRegionCode: holiday.countryCode) ?? holiday.countryCode)",
+                    "Public holidays · \(locationName ?? "your region")",
                     systemImage: "calendar.badge.clock"
                 )
-                    .font(.headline)
-                    .symbolRenderingMode(.multicolor)
+                .font(.headline)
+                .symbolRenderingMode(.multicolor)
             } else {
-                Label("Next public holiday", systemImage: "calendar.badge.clock")
+                Label("Public holidays", systemImage: "calendar.badge.clock")
                     .font(.headline)
                     .symbolRenderingMode(.multicolor)
             }
 
-            if let holiday = holidayService.nextHoliday {
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack(alignment: .top, spacing: 14) {
-                        Image(systemName: "flag.fill")
-                            .font(.title3)
-                            .foregroundStyle(.orange)
-                            .frame(width: 28)
-
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(holiday.name)
-                                .font(.subheadline.weight(.semibold))
-                            Text("\(holiday.relativeDescription) · \(formattedHolidayDate(holiday.date))")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-
-                            if let applicabilityLabel = holiday.applicabilityLabel {
-                                Text(applicabilityLabel)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-
-                        Spacer(minLength: 0)
-                    }
-
-                    if let holidayExplanation {
-                        Text(holidayExplanation)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .padding(.leading, 42)
+            if !holidays.isEmpty {
+                VStack(alignment: .leading, spacing: 10) {
+                    ForEach(Array(holidays.enumerated()), id: \.offset) { _, holiday in
+                        publicHolidayCard(holiday)
                     }
                 }
-                .padding(14)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(.quaternary.opacity(0.25), in: RoundedRectangle(cornerRadius: 12))
-                .onAppear { refreshHolidayExplanation() }
+                .onAppear { refreshHolidayMetadata() }
             } else if holidayService.isLoading {
                 HStack(spacing: 10) {
                     ProgressView()
@@ -558,6 +644,53 @@ struct DashboardWorkspaceView: View {
                     .background(.quaternary.opacity(0.25), in: RoundedRectangle(cornerRadius: 12))
             }
         }
+    }
+
+    private func publicHolidayCard(_ holiday: DashboardNextPublicHoliday) -> some View {
+        let token = holidayCacheToken(for: holiday)
+        let symbol = holidayIcons[token] ?? DashboardPublicHolidayIconService.fallbackSymbol(for: holiday)
+        let explanation = holidayExplanations[token]
+
+        return VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .top, spacing: 14) {
+                Image(systemName: symbol)
+                    .font(.title3)
+                    .symbolRenderingMode(.multicolor)
+                    .foregroundStyle(.orange)
+                    .frame(width: 28)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(holiday.name)
+                        .font(.subheadline.weight(.semibold))
+                    Text("\(holiday.relativeDescription) · \(formattedHolidayDate(holiday.date))")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    Text(holiday.scopeLabel)
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(holiday.isNationwide ? .blue : .teal)
+
+                    if let applicabilityLabel = holiday.applicabilityLabel {
+                        Text(applicabilityLabel)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                Spacer(minLength: 0)
+            }
+
+            if let explanation {
+                Text(explanation)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.leading, 42)
+            }
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.quaternary.opacity(0.25), in: RoundedRectangle(cornerRadius: 12))
     }
 
     private func formattedHolidayDate(_ date: Date) -> String {
@@ -707,14 +840,79 @@ struct DashboardWorkspaceView: View {
         if showSummary || showBills {
             HStack(alignment: .top, spacing: 20) {
                 if showSummary {
-                    summaryAndResourceCards
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                    collapsibleDashboardSection(
+                        isExpanded: summaryExpanded,
+                        title: summaryTitle,
+                        systemImage: "square.grid.2x2.fill"
+                    ) {
+                        summaryAndResourceCards
+                    }
+                    .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 14))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 14)
+                            .strokeBorder(Color.teal.opacity(0.2), lineWidth: 1)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
                 if showBills {
-                    upcomingBillsSection
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                    collapsibleDashboardSection(
+                        isExpanded: paymentPreparationExpanded,
+                        title: paymentPreparationTitle,
+                        systemImage: "sparkles",
+                        titleUsesGradient: true
+                    ) {
+                        paymentPreparationContent
+                    }
+                    .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 14))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 14)
+                            .strokeBorder(
+                                LinearGradient(
+                                    colors: [.purple.opacity(0.25), .orange.opacity(0.2)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: 1
+                            )
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
+            }
+        }
+    }
+
+    private var summaryTitle: String {
+        "Summary · \(snapshot.unreadMailCount) email · \(snapshot.unreadChatCount) chat · \(snapshot.passwordCount) passwords"
+    }
+
+    private var paymentPreparationTitle: String {
+        if billPaymentSummary.groups.isEmpty {
+            return "Payment preparation"
+        }
+        let billCount = billPaymentSummary.groups.reduce(0) { $0 + $1.billCount }
+        return "Payment preparation · \(billCount) bill\(billCount == 1 ? "" : "s") due soon"
+    }
+
+    @ViewBuilder
+    private var paymentPreparationContent: some View {
+        if billPaymentSummary.groups.isEmpty {
+            Text("Nothing to prepare in the next two weeks.")
+                .foregroundStyle(.secondary)
+                .padding(16)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(.quaternary.opacity(0.25), in: RoundedRectangle(cornerRadius: 12))
+        } else {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Spacer()
+                    Button("Open Bills") {
+                        viewModel.sidebarSelection = .workspace(.bills)
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                }
+                billPaymentPreparationCard
             }
         }
     }
@@ -852,37 +1050,6 @@ struct DashboardWorkspaceView: View {
         .padding(.vertical, compact ? 8 : 12)
     }
 
-    @ViewBuilder
-    private var upcomingBillsSection: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack {
-                Label("Payment preparation", systemImage: "sparkles")
-                    .font(.headline)
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [.orange, .pink],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
-                Spacer()
-                Button("Open Bills") {
-                    viewModel.sidebarSelection = .workspace(.bills)
-                }
-            }
-
-            if billPaymentSummary.groups.isEmpty {
-                Text("Nothing to prepare in the next two weeks.")
-                    .foregroundStyle(.secondary)
-                    .padding(16)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(.quaternary.opacity(0.25), in: RoundedRectangle(cornerRadius: 12))
-            } else {
-                billPaymentPreparationCard
-            }
-        }
-    }
-
     private var billPaymentPreparationCard: some View {
         VStack(alignment: .leading, spacing: 0) {
             ForEach(billPaymentSummary.groups) { group in
@@ -936,11 +1103,31 @@ struct DashboardWorkspaceView: View {
         }
     }
 
-    private var productivitySection: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Label("Productivity", systemImage: "chart.bar.fill")
-                .font(.headline)
+    private var productivityCollapsibleSection: some View {
+        collapsibleDashboardSection(
+            isExpanded: productivityExpanded,
+            title: productivityTitle,
+            systemImage: "chart.bar.fill"
+        ) {
+            productivitySectionContent
+        }
+        .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 14))
+        .overlay {
+            RoundedRectangle(cornerRadius: 14)
+                .strokeBorder(Color.teal.opacity(0.2), lineWidth: 1)
+        }
+    }
 
+    private var productivityTitle: String {
+        let total = snapshot.productivityBuckets.reduce(0) { $0 + $1.count }
+        if total == 0 {
+            return "Productivity"
+        }
+        return "Productivity · \(total) captures (7 days)"
+    }
+
+    private var productivitySectionContent: some View {
+        VStack(alignment: .leading, spacing: 14) {
             Text("How your recent clipboard captures break down over the last 7 days.")
                 .font(.caption)
                 .foregroundStyle(.secondary)

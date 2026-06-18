@@ -11,6 +11,7 @@ final class ClipboardPasteController: NSObject {
     private var panel: NSPanel?
     private var globalMonitor: Any?
     private var localMonitor: Any?
+    private var outsideClickMonitor: Any?
     private var previousFrontmostApp: NSRunningApplication?
 
     private override init() {
@@ -29,7 +30,6 @@ final class ClipboardPasteController: NSObject {
         globalMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
             guard let self, Self.matchesHotkey(event) else { return }
             Task { @MainActor in
-                guard !NSApp.isActive else { return }
                 self.presentPicker()
             }
         }
@@ -48,16 +48,17 @@ final class ClipboardPasteController: NSObject {
     }
 
     func presentPicker() {
-        guard panel == nil else {
+        if panel != nil {
             panel?.makeKeyAndOrderFront(nil)
             return
         }
 
         guard let viewModel = AppViewModel.current else { return }
 
-        requestAccessibilityIfNeeded()
-
         previousFrontmostApp = NSWorkspace.shared.frontmostApplication
+        if previousFrontmostApp?.bundleIdentifier == Bundle.main.bundleIdentifier {
+            previousFrontmostApp = nil
+        }
         viewModel.clipboardSearchQuery = ""
 
         let pickerView = ClipboardPickerView(
@@ -75,7 +76,7 @@ final class ClipboardPasteController: NSObject {
 
         let panel = NSPanel(
             contentRect: hosting.view.bounds,
-            styleMask: [.titled, .closable, .fullSizeContentView, .utilityWindow],
+            styleMask: [.nonactivatingPanel, .titled, .closable, .fullSizeContentView, .utilityWindow],
             backing: .buffered,
             defer: false
         )
@@ -84,19 +85,22 @@ final class ClipboardPasteController: NSObject {
         panel.titleVisibility = .hidden
         panel.isFloatingPanel = true
         panel.level = .floating
-        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient]
+        panel.hidesOnDeactivate = false
+        panel.becomesKeyOnlyIfNeeded = true
         panel.contentViewController = hosting
         panel.isReleasedWhenClosed = false
         panel.delegate = self
         panel.center()
         panel.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
 
         self.panel = panel
+        installOutsideClickMonitor()
     }
 
     private func apply(_ entry: ClipboardEntry) {
         let targetApp = previousFrontmostApp ?? NSWorkspace.shared.frontmostApplication
+        ClipboardPasteReuseStore.record(entry: entry)
         dismissPicker(reactivatePreviousApp: false)
 
         ClipboardMonitorService.shared.preparePaste(entry.content)
@@ -114,6 +118,7 @@ final class ClipboardPasteController: NSObject {
     }
 
     private func dismissPicker(reactivatePreviousApp: Bool) {
+        removeOutsideClickMonitor()
         panel?.orderOut(nil)
         panel = nil
 
@@ -123,10 +128,23 @@ final class ClipboardPasteController: NSObject {
         previousFrontmostApp = nil
     }
 
-    private func requestAccessibilityIfNeeded() {
-        guard !AXIsProcessTrusted() else { return }
-        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
-        AXIsProcessTrustedWithOptions(options)
+    private func installOutsideClickMonitor() {
+        removeOutsideClickMonitor()
+        outsideClickMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
+            Task { @MainActor in
+                guard let self, let panel = self.panel else { return }
+                if !panel.frame.contains(NSEvent.mouseLocation) {
+                    self.dismissPicker(reactivatePreviousApp: true)
+                }
+            }
+        }
+    }
+
+    private func removeOutsideClickMonitor() {
+        if let outsideClickMonitor {
+            NSEvent.removeMonitor(outsideClickMonitor)
+            self.outsideClickMonitor = nil
+        }
     }
 
     private static func matchesHotkey(_ event: NSEvent) -> Bool {

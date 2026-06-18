@@ -39,6 +39,10 @@ public struct DashboardNextPublicHoliday: Equatable, Sendable {
         }
         return "Applies in: \(applicableRegions.joined(separator: ", "))"
     }
+
+    public var scopeLabel: String {
+        isNationwide ? "Nationwide" : "State & regional"
+    }
 }
 
 public enum DashboardPublicHolidayClient {
@@ -117,6 +121,36 @@ public enum DashboardPublicHolidayClient {
         let target = calendar.startOfDay(for: date)
         return holidays.contains { calendar.isDate($0.date, inSameDayAs: target) }
     }
+
+    public static func displayHolidays(from holidays: [DashboardNextPublicHoliday]) -> [DashboardNextPublicHoliday] {
+        guard !holidays.isEmpty else { return [] }
+
+        let nationwide = holidays.first(where: \.isNationwide)
+        let regional = holidays.first(where: { !$0.isNationwide })
+
+        var result: [DashboardNextPublicHoliday] = []
+        if let nationwide {
+            result.append(nationwide)
+        }
+        if let regional {
+            let duplicate = nationwide.map { sameDisplayHoliday($0, regional) } ?? false
+            if !duplicate {
+                result.append(regional)
+            }
+        }
+        if result.isEmpty, let first = holidays.first {
+            result = [first]
+        }
+        return result.sorted { $0.date < $1.date }
+    }
+
+    private static func sameDisplayHoliday(
+        _ lhs: DashboardNextPublicHoliday,
+        _ rhs: DashboardNextPublicHoliday
+    ) -> Bool {
+        lhs.name.caseInsensitiveCompare(rhs.name) == .orderedSame
+            && Calendar.current.isDate(lhs.date, inSameDayAs: rhs.date)
+    }
 }
 
 @MainActor
@@ -124,6 +158,7 @@ public final class DashboardPublicHolidayService: ObservableObject {
     public static let shared = DashboardPublicHolidayService()
 
     @Published public private(set) var nextHoliday: DashboardNextPublicHoliday?
+    @Published public private(set) var displayHolidays: [DashboardNextPublicHoliday] = []
     @Published public private(set) var isLoading = false
     @Published public private(set) var statusMessage: String?
     @Published public private(set) var locationLabel: String?
@@ -152,6 +187,7 @@ public final class DashboardPublicHolidayService: ObservableObject {
 
         guard let countryCode, !countryCode.isEmpty else {
             nextHoliday = nil
+            displayHolidays = []
             cachedHolidays = []
             cachedCountryCode = nil
             cachedSubdivisionCode = nil
@@ -166,7 +202,7 @@ public final class DashboardPublicHolidayService: ObservableObject {
            normalizedSubdivision == cachedSubdivisionCode,
            let lastFetchAt,
            Date().timeIntervalSince(lastFetchAt) < Self.refreshInterval,
-           nextHoliday != nil {
+           !displayHolidays.isEmpty {
             return
         }
 
@@ -180,6 +216,7 @@ public final class DashboardPublicHolidayService: ObservableObject {
         fetchTask?.cancel()
         fetchTask = nil
         nextHoliday = nil
+        displayHolidays = []
         cachedHolidays = []
         cachedCountryCode = nil
         cachedSubdivisionCode = nil
@@ -203,7 +240,8 @@ public final class DashboardPublicHolidayService: ObservableObject {
             cachedCountryCode = countryCode
             cachedSubdivisionCode = subdivisionCode
             lastFetchAt = Date()
-            nextHoliday = holidays.first
+            displayHolidays = DashboardPublicHolidayClient.displayHolidays(from: holidays)
+            nextHoliday = displayHolidays.first ?? holidays.first
             if holidays.isEmpty {
                 if subdivisionCode == nil {
                     statusMessage = "Allow location access to show state public holidays."
@@ -216,6 +254,7 @@ public final class DashboardPublicHolidayService: ObservableObject {
         } catch {
             guard !Task.isCancelled else { return }
             nextHoliday = nil
+            displayHolidays = []
             cachedHolidays = []
             statusMessage = "Couldn't load public holidays right now."
         }

@@ -154,6 +154,7 @@ enum DashboardClipboardDayAnalysisService {
 
             return DashboardClipboardDayAnalysis(
                 daySummary: parsed.summary,
+                keyProductivityHighlight: fallback.keyProductivityHighlight,
                 behaviorInsights: insights,
                 improvementSuggestions: improvements,
                 suggestedActions: actions,

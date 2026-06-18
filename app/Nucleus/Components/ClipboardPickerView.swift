@@ -58,7 +58,7 @@ struct ClipboardPickerView: View {
                 .listStyle(.inset)
             }
 
-            Text("Return to paste · Esc to cancel · ↑↓ to browse")
+            Text("Click a clip to paste · Return on selection · Esc to close")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -80,9 +80,6 @@ struct ClipboardPickerView: View {
                 onReturn: {
                     guard let highlightedID,
                           let entry = filteredEntries.first(where: { $0.id == highlightedID }) else {
-                        if let first = filteredEntries.first {
-                            onSelect(first)
-                        }
                         return
                     }
                     onSelect(entry)

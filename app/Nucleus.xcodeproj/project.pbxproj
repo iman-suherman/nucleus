@@ -30,6 +30,7 @@
 		4145571152831419B598BCD1 /* DashboardWeatherService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4AB09CEFF7019C07BF7A676 /* DashboardWeatherService.swift */; };
 		4502C4FF7AEF207C5B35F583 /* NucleusKit in Frameworks */ = {isa = PBXBuildFile; productRef = 3AEE0E5864A512AD45140FF0 /* NucleusKit */; };
 		4573D9B3E1B2E7E5C1A01E2A /* BillsWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A4515FC13933C08473E2A2F /* BillsWorkspaceView.swift */; };
+		4C3BE2AC88FBED2E84BB7DBA /* DashboardPublicHolidayIconService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B87857466880DD8F69C8DF4 /* DashboardPublicHolidayIconService.swift */; };
 		4C597A31214F502918BAE394 /* WKWebView+Visibility.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C3B6F07B15EF705C5429DF9 /* WKWebView+Visibility.swift */; };
 		4E988604D8181071BA70B0EF /* Funky.caf in Resources */ = {isa = PBXBuildFile; fileRef = 500EAAED9E0A3F359D797709 /* Funky.caf */; };
 		4EDBD1DF9444754090238320 /* entitlements.mac.development.plist in Resources */ = {isa = PBXBuildFile; fileRef = 3730C4191445362A9101A48B /* entitlements.mac.development.plist */; };
@@ -108,6 +109,7 @@
 		35B2C2677CC4B681656C62C2 /* Nucleus.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Nucleus.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		36D30869A475802CF2EC37F9 /* WindowLayoutController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowLayoutController.swift; sourceTree = "<group>"; };
 		3730C4191445362A9101A48B /* entitlements.mac.development.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = entitlements.mac.development.plist; sourceTree = "<group>"; };
+		3B87857466880DD8F69C8DF4 /* DashboardPublicHolidayIconService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardPublicHolidayIconService.swift; sourceTree = "<group>"; };
 		3C96EA452B81430207A5A9FB /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		414321C6FA288B25C3F312A3 /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
 		4A99D2A6C2B4A64C1E115EC0 /* DashboardPublicHolidayService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardPublicHolidayService.swift; sourceTree = "<group>"; };
@@ -275,6 +277,7 @@
 				7070B325206A2DB90B1C3F2C /* DashboardNewsFeedService.swift */,
 				A5A1AEBE23399CD601B924A8 /* DashboardProcessMetricsService.swift */,
 				5A55CAAB4D2D33098BEFB97A /* DashboardPublicHolidayExplanationService.swift */,
+				3B87857466880DD8F69C8DF4 /* DashboardPublicHolidayIconService.swift */,
 				4A99D2A6C2B4A64C1E115EC0 /* DashboardPublicHolidayService.swift */,
 				AB5ECBBA5D7B3B965303F247 /* DashboardQuoteEmojiService.swift */,
 				7DE2251B69DA22713A864959 /* DashboardQuotes.swift */,
@@ -462,6 +465,7 @@
 				4071421F270EE4B407D173F7 /* DashboardNewsTickerView.swift in Sources */,
 				A1A5748F0C26C23E62073279 /* DashboardProcessMetricsService.swift in Sources */,
 				013B9FC482237F2D4F339739 /* DashboardPublicHolidayExplanationService.swift in Sources */,
+				4C3BE2AC88FBED2E84BB7DBA /* DashboardPublicHolidayIconService.swift in Sources */,
 				E3B7B3811C256A7159D022CC /* DashboardPublicHolidayService.swift in Sources */,
 				2B8811DCCB2E638B2C0D6E57 /* DashboardQuoteEmojiService.swift in Sources */,
 				945B9D5BE4AF3E47C2EB2A85 /* DashboardQuotes.swift in Sources */,

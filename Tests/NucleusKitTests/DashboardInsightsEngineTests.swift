@@ -247,17 +247,6 @@ final class DashboardInsightsEngineTests: XCTestCase {
         )
     }
 
-    func testDisplayExampleSkipsSensitiveCaptures() {
-        let entries = [
-            ClipboardEntry(content: "super-secret", contentType: "password", tags: ["password"]),
-            ClipboardEntry(content: "kubectl get pods -n production", contentType: "command", tags: ["kubernetes"]),
-        ]
-        let example = DashboardClipboardDigestBuilder.displayExample(from: entries)
-        XCTAssertNotNil(example)
-        XCTAssertFalse(example?.contains("redacted") ?? true)
-        XCTAssertTrue(example?.contains("kubectl") ?? false)
-    }
-
     func testFallbackIncludesBehaviorInsightsAndImprovements() {
         let now = Date()
         var entries: [ClipboardEntry] = []
@@ -295,5 +284,38 @@ final class DashboardInsightsEngineTests: XCTestCase {
         XCTAssertFalse(analysis.improvementSuggestions.isEmpty)
         XCTAssertTrue(analysis.daySummary.contains("12"))
         XCTAssertFalse(analysis.workGroups.isEmpty)
+    }
+
+    func testDisplayExampleSkipsSensitiveCaptures() {
+        let entries = [
+            ClipboardEntry(content: "super-secret", contentType: "password", tags: ["password"]),
+            ClipboardEntry(content: "kubectl get pods -n production", contentType: "command", tags: ["kubernetes"]),
+        ]
+        let example = DashboardClipboardDigestBuilder.displayExample(from: entries)
+        XCTAssertNotNil(example)
+        XCTAssertFalse(example?.contains("redacted") ?? true)
+        XCTAssertTrue(example?.contains("kubectl") ?? false)
+    }
+
+    func testPasteReuseKeyProductivityHighlight() {
+        let now = Date()
+        let events = (0..<5).map { _ in
+            ClipboardPasteReuseEvent(
+                entryID: UUID(),
+                contentType: "text",
+                sourceApplication: "Cursor",
+                category: .notesAndDrafts,
+                reusedAt: now
+            )
+        }
+
+        let highlight = ClipboardPasteReuseStore.keyProductivityHighlight(from: events, now: now)
+        XCTAssertNotNil(highlight)
+        XCTAssertTrue(highlight?.contains("Key productivity") ?? false)
+        XCTAssertTrue(highlight?.contains("⇧⌘V") ?? false)
+
+        let breakdown = ClipboardPasteReuseStore.categoryBreakdown(from: events)
+        XCTAssertEqual(breakdown.first?.category, .notesAndDrafts)
+        XCTAssertEqual(breakdown.first?.percentage, 100)
     }
 }

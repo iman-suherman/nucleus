@@ -297,6 +297,15 @@ struct AppSettingsView: View {
                     .disabled(!settings.dashboardPreferences.intelligentInsightEnabled)
                 Toggle("Start with Your day expanded", isOn: dashboardPreferenceBinding(\.clipboardDayExpanded))
                     .disabled(!settings.dashboardPreferences.clipboardDayEnabled)
+                Toggle("Start with Weather & sync expanded", isOn: dashboardPreferenceBinding(\.contextPanelsExpanded))
+                Toggle("Start with News feed expanded", isOn: dashboardPreferenceBinding(\.newsFeedExpanded))
+                    .disabled(!settings.dashboardPreferences.newsFeedEnabled)
+                Toggle("Start with Summary expanded", isOn: dashboardPreferenceBinding(\.summaryExpanded))
+                    .disabled(!settings.dashboardPreferences.summaryMetricsEnabled)
+                Toggle("Start with Payment preparation expanded", isOn: dashboardPreferenceBinding(\.paymentPreparationExpanded))
+                    .disabled(!settings.dashboardPreferences.billPreparationEnabled)
+                Toggle("Start with Productivity expanded", isOn: dashboardPreferenceBinding(\.productivityExpanded))
+                    .disabled(!settings.dashboardPreferences.productivityChartEnabled)
             }
 
             Section {

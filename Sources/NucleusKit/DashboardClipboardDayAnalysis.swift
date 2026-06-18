@@ -23,6 +23,7 @@ public struct DashboardClipboardWorkGroup: Sendable, Equatable, Codable, Identif
 
 public struct DashboardClipboardDayAnalysis: Sendable, Equatable, Codable {
     public var daySummary: String
+    public var keyProductivityHighlight: String?
     public var behaviorInsights: [String]
     public var improvementSuggestions: [String]
     public var suggestedActions: [String]
@@ -32,6 +33,7 @@ public struct DashboardClipboardDayAnalysis: Sendable, Equatable, Codable {
 
     public init(
         daySummary: String,
+        keyProductivityHighlight: String? = nil,
         behaviorInsights: [String] = [],
         improvementSuggestions: [String] = [],
         suggestedActions: [String],
@@ -40,6 +42,7 @@ public struct DashboardClipboardDayAnalysis: Sendable, Equatable, Codable {
         analyzedAt: Date = Date()
     ) {
         self.daySummary = daySummary
+        self.keyProductivityHighlight = keyProductivityHighlight
         self.behaviorInsights = behaviorInsights
         self.improvementSuggestions = improvementSuggestions
         self.suggestedActions = suggestedActions
@@ -153,6 +156,19 @@ public enum DashboardClipboardDigestBuilder {
 
         if !today.isEmpty {
             lines.append("")
+            let pasteReuseToday = ClipboardPasteReuseStore.todayEvents(now: now, calendar: calendar)
+            if !pasteReuseToday.isEmpty {
+                let reuseBreakdown = ClipboardPasteReuseStore.categoryBreakdown(from: pasteReuseToday)
+                    .prefix(4)
+                    .map { "\($0.category.rawValue): \($0.count) reuses" }
+                    .joined(separator: ", ")
+                lines.append("Clipboard history reuses today (⇧⌘V): \(pasteReuseToday.count) (\(reuseBreakdown))")
+                if let highlight = ClipboardPasteReuseStore.keyProductivityHighlight(from: pasteReuseToday, now: now, calendar: calendar) {
+                    lines.append("Key productivity: \(highlight)")
+                }
+                lines.append("")
+            }
+
             let workGroups = DashboardClipboardDayAnalysisEngine.inferWorkGroups(from: entries, now: now, calendar: calendar)
             if !workGroups.isEmpty {
                 lines.append("Inferred work categories from today's clipboard:")
@@ -192,6 +208,7 @@ public enum DashboardClipboardDigestBuilder {
             String(dayToken),
             String(today.count),
             captureToken,
+            String(ClipboardPasteReuseStore.todayEvents(now: now, calendar: calendar).count),
             String(snapshot.unreadMailCount),
             String(snapshot.unreadChatCount),
             String(snapshot.upcomingBills.count),
@@ -334,8 +351,15 @@ public enum DashboardClipboardDayAnalysisEngine {
         let today = DashboardClipboardDigestBuilder.todayEntries(from: entries, now: now, calendar: calendar)
         let workGroups = inferWorkGroups(from: entries, now: now, calendar: calendar)
         let metrics = analyzeBehavior(today: today, now: now, calendar: calendar)
-        let summary = buildFallbackSummary(today: today, workGroups: workGroups, metrics: metrics)
-        let insights = buildBehaviorInsights(today: today, workGroups: workGroups, metrics: metrics)
+        let pasteReuseToday = ClipboardPasteReuseStore.todayEvents(now: now, calendar: calendar)
+        let keyProductivity = ClipboardPasteReuseStore.keyProductivityHighlight(from: pasteReuseToday, now: now, calendar: calendar)
+        let summary = buildFallbackSummary(today: today, workGroups: workGroups, metrics: metrics, pasteReuseToday: pasteReuseToday)
+        let insights = buildBehaviorInsights(
+            today: today,
+            workGroups: workGroups,
+            metrics: metrics,
+            pasteReuseToday: pasteReuseToday
+        )
         let improvements = buildImprovementSuggestions(
             today: today,
             workGroups: workGroups,
@@ -353,6 +377,7 @@ public enum DashboardClipboardDayAnalysisEngine {
         )
         return DashboardClipboardDayAnalysis(
             daySummary: sanitizeDisplayText(summary),
+            keyProductivityHighlight: keyProductivity.map(sanitizeDisplayText),
             behaviorInsights: nonEmptyDisplayLines(insights),
             improvementSuggestions: nonEmptyDisplayLines(improvements),
             suggestedActions: Array(nonEmptyDisplayLines(actions).prefix(5)),
@@ -669,10 +694,19 @@ public enum DashboardClipboardDayAnalysisEngine {
     private static func buildFallbackSummary(
         today: [ClipboardEntry],
         workGroups: [DashboardClipboardWorkGroup],
-        metrics: BehaviorMetrics
+        metrics: BehaviorMetrics,
+        pasteReuseToday: [ClipboardPasteReuseEvent]
     ) -> String {
         guard !today.isEmpty else {
             return "You have no clipboard captures yet today — copy work items from your apps to see productivity analytics here."
+        }
+
+        if let highlight = ClipboardPasteReuseStore.keyProductivityHighlight(from: pasteReuseToday) {
+            var parts = [highlight]
+            if let top = metrics.categoryShares.first {
+                parts.append("You also captured \(today.count) new items today — \(top.percentage)% \(top.category.rawValue.lowercased()).")
+            }
+            return parts.joined(separator: " ")
         }
 
         guard let top = metrics.categoryShares.first else {
@@ -700,9 +734,21 @@ public enum DashboardClipboardDayAnalysisEngine {
     private static func buildBehaviorInsights(
         today: [ClipboardEntry],
         workGroups: [DashboardClipboardWorkGroup],
-        metrics: BehaviorMetrics
+        metrics: BehaviorMetrics,
+        pasteReuseToday: [ClipboardPasteReuseEvent]
     ) -> [String] {
         var insights: [String] = []
+
+        if !pasteReuseToday.isEmpty {
+            let reuseBreakdown = ClipboardPasteReuseStore.categoryBreakdown(from: pasteReuseToday)
+            if let topReuse = reuseBreakdown.first {
+                insights.append("\(topReuse.count) of \(pasteReuseToday.count) ⇧⌘V reuses (\(topReuse.percentage)%) were \(topReuse.category.rawValue.lowercased()) — your main recycled work type.")
+            }
+            let uniqueClips = Set(pasteReuseToday.map(\.entryID)).count
+            if pasteReuseToday.count >= 3 {
+                insights.append("You reused \(uniqueClips) saved clip\(uniqueClips == 1 ? "" : "s") via ⇧⌘V instead of copying again — clipboard history is part of your workflow.")
+            }
+        }
 
         if let top = metrics.categoryShares.first {
             insights.append("\(top.count) of \(today.count) captures (\(top.percentage)%) were \(top.category.rawValue.lowercased()) — your dominant work mode today.")
@@ -741,7 +787,7 @@ public enum DashboardClipboardDayAnalysisEngine {
             insights.append("\(notesGroup.captureCount) draft snippets suggest note fragmentation — material is being copied but not yet consolidated.")
         }
 
-        return Array(insights.prefix(4))
+        return Array(insights.prefix(5))
     }
 
     private static func buildImprovementSuggestions(
@@ -756,6 +802,11 @@ public enum DashboardClipboardDayAnalysisEngine {
 
         if let notesGroup = workGroups.first(where: { $0.category == .notesAndDrafts }), notesGroup.captureCount >= 8 {
             suggestions.append("Block 25 minutes to merge \(notesGroup.captureCount) draft snippets into 2–3 permanent notes — this is your largest unfinished queue.")
+        }
+
+        let pasteReuseToday = ClipboardPasteReuseStore.todayEvents(now: now, calendar: calendar)
+        if let topReuse = ClipboardPasteReuseStore.categoryBreakdown(from: pasteReuseToday).first, topReuse.count >= 3 {
+            suggestions.append("Pin your top ⇧⌘V reuse category (\(topReuse.category.rawValue.lowercased())) clips so your most recycled material stays one shortcut away.")
         }
 
         if metrics.contextSwitchLevel == "high" {

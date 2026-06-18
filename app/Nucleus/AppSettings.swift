@@ -610,6 +610,11 @@ struct DashboardPreferences: Codable, Equatable {
     var productivityChartEnabled: Bool
     var intelligentInsightExpanded: Bool
     var clipboardDayExpanded: Bool
+    var contextPanelsExpanded: Bool
+    var newsFeedExpanded: Bool
+    var summaryExpanded: Bool
+    var paymentPreparationExpanded: Bool
+    var productivityExpanded: Bool
 
     init(
         quoteEnabled: Bool = true,
@@ -624,7 +629,12 @@ struct DashboardPreferences: Codable, Equatable {
         newsFeedEnabled: Bool = true,
         productivityChartEnabled: Bool = true,
         intelligentInsightExpanded: Bool = true,
-        clipboardDayExpanded: Bool = true
+        clipboardDayExpanded: Bool = true,
+        contextPanelsExpanded: Bool = true,
+        newsFeedExpanded: Bool = true,
+        summaryExpanded: Bool = true,
+        paymentPreparationExpanded: Bool = true,
+        productivityExpanded: Bool = true
     ) {
         self.quoteEnabled = quoteEnabled
         self.intelligentInsightEnabled = intelligentInsightEnabled
@@ -639,5 +649,42 @@ struct DashboardPreferences: Codable, Equatable {
         self.productivityChartEnabled = productivityChartEnabled
         self.intelligentInsightExpanded = intelligentInsightExpanded
         self.clipboardDayExpanded = clipboardDayExpanded
+        self.contextPanelsExpanded = contextPanelsExpanded
+        self.newsFeedExpanded = newsFeedExpanded
+        self.summaryExpanded = summaryExpanded
+        self.paymentPreparationExpanded = paymentPreparationExpanded
+        self.productivityExpanded = productivityExpanded
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case quoteEnabled, intelligentInsightEnabled, clipboardDayEnabled
+        case summaryMetricsEnabled, billPreparationEnabled, weatherEnabled
+        case resourceUsageEnabled, cloudSyncPanelEnabled, publicHolidayEnabled
+        case newsFeedEnabled, productivityChartEnabled
+        case intelligentInsightExpanded, clipboardDayExpanded
+        case contextPanelsExpanded, newsFeedExpanded, summaryExpanded
+        case paymentPreparationExpanded, productivityExpanded
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        quoteEnabled = try container.decodeIfPresent(Bool.self, forKey: .quoteEnabled) ?? true
+        intelligentInsightEnabled = try container.decodeIfPresent(Bool.self, forKey: .intelligentInsightEnabled) ?? true
+        clipboardDayEnabled = try container.decodeIfPresent(Bool.self, forKey: .clipboardDayEnabled) ?? true
+        summaryMetricsEnabled = try container.decodeIfPresent(Bool.self, forKey: .summaryMetricsEnabled) ?? true
+        billPreparationEnabled = try container.decodeIfPresent(Bool.self, forKey: .billPreparationEnabled) ?? true
+        weatherEnabled = try container.decodeIfPresent(Bool.self, forKey: .weatherEnabled) ?? true
+        resourceUsageEnabled = try container.decodeIfPresent(Bool.self, forKey: .resourceUsageEnabled) ?? true
+        cloudSyncPanelEnabled = try container.decodeIfPresent(Bool.self, forKey: .cloudSyncPanelEnabled) ?? true
+        publicHolidayEnabled = try container.decodeIfPresent(Bool.self, forKey: .publicHolidayEnabled) ?? true
+        newsFeedEnabled = try container.decodeIfPresent(Bool.self, forKey: .newsFeedEnabled) ?? true
+        productivityChartEnabled = try container.decodeIfPresent(Bool.self, forKey: .productivityChartEnabled) ?? true
+        intelligentInsightExpanded = try container.decodeIfPresent(Bool.self, forKey: .intelligentInsightExpanded) ?? true
+        clipboardDayExpanded = try container.decodeIfPresent(Bool.self, forKey: .clipboardDayExpanded) ?? true
+        contextPanelsExpanded = try container.decodeIfPresent(Bool.self, forKey: .contextPanelsExpanded) ?? true
+        newsFeedExpanded = try container.decodeIfPresent(Bool.self, forKey: .newsFeedExpanded) ?? true
+        summaryExpanded = try container.decodeIfPresent(Bool.self, forKey: .summaryExpanded) ?? true
+        paymentPreparationExpanded = try container.decodeIfPresent(Bool.self, forKey: .paymentPreparationExpanded) ?? true
+        productivityExpanded = try container.decodeIfPresent(Bool.self, forKey: .productivityExpanded) ?? true
     }
 }

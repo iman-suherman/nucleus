@@ -5,6 +5,7 @@ struct DashboardNewsTickerView: View {
     let headlines: [DashboardNewsHeadline]
     let isLoading: Bool
     let statusMessage: String?
+    var showsHeader: Bool = true
 
     @State private var visibleIndex = 0
     @State private var scrollTimer: Timer?
@@ -15,9 +16,11 @@ struct DashboardNewsTickerView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Label("News feed", systemImage: "newspaper.fill")
-                .font(.headline)
-                .symbolRenderingMode(.multicolor)
+            if showsHeader {
+                Label("News feed", systemImage: "newspaper.fill")
+                    .font(.headline)
+                    .symbolRenderingMode(.multicolor)
+            }
 
             Group {
                 if headlines.isEmpty, isLoading {
