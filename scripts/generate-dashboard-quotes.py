@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate DashboardQuotes.json — time-of-day and schedule-aware inspirational quotes."""
+"""Generate DashboardQuotes.json — day-of-week and time-of-day inspirational quotes."""
 
 from __future__ import annotations
 
@@ -12,9 +12,13 @@ OUTPUT_PATHS = [
     ROOT / "app/Nucleus/Resources/DashboardQuotes.json",
     ROOT / "nucleus-apple/Packages/NucleusCore/Sources/NucleusCore/Resources/DashboardQuotes.json",
 ]
-QUOTES_PER_SET = 80
+QUOTES_PER_SET = 1000
 MIN_LENGTH = 80
 MAX_LENGTH = 220
+
+PERIODS = ("morning", "afternoon", "evening", "night")
+WORK_DAYS = ("monday", "tuesday", "wednesday", "thursday", "friday")
+LEISURE_DAYS = ("saturday", "sunday", "holiday")
 
 WEEKDAY_TEMPLATES = {
     "morning": [
@@ -199,68 +203,534 @@ LEISURE_TEMPLATES = {
 }
 
 
-def expand_templates(templates: list[str], target: int, rng: random.Random) -> list[str]:
-    seen = set(templates)
-    quotes = list(templates)
+DAY_QUALIFIERS: dict[str, dict[str, list[str]]] = {
+    "monday": {
+        "morning": ["On Monday morning,", "At the start of the week,", "This Monday,", "As the week begins,"],
+        "afternoon": ["On Monday afternoon,", "Midday Monday,", "This Monday afternoon,", "Through Monday's middle hours,"],
+        "evening": ["On Monday evening,", "As Monday closes,", "This Monday nightfall,", "Before Tuesday arrives,"],
+        "night": ["On Monday night,", "As Monday ends,", "This Monday evening,", "Before Tuesday begins,"],
+    },
+    "tuesday": {
+        "morning": ["On Tuesday morning,", "This Tuesday,", "At Tuesday's fresh start,", "With Tuesday ahead of you,"],
+        "afternoon": ["On Tuesday afternoon,", "Midweek Tuesday,", "This Tuesday afternoon,", "Through Tuesday's busy hours,"],
+        "evening": ["On Tuesday evening,", "As Tuesday winds down,", "This Tuesday nightfall,", "Before Wednesday arrives,"],
+        "night": ["On Tuesday night,", "As Tuesday ends,", "This Tuesday evening,", "Before Wednesday begins,"],
+    },
+    "wednesday": {
+        "morning": ["On Wednesday morning,", "At midweek,", "This Wednesday,", "Halfway through the week,"],
+        "afternoon": ["On Wednesday afternoon,", "Midweek Wednesday,", "This Wednesday afternoon,", "At the week's midpoint,"],
+        "evening": ["On Wednesday evening,", "As Wednesday closes,", "This Wednesday nightfall,", "Before Thursday arrives,"],
+        "night": ["On Wednesday night,", "As Wednesday ends,", "This Wednesday evening,", "Before Thursday begins,"],
+    },
+    "thursday": {
+        "morning": ["On Thursday morning,", "This Thursday,", "With the week maturing,", "As Thursday opens,"],
+        "afternoon": ["On Thursday afternoon,", "This Thursday afternoon,", "Through Thursday's steady hours,", "Late in the workweek,"],
+        "evening": ["On Thursday evening,", "As Thursday winds down,", "This Thursday nightfall,", "Before Friday arrives,"],
+        "night": ["On Thursday night,", "As Thursday ends,", "This Thursday evening,", "Before Friday begins,"],
+    },
+    "friday": {
+        "morning": ["On Friday morning,", "This Friday,", "At the week's final stretch,", "As Friday begins,"],
+        "afternoon": ["On Friday afternoon,", "This Friday afternoon,", "Through Friday's closing hours,", "As the workweek nears its end,"],
+        "evening": ["On Friday evening,", "As Friday closes,", "This Friday nightfall,", "As the week completes,"],
+        "night": ["On Friday night,", "As Friday ends,", "This Friday evening,", "Before the weekend fully arrives,"],
+    },
+    "saturday": {
+        "morning": ["On Saturday morning,", "This Saturday,", "At the weekend's open door,", "On a slow Saturday,"],
+        "afternoon": ["On Saturday afternoon,", "This Saturday afternoon,", "Through an unhurried Saturday,", "Midweekend Saturday,"],
+        "evening": ["On Saturday evening,", "As Saturday softens,", "This Saturday nightfall,", "Before Sunday arrives,"],
+        "night": ["On Saturday night,", "As Saturday ends,", "This Saturday evening,", "Before Sunday begins,"],
+    },
+    "sunday": {
+        "morning": ["On Sunday morning,", "This Sunday,", "At the week's gentle pause,", "On a restful Sunday,"],
+        "afternoon": ["On Sunday afternoon,", "This Sunday afternoon,", "Through a peaceful Sunday,", "Before the week returns,"],
+        "evening": ["On Sunday evening,", "As Sunday closes,", "This Sunday nightfall,", "Before Monday arrives,"],
+        "night": ["On Sunday night,", "As Sunday ends,", "This Sunday evening,", "Before a new week begins,"],
+    },
+    "holiday": {
+        "morning": ["On this holiday morning,", "This public holiday,", "On a day away from routine,", "During this holiday,"],
+        "afternoon": ["On this holiday afternoon,", "This holiday afternoon,", "Through a well-earned holiday,", "On a day of rest,"],
+        "evening": ["On this holiday evening,", "As the holiday softens,", "This holiday nightfall,", "On a day worth savoring,"],
+        "night": ["On this holiday night,", "As the holiday ends,", "This holiday evening,", "Before routine returns,"],
+    },
+}
 
-    openers = [
-        "Remember:",
-        "Note to self:",
-        "Today:",
-        "Right now:",
-    ]
-    closers = [
-        " You have what it takes.",
-        " Keep going with care.",
-        " Make this hour count.",
-        " Enjoy the moment fully.",
-    ]
+OPENERS = ["Remember:", "Note to self:", "Today:", "Right now:", "Quietly:", "Gently:", "Honestly:"]
+CLOSERS = [
+    " Keep going with care.",
+    " Make this hour count.",
+    " You have what it takes.",
+    " Enjoy the moment fully.",
+    " Trust the pace you choose.",
+    " Let that be enough for now.",
+]
+TAILS = [
+    " Carry that thought with you.",
+    " Let it guide the next step.",
+    " Hold onto that feeling.",
+    " That is enough for now.",
+    " Let it settle in quietly.",
+]
 
-    while len(quotes) < target:
-        base = rng.choice(templates)
+WORK_PHRASES = {
+    "morning": {
+        "openings": [
+            "Start the day with one clear priority",
+            "Give your first hour to meaningful work",
+            "Protect the morning from noise and hurry",
+            "Meet the day with steady, honest intent",
+            "Let fresh energy shape your first decisions",
+            "Build momentum before the inbox takes over",
+            "Choose focus over frenzy this morning",
+            "Turn intention into one deliberate first step",
+            "Treat early hours as an investment in clarity",
+            "Begin where you are and move with purpose",
+            "Make room for deep work while your mind is sharp",
+            "Set a calm tone the rest of the day can follow",
+            "Lead with discipline before distraction arrives",
+            "Trust preparation and take the first step bravely",
+            "Let simplicity guide your opening choices",
+        ],
+        "middles": [
+            "because progress loves a patient beginning",
+            "and let everything else wait its turn",
+            "so the rest of the day can align around it",
+            "before urgency starts speaking louder than wisdom",
+            "while your attention is still yours to give",
+            "and carry that sense of purpose forward",
+            "instead of trying to solve the whole week at once",
+            "knowing small wins compound faster than grand plans",
+            "without needing perfect conditions to begin",
+            "then protect that momentum like something fragile and valuable",
+            "and notice how much lighter the day feels when you do",
+            "trusting that one honest step can reshape the hours ahead",
+            "even when the task list looks longer than your energy",
+            "because excellence is built in minutes, not in speeches",
+            "and let completion become your first reward",
+        ],
+        "closings": [
+            "You have enough capacity for a strong start.",
+            "Make this hour count before the world grows loud.",
+            "Keep going with care and confidence.",
+            "Let that be enough to begin well.",
+            "Trust the pace you choose this morning.",
+        ],
+    },
+    "afternoon": {
+        "openings": [
+            "In the middle of the day",
+            "When the pace picks up",
+            "Stay centered amid the noise",
+            "Hold your line through busy hours",
+            "Refocus for one honest stretch",
+            "Keep moving with practical patience",
+            "Let consistency outlast urgency",
+            "Finish one meaningful piece of work",
+            "Choose the next right task deliberately",
+            "Push through the rush without losing standards",
+            "Use these hours to convert intent into done",
+            "Stand in the afternoon with quiet confidence",
+            "Do not confuse busy with productive",
+            "Protect attention when everything feels urgent",
+            "Let discipline carry you when motivation fades",
+        ],
+        "middles": [
+            "and remember that steady effort still counts",
+            "because completion is closer than it feels",
+            "one task at a time, without apology",
+            "even when the calendar keeps multiplying demands",
+            "trusting that small wins restore order quickly",
+            "and release what cannot be finished today",
+            "without letting pressure scatter your priorities",
+            "knowing persistence turns plans into something real",
+            "then breathe before choosing what comes next",
+            "and keep your standards humane as well as high",
+            "because the grind is temporary but progress lasts",
+            "while you close loops that actually matter",
+            "instead of chasing every ping and interruption",
+            "and let one finished task reset your focus",
+            "so the day ends feeling earned, not merely survived",
+        ],
+        "closings": [
+            "You are doing more than you think.",
+            "Keep going with care.",
+            "Make this hour count.",
+            "Trust the work you have already done.",
+            "Let that be enough for now.",
+        ],
+    },
+    "evening": {
+        "openings": [
+            "As the day winds down",
+            "Before you sign off",
+            "Use the evening for thoughtful closure",
+            "Wrap up with intention",
+            "Review what moved forward today",
+            "Close the loops that matter most",
+            "Let completion replace hurry",
+            "Finish strong because tomorrow will notice",
+            "Step back with honest pride in your effort",
+            "Tie up loose ends before rest arrives",
+            "Give the day a clean ending",
+            "Leave work at work with enough order behind you",
+            "Set up tomorrow by closing today well",
+            "Honor your effort with a proper finish",
+            "Choose closure over one more unnecessary task",
+        ],
+        "middles": [
+            "and release what can wait until morning",
+            "knowing done is better than perfect tonight",
+            "without replaying every unfinished conversation",
+            "so future you begins without yesterday's weight",
+            "then stop cleanly when enough is truly enough",
+            "and let gratitude replace measurement for a moment",
+            "because boundaries at night protect tomorrow's energy",
+            "while you notice what actually got done",
+            "instead of measuring the day only by what remains",
+            "trusting that rest is part of sustained excellence",
+            "and let the final hour be about finishing, not starting",
+            "even if the list is not empty yet",
+            "because a thoughtful wrap-up turns noise into progress",
+            "then give yourself permission to be off duty",
+            "and carry calm into the hours meant for recovery",
+        ],
+        "closings": [
+            "You have done enough for today.",
+            "Rest will meet you more easily now.",
+            "Let that be enough to close the chapter.",
+            "Tomorrow can begin fresher because of this.",
+            "Sign off with clarity and kindness.",
+        ],
+    },
+    "night": {
+        "openings": [
+            "Before sleep takes over",
+            "Tonight, release the day",
+            "Let the night rebuild what effort consumed",
+            "Rest is not a pause from excellence",
+            "Give your mind permission to stop performing",
+            "Unplug from obligation and trust the quiet",
+            "Recovery tonight makes courage easier tomorrow",
+            "Protect these hours from guilt and noise",
+            "Sleep is part of the work when the work is long",
+            "Wind down with intention instead of one last scroll",
+            "Close your eyes knowing you earned this pause",
+            "Let peaceful darkness loosen the day's grip",
+            "Tomorrow's best ideas often need tonight's rest",
+            "Drift off without bargaining with the clock",
+            "You have carried enough for one day",
+        ],
+        "middles": [
+            "and let nothing truly urgent survive until morning",
+            "because deep rest is how great days begin",
+            "without carrying unfinished lists into bed",
+            "trusting your body to heal when you stop interrupting it",
+            "so your energy returns before the alarm returns",
+            "and allow silence to refill what the day drained away",
+            "knowing stopping is also a skill worth practicing",
+            "then leave the world outside for a while",
+            "because night is for restoring, not reviewing",
+            "and let go in layers: urgency first, then noise",
+            "even when habit whispers that one more thing matters",
+            "while sleep does its honest work overnight",
+            "instead of replaying every decision in the dark",
+            "and remember that you are allowed to be off duty",
+            "so tomorrow meets you softer than today ended",
+        ],
+        "closings": [
+            "Rest well tonight.",
+            "Sweet dreams are earned, not postponed.",
+            "Let the night hold you gently.",
+            "Tomorrow can wait for now.",
+            "That is enough for today.",
+        ],
+    },
+}
+
+LEISURE_PHRASES = {
+    "morning": {
+        "openings": [
+            "Slow mornings are a gift",
+            "Let comfort lead today",
+            "Wake without rushing the hour",
+            "Ease into the day at human speed",
+            "Trade urgency for presence this morning",
+            "Start open-handed, not open-laptop",
+            "Give yourself permission to move slowly",
+            "Let sunlight set the pace instead of the calendar",
+            "Choose ease before efficiency today",
+            "Stay in the moment a little longer than usual",
+            "Begin without a to-do list breathing down your neck",
+            "Make room for curiosity before obligation",
+            "Protect this morning from unnecessary plans",
+            "Let the first hour be soft and uncommitted",
+            "Weekend light deserves an unhurried start",
+        ],
+        "middles": [
+            "and savor every minute that belongs only to you",
+            "because leisure is not laziness, it is restoration",
+            "without measuring the hour against productivity",
+            "while the world waits patiently outside the door",
+            "knowing restful beginnings make the whole day lighter",
+            "then follow delight wherever it quietly appears",
+            "and notice how much softer life feels unscheduled",
+            "even when habit says you should be doing more",
+            "because some of the best days begin with nothing planned",
+            "trusting that slowness can be medicine for the soul",
+            "and let joy set the pace without apology",
+            "instead of filling every quiet space from reflex",
+            "so your spirit gets room to breathe again",
+            "then move through the morning without performing busyness",
+            "and remember there is nowhere you need to be yet",
+        ],
+        "closings": [
+            "Enjoy the moment fully.",
+            "Let that be enough for now.",
+            "Today belongs to you.",
+            "Make this hour count in the gentlest way.",
+            "Rest can be enough.",
+        ],
+    },
+    "afternoon": {
+        "openings": [
+            "This afternoon is for living, not optimizing",
+            "Free time is not wasted time",
+            "Let curiosity guide you somewhere unexpected",
+            "Choose pleasure over productivity without guilt",
+            "Step outside and remember there is life beyond tasks",
+            "Make space for what actually fills you up",
+            "Lose track of time on purpose today",
+            "Protect these unclaimed hours fiercely",
+            "Do what restores you, not what impresses anyone",
+            "Celebrate the freedom of a day without deadlines",
+            "Wander without a destination if you want to",
+            "Give the afternoon to friendship, sunlight, or stillness",
+            "Unplug for a while and remember why you work",
+            "Live a little today without needing justification",
+            "Let the middle of the day be wide and unhurried",
+        ],
+        "middles": [
+            "and follow what nourishes you in the moment",
+            "because joy does not need a schedule to show up",
+            "without apologizing for choosing ease",
+            "knowing recovery can look like adventure, rest, or both",
+            "then laugh loudly enough to drown out the workweek",
+            "and be where your feet are, not where email prefers you",
+            "even if the choice is simply to do nothing at all",
+            "because holiday hours are precious and worth guarding",
+            "while you let the afternoon stretch without a clock",
+            "and notice how bright small pleasures become unhurried",
+            "instead of turning leisure into another performance",
+            "so the day feels fed in ways a task list never could",
+            "trusting that presence is its own kind of achievement",
+            "then share your time with someone who warms the room",
+            "and call every honest choice valid",
+        ],
+        "closings": [
+            "You have earned these hours.",
+            "Enjoy the moment fully.",
+            "Let that be enough for now.",
+            "Make this afternoon count on your terms.",
+            "Rest and delight are both worthwhile.",
+        ],
+    },
+    "evening": {
+        "openings": [
+            "Evening is for people, not projects",
+            "Let the sunset remind you endings can be beautiful",
+            "Wrap the day in warmth and good company",
+            "No emails tonight, only moments that matter",
+            "Share a meal, a story, or quiet companionship",
+            "Turn toward what comforts you tonight",
+            "Reflect on joy instead of tasks as the day closes",
+            "Give the evening to connection and calm",
+            "Watch the sky change and let your mind wander",
+            "Close the day feeling fed in every sense",
+            "Let music, laughter, or silence be your soundtrack",
+            "Release the week gently and stay fully here",
+            "Notice how much lighter life feels off the clock",
+            "End the day with warmth instead of measurement",
+            "Celebrate simple pleasures before the night arrives",
+        ],
+        "middles": [
+            "and put away screens in favor of presence",
+            "because leisure evenings restore the heart as well as the body",
+            "without needing to maximize a day off to justify it",
+            "knowing happiness rarely needs proof to be real",
+            "then let conversation anchor you somewhere kind",
+            "and be grateful for hours that belong to you alone",
+            "even when tomorrow's routine waits just beyond the door",
+            "because the best evenings end in contentment, not exhaustion",
+            "while you share time generously with people who matter",
+            "and let the night begin with softness, not obligation",
+            "instead of reviewing the day for improvement one last time",
+            "so rest arrives as a reward, not a negotiation",
+            "trusting that connection is its own restoration",
+            "then step into the night knowing you enjoyed what remained",
+            "and leave the workweek outside for a while longer",
+        ],
+        "closings": [
+            "Enjoy the moment fully.",
+            "Let that be enough for tonight.",
+            "Rest will meet you kindly.",
+            "Tomorrow's work can wait outside the door.",
+            "You deserve this ease.",
+        ],
+    },
+    "night": {
+        "openings": [
+            "Sleep in tomorrow if you can",
+            "Let the night hold you without asking for anything back",
+            "Weekend nights are for deep rest and sweet dreams",
+            "Holiday nights deserve sleep without an alarm",
+            "Close your eyes to a world without deadlines",
+            "Rest deeply because you have done enough for now",
+            "Protect these hours from guilt and glow of screens",
+            "Sink into comfort and leave the world outside",
+            "Nighttime peace is one of the weekend's final gifts",
+            "Release the habit of planning ahead in the dark",
+            "Drift toward sleep without bargaining",
+            "Let go of everything except the pillow beneath you",
+            "Recovery tonight makes tomorrow gentler before it begins",
+            "Fall asleep knowing leisure was not wasted time",
+            "Quiet nights rebuild what busy weeks deplete",
+        ],
+        "middles": [
+            "and trust your body to take the rest it has been waiting for",
+            "because Monday is still far enough away to stop counting",
+            "without reviewing the day for one more improvement",
+            "knowing darkness is where tired minds become whole again",
+            "then receive the night as permission to be off duty",
+            "and let peaceful silence wrap around every lingering thought",
+            "even when reflex says you should prepare for tomorrow",
+            "because stopping is also a skill worth practicing well",
+            "while sleep works overnight on your behalf",
+            "and remember the weekend is still here tonight",
+            "instead of spending the dark hours performing readiness",
+            "so you wake restored rather than merely paused",
+            "trusting that deep rest is never laziness",
+            "then dream freely without carrying the week into bed",
+            "and allow the night to restore what effort cannot",
+        ],
+        "closings": [
+            "Sweet dreams are earned.",
+            "Rest well tonight.",
+            "Tomorrow can wait for now.",
+            "Let the night hold you gently.",
+            "That is enough for today.",
+        ],
+    },
+}
+
+
+def _compose_quote(
+    phrases: dict[str, list[str]],
+    rng: random.Random,
+    qualifier: str | None = None,
+) -> str:
+    opening = rng.choice(phrases["openings"])
+    middle = rng.choice(phrases["middles"])
+    closing = rng.choice(phrases["closings"])
+    body = f"{opening}, {middle[0].lower()}{middle[1:]}, {closing[0].lower()}{closing[1:]}"
+    if qualifier:
+        body = f"{qualifier} {body[0].lower()}{body[1:]}"
+    return body
+
+
+def expand_templates(
+    templates: list[str],
+    target: int,
+    rng: random.Random,
+    day: str,
+    period: str,
+    *,
+    leisure: bool,
+) -> list[str]:
+    seen: set[str] = set()
+    quotes: list[str] = []
+    for template in templates:
+        if template not in seen:
+            seen.add(template)
+            quotes.append(template)
+
+    qualifiers = DAY_QUALIFIERS.get(day, {}).get(period, [])
+    phrase_bank = LEISURE_PHRASES if leisure else WORK_PHRASES
+    attempts = 0
+    max_attempts = target * 400
+
+    while len(quotes) < target and attempts < max_attempts:
+        attempts += 1
         roll = rng.random()
-        if roll < 0.12 and not base.startswith("Remember"):
-            variant = f"{rng.choice(openers)} {base[0].lower()}{base[1:]}"
-        elif roll < 0.20:
-            variant = base.rstrip(".") + rng.choice(closers)
-        else:
-            variant = base
+        variant: str
 
-        if variant not in seen and MIN_LENGTH <= len(variant) <= MAX_LENGTH:
+        if roll < 0.35:
+            qualifier = rng.choice(qualifiers) if qualifiers and rng.random() < 0.6 else None
+            variant = _compose_quote(phrase_bank[period], rng, qualifier)
+        elif roll < 0.50:
+            base = rng.choice(templates)
+            if qualifiers and rng.random() < 0.5:
+                qualifier = rng.choice(qualifiers)
+                body = base[0].lower() + base[1:] if base else base
+                variant = f"{qualifier} {body}"
+            else:
+                variant = base
+        elif roll < 0.62:
+            base = rng.choice(templates)
+            opener = rng.choice(OPENERS)
+            body = base[0].lower() + base[1:] if base else base
+            variant = f"{opener} {body}"
+        elif roll < 0.74:
+            base = rng.choice(templates)
+            variant = base.rstrip(".") + rng.choice(CLOSERS)
+        elif roll < 0.86:
+            base = rng.choice(templates)
+            variant = base.rstrip(".") + " —" + rng.choice(TAILS)
+        else:
+            qualifier = rng.choice(qualifiers) if qualifiers else None
+            variant = _compose_quote(phrase_bank[period], rng, qualifier)
+            if rng.random() < 0.4:
+                variant = f"{rng.choice(OPENERS)} {variant[0].lower()}{variant[1:]}"
+
+        if MIN_LENGTH <= len(variant) <= MAX_LENGTH and variant not in seen:
             seen.add(variant)
             quotes.append(variant)
+
+    if len(quotes) < target:
+        raise RuntimeError(f"{day}.{period}: only generated {len(quotes)} of {target} quotes")
 
     return quotes[:target]
 
 
-def generate_set(templates: dict[str, list[str]], rng: random.Random) -> dict[str, list[str]]:
+def generate_day(day: str, rng: random.Random) -> dict[str, list[str]]:
+    leisure = day not in WORK_DAYS
+    base = WEEKDAY_TEMPLATES if not leisure else LEISURE_TEMPLATES
     return {
-        period: expand_templates(items, QUOTES_PER_SET, rng)
-        for period, items in templates.items()
+        period: expand_templates(base[period], QUOTES_PER_SET, rng, day, period, leisure=leisure)
+        for period in PERIODS
     }
 
 
 def main() -> None:
-    rng = random.Random(42)
-    payload = {
-        "weekday": generate_set(WEEKDAY_TEMPLATES, rng),
-        "leisure": generate_set(LEISURE_TEMPLATES, rng),
-    }
+    payload: dict[str, dict[str, list[str]]] = {}
+    for day in (*WORK_DAYS, *LEISURE_DAYS):
+        day_rng = random.Random(f"{day}-quotes-v2")
+        payload[day] = generate_day(day, day_rng)
 
-    for schedule in ("weekday", "leisure"):
-        for period in ("morning", "afternoon", "evening", "night"):
-            quotes = payload[schedule][period]
-            assert len(quotes) == QUOTES_PER_SET, f"{schedule}.{period} has {len(quotes)} quotes"
+    for day in payload:
+        for period in PERIODS:
+            quotes = payload[day][period]
+            assert len(quotes) == QUOTES_PER_SET, f"{day}.{period} has {len(quotes)} quotes"
+            assert len(set(quotes)) == QUOTES_PER_SET, f"{day}.{period} has duplicate quotes"
             lengths = [len(q) for q in quotes]
-            assert min(lengths) >= MIN_LENGTH, f"{schedule}.{period} min length {min(lengths)}"
-            assert max(lengths) <= MAX_LENGTH, f"{schedule}.{period} max length {max(lengths)}"
+            assert min(lengths) >= MIN_LENGTH, f"{day}.{period} min length {min(lengths)}"
+            assert max(lengths) <= MAX_LENGTH, f"{day}.{period} max length {max(lengths)}"
 
     for output in OUTPUT_PATHS:
         output.parent.mkdir(parents=True, exist_ok=True)
-        with output.open("w", encoding="utf-8") as f:
-            json.dump(payload, f, indent=2, ensure_ascii=False)
-            f.write("\n")
-        print(f"Wrote {len(payload['weekday']['morning']) * 8} quotes total -> {output}")
+        with output.open("w", encoding="utf-8") as handle:
+            json.dump(payload, handle, indent=2, ensure_ascii=False)
+            handle.write("\n")
+        total = len(PERIODS) * QUOTES_PER_SET * len(payload)
+        print(f"Wrote {total} quotes -> {output}")
 
 
 if __name__ == "__main__":

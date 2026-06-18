@@ -4,11 +4,6 @@ public enum DashboardQuotes {
     public static let storageKey = "nucleus.dashboard.quote"
     public static let contextKey = "nucleus.dashboard.quote.context"
 
-    private struct QuoteLibrary: Decodable {
-        let weekday: PeriodQuotes
-        let leisure: PeriodQuotes
-    }
-
     private struct PeriodQuotes: Decodable {
         let morning: [String]
         let afternoon: [String]
@@ -25,12 +20,36 @@ public enum DashboardQuotes {
         }
     }
 
+    private struct QuoteLibrary: Decodable {
+        let monday: PeriodQuotes
+        let tuesday: PeriodQuotes
+        let wednesday: PeriodQuotes
+        let thursday: PeriodQuotes
+        let friday: PeriodQuotes
+        let saturday: PeriodQuotes
+        let sunday: PeriodQuotes
+        let holiday: PeriodQuotes
+
+        func quotes(for weekday: DashboardWeekday, period: DashboardTimePeriod) -> [String] {
+            switch weekday {
+            case .monday: return monday.quotes(for: period)
+            case .tuesday: return tuesday.quotes(for: period)
+            case .wednesday: return wednesday.quotes(for: period)
+            case .thursday: return thursday.quotes(for: period)
+            case .friday: return friday.quotes(for: period)
+            case .saturday: return saturday.quotes(for: period)
+            case .sunday: return sunday.quotes(for: period)
+            case .holiday: return holiday.quotes(for: period)
+            }
+        }
+    }
+
     public struct Context: Equatable, Sendable {
-        public let schedule: DashboardQuoteSchedule
+        public let weekday: DashboardWeekday
         public let period: DashboardTimePeriod
 
         public var storageToken: String {
-            "\(schedule.rawValue).\(period.rawValue)"
+            "\(weekday.rawValue).\(period.rawValue)"
         }
 
         public static func current(
@@ -38,14 +57,12 @@ public enum DashboardQuotes {
             calendar: Calendar = .current,
             isPublicHoliday: Bool = false
         ) -> Context {
-            let schedule: DashboardQuoteSchedule
-            if DashboardGreeting.isWeekend(now: now, calendar: calendar) || isPublicHoliday {
-                schedule = .leisure
-            } else {
-                schedule = .weekday
-            }
-            return Context(
-                schedule: schedule,
+            Context(
+                weekday: DashboardWeekday.current(
+                    now: now,
+                    calendar: calendar,
+                    isPublicHoliday: isPublicHoliday
+                ),
                 period: DashboardTimePeriod.current(now: now, calendar: calendar)
             )
         }
@@ -57,21 +74,26 @@ public enum DashboardQuotes {
            let decoded = try? JSONDecoder().decode(QuoteLibrary.self, from: data) {
             return decoded
         }
-        return QuoteLibrary(
-            weekday: PeriodQuotes(
-                morning: [fallbackQuote],
-                afternoon: [fallbackQuote],
-                evening: [fallbackQuote],
-                night: [fallbackQuote]
-            ),
-            leisure: PeriodQuotes(
-                morning: [fallbackQuote],
-                afternoon: [fallbackQuote],
-                evening: [fallbackQuote],
-                night: [fallbackQuote]
-            )
-        )
+        return fallbackLibrary
     }()
+
+    private static let fallbackLibrary = QuoteLibrary(
+        monday: fallbackPeriodQuotes,
+        tuesday: fallbackPeriodQuotes,
+        wednesday: fallbackPeriodQuotes,
+        thursday: fallbackPeriodQuotes,
+        friday: fallbackPeriodQuotes,
+        saturday: fallbackPeriodQuotes,
+        sunday: fallbackPeriodQuotes,
+        holiday: fallbackPeriodQuotes
+    )
+
+    private static let fallbackPeriodQuotes = PeriodQuotes(
+        morning: [fallbackQuote],
+        afternoon: [fallbackQuote],
+        evening: [fallbackQuote],
+        night: [fallbackQuote]
+    )
 
     private static let fallbackQuote = "May your path be calm, focused, and full of small wins."
 
@@ -129,12 +151,7 @@ public enum DashboardQuotes {
     }
 
     private static func quotes(for context: Context) -> [String] {
-        switch context.schedule {
-        case .weekday:
-            return library.weekday.quotes(for: context.period)
-        case .leisure:
-            return library.leisure.quotes(for: context.period)
-        }
+        library.quotes(for: context.weekday, period: context.period)
     }
 
     public static func quoteBody(from quote: String) -> String {

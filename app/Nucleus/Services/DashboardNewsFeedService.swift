@@ -7,6 +7,7 @@ struct DashboardNewsHeadline: Identifiable, Equatable {
     let summary: String
     let publishedAt: Date?
     let link: URL?
+    let countryCode: String
 }
 
 enum DashboardNewsFeedClient {
@@ -30,7 +31,17 @@ enum DashboardNewsFeedClient {
         }
 
         let headlines = RSSFeedParser.parse(data: data)
-        return Array(headlines.prefix(limit))
+        let region = countryCode.uppercased()
+        return Array(headlines.prefix(limit)).map { headline in
+            DashboardNewsHeadline(
+                id: headline.id,
+                title: headline.title,
+                summary: headline.summary,
+                publishedAt: headline.publishedAt,
+                link: headline.link,
+                countryCode: region
+            )
+        }
     }
 
     static func fetchHeadlines(
@@ -163,7 +174,8 @@ private final class RSSParser: NSObject, XMLParserDelegate {
                 title: title,
                 summary: summary,
                 publishedAt: publishedAt,
-                link: linkURL
+                link: linkURL,
+                countryCode: ""
             )
         )
     }

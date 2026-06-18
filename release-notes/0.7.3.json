@@ -1,0 +1,16 @@
+{
+  "version": "0.7.3",
+  "summary": "Dashboard quotes now match your day and time of day, and the news feed is easier to browse.",
+  "releaseNotes": {
+    "introduced": [],
+    "changed": [
+      "Dashboard quotes pick from 32,000 messages keyed to Monday–Sunday, morning, afternoon, evening, and night",
+      "Public holidays on weekdays use a dedicated holiday quote pool based on your enabled countries",
+      "News feed supports manual scroll with pause/resume auto-advance and shows each headline's country"
+    ],
+    "fixed": [],
+    "updated": [],
+    "removed": [],
+    "breaking": []
+  }
+}

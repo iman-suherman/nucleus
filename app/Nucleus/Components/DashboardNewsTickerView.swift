@@ -9,12 +9,16 @@ struct DashboardNewsTickerView: View {
     var showsHeader: Bool = true
     var preferredContentHeight: CGFloat?
 
-    @State private var visibleIndex = 0
+    @State private var visibleHeadlineID: String?
     @State private var scrollTimer: Timer?
+    @State private var autoScrollPaused = false
+    @State private var isProgrammaticScroll = false
+    @State private var resumeAutoScrollTask: Task<Void, Never>?
 
     private let rowHeight: CGFloat = 168
     private let visibleRows = 3
     private let advanceInterval: TimeInterval = 14
+    private let autoScrollResumeDelay: TimeInterval = 2
     private let cardVerticalPadding: CGFloat = 20
 
     private var viewportHeight: CGFloat {
@@ -51,43 +55,52 @@ struct DashboardNewsTickerView: View {
                 }
             }
         }
-        .onAppear { startScrollingIfNeeded() }
-        .onDisappear { stopScrolling() }
-        .onChange(of: headlines.count) { _, _ in
-            visibleIndex = 0
-            restartScrolling()
+        .onAppear {
+            resetVisibleHeadline()
+            startAutoScrollIfNeeded()
+        }
+        .onDisappear {
+            stopAutoScroll()
+            resumeAutoScrollTask?.cancel()
+            resumeAutoScrollTask = nil
+        }
+        .onChange(of: headlines.map(\.id)) { _, _ in
+            resetVisibleHeadline()
+            restartAutoScroll()
         }
         .onChange(of: preferredContentHeight) { _, _ in
-            visibleIndex = 0
-            restartScrolling()
+            resetVisibleHeadline()
+            restartAutoScroll()
+        }
+        .onChange(of: visibleHeadlineID) { _, _ in
+            guard !isProgrammaticScroll else { return }
+            pauseAutoScrollForUserInteraction()
+            scheduleAutoScrollResume()
         }
     }
 
     private var tickerCard: some View {
-        let looped = loopedHeadlines
-        let offset = CGFloat(visibleIndex) * rowHeight
-
-        return ZStack(alignment: .topLeading) {
-            VStack(alignment: .leading, spacing: 0) {
-                ForEach(Array(looped.enumerated()), id: \.offset) { _, headline in
+        ScrollView(.vertical, showsIndicators: true) {
+            LazyVStack(alignment: .leading, spacing: 0) {
+                ForEach(headlines) { headline in
                     headlineRow(headline)
+                        .id(headline.id)
                         .frame(height: rowHeight, alignment: .topLeading)
                 }
             }
-            .offset(y: -offset)
-            .animation(.easeInOut(duration: 0.85), value: visibleIndex)
+            .scrollTargetLayout()
         }
+        .scrollPosition(id: $visibleHeadlineID, anchor: .top)
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 4)
+                .onChanged { _ in pauseAutoScrollForUserInteraction() }
+                .onEnded { _ in scheduleAutoScrollResume() }
+        )
         .frame(height: viewportHeight, alignment: .top)
-        .clipped()
         .padding(.horizontal, 10)
         .padding(.vertical, 10)
         .frame(maxWidth: .infinity, minHeight: preferredContentHeight, alignment: .leading)
         .background(.quaternary.opacity(0.25), in: RoundedRectangle(cornerRadius: 12))
-    }
-
-    private var loopedHeadlines: [DashboardNewsHeadline] {
-        guard !headlines.isEmpty else { return [] }
-        return headlines + headlines.prefix(effectiveVisibleRows)
     }
 
     private func enrichment(for headline: DashboardNewsHeadline) -> DashboardNewsEnrichment {
@@ -109,6 +122,9 @@ struct DashboardNewsTickerView: View {
             VStack(alignment: .leading, spacing: 6) {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
                     moodBadge(mood)
+                    if !headline.countryCode.isEmpty {
+                        countryBadge(for: headline.countryCode)
+                    }
                     Spacer(minLength: 0)
                     if let publishedAt = headline.publishedAt {
                         Text(relativeTime(from: publishedAt))
@@ -150,6 +166,16 @@ struct DashboardNewsTickerView: View {
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
             .background(mood.accentColor.opacity(0.14), in: Capsule())
+    }
+
+    private func countryBadge(for countryCode: String) -> some View {
+        let name = DashboardPublicHolidayCountryCatalog.localizedCountryName(for: countryCode)
+        return Label(name, systemImage: "globe")
+            .font(.caption2.weight(.medium))
+            .foregroundStyle(.secondary)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(Color.primary.opacity(0.06), in: Capsule())
     }
 
     @ViewBuilder
@@ -212,11 +238,15 @@ struct DashboardNewsTickerView: View {
         return "\(days)d ago"
     }
 
-    private func startScrollingIfNeeded() {
+    private func resetVisibleHeadline() {
+        visibleHeadlineID = headlines.first?.id
+    }
+
+    private func startAutoScrollIfNeeded() {
         guard scrollTimer == nil, headlines.count > effectiveVisibleRows else { return }
         scrollTimer = Timer.scheduledTimer(withTimeInterval: advanceInterval, repeats: true) { _ in
             Task { @MainActor in
-                advanceTicker()
+                advanceAutoScroll()
             }
         }
         if let scrollTimer {
@@ -224,23 +254,46 @@ struct DashboardNewsTickerView: View {
         }
     }
 
-    private func restartScrolling() {
-        stopScrolling()
-        startScrollingIfNeeded()
+    private func restartAutoScroll() {
+        stopAutoScroll()
+        autoScrollPaused = false
+        resumeAutoScrollTask?.cancel()
+        resumeAutoScrollTask = nil
+        startAutoScrollIfNeeded()
     }
 
-    private func stopScrolling() {
+    private func stopAutoScroll() {
         scrollTimer?.invalidate()
         scrollTimer = nil
     }
 
-    private func advanceTicker() {
-        guard !headlines.isEmpty else { return }
-        let maxIndex = headlines.count
-        if visibleIndex >= maxIndex {
-            visibleIndex = 0
-        } else {
-            visibleIndex += 1
+    private func pauseAutoScrollForUserInteraction() {
+        autoScrollPaused = true
+        resumeAutoScrollTask?.cancel()
+    }
+
+    private func scheduleAutoScrollResume() {
+        resumeAutoScrollTask?.cancel()
+        resumeAutoScrollTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: UInt64(autoScrollResumeDelay * 1_000_000_000))
+            guard !Task.isCancelled else { return }
+            autoScrollPaused = false
+        }
+    }
+
+    private func advanceAutoScroll() {
+        guard !autoScrollPaused, !headlines.isEmpty else { return }
+
+        let currentIndex = headlines.firstIndex(where: { $0.id == visibleHeadlineID }) ?? 0
+        let nextIndex = (currentIndex + 1) % headlines.count
+
+        isProgrammaticScroll = true
+        withAnimation(.easeInOut(duration: 0.85)) {
+            visibleHeadlineID = headlines[nextIndex].id
+        }
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 900_000_000)
+            isProgrammaticScroll = false
         }
     }
 }

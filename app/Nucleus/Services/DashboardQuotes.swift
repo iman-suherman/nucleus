@@ -13,10 +13,46 @@ enum DashboardTimePeriod {
         default: return .night
         }
     }
+
+    var rawValue: String {
+        switch self {
+        case .morning: return "morning"
+        case .afternoon: return "afternoon"
+        case .evening: return "evening"
+        case .night: return "night"
+        }
+    }
 }
 
-enum DashboardQuoteSchedule: String {
-    case weekday, leisure
+enum DashboardWeekday: String, CaseIterable {
+    case monday
+    case tuesday
+    case wednesday
+    case thursday
+    case friday
+    case saturday
+    case sunday
+    case holiday
+
+    static func current(
+        now: Date = Date(),
+        calendar: Calendar = .current,
+        isPublicHoliday: Bool = false
+    ) -> DashboardWeekday {
+        if isPublicHoliday && !DashboardGreeting.isWeekend(now: now, calendar: calendar) {
+            return .holiday
+        }
+
+        switch calendar.component(.weekday, from: now) {
+        case 2: return .monday
+        case 3: return .tuesday
+        case 4: return .wednesday
+        case 5: return .thursday
+        case 6: return .friday
+        case 7: return .saturday
+        default: return .sunday
+        }
+    }
 }
 
 enum DashboardQuotes {
@@ -24,36 +60,19 @@ enum DashboardQuotes {
     static let contextKey = "nucleus.dashboard.quote.context"
 
     struct Context: Equatable {
-        let schedule: DashboardQuoteSchedule
+        let weekday: DashboardWeekday
         let period: DashboardTimePeriod
 
         var storageToken: String {
-            "\(schedule.rawValue).\(periodToken)"
-        }
-
-        private var periodToken: String {
-            switch period {
-            case .morning: return "morning"
-            case .afternoon: return "afternoon"
-            case .evening: return "evening"
-            case .night: return "night"
-            }
+            "\(weekday.rawValue).\(period.rawValue)"
         }
 
         static func current(isPublicHoliday: Bool = false) -> Context {
-            let schedule: DashboardQuoteSchedule
-            if DashboardGreeting.isWeekend() || isPublicHoliday {
-                schedule = .leisure
-            } else {
-                schedule = .weekday
-            }
-            return Context(schedule: schedule, period: DashboardTimePeriod.current())
+            Context(
+                weekday: DashboardWeekday.current(isPublicHoliday: isPublicHoliday),
+                period: DashboardTimePeriod.current()
+            )
         }
-    }
-
-    private struct QuoteLibrary: Decodable {
-        let weekday: PeriodQuotes
-        let leisure: PeriodQuotes
     }
 
     private struct PeriodQuotes: Decodable {
@@ -72,28 +91,57 @@ enum DashboardQuotes {
         }
     }
 
+    private struct QuoteLibrary: Decodable {
+        let monday: PeriodQuotes
+        let tuesday: PeriodQuotes
+        let wednesday: PeriodQuotes
+        let thursday: PeriodQuotes
+        let friday: PeriodQuotes
+        let saturday: PeriodQuotes
+        let sunday: PeriodQuotes
+        let holiday: PeriodQuotes
+
+        func quotes(for weekday: DashboardWeekday, period: DashboardTimePeriod) -> [String] {
+            switch weekday {
+            case .monday: return monday.quotes(for: period)
+            case .tuesday: return tuesday.quotes(for: period)
+            case .wednesday: return wednesday.quotes(for: period)
+            case .thursday: return thursday.quotes(for: period)
+            case .friday: return friday.quotes(for: period)
+            case .saturday: return saturday.quotes(for: period)
+            case .sunday: return sunday.quotes(for: period)
+            case .holiday: return holiday.quotes(for: period)
+            }
+        }
+    }
+
     private static let library: QuoteLibrary = {
         guard let url = Bundle.main.url(forResource: "DashboardQuotes", withExtension: "json"),
               let data = try? Data(contentsOf: url),
               let decoded = try? JSONDecoder().decode(QuoteLibrary.self, from: data)
         else {
-            return QuoteLibrary(
-                weekday: PeriodQuotes(
-                    morning: [fallbackQuote],
-                    afternoon: [fallbackQuote],
-                    evening: [fallbackQuote],
-                    night: [fallbackQuote]
-                ),
-                leisure: PeriodQuotes(
-                    morning: [fallbackQuote],
-                    afternoon: [fallbackQuote],
-                    evening: [fallbackQuote],
-                    night: [fallbackQuote]
-                )
-            )
+            return fallbackLibrary
         }
         return decoded
     }()
+
+    private static let fallbackLibrary = QuoteLibrary(
+        monday: fallbackPeriodQuotes,
+        tuesday: fallbackPeriodQuotes,
+        wednesday: fallbackPeriodQuotes,
+        thursday: fallbackPeriodQuotes,
+        friday: fallbackPeriodQuotes,
+        saturday: fallbackPeriodQuotes,
+        sunday: fallbackPeriodQuotes,
+        holiday: fallbackPeriodQuotes
+    )
+
+    private static let fallbackPeriodQuotes = PeriodQuotes(
+        morning: [fallbackQuote],
+        afternoon: [fallbackQuote],
+        evening: [fallbackQuote],
+        night: [fallbackQuote]
+    )
 
     private static let fallbackQuote = "May your path be calm, focused, and full of small wins."
 
@@ -148,12 +196,7 @@ enum DashboardQuotes {
     }
 
     private static func quotes(for context: Context) -> [String] {
-        switch context.schedule {
-        case .weekday:
-            return library.weekday.quotes(for: context.period)
-        case .leisure:
-            return library.leisure.quotes(for: context.period)
-        }
+        library.quotes(for: context.weekday, period: context.period)
     }
 
     static func quoteBody(from quote: String) -> String {
