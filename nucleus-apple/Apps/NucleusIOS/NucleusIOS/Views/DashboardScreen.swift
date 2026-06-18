@@ -118,8 +118,7 @@ struct DashboardWorkspaceScreen: View {
 
     private var publicHolidaySection: some View {
         DashboardPublicHolidayCard(
-            holiday: holidayService.nextHoliday,
-            locationLabel: holidayService.locationLabel,
+            countryGroups: holidayService.countryGroups,
             isLoading: holidayService.isLoading,
             statusMessage: holidayService.statusMessage
         )

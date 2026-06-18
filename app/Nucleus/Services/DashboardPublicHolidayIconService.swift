@@ -1,6 +1,7 @@
 import AppKit
 import Foundation
 import OSLog
+import SwiftUI
 
 #if canImport(FoundationModels)
 import FoundationModels
@@ -128,6 +129,20 @@ enum DashboardPublicHolidayIconService {
 
     static func cacheToken(for holiday: DashboardNextPublicHoliday) -> String {
         "\(holiday.countryCode)|\(holiday.name)|\(holiday.date.timeIntervalSince1970)"
+    }
+
+    static func accentColor(for holiday: DashboardNextPublicHoliday, index: Int = 0) -> Color {
+        let palette: [Color] = [
+            Color(red: 0.95, green: 0.45, blue: 0.18),
+            Color(red: 0.55, green: 0.36, blue: 0.92),
+            Color(red: 0.18, green: 0.66, blue: 0.72),
+            Color(red: 0.92, green: 0.32, blue: 0.52),
+            Color(red: 0.24, green: 0.62, blue: 0.38),
+            Color(red: 0.86, green: 0.58, blue: 0.16),
+            Color(red: 0.34, green: 0.48, blue: 0.92),
+        ]
+        let key = abs(holiday.name.hashValue ^ holiday.countryCode.hashValue ^ index)
+        return palette[key % palette.count]
     }
 
     private static func cacheSymbol(_ symbol: String, for holiday: DashboardNextPublicHoliday) {

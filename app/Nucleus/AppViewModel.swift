@@ -742,6 +742,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
 
     func reloadLocalData() {
         let context = ModelContext(modelContainer)
+        try? ClipboardRepository.prune(context: context)
         accounts = (try? AccountRepository.fetchAll(context: context)) ?? []
         clipboardEntries = (try? ClipboardRepository.fetchRecent(context: context)) ?? []
         if clipboardDayAnalysis == nil,

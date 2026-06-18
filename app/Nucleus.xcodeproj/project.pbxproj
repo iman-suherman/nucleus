@@ -73,6 +73,7 @@
 		C67FBF9A748A2D78F0D4B1BB /* WorkspaceIdleController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D25355470BC63425B500B871 /* WorkspaceIdleController.swift */; };
 		C7B8138444FEA8F5600C4648 /* CalendarKit in Frameworks */ = {isa = PBXBuildFile; productRef = 0663CFC119484D7BD11FB843 /* CalendarKit */; };
 		C8B7DC0B032F4FA042820B5B /* AuthStateMigration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 964EE9A5CC0993B6B53D3120 /* AuthStateMigration.swift */; };
+		CC2FE3B6D8AD40C7F6D5A4B9 /* DashboardPublicHolidayCountryCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1A423DE933BDFCA8CCE384 /* DashboardPublicHolidayCountryCatalog.swift */; };
 		CD6372D2C3B60CF249E70D00 /* NotesClipboardMigration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81F61F31E82EC125D210B051 /* NotesClipboardMigration.swift */; };
 		D21146D10DFFE04416870233 /* ReleaseNotesDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6EDADCCF24985DEF2C1A2DB /* ReleaseNotesDetailView.swift */; };
 		D269748A37583FCD001DE941 /* WindowLayoutController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36D30869A475802CF2EC37F9 /* WindowLayoutController.swift */; };
@@ -163,6 +164,7 @@
 		CDFFBFACBD2632D34A43FC55 /* RegistryReleaseNotesClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegistryReleaseNotesClient.swift; sourceTree = "<group>"; };
 		D12215EBDC2CCD7294F9F071 /* MenuBarPopoverSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarPopoverSession.swift; sourceTree = "<group>"; };
 		D25355470BC63425B500B871 /* WorkspaceIdleController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceIdleController.swift; sourceTree = "<group>"; };
+		DA1A423DE933BDFCA8CCE384 /* DashboardPublicHolidayCountryCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardPublicHolidayCountryCatalog.swift; sourceTree = "<group>"; };
 		E4CEADA0142869F8949F55DD /* SupportViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupportViews.swift; sourceTree = "<group>"; };
 		E5971F41F5427FCE836471DA /* EmbeddedWebViewContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmbeddedWebViewContainer.swift; sourceTree = "<group>"; };
 		E79434496C370BC490D26F0A /* nucleus-bills-import-demo.csv */ = {isa = PBXFileReference; path = "nucleus-bills-import-demo.csv"; sourceTree = "<group>"; };
@@ -276,6 +278,7 @@
 				6F3E574A6A6CAA16B60DF4F8 /* DashboardLocationSubdivisionResolver.swift */,
 				7070B325206A2DB90B1C3F2C /* DashboardNewsFeedService.swift */,
 				A5A1AEBE23399CD601B924A8 /* DashboardProcessMetricsService.swift */,
+				DA1A423DE933BDFCA8CCE384 /* DashboardPublicHolidayCountryCatalog.swift */,
 				5A55CAAB4D2D33098BEFB97A /* DashboardPublicHolidayExplanationService.swift */,
 				3B87857466880DD8F69C8DF4 /* DashboardPublicHolidayIconService.swift */,
 				4A99D2A6C2B4A64C1E115EC0 /* DashboardPublicHolidayService.swift */,
@@ -464,6 +467,7 @@
 				DC31225F8CF5E258002AAF0A /* DashboardNewsFeedService.swift in Sources */,
 				4071421F270EE4B407D173F7 /* DashboardNewsTickerView.swift in Sources */,
 				A1A5748F0C26C23E62073279 /* DashboardProcessMetricsService.swift in Sources */,
+				CC2FE3B6D8AD40C7F6D5A4B9 /* DashboardPublicHolidayCountryCatalog.swift in Sources */,
 				013B9FC482237F2D4F339739 /* DashboardPublicHolidayExplanationService.swift in Sources */,
 				4C3BE2AC88FBED2E84BB7DBA /* DashboardPublicHolidayIconService.swift in Sources */,
 				E3B7B3811C256A7159D022CC /* DashboardPublicHolidayService.swift in Sources */,

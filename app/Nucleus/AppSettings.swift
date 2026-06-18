@@ -170,6 +170,7 @@ final class AppSettings: ObservableObject {
         static let billNotifyOneDayBefore = "nucleus.settings.billNotifyOneDayBefore"
         static let billNotifyOnDueDate = "nucleus.settings.billNotifyOnDueDate"
         static let dashboardPreferences = "nucleus.settings.dashboardPreferences"
+        static let publicHolidayCountryCodes = "nucleus.settings.publicHolidayCountryCodes"
     }
 
     static let currentAppVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.1.0"
@@ -321,6 +322,17 @@ final class AppSettings: ObservableObject {
 
     @Published var dashboardPreferences: DashboardPreferences {
         didSet { Self.persistDashboardPreferences(dashboardPreferences) }
+    }
+
+    @Published var publicHolidayCountryCodes: [String] {
+        didSet {
+            let normalized = DashboardPublicHolidayService.normalizedCountryCodes(publicHolidayCountryCodes)
+            if normalized != publicHolidayCountryCodes {
+                publicHolidayCountryCodes = normalized
+                return
+            }
+            UserDefaults.standard.set(normalized, forKey: Keys.publicHolidayCountryCodes)
+        }
     }
 
     var billDueReminderConfiguration: BillDueReminderConfiguration {
@@ -522,10 +534,12 @@ final class AppSettings: ObservableObject {
         }
 
         dashboardPreferences = Self.loadDashboardPreferences()
+        publicHolidayCountryCodes = UserDefaults.standard.stringArray(forKey: Keys.publicHolidayCountryCodes) ?? []
     }
 
     func resetDashboardPreferences() {
         dashboardPreferences = DashboardPreferences()
+        publicHolidayCountryCodes = []
     }
 
     private static func persistDashboardPreferences(_ preferences: DashboardPreferences) {
@@ -606,6 +620,7 @@ struct DashboardPreferences: Codable, Equatable {
     var resourceUsageEnabled: Bool
     var cloudSyncPanelEnabled: Bool
     var publicHolidayEnabled: Bool
+    var publicHolidayExpanded: Bool
     var newsFeedEnabled: Bool
     var productivityChartEnabled: Bool
     var intelligentInsightExpanded: Bool
@@ -626,6 +641,7 @@ struct DashboardPreferences: Codable, Equatable {
         resourceUsageEnabled: Bool = true,
         cloudSyncPanelEnabled: Bool = true,
         publicHolidayEnabled: Bool = true,
+        publicHolidayExpanded: Bool = true,
         newsFeedEnabled: Bool = true,
         productivityChartEnabled: Bool = true,
         intelligentInsightExpanded: Bool = true,
@@ -645,6 +661,7 @@ struct DashboardPreferences: Codable, Equatable {
         self.resourceUsageEnabled = resourceUsageEnabled
         self.cloudSyncPanelEnabled = cloudSyncPanelEnabled
         self.publicHolidayEnabled = publicHolidayEnabled
+        self.publicHolidayExpanded = publicHolidayExpanded
         self.newsFeedEnabled = newsFeedEnabled
         self.productivityChartEnabled = productivityChartEnabled
         self.intelligentInsightExpanded = intelligentInsightExpanded
@@ -659,7 +676,7 @@ struct DashboardPreferences: Codable, Equatable {
     private enum CodingKeys: String, CodingKey {
         case quoteEnabled, intelligentInsightEnabled, clipboardDayEnabled
         case summaryMetricsEnabled, billPreparationEnabled, weatherEnabled
-        case resourceUsageEnabled, cloudSyncPanelEnabled, publicHolidayEnabled
+        case resourceUsageEnabled, cloudSyncPanelEnabled, publicHolidayEnabled, publicHolidayExpanded
         case newsFeedEnabled, productivityChartEnabled
         case intelligentInsightExpanded, clipboardDayExpanded
         case contextPanelsExpanded, newsFeedExpanded, summaryExpanded
@@ -677,6 +694,7 @@ struct DashboardPreferences: Codable, Equatable {
         resourceUsageEnabled = try container.decodeIfPresent(Bool.self, forKey: .resourceUsageEnabled) ?? true
         cloudSyncPanelEnabled = try container.decodeIfPresent(Bool.self, forKey: .cloudSyncPanelEnabled) ?? true
         publicHolidayEnabled = try container.decodeIfPresent(Bool.self, forKey: .publicHolidayEnabled) ?? true
+        publicHolidayExpanded = try container.decodeIfPresent(Bool.self, forKey: .publicHolidayExpanded) ?? true
         newsFeedEnabled = try container.decodeIfPresent(Bool.self, forKey: .newsFeedEnabled) ?? true
         productivityChartEnabled = try container.decodeIfPresent(Bool.self, forKey: .productivityChartEnabled) ?? true
         intelligentInsightExpanded = try container.decodeIfPresent(Bool.self, forKey: .intelligentInsightExpanded) ?? true

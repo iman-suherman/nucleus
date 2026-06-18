@@ -45,6 +45,46 @@ public struct DashboardNextPublicHoliday: Equatable, Sendable {
     }
 }
 
+public struct DashboardPublicHolidayCountryGroup: Identifiable, Equatable, Sendable {
+    public var countryCode: String
+    public var countryName: String
+    public var locationLabel: String?
+    public var holidays: [DashboardNextPublicHoliday]
+
+    public var id: String { countryCode }
+
+    public init(
+        countryCode: String,
+        countryName: String,
+        locationLabel: String? = nil,
+        holidays: [DashboardNextPublicHoliday]
+    ) {
+        self.countryCode = countryCode.uppercased()
+        self.countryName = countryName
+        self.locationLabel = locationLabel
+        self.holidays = holidays
+    }
+}
+
+public struct DashboardPublicHolidayRefreshTarget: Equatable, Sendable {
+    public var countryCode: String
+    public var subdivisionCode: String?
+    public var locationLabel: String?
+    public var countryName: String
+
+    public init(
+        countryCode: String,
+        subdivisionCode: String? = nil,
+        locationLabel: String? = nil,
+        countryName: String
+    ) {
+        self.countryCode = countryCode.uppercased()
+        self.subdivisionCode = subdivisionCode?.uppercased()
+        self.locationLabel = locationLabel
+        self.countryName = countryName
+    }
+}
+
 public enum DashboardPublicHolidayClient {
     private struct HolidayRecord: Decodable {
         let date: String
@@ -159,22 +199,103 @@ public final class DashboardPublicHolidayService: ObservableObject {
 
     @Published public private(set) var nextHoliday: DashboardNextPublicHoliday?
     @Published public private(set) var displayHolidays: [DashboardNextPublicHoliday] = []
+    @Published public private(set) var countryGroups: [DashboardPublicHolidayCountryGroup] = []
     @Published public private(set) var isLoading = false
     @Published public private(set) var statusMessage: String?
     @Published public private(set) var locationLabel: String?
 
     private var cachedHolidays: [DashboardNextPublicHoliday] = []
-    private var cachedCountryCode: String?
-    private var cachedSubdivisionCode: String?
+    private var cachedTargetsKey: String?
     private var lastFetchAt: Date?
     private var fetchTask: Task<Void, Never>?
 
     private static let refreshInterval: TimeInterval = 24 * 60 * 60
+    public static let maxSelectedCountries = 2
 
     private init() {}
 
     public var isTodayPublicHoliday: Bool {
         DashboardPublicHolidayClient.isPublicHoliday(on: Date(), in: cachedHolidays)
+    }
+
+    public static func resolveRefreshTargets(
+        selectedCountryCodes: [String],
+        locationCountryCode: String?,
+        locationSubdivisionCode: String? = nil,
+        locationLabel: String? = nil
+    ) -> [DashboardPublicHolidayRefreshTarget] {
+        let normalizedSelected = normalizedCountryCodes(selectedCountryCodes)
+        let locationCode = locationCountryCode?.uppercased()
+
+        let effectiveCodes: [String]
+        if normalizedSelected.isEmpty {
+            guard let locationCode, !locationCode.isEmpty else { return [] }
+            effectiveCodes = [locationCode]
+        } else {
+            effectiveCodes = normalizedSelected
+        }
+
+        return effectiveCodes.map { code in
+            let usesLocation = code == locationCode
+            return DashboardPublicHolidayRefreshTarget(
+                countryCode: code,
+                subdivisionCode: usesLocation ? locationSubdivisionCode : nil,
+                locationLabel: usesLocation ? locationLabel : nil,
+                countryName: DashboardPublicHolidayCountryCatalog.localizedCountryName(for: code)
+            )
+        }
+    }
+
+    public static func normalizedCountryCodes(_ codes: [String]) -> [String] {
+        var seen = Set<String>()
+        var result: [String] = []
+        for raw in codes {
+            let code = raw.uppercased().trimmingCharacters(in: .whitespacesAndNewlines)
+            guard code.count == 2, !seen.contains(code) else { continue }
+            seen.insert(code)
+            result.append(code)
+            if result.count >= maxSelectedCountries { break }
+        }
+        return result
+    }
+
+    public func refresh(
+        selectedCountryCodes: [String] = [],
+        locationCountryCode: String?,
+        locationSubdivisionCode: String? = nil,
+        locationLabel: String? = nil,
+        force: Bool = false
+    ) {
+        let targets = Self.resolveRefreshTargets(
+            selectedCountryCodes: selectedCountryCodes,
+            locationCountryCode: locationCountryCode,
+            locationSubdivisionCode: locationSubdivisionCode,
+            locationLabel: locationLabel
+        )
+        self.locationLabel = targets.count == 1 ? targets[0].locationLabel : nil
+
+        guard !targets.isEmpty else {
+            clear()
+            statusMessage = "Choose up to two countries in Settings, or allow location access."
+            return
+        }
+
+        let targetsKey = targets
+            .map { "\($0.countryCode)|\($0.subdivisionCode ?? "")" }
+            .joined(separator: ";")
+
+        if !force,
+           targetsKey == cachedTargetsKey,
+           let lastFetchAt,
+           Date().timeIntervalSince(lastFetchAt) < Self.refreshInterval,
+           !countryGroups.isEmpty {
+            return
+        }
+
+        fetchTask?.cancel()
+        fetchTask = Task { @MainActor in
+            await loadHolidays(targets: targets, targetsKey: targetsKey)
+        }
     }
 
     public func refresh(
@@ -183,33 +304,13 @@ public final class DashboardPublicHolidayService: ObservableObject {
         locationLabel: String? = nil,
         force: Bool = false
     ) {
-        self.locationLabel = locationLabel
-
-        guard let countryCode, !countryCode.isEmpty else {
-            nextHoliday = nil
-            displayHolidays = []
-            cachedHolidays = []
-            cachedCountryCode = nil
-            cachedSubdivisionCode = nil
-            statusMessage = "Location is needed to show public holidays."
-            return
-        }
-
-        let normalized = countryCode.uppercased()
-        let normalizedSubdivision = subdivisionCode?.uppercased()
-        if !force,
-           normalized == cachedCountryCode,
-           normalizedSubdivision == cachedSubdivisionCode,
-           let lastFetchAt,
-           Date().timeIntervalSince(lastFetchAt) < Self.refreshInterval,
-           !displayHolidays.isEmpty {
-            return
-        }
-
-        fetchTask?.cancel()
-        fetchTask = Task { @MainActor in
-            await loadHolidays(countryCode: normalized, subdivisionCode: normalizedSubdivision)
-        }
+        refresh(
+            selectedCountryCodes: [],
+            locationCountryCode: countryCode,
+            locationSubdivisionCode: subdivisionCode,
+            locationLabel: locationLabel,
+            force: force
+        )
     }
 
     public func clear() {
@@ -217,46 +318,78 @@ public final class DashboardPublicHolidayService: ObservableObject {
         fetchTask = nil
         nextHoliday = nil
         displayHolidays = []
+        countryGroups = []
         cachedHolidays = []
-        cachedCountryCode = nil
-        cachedSubdivisionCode = nil
+        cachedTargetsKey = nil
         locationLabel = nil
         statusMessage = nil
         isLoading = false
     }
 
-    private func loadHolidays(countryCode: String, subdivisionCode: String?) async {
+    private func loadHolidays(targets: [DashboardPublicHolidayRefreshTarget], targetsKey: String) async {
         isLoading = true
         statusMessage = nil
         defer { isLoading = false }
 
-        do {
-            let holidays = try await DashboardPublicHolidayClient.fetchNextPublicHolidays(
-                countryCode: countryCode,
-                subdivisionCode: subdivisionCode
-            )
-            guard !Task.isCancelled else { return }
-            cachedHolidays = holidays
-            cachedCountryCode = countryCode
-            cachedSubdivisionCode = subdivisionCode
-            lastFetchAt = Date()
-            displayHolidays = DashboardPublicHolidayClient.displayHolidays(from: holidays)
-            nextHoliday = displayHolidays.first ?? holidays.first
-            if holidays.isEmpty {
-                if subdivisionCode == nil {
-                    statusMessage = "Allow location access to show state public holidays."
-                } else {
-                    statusMessage = "No upcoming public holidays found for your state."
+        var groups: [DashboardPublicHolidayCountryGroup] = []
+        var allHolidays: [DashboardNextPublicHoliday] = []
+        var hadError = false
+
+        await withTaskGroup(of: (DashboardPublicHolidayRefreshTarget, Result<[DashboardNextPublicHoliday], Error>).self) { taskGroup in
+            for target in targets {
+                taskGroup.addTask {
+                    do {
+                        let holidays = try await DashboardPublicHolidayClient.fetchNextPublicHolidays(
+                            countryCode: target.countryCode,
+                            subdivisionCode: target.subdivisionCode
+                        )
+                        return (target, .success(holidays))
+                    } catch {
+                        return (target, .failure(error))
+                    }
                 }
-            } else {
-                statusMessage = nil
             }
-        } catch {
-            guard !Task.isCancelled else { return }
-            nextHoliday = nil
-            displayHolidays = []
-            cachedHolidays = []
-            statusMessage = "Couldn't load public holidays right now."
+
+            for await (target, result) in taskGroup {
+                guard !Task.isCancelled else { return }
+                switch result {
+                case .success(let holidays):
+                    let display = DashboardPublicHolidayClient.displayHolidays(from: holidays)
+                    groups.append(
+                        DashboardPublicHolidayCountryGroup(
+                            countryCode: target.countryCode,
+                            countryName: target.countryName,
+                            locationLabel: target.locationLabel,
+                            holidays: display
+                        )
+                    )
+                    allHolidays.append(contentsOf: holidays)
+                case .failure:
+                    hadError = true
+                }
+            }
+        }
+
+        guard !Task.isCancelled else { return }
+
+        groups.sort { $0.countryName.localizedCaseInsensitiveCompare($1.countryName) == .orderedAscending }
+        countryGroups = groups
+        cachedHolidays = allHolidays
+        cachedTargetsKey = targetsKey
+        lastFetchAt = Date()
+        displayHolidays = groups.flatMap(\.holidays)
+        nextHoliday = displayHolidays.min(by: { $0.date < $1.date })
+
+        if groups.isEmpty {
+            if hadError {
+                statusMessage = "Couldn't load public holidays right now."
+            } else if targets.contains(where: { $0.subdivisionCode == nil }) {
+                statusMessage = "Allow location access to show state public holidays."
+            } else {
+                statusMessage = "No upcoming public holidays found."
+            }
+        } else {
+            statusMessage = nil
         }
     }
 }

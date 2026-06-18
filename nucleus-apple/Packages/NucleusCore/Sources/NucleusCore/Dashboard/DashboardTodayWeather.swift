@@ -1,5 +1,29 @@
 import Foundation
 
+public struct DashboardDailyWeatherForecast: Equatable, Sendable, Identifiable {
+    public var date: Date
+    public var dayLabel: String
+    public var conditionSymbol: String
+    public var highTemperature: String
+    public var lowTemperature: String
+
+    public var id: Date { date }
+
+    public init(
+        date: Date,
+        dayLabel: String,
+        conditionSymbol: String,
+        highTemperature: String,
+        lowTemperature: String
+    ) {
+        self.date = date
+        self.dayLabel = dayLabel
+        self.conditionSymbol = conditionSymbol
+        self.highTemperature = highTemperature
+        self.lowTemperature = lowTemperature
+    }
+}
+
 public struct DashboardTodayWeather: Equatable, Sendable {
     public var cityName: String?
     public var conditionSymbol: String
@@ -7,6 +31,7 @@ public struct DashboardTodayWeather: Equatable, Sendable {
     public var highTemperature: String
     public var lowTemperature: String
     public var rainSummary: String?
+    public var dailyForecast: [DashboardDailyWeatherForecast]
 
     public init(
         cityName: String?,
@@ -14,7 +39,8 @@ public struct DashboardTodayWeather: Equatable, Sendable {
         conditionDescription: String,
         highTemperature: String,
         lowTemperature: String,
-        rainSummary: String?
+        rainSummary: String?,
+        dailyForecast: [DashboardDailyWeatherForecast] = []
     ) {
         self.cityName = cityName
         self.conditionSymbol = conditionSymbol
@@ -22,6 +48,7 @@ public struct DashboardTodayWeather: Equatable, Sendable {
         self.highTemperature = highTemperature
         self.lowTemperature = lowTemperature
         self.rainSummary = rainSummary
+        self.dailyForecast = dailyForecast
     }
 }
 

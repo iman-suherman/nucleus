@@ -28,11 +28,11 @@ public struct DashboardWeatherCard: View {
     public var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             if let weather, let cityName = weather.cityName {
-                Label("Today's weather · \(cityName)", systemImage: "cloud.sun.fill")
+                Label("Weather · \(cityName)", systemImage: "cloud.sun.fill")
                     .font(.headline)
                     .symbolRenderingMode(.multicolor)
             } else {
-                Label("Today's weather", systemImage: "cloud.sun.fill")
+                Label("Weather", systemImage: "cloud.sun.fill")
                     .font(.headline)
                     .symbolRenderingMode(.multicolor)
             }
@@ -40,27 +40,55 @@ public struct DashboardWeatherCard: View {
             if let prompt = locationPrompt {
                 locationPromptCard(prompt)
             } else if let weather {
-                HStack(alignment: .top, spacing: 14) {
-                    Image(systemName: weather.conditionSymbol)
-                        .font(.system(size: 32))
-                        .symbolRenderingMode(.multicolor)
-                        .frame(width: 40)
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack(alignment: .top, spacing: 14) {
+                        Image(systemName: weather.conditionSymbol)
+                            .font(.system(size: 32))
+                            .symbolRenderingMode(.multicolor)
+                            .frame(width: 40)
 
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(weather.conditionDescription)
-                            .font(.title3.weight(.semibold))
-                        Text("High \(weather.highTemperature) · Low \(weather.lowTemperature)")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                        if let rainSummary = weather.rainSummary {
-                            Text(rainSummary)
-                                .font(.caption)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(weather.conditionDescription)
+                                .font(.title3.weight(.semibold))
+                            Text("High \(weather.highTemperature) · Low \(weather.lowTemperature)")
+                                .font(.subheadline)
                                 .foregroundStyle(.secondary)
-                                .fixedSize(horizontal: false, vertical: true)
+                            if let rainSummary = weather.rainSummary {
+                                Text(rainSummary)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
                         }
+
+                        Spacer(minLength: 0)
                     }
 
-                    Spacer(minLength: 0)
+                    if !weather.dailyForecast.isEmpty {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                ForEach(weather.dailyForecast) { day in
+                                    VStack(spacing: 6) {
+                                        Text(day.dayLabel)
+                                            .font(.caption2.weight(.semibold))
+                                            .foregroundStyle(.secondary)
+                                        Image(systemName: day.conditionSymbol)
+                                            .font(.title3)
+                                            .symbolRenderingMode(.multicolor)
+                                        Text(day.highTemperature)
+                                            .font(.caption.weight(.semibold))
+                                        Text(day.lowTemperature)
+                                            .font(.caption2)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                    .frame(minWidth: 54)
+                                    .padding(.vertical, 8)
+                                    .padding(.horizontal, 6)
+                                    .background(Color(.tertiarySystemBackground), in: RoundedRectangle(cornerRadius: 8))
+                                }
+                            }
+                        }
+                    }
                 }
                 .padding(14)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -232,10 +260,19 @@ public struct DashboardCloudSyncCard: View {
 }
 
 public struct DashboardPublicHolidayCard: View {
-    let holiday: DashboardNextPublicHoliday?
-    let locationLabel: String?
+    let countryGroups: [DashboardPublicHolidayCountryGroup]
     let isLoading: Bool
     let statusMessage: String?
+
+    public init(
+        countryGroups: [DashboardPublicHolidayCountryGroup],
+        isLoading: Bool,
+        statusMessage: String?
+    ) {
+        self.countryGroups = countryGroups
+        self.isLoading = isLoading
+        self.statusMessage = statusMessage
+    }
 
     public init(
         holiday: DashboardNextPublicHoliday?,
@@ -243,52 +280,35 @@ public struct DashboardPublicHolidayCard: View {
         isLoading: Bool,
         statusMessage: String?
     ) {
-        self.holiday = holiday
-        self.locationLabel = locationLabel
+        if let holiday {
+            self.countryGroups = [
+                DashboardPublicHolidayCountryGroup(
+                    countryCode: holiday.countryCode,
+                    countryName: DashboardPublicHolidayCountryCatalog.localizedCountryName(for: holiday.countryCode),
+                    locationLabel: locationLabel,
+                    holidays: [holiday]
+                ),
+            ]
+        } else {
+            self.countryGroups = []
+        }
         self.isLoading = isLoading
         self.statusMessage = statusMessage
     }
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            if let holiday {
-                Label(
-                    "Next public holiday · \(locationLabel ?? Locale.current.localizedString(forRegionCode: holiday.countryCode) ?? holiday.countryCode)",
-                    systemImage: "calendar.badge.clock"
-                )
+            Label(publicHolidayTitle, systemImage: "calendar.badge.clock")
                 .font(.headline)
                 .symbolRenderingMode(.multicolor)
-            } else {
-                Label("Next public holiday", systemImage: "calendar.badge.clock")
-                    .font(.headline)
-                    .symbolRenderingMode(.multicolor)
-            }
 
-            if let holiday {
-                HStack(alignment: .top, spacing: 14) {
-                    Image(systemName: "flag.fill")
-                        .font(.title3)
-                        .foregroundStyle(.orange)
-                        .frame(width: 28)
-
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(holiday.name)
-                            .font(.subheadline.weight(.semibold))
-                        Text("\(holiday.relativeDescription) · \(formattedHolidayDate(holiday.date))")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        if let applicabilityLabel = holiday.applicabilityLabel {
-                            Text(applicabilityLabel)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
+            if !countryGroups.isEmpty {
+                HStack(alignment: .top, spacing: 12) {
+                    ForEach(countryGroups) { group in
+                        countryColumn(group)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                     }
-
-                    Spacer(minLength: 0)
                 }
-                .padding(14)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 12))
             } else if isLoading {
                 HStack(spacing: 10) {
                     ProgressView()
@@ -308,6 +328,88 @@ public struct DashboardPublicHolidayCard: View {
                     .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 12))
             }
         }
+    }
+
+    private var publicHolidayTitle: String {
+        if countryGroups.isEmpty {
+            return "Public holidays"
+        }
+        if countryGroups.count == 1 {
+            return "Public holidays · \(countryGroups[0].countryName)"
+        }
+        return "Public holidays · \(countryGroups.map(\.countryName).joined(separator: " · "))"
+    }
+
+    @ViewBuilder
+    private func countryColumn(_ group: DashboardPublicHolidayCountryGroup) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            if let locationLabel = group.locationLabel {
+                Text("\(group.countryName) · \(locationLabel)")
+                    .font(.subheadline.weight(.semibold))
+            } else {
+                Text(group.countryName)
+                    .font(.subheadline.weight(.semibold))
+            }
+
+            if group.holidays.isEmpty {
+                Text("No upcoming public holidays.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .padding(14)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 12))
+            } else {
+                ForEach(Array(group.holidays.enumerated()), id: \.offset) { index, holiday in
+                    holidayRow(holiday, accentIndex: index)
+                }
+            }
+        }
+    }
+
+    private func holidayRow(_ holiday: DashboardNextPublicHoliday, accentIndex: Int) -> some View {
+        let accent = holidayAccentColor(for: holiday, index: accentIndex)
+
+        return HStack(alignment: .top, spacing: 14) {
+            Image(systemName: "calendar")
+                .font(.title3)
+                .foregroundStyle(accent)
+                .frame(width: 28)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(holiday.name)
+                    .font(.subheadline.weight(.semibold))
+                Text("\(holiday.relativeDescription) · \(formattedHolidayDate(holiday.date))")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text(holiday.scopeLabel)
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(accent)
+                if let applicabilityLabel = holiday.applicabilityLabel {
+                    Text(applicabilityLabel)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(accent.opacity(0.12), in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    private func holidayAccentColor(for holiday: DashboardNextPublicHoliday, index: Int) -> Color {
+        let palette: [Color] = [
+            Color(red: 0.95, green: 0.45, blue: 0.18),
+            Color(red: 0.55, green: 0.36, blue: 0.92),
+            Color(red: 0.18, green: 0.66, blue: 0.72),
+            Color(red: 0.92, green: 0.32, blue: 0.52),
+            Color(red: 0.24, green: 0.62, blue: 0.38),
+            Color(red: 0.86, green: 0.58, blue: 0.16),
+            Color(red: 0.34, green: 0.48, blue: 0.92),
+        ]
+        let key = abs(holiday.name.hashValue ^ holiday.countryCode.hashValue ^ index)
+        return palette[key % palette.count]
     }
 
     private func formattedHolidayDate(_ date: Date) -> String {

@@ -11,6 +11,23 @@ struct DashboardTodayWeather: Equatable {
     var highTemperature: String
     var lowTemperature: String
     var rainSummary: String?
+    var dailyForecast: [DashboardDailyWeatherForecast]
+}
+
+struct DashboardDailyWeatherForecast: Equatable, Identifiable {
+    var date: Date
+    var dayLabel: String
+    var conditionSymbol: String
+    var highTemperature: String
+    var lowTemperature: String
+
+    var id: Date { date }
+}
+
+struct DashboardWeatherLocationSnapshot: Equatable {
+    var countryCode: String
+    var subdivisionCode: String?
+    var locationLabel: String?
 }
 
 struct DashboardWeatherLocationPrompt: Equatable {
@@ -63,6 +80,7 @@ final class DashboardWeatherService: NSObject, ObservableObject {
     private static let locationDeclinedKey = "nucleus.weather.locationDeclined"
 
     @Published private(set) var weather: DashboardTodayWeather?
+    @Published private(set) var locationSnapshot: DashboardWeatherLocationSnapshot?
     @Published private(set) var isLoading = false
     @Published private(set) var statusMessage: String?
     @Published var showLocationPermissionPrompt = false
@@ -403,11 +421,13 @@ final class DashboardWeatherService: NSObject, ObservableObject {
             lastSuccessfulFetchAt = Date()
 
             let countryCode = locationContext?.countryCode ?? Self.fallbackCountryCode()
-            DashboardPublicHolidayService.shared.refresh(
-                countryCode: countryCode,
-                subdivisionCode: locationContext?.subdivisionCode,
-                locationLabel: locationContext?.dashboardLocationLabel
-            )
+            if let countryCode {
+                locationSnapshot = DashboardWeatherLocationSnapshot(
+                    countryCode: countryCode,
+                    subdivisionCode: locationContext?.subdivisionCode,
+                    locationLabel: locationContext?.dashboardLocationLabel
+                )
+            }
             DashboardNewsFeedService.shared.startAutoRefresh(countryCode: countryCode)
         } catch {
             guard !Task.isCancelled, generation == weatherFetchGeneration else { return }
@@ -524,13 +544,28 @@ final class DashboardWeatherService: NSObject, ObservableObject {
         let condition = today?.condition ?? weather.currentWeather.condition
         let description = condition.description
 
+        let dayNameFormatter = DateFormatter()
+        dayNameFormatter.dateFormat = "EEE"
+
+        let dailyForecast = weather.dailyForecast.prefix(7).map { day in
+            let isToday = calendar.isDate(day.date, inSameDayAs: now)
+            return DashboardDailyWeatherForecast(
+                date: day.date,
+                dayLabel: isToday ? "Today" : dayNameFormatter.string(from: day.date),
+                conditionSymbol: symbolName(for: day.condition),
+                highTemperature: formatter.string(from: day.highTemperature),
+                lowTemperature: formatter.string(from: day.lowTemperature)
+            )
+        }
+
         return DashboardTodayWeather(
             cityName: cityName,
             conditionSymbol: symbolName(for: condition),
             conditionDescription: description,
             highTemperature: high,
             lowTemperature: low,
-            rainSummary: rainSummary(from: weather, now: now, calendar: calendar)
+            rainSummary: rainSummary(from: weather, now: now, calendar: calendar),
+            dailyForecast: Array(dailyForecast)
         )
     }
 

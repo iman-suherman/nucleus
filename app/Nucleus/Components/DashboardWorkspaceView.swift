@@ -71,17 +71,21 @@ struct DashboardWorkspaceView: View {
         .onChange(of: settings.dashboardPreferences) { _, _ in
             applyDashboardServiceState()
         }
+        .onChange(of: settings.publicHolidayCountryCodes) { _, _ in
+            refreshPublicHolidays(force: true)
+        }
+        .onChange(of: weatherService.locationSnapshot) { _, _ in
+            refreshPublicHolidays(force: false)
+        }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             weatherService.refreshIfNeeded()
-            newsFeedService.refresh(countryCode: holidayService.nextHoliday?.countryCode, force: false)
+            newsFeedService.refresh(countryCode: preferredNewsCountryCode(), force: false)
         }
-        .onChange(of: holidayService.displayHolidays.map(\.name)) { _, _ in
+        .onChange(of: holidayService.countryGroups.map(\.countryCode)) { _, _ in
             viewModel.refreshDashboardQuoteForCurrentContext()
             viewModel.refreshDashboardQuoteEmojis()
             refreshHolidayMetadata()
-            if let countryCode = holidayService.nextHoliday?.countryCode {
-                newsFeedService.refresh(countryCode: countryCode, force: false)
-            }
+            newsFeedService.refresh(countryCode: preferredNewsCountryCode(), force: false)
         }
         .alert("Show today's weather?", isPresented: $weatherService.showLocationPermissionPrompt) {
             Button("Allow Location Access") {
@@ -96,8 +100,7 @@ struct DashboardWorkspaceView: View {
     }
 
     private func applyDashboardServiceState() {
-        let countryCode = holidayService.nextHoliday?.countryCode
-            ?? Locale.current.region?.identifier
+        let countryCode = preferredNewsCountryCode()
 
         if dashboardPreferences.weatherEnabled {
             weatherService.beginWeatherAccessFlow()
@@ -110,7 +113,9 @@ struct DashboardWorkspaceView: View {
         }
 
         if dashboardPreferences.publicHolidayEnabled {
-            holidayService.refresh(countryCode: countryCode)
+            refreshPublicHolidays(force: false)
+        } else {
+            holidayService.clear()
         }
 
         if dashboardPreferences.newsFeedEnabled {
@@ -118,6 +123,29 @@ struct DashboardWorkspaceView: View {
         } else {
             newsFeedService.stopAutoRefresh()
         }
+    }
+
+    private func preferredNewsCountryCode() -> String? {
+        settings.publicHolidayCountryCodes.first
+            ?? weatherService.locationSnapshot?.countryCode
+            ?? holidayService.nextHoliday?.countryCode
+            ?? Locale.current.region?.identifier
+    }
+
+    private func refreshPublicHolidays(force: Bool) {
+        guard dashboardPreferences.publicHolidayEnabled else {
+            holidayService.clear()
+            return
+        }
+
+        let snapshot = weatherService.locationSnapshot
+        holidayService.refresh(
+            selectedCountryCodes: settings.publicHolidayCountryCodes,
+            locationCountryCode: snapshot?.countryCode ?? Locale.current.region?.identifier,
+            locationSubdivisionCode: snapshot?.subdivisionCode,
+            locationLabel: snapshot?.locationLabel,
+            force: force
+        )
     }
 
     private var header: some View {
@@ -132,6 +160,9 @@ struct DashboardWorkspaceView: View {
             if showsWeatherResourceRow {
                 weatherResourceAndSidebarRow
             }
+            if dashboardPreferences.publicHolidayEnabled {
+                publicHolidayRow
+            }
         }
     }
 
@@ -139,8 +170,13 @@ struct DashboardWorkspaceView: View {
         dashboardPreferences.weatherEnabled
             || dashboardPreferences.resourceUsageEnabled
             || dashboardPreferences.cloudSyncPanelEnabled
-            || dashboardPreferences.publicHolidayEnabled
             || dashboardPreferences.newsFeedEnabled
+    }
+
+    private var showsLeftContextPanels: Bool {
+        dashboardPreferences.weatherEnabled
+            || dashboardPreferences.resourceUsageEnabled
+            || dashboardPreferences.cloudSyncPanelEnabled
     }
 
     private var greetingWithQuote: some View {
@@ -192,6 +228,10 @@ struct DashboardWorkspaceView: View {
 
     private var productivityExpanded: Binding<Bool> {
         dashboardPreferenceBinding(\.productivityExpanded)
+    }
+
+    private var publicHolidayExpanded: Binding<Bool> {
+        dashboardPreferenceBinding(\.publicHolidayExpanded)
     }
 
     private func dashboardPreferenceBinding(_ keyPath: WritableKeyPath<DashboardPreferences, Bool>) -> Binding<Bool> {
@@ -453,7 +493,7 @@ struct DashboardWorkspaceView: View {
 
     private var weatherResourceAndSidebarRow: some View {
         HStack(alignment: .top, spacing: 16) {
-            if showsLeftDashboardPanels {
+            if showsLeftContextPanels {
                 collapsibleDashboardSection(
                     isExpanded: contextPanelsExpanded,
                     title: contextPanelsTitle,
@@ -465,9 +505,6 @@ struct DashboardWorkspaceView: View {
                         }
                         if dashboardPreferences.resourceUsageEnabled || dashboardPreferences.cloudSyncPanelEnabled {
                             resourceAndCloudSyncRow
-                        }
-                        if dashboardPreferences.publicHolidayEnabled {
-                            publicHolidaySection
                         }
                     }
                 }
@@ -509,10 +546,38 @@ struct DashboardWorkspaceView: View {
         if dashboardPreferences.resourceUsageEnabled || dashboardPreferences.cloudSyncPanelEnabled {
             parts.append("Sync")
         }
-        if dashboardPreferences.publicHolidayEnabled {
-            parts.append("Holidays")
-        }
         return parts.isEmpty ? "Live panels" : parts.joined(separator: " · ")
+    }
+
+    private var publicHolidayRowTitle: String {
+        let groups = holidayService.countryGroups
+        if groups.isEmpty {
+            return "Public holidays"
+        }
+        if groups.count == 1 {
+            let group = groups[0]
+            if let locationLabel = group.locationLabel {
+                return "Public holidays · \(group.countryName) · \(locationLabel)"
+            }
+            return "Public holidays · \(group.countryName)"
+        }
+        return "Public holidays · \(groups.map(\.countryName).joined(separator: " · "))"
+    }
+
+    private var publicHolidayRow: some View {
+        collapsibleDashboardSection(
+            isExpanded: publicHolidayExpanded,
+            title: publicHolidayRowTitle,
+            systemImage: "calendar.badge.clock"
+        ) {
+            publicHolidaySection
+        }
+        .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 14))
+        .overlay {
+            RoundedRectangle(cornerRadius: 14)
+                .strokeBorder(Color.teal.opacity(0.2), lineWidth: 1)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var newsFeedTitle: String {
@@ -558,7 +623,7 @@ struct DashboardWorkspaceView: View {
 
     private func refreshHolidayMetadata() {
         holidayMetadataTask?.cancel()
-        let holidays = holidayService.displayHolidays
+        let holidays = holidayService.countryGroups.flatMap(\.holidays)
         guard !holidays.isEmpty else {
             holidayExplanations = [:]
             return
@@ -597,66 +662,75 @@ struct DashboardWorkspaceView: View {
 
     @ViewBuilder
     private var publicHolidaySection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            let holidays = holidayService.displayHolidays
-            let locationName = holidayService.locationLabel
-                ?? holidays.first.map {
-                    Locale.current.localizedString(forRegionCode: $0.countryCode) ?? $0.countryCode
-                }
+        let groups = holidayService.countryGroups
 
-            if !holidays.isEmpty {
-                Label(
-                    "Public holidays · \(locationName ?? "your region")",
-                    systemImage: "calendar.badge.clock"
-                )
-                .font(.headline)
-                .symbolRenderingMode(.multicolor)
-            } else {
-                Label("Public holidays", systemImage: "calendar.badge.clock")
-                    .font(.headline)
-                    .symbolRenderingMode(.multicolor)
+        if !groups.isEmpty {
+            HStack(alignment: .top, spacing: 16) {
+                ForEach(groups) { group in
+                    publicHolidayCountryColumn(group)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
             }
-
-            if !holidays.isEmpty {
-                VStack(alignment: .leading, spacing: 10) {
-                    ForEach(Array(holidays.enumerated()), id: \.offset) { _, holiday in
-                        publicHolidayCard(holiday)
-                    }
-                }
-                .onAppear { refreshHolidayMetadata() }
-            } else if holidayService.isLoading {
-                HStack(spacing: 10) {
-                    ProgressView()
-                        .controlSize(.small)
-                    Text("Loading public holidays…")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
+            .onAppear { refreshHolidayMetadata() }
+        } else if holidayService.isLoading {
+            HStack(spacing: 10) {
+                ProgressView()
+                    .controlSize(.small)
+                Text("Loading public holidays…")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(.quaternary.opacity(0.25), in: RoundedRectangle(cornerRadius: 12))
+        } else if let statusMessage = holidayService.statusMessage {
+            Text(statusMessage)
+                .font(.caption)
+                .foregroundStyle(.secondary)
                 .padding(14)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(.quaternary.opacity(0.25), in: RoundedRectangle(cornerRadius: 12))
-            } else if let statusMessage = holidayService.statusMessage {
-                Text(statusMessage)
+        }
+    }
+
+    @ViewBuilder
+    private func publicHolidayCountryColumn(_ group: DashboardPublicHolidayCountryGroup) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            if let locationLabel = group.locationLabel {
+                Text("\(group.countryName) · \(locationLabel)")
+                    .font(.subheadline.weight(.semibold))
+            } else {
+                Text(group.countryName)
+                    .font(.subheadline.weight(.semibold))
+            }
+
+            if group.holidays.isEmpty {
+                Text("No upcoming public holidays.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .padding(14)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(.quaternary.opacity(0.25), in: RoundedRectangle(cornerRadius: 12))
+            } else {
+                ForEach(Array(group.holidays.enumerated()), id: \.offset) { index, holiday in
+                    publicHolidayCard(holiday, accentIndex: index)
+                }
             }
         }
     }
 
-    private func publicHolidayCard(_ holiday: DashboardNextPublicHoliday) -> some View {
+    private func publicHolidayCard(_ holiday: DashboardNextPublicHoliday, accentIndex: Int) -> some View {
         let token = holidayCacheToken(for: holiday)
         let symbol = holidayIcons[token] ?? DashboardPublicHolidayIconService.fallbackSymbol(for: holiday)
         let explanation = holidayExplanations[token]
+        let iconColor = DashboardPublicHolidayIconService.accentColor(for: holiday, index: accentIndex)
 
         return VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .top, spacing: 14) {
                 Image(systemName: symbol)
                     .font(.title3)
-                    .symbolRenderingMode(.multicolor)
-                    .foregroundStyle(.orange)
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(iconColor)
                     .frame(width: 28)
 
                 VStack(alignment: .leading, spacing: 4) {
@@ -668,7 +742,7 @@ struct DashboardWorkspaceView: View {
 
                     Text(holiday.scopeLabel)
                         .font(.caption.weight(.medium))
-                        .foregroundStyle(holiday.isNationwide ? .blue : .teal)
+                        .foregroundStyle(holiday.isNationwide ? iconColor : iconColor.opacity(0.85))
 
                     if let applicabilityLabel = holiday.applicabilityLabel {
                         Text(applicabilityLabel)
@@ -690,7 +764,7 @@ struct DashboardWorkspaceView: View {
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.quaternary.opacity(0.25), in: RoundedRectangle(cornerRadius: 12))
+        .background(iconColor.opacity(0.1), in: RoundedRectangle(cornerRadius: 12))
     }
 
     private func formattedHolidayDate(_ date: Date) -> String {
@@ -700,15 +774,41 @@ struct DashboardWorkspaceView: View {
         return formatter.string(from: date)
     }
 
+    private func weeklyForecastStrip(_ forecast: [DashboardDailyWeatherForecast]) -> some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(forecast) { day in
+                    VStack(spacing: 6) {
+                        Text(day.dayLabel)
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                        Image(systemName: day.conditionSymbol)
+                            .font(.title3)
+                            .symbolRenderingMode(.multicolor)
+                        Text(day.highTemperature)
+                            .font(.caption.weight(.semibold))
+                        Text(day.lowTemperature)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                    .frame(minWidth: 54)
+                    .padding(.vertical, 8)
+                    .padding(.horizontal, 6)
+                    .background(.quaternary.opacity(0.45), in: RoundedRectangle(cornerRadius: 8))
+                }
+            }
+        }
+    }
+
     @ViewBuilder
     private var weatherForecastSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             if let weather = weatherService.weather, let cityName = weather.cityName {
-                Label("Today's weather · \(cityName)", systemImage: "cloud.sun.fill")
+                Label("Weather · \(cityName)", systemImage: "cloud.sun.fill")
                     .font(.headline)
                     .symbolRenderingMode(.multicolor)
             } else {
-                Label("Today's weather", systemImage: "cloud.sun.fill")
+                Label("Weather", systemImage: "cloud.sun.fill")
                     .font(.headline)
                     .symbolRenderingMode(.multicolor)
             }
@@ -716,27 +816,33 @@ struct DashboardWorkspaceView: View {
             if let prompt = weatherService.locationAccessPrompt {
                 locationAccessPromptCard(prompt)
             } else if let weather = weatherService.weather {
-                HStack(alignment: .top, spacing: 14) {
-                    Image(systemName: weather.conditionSymbol)
-                        .font(.system(size: 32))
-                        .symbolRenderingMode(.multicolor)
-                        .frame(width: 40)
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack(alignment: .top, spacing: 14) {
+                        Image(systemName: weather.conditionSymbol)
+                            .font(.system(size: 32))
+                            .symbolRenderingMode(.multicolor)
+                            .frame(width: 40)
 
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(weather.conditionDescription)
-                            .font(.title3.weight(.semibold))
-                        Text("High \(weather.highTemperature) · Low \(weather.lowTemperature)")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                        if let rainSummary = weather.rainSummary {
-                            Text(rainSummary)
-                                .font(.caption)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(weather.conditionDescription)
+                                .font(.title3.weight(.semibold))
+                            Text("High \(weather.highTemperature) · Low \(weather.lowTemperature)")
+                                .font(.subheadline)
                                 .foregroundStyle(.secondary)
-                                .lineLimit(2)
+                            if let rainSummary = weather.rainSummary {
+                                Text(rainSummary)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(2)
+                            }
                         }
+
+                        Spacer(minLength: 0)
                     }
 
-                    Spacer(minLength: 0)
+                    if !weather.dailyForecast.isEmpty {
+                        weeklyForecastStrip(weather.dailyForecast)
+                    }
                 }
                 .padding(14)
                 .frame(maxWidth: .infinity, alignment: .leading)

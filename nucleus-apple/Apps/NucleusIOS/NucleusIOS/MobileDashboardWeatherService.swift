@@ -338,8 +338,30 @@ final class MobileDashboardWeatherService: NSObject, ObservableObject {
             conditionDescription: condition.description,
             highTemperature: high,
             lowTemperature: low,
-            rainSummary: rainSummary(from: weather, now: now, calendar: calendar)
+            rainSummary: rainSummary(from: weather, now: now, calendar: calendar),
+            dailyForecast: makeDailyForecast(from: weather, now: now, calendar: calendar, formatter: formatter)
         )
+    }
+
+    private static func makeDailyForecast(
+        from weather: Weather,
+        now: Date,
+        calendar: Calendar,
+        formatter: MeasurementFormatter
+    ) -> [DashboardDailyWeatherForecast] {
+        let dayNameFormatter = DateFormatter()
+        dayNameFormatter.dateFormat = "EEE"
+
+        return weather.dailyForecast.prefix(7).map { day in
+            let isToday = calendar.isDate(day.date, inSameDayAs: now)
+            return DashboardDailyWeatherForecast(
+                date: day.date,
+                dayLabel: isToday ? "Today" : dayNameFormatter.string(from: day.date),
+                conditionSymbol: symbolName(for: day.condition),
+                highTemperature: formatter.string(from: day.highTemperature),
+                lowTemperature: formatter.string(from: day.lowTemperature)
+            )
+        }
     }
 
     private static func rainSummary(from weather: Weather, now: Date, calendar: Calendar) -> String? {

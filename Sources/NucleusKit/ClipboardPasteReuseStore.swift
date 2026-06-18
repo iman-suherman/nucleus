@@ -31,7 +31,7 @@ public struct ClipboardPasteReuseEvent: Identifiable, Codable, Sendable, Equatab
 
 public enum ClipboardPasteReuseStore {
     public static let userDefaultsKey = "nucleus.clipboard.pasteReuseEvents"
-    public static let maxStoredEvents = 500
+    public static let retentionDays = 7
 
     public static func record(entry: ClipboardEntry, at date: Date = Date()) {
         let category = DashboardInsightsEngine.categorize(entry)
@@ -44,18 +44,33 @@ public enum ClipboardPasteReuseStore {
         )
         var events = loadEvents()
         events.insert(event, at: 0)
-        if events.count > maxStoredEvents {
-            events = Array(events.prefix(maxStoredEvents))
-        }
+        events = prune(events, now: date)
         saveEvents(events)
     }
 
-    public static func loadEvents() -> [ClipboardPasteReuseEvent] {
+    public static func loadEvents(now: Date = Date(), calendar: Calendar = .current) -> [ClipboardPasteReuseEvent] {
         guard let data = UserDefaults.standard.data(forKey: userDefaultsKey),
               let events = try? JSONDecoder().decode([ClipboardPasteReuseEvent].self, from: data) else {
             return []
         }
-        return events
+        let pruned = prune(events, now: now, calendar: calendar)
+        if pruned.count != events.count {
+            saveEvents(pruned)
+        }
+        return pruned
+    }
+
+    public static func retentionCutoff(from now: Date = Date(), calendar: Calendar = .current) -> Date {
+        calendar.date(byAdding: .day, value: -retentionDays, to: calendar.startOfDay(for: now)) ?? now
+    }
+
+    private static func prune(
+        _ events: [ClipboardPasteReuseEvent],
+        now: Date = Date(),
+        calendar: Calendar = .current
+    ) -> [ClipboardPasteReuseEvent] {
+        let cutoff = retentionCutoff(from: now, calendar: calendar)
+        return events.filter { $0.reusedAt >= cutoff }
     }
 
     public static func todayEvents(

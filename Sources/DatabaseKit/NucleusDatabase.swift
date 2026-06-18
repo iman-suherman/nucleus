@@ -454,12 +454,24 @@ public enum SyncedSettingsRepository {
 }
 
 public enum ClipboardRepository {
-    public static func fetchRecent(context: ModelContext, limit: Int = 200) throws -> [ClipboardEntry] {
-        var descriptor = FetchDescriptor<ClipboardItemRecord>(
+    public static let retentionDays = 7
+
+    public static func retentionCutoff(from now: Date = Date(), calendar: Calendar = .current) -> Date {
+        calendar.date(byAdding: .day, value: -retentionDays, to: calendar.startOfDay(for: now)) ?? now
+    }
+
+    public static func fetchRecent(
+        context: ModelContext,
+        limit: Int? = nil,
+        now: Date = Date(),
+        calendar: Calendar = .current
+    ) throws -> [ClipboardEntry] {
+        let cutoff = retentionCutoff(from: now, calendar: calendar)
+        let descriptor = FetchDescriptor<ClipboardItemRecord>(
             sortBy: [SortDescriptor(\.capturedAt, order: .reverse)]
         )
-        descriptor.fetchLimit = limit
-        return try context.fetch(descriptor)
+        var entries = try context.fetch(descriptor)
+            .filter { $0.capturedAt >= cutoff || $0.isPinned }
             .sorted { lhs, rhs in
                 if lhs.isPinned != rhs.isPinned {
                     return lhs.isPinned && !rhs.isPinned
@@ -467,28 +479,42 @@ public enum ClipboardRepository {
                 return lhs.capturedAt > rhs.capturedAt
             }
             .map(\.entry)
+
+        if let limit, limit > 0, entries.count > limit {
+            entries = Array(entries.prefix(limit))
+        }
+        return entries
     }
 
-    public static func search(query: String, context: ModelContext) throws -> [ClipboardEntry] {
+    public static func search(query: String, context: ModelContext, now: Date = Date(), calendar: Calendar = .current) throws -> [ClipboardEntry] {
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
-            return try fetchRecent(context: context)
+            return try fetchRecent(context: context, now: now, calendar: calendar)
         }
 
+        let cutoff = retentionCutoff(from: now, calendar: calendar)
         let descriptor = FetchDescriptor<ClipboardItemRecord>(
             sortBy: [SortDescriptor(\.capturedAt, order: .reverse)]
         )
         let lowered = trimmed.lowercased()
         return try context.fetch(descriptor)
             .filter {
-                $0.content.lowercased().contains(lowered)
-                    || $0.sourceApplication.lowercased().contains(lowered)
-                    || $0.tags.contains { $0.lowercased().contains(lowered) }
+                ($0.capturedAt >= cutoff || $0.isPinned)
+                    && (
+                        $0.content.lowercased().contains(lowered)
+                            || $0.sourceApplication.lowercased().contains(lowered)
+                            || $0.tags.contains { $0.lowercased().contains(lowered) }
+                    )
             }
             .map(\.entry)
     }
 
-    public static func insert(_ entry: ClipboardEntry, context: ModelContext, maxItems: Int = 200) throws {
+    public static func insert(
+        _ entry: ClipboardEntry,
+        context: ModelContext,
+        now: Date = Date(),
+        calendar: Calendar = .current
+    ) throws {
         context.insert(ClipboardItemRecord(
             id: entry.id,
             content: entry.content,
@@ -498,21 +524,27 @@ public enum ClipboardRepository {
             isPinned: entry.isPinned,
             capturedAt: entry.capturedAt
         ))
-        try prune(context: context, maxItems: maxItems)
+        try prune(context: context, now: now, calendar: calendar)
         try context.save()
     }
 
-    public static func prune(context: ModelContext, maxItems: Int = 200) throws {
+    /// Removes clipboard captures older than `retentionDays`. Pinned items are kept.
+    public static func prune(
+        context: ModelContext,
+        now: Date = Date(),
+        calendar: Calendar = .current
+    ) throws {
+        let cutoff = retentionCutoff(from: now, calendar: calendar)
         let descriptor = FetchDescriptor<ClipboardItemRecord>(
-            sortBy: [SortDescriptor(\.capturedAt, order: .reverse)]
+            predicate: #Predicate { $0.capturedAt < cutoff }
         )
-        let records = try context.fetch(descriptor)
-        guard records.count > maxItems else { return }
+        let expired = try context.fetch(descriptor)
+        guard !expired.isEmpty else { return }
 
-        let overflow = records.dropFirst(maxItems)
-        for record in overflow where !record.isPinned {
+        for record in expired where !record.isPinned {
             context.delete(record)
         }
+        try context.save()
     }
 
     public static func setPinned(id: UUID, pinned: Bool, context: ModelContext) throws {

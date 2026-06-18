@@ -41,4 +41,37 @@ final class DatabaseKitTests: XCTestCase {
         XCTAssertEqual(payments.count, 1)
         XCTAssertEqual(payments.first?.amount, 120)
     }
+
+    func testClipboardRepositoryRetainsSevenDaysAndPurgesOlderEntries() throws {
+        let container = try NucleusDatabase.makeContainer(inMemory: true)
+        let context = ModelContext(container)
+        let calendar = Calendar(identifier: .gregorian)
+        let now = calendar.date(from: DateComponents(year: 2026, month: 6, day: 19, hour: 12))!
+
+        let recent = ClipboardEntry(
+            content: "recent clip",
+            capturedAt: calendar.date(byAdding: .day, value: -3, to: now)!
+        )
+        let expired = ClipboardEntry(
+            content: "expired clip",
+            capturedAt: calendar.date(byAdding: .day, value: -8, to: now)!
+        )
+        let pinnedExpired = ClipboardEntry(
+            content: "pinned old clip",
+            isPinned: true,
+            capturedAt: calendar.date(byAdding: .day, value: -10, to: now)!
+        )
+
+        try ClipboardRepository.insert(recent, context: context, now: now, calendar: calendar)
+        try ClipboardRepository.insert(expired, context: context, now: now, calendar: calendar)
+        try ClipboardRepository.insert(pinnedExpired, context: context, now: now, calendar: calendar)
+
+        let entries = try ClipboardRepository.fetchRecent(context: context, now: now, calendar: calendar)
+        XCTAssertEqual(entries.map(\.content).sorted(), ["pinned old clip", "recent clip"])
+
+        try ClipboardRepository.prune(context: context, now: now, calendar: calendar)
+        let afterPrune = try ClipboardRepository.fetchRecent(context: context, now: now, calendar: calendar)
+        XCTAssertEqual(afterPrune.map(\.content).sorted(), ["pinned old clip", "recent clip"])
+        XCTAssertFalse(afterPrune.contains(where: { $0.content == "expired clip" }))
+    }
 }

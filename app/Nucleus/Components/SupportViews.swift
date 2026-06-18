@@ -55,6 +55,8 @@ struct AppSettingsView: View {
     @State private var nucleusCloudMessage: String?
     @State private var isConnectingNucleusCloud = false
     @State private var isSyncingNucleusCloud = false
+    @State private var publicHolidayCountries: [DashboardPublicHolidayCountryOption] = DashboardPublicHolidayCountryCatalog.loadCachedCountries()
+    @State private var publicHolidayCountryFilter = ""
 
     var body: some View {
         ScrollView {
@@ -281,11 +283,15 @@ struct AppSettingsView: View {
             }
 
             Section("Live panels") {
-                Toggle("Today's weather", isOn: dashboardPreferenceBinding(\.weatherEnabled))
+                Toggle("Weather forecast", isOn: dashboardPreferenceBinding(\.weatherEnabled))
                 Toggle("Resource usage", isOn: dashboardPreferenceBinding(\.resourceUsageEnabled))
                 Toggle("Cloud sync panel", isOn: dashboardPreferenceBinding(\.cloudSyncPanelEnabled))
-                Toggle("Next public holiday", isOn: dashboardPreferenceBinding(\.publicHolidayEnabled))
+                Toggle("Public holidays", isOn: dashboardPreferenceBinding(\.publicHolidayEnabled))
                 Toggle("News feed", isOn: dashboardPreferenceBinding(\.newsFeedEnabled))
+            }
+
+            if settings.dashboardPreferences.publicHolidayEnabled {
+                publicHolidayCountrySettingsSection
             }
 
             Section("Productivity") {
@@ -298,6 +304,8 @@ struct AppSettingsView: View {
                 Toggle("Start with Your day expanded", isOn: dashboardPreferenceBinding(\.clipboardDayExpanded))
                     .disabled(!settings.dashboardPreferences.clipboardDayEnabled)
                 Toggle("Start with Weather & sync expanded", isOn: dashboardPreferenceBinding(\.contextPanelsExpanded))
+                Toggle("Start with Public holidays expanded", isOn: dashboardPreferenceBinding(\.publicHolidayExpanded))
+                    .disabled(!settings.dashboardPreferences.publicHolidayEnabled)
                 Toggle("Start with News feed expanded", isOn: dashboardPreferenceBinding(\.newsFeedExpanded))
                     .disabled(!settings.dashboardPreferences.newsFeedEnabled)
                 Toggle("Start with Summary expanded", isOn: dashboardPreferenceBinding(\.summaryExpanded))
@@ -318,6 +326,69 @@ struct AppSettingsView: View {
                     .foregroundStyle(.secondary)
             }
         }
+    }
+
+    private var publicHolidayCountrySettingsSection: some View {
+        Section("Public holiday countries") {
+            Text("Choose up to \(DashboardPublicHolidayService.maxSelectedCountries) countries. Leave none selected to use your location.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            TextField("Search countries", text: $publicHolidayCountryFilter)
+                .textFieldStyle(.roundedBorder)
+
+            let filteredCountries = filteredPublicHolidayCountries
+            if filteredCountries.isEmpty {
+                Text("No countries match your search.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else {
+                ForEach(filteredCountries) { country in
+                    Toggle(isOn: publicHolidayCountryBinding(for: country.countryCode)) {
+                        Text(country.name)
+                    }
+                    .disabled(
+                        !settings.publicHolidayCountryCodes.contains(country.countryCode)
+                            && settings.publicHolidayCountryCodes.count >= DashboardPublicHolidayService.maxSelectedCountries
+                    )
+                }
+            }
+
+            if !settings.publicHolidayCountryCodes.isEmpty {
+                Button("Clear selected countries") {
+                    settings.publicHolidayCountryCodes = []
+                }
+            }
+        }
+        .task {
+            publicHolidayCountries = await DashboardPublicHolidayCountryCatalog.fetchCountries()
+        }
+    }
+
+    private var filteredPublicHolidayCountries: [DashboardPublicHolidayCountryOption] {
+        let query = publicHolidayCountryFilter.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return publicHolidayCountries }
+        return publicHolidayCountries.filter {
+            $0.name.localizedCaseInsensitiveContains(query)
+                || $0.countryCode.localizedCaseInsensitiveContains(query)
+        }
+    }
+
+    private func publicHolidayCountryBinding(for countryCode: String) -> Binding<Bool> {
+        Binding(
+            get: { settings.publicHolidayCountryCodes.contains(countryCode.uppercased()) },
+            set: { isSelected in
+                var codes = settings.publicHolidayCountryCodes
+                let normalized = countryCode.uppercased()
+                if isSelected {
+                    guard !codes.contains(normalized) else { return }
+                    codes.append(normalized)
+                    settings.publicHolidayCountryCodes = DashboardPublicHolidayService.normalizedCountryCodes(codes)
+                } else {
+                    settings.publicHolidayCountryCodes = codes.filter { $0 != normalized }
+                }
+            }
+        )
     }
 
     private func dashboardPreferenceBinding(_ keyPath: WritableKeyPath<DashboardPreferences, Bool>) -> Binding<Bool> {
