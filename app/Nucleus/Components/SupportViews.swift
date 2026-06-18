@@ -330,7 +330,7 @@ struct AppSettingsView: View {
 
     private var publicHolidayCountrySettingsSection: some View {
         Section("Public holiday countries") {
-            Text("Choose up to \(DashboardPublicHolidayService.maxSelectedCountries) countries. Leave none selected to use your location.")
+            Text("Choose up to \(DashboardPublicHolidayService.maxSelectedCountries) countries to show alongside your location in the right column.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
 

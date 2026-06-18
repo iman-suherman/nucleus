@@ -1,3 +1,4 @@
+import Combine
 import NucleusCore
 import SwiftUI
 
@@ -260,16 +261,31 @@ public struct DashboardCloudSyncCard: View {
 }
 
 public struct DashboardPublicHolidayCard: View {
-    let countryGroups: [DashboardPublicHolidayCountryGroup]
+    let layout: DashboardPublicHolidayDisplayLayout
     let isLoading: Bool
     let statusMessage: String?
+
+    @State private var companionCountryIndex = 0
+
+    public init(
+        layout: DashboardPublicHolidayDisplayLayout,
+        isLoading: Bool,
+        statusMessage: String?
+    ) {
+        self.layout = layout
+        self.isLoading = isLoading
+        self.statusMessage = statusMessage
+    }
 
     public init(
         countryGroups: [DashboardPublicHolidayCountryGroup],
         isLoading: Bool,
         statusMessage: String?
     ) {
-        self.countryGroups = countryGroups
+        self.layout = DashboardPublicHolidayDisplayLayout(
+            location: countryGroups.first,
+            companions: Array(countryGroups.dropFirst())
+        )
         self.isLoading = isLoading
         self.statusMessage = statusMessage
     }
@@ -281,33 +297,61 @@ public struct DashboardPublicHolidayCard: View {
         statusMessage: String?
     ) {
         if let holiday {
-            self.countryGroups = [
-                DashboardPublicHolidayCountryGroup(
+            self.layout = DashboardPublicHolidayDisplayLayout(
+                location: DashboardPublicHolidayCountryGroup(
                     countryCode: holiday.countryCode,
                     countryName: DashboardPublicHolidayCountryCatalog.localizedCountryName(for: holiday.countryCode),
                     locationLabel: locationLabel,
                     holidays: [holiday]
                 ),
-            ]
+                companions: []
+            )
         } else {
-            self.countryGroups = []
+            self.layout = DashboardPublicHolidayDisplayLayout(location: nil, companions: [])
         }
         self.isLoading = isLoading
         self.statusMessage = statusMessage
     }
 
     public var body: some View {
+        let companions = layout.companions
+        let companionIndex = companions.isEmpty ? 0 : companionCountryIndex % companions.count
+        let activeCompanion = companions.isEmpty ? nil : companions[companionIndex]
+
         VStack(alignment: .leading, spacing: 10) {
             Label(publicHolidayTitle, systemImage: "calendar.badge.clock")
                 .font(.headline)
                 .symbolRenderingMode(.multicolor)
 
-            if !countryGroups.isEmpty {
+            if layout.location != nil || activeCompanion != nil {
                 HStack(alignment: .top, spacing: 12) {
-                    ForEach(countryGroups) { group in
-                        countryColumn(group)
+                    if let location = layout.location {
+                        countryColumn(location, subtitle: "Your location")
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
+
+                    if let activeCompanion {
+                        countryColumn(
+                            activeCompanion,
+                            subtitle: companions.count > 1
+                                ? "Selected country \(companionIndex + 1) of \(companions.count)"
+                                : "Selected country",
+                            showsCompanionControls: companions.count > 1,
+                            onPrevious: {
+                                guard companions.count > 1 else { return }
+                                companionCountryIndex = (companionIndex - 1 + companions.count) % companions.count
+                            },
+                            onNext: {
+                                guard companions.count > 1 else { return }
+                                companionCountryIndex = (companionIndex + 1) % companions.count
+                            }
+                        )
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+                .onReceive(Timer.publish(every: 8, on: .main, in: .common).autoconnect()) { _ in
+                    guard companions.count > 1 else { return }
+                    companionCountryIndex = (companionIndex + 1) % companions.count
                 }
             } else if isLoading {
                 HStack(spacing: 10) {
@@ -331,24 +375,65 @@ public struct DashboardPublicHolidayCard: View {
     }
 
     private var publicHolidayTitle: String {
-        if countryGroups.isEmpty {
+        if layout.location == nil && layout.companions.isEmpty {
             return "Public holidays"
         }
-        if countryGroups.count == 1 {
-            return "Public holidays · \(countryGroups[0].countryName)"
+
+        var parts: [String] = []
+        if let location = layout.location {
+            if let locationLabel = location.locationLabel {
+                parts.append("\(location.countryName) · \(locationLabel)")
+            } else {
+                parts.append(location.countryName)
+            }
         }
-        return "Public holidays · \(countryGroups.map(\.countryName).joined(separator: " · "))"
+        if !layout.companions.isEmpty {
+            if layout.companions.count == 1 {
+                parts.append(layout.companions[0].countryName)
+            } else {
+                parts.append("+\(layout.companions.count) countries")
+            }
+        }
+        return parts.isEmpty ? "Public holidays" : "Public holidays · \(parts.joined(separator: " · "))"
     }
 
     @ViewBuilder
-    private func countryColumn(_ group: DashboardPublicHolidayCountryGroup) -> some View {
+    private func countryColumn(
+        _ group: DashboardPublicHolidayCountryGroup,
+        subtitle: String,
+        showsCompanionControls: Bool = false,
+        onPrevious: (() -> Void)? = nil,
+        onNext: (() -> Void)? = nil
+    ) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            if let locationLabel = group.locationLabel {
-                Text("\(group.countryName) · \(locationLabel)")
-                    .font(.subheadline.weight(.semibold))
-            } else {
-                Text(group.countryName)
-                    .font(.subheadline.weight(.semibold))
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(subtitle)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                    if let locationLabel = group.locationLabel {
+                        Text("\(group.countryName) · \(locationLabel)")
+                            .font(.subheadline.weight(.semibold))
+                    } else {
+                        Text(group.countryName)
+                            .font(.subheadline.weight(.semibold))
+                    }
+                }
+
+                Spacer(minLength: 0)
+
+                if showsCompanionControls {
+                    HStack(spacing: 8) {
+                        Button(action: { onPrevious?() }) {
+                            Image(systemName: "chevron.left")
+                        }
+                        Button(action: { onNext?() }) {
+                            Image(systemName: "chevron.right")
+                        }
+                    }
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                }
             }
 
             if group.holidays.isEmpty {

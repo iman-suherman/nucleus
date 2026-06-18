@@ -118,7 +118,11 @@ struct DashboardWorkspaceScreen: View {
 
     private var publicHolidaySection: some View {
         DashboardPublicHolidayCard(
-            countryGroups: holidayService.countryGroups,
+            layout: DashboardPublicHolidayService.displayLayout(
+                countryGroups: holidayService.countryGroups,
+                selectedCountryCodes: [],
+                locationCountryCode: Locale.current.region?.identifier
+            ),
             isLoading: holidayService.isLoading,
             statusMessage: holidayService.statusMessage
         )

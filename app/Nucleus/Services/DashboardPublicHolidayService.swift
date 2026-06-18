@@ -35,7 +35,12 @@ struct DashboardPublicHolidayCountryGroup: Identifiable, Equatable {
     var locationLabel: String?
     var holidays: [DashboardNextPublicHoliday]
 
-    var id: String { countryCode }
+    var id: String {
+        if let locationLabel, !locationLabel.isEmpty {
+            return "\(countryCode)-\(locationLabel)"
+        }
+        return "\(countryCode)-nationwide"
+    }
 
     init(
         countryCode: String,
@@ -47,6 +52,15 @@ struct DashboardPublicHolidayCountryGroup: Identifiable, Equatable {
         self.countryName = countryName
         self.locationLabel = locationLabel
         self.holidays = holidays
+    }
+}
+
+struct DashboardPublicHolidayDisplayLayout: Equatable {
+    var location: DashboardPublicHolidayCountryGroup?
+    var companions: [DashboardPublicHolidayCountryGroup]
+
+    var showsTwoColumns: Bool {
+        location != nil && !companions.isEmpty
     }
 }
 
@@ -211,23 +225,81 @@ final class DashboardPublicHolidayService: ObservableObject {
         let normalizedSelected = normalizedCountryCodes(selectedCountryCodes)
         let locationCode = locationCountryCode?.uppercased()
 
-        let effectiveCodes: [String]
-        if normalizedSelected.isEmpty {
-            guard let locationCode, !locationCode.isEmpty else { return [] }
-            effectiveCodes = [locationCode]
-        } else {
-            effectiveCodes = normalizedSelected
-        }
+        var targets: [DashboardPublicHolidayRefreshTarget] = []
+        var fetchKeys = Set<String>()
 
-        return effectiveCodes.map { code in
-            let usesLocation = code == locationCode
-            return DashboardPublicHolidayRefreshTarget(
-                countryCode: code,
-                subdivisionCode: usesLocation ? locationSubdivisionCode : nil,
-                locationLabel: usesLocation ? locationLabel : nil,
-                countryName: DashboardPublicHolidayCountryCatalog.localizedCountryName(for: code)
+        func append(countryCode: String, subdivisionCode: String?, locationLabel: String?) {
+            let key = "\(countryCode)|\(subdivisionCode ?? "")"
+            guard !fetchKeys.contains(key) else { return }
+            fetchKeys.insert(key)
+            targets.append(
+                DashboardPublicHolidayRefreshTarget(
+                    countryCode: countryCode,
+                    subdivisionCode: subdivisionCode,
+                    locationLabel: locationLabel,
+                    countryName: DashboardPublicHolidayCountryCatalog.localizedCountryName(for: countryCode)
+                )
             )
         }
+
+        if let locationCode, !locationCode.isEmpty {
+            append(
+                countryCode: locationCode,
+                subdivisionCode: locationSubdivisionCode,
+                locationLabel: locationLabel
+            )
+        }
+
+        for code in normalizedSelected {
+            append(countryCode: code, subdivisionCode: nil, locationLabel: nil)
+        }
+
+        return targets
+    }
+
+    static func displayLayout(
+        countryGroups: [DashboardPublicHolidayCountryGroup],
+        selectedCountryCodes: [String],
+        locationCountryCode: String?
+    ) -> DashboardPublicHolidayDisplayLayout {
+        let selected = normalizedCountryCodes(selectedCountryCodes)
+        let locationCode = locationCountryCode?.uppercased()
+
+        func group(for code: String, prefersLocation: Bool) -> DashboardPublicHolidayCountryGroup? {
+            if prefersLocation,
+               let match = countryGroups.first(where: { $0.countryCode == code && $0.locationLabel != nil }) {
+                return match
+            }
+            if let nationwide = countryGroups.first(where: { $0.countryCode == code && $0.locationLabel == nil }) {
+                return nationwide
+            }
+            return countryGroups.first(where: { $0.countryCode == code })
+        }
+
+        let locationGroup: DashboardPublicHolidayCountryGroup?
+        if let locationCode {
+            locationGroup = group(for: locationCode, prefersLocation: true)
+        } else {
+            locationGroup = nil
+        }
+
+        if selected.isEmpty {
+            if let locationGroup {
+                return DashboardPublicHolidayDisplayLayout(location: locationGroup, companions: [])
+            }
+            return DashboardPublicHolidayDisplayLayout(location: countryGroups.first, companions: [])
+        }
+
+        let companions = selected.map { code in
+            group(for: code, prefersLocation: false)
+                ?? DashboardPublicHolidayCountryGroup(
+                    countryCode: code,
+                    countryName: DashboardPublicHolidayCountryCatalog.localizedCountryName(for: code),
+                    holidays: []
+                )
+        }
+
+        return DashboardPublicHolidayDisplayLayout(location: locationGroup, companions: companions)
     }
 
     static func normalizedCountryCodes(_ codes: [String]) -> [String] {
@@ -260,7 +332,7 @@ final class DashboardPublicHolidayService: ObservableObject {
 
         guard !targets.isEmpty else {
             clear()
-            statusMessage = "Choose up to two countries in Settings, or allow location access."
+            statusMessage = "Allow location access or choose countries in Settings."
             return
         }
 
@@ -356,7 +428,6 @@ final class DashboardPublicHolidayService: ObservableObject {
 
         guard !Task.isCancelled else { return }
 
-        groups.sort { $0.countryName.localizedCaseInsensitiveCompare($1.countryName) == .orderedAscending }
         countryGroups = groups
         cachedHolidays = allHolidays
         cachedTargetsKey = targetsKey
