@@ -1312,7 +1312,7 @@ struct DashboardWorkspaceView: View {
             passwordCount: snapshot.passwordCount,
             clipboardCount: viewModel.clipboardEntries.count,
             upcomingBillsCount: snapshot.upcomingBills.count,
-            onUnreadEmail: { viewModel.sidebarSelection = .workspace(.inbox) },
+            onUnreadEmail: viewModel.openInboxFromDashboardUnreadSummary,
             onPasswords: { viewModel.sidebarSelection = .workspace(.notes) },
             onClipboard: { viewModel.sidebarSelection = .workspace(.clipboard) },
             onBills: { viewModel.sidebarSelection = .workspace(.bills) }

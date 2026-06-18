@@ -73,6 +73,9 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
     private var pendingMailNotificationDeltas: [UUID: Int] = [:]
     private var queuedDashboardIncomingMail: DashboardIncomingMailPrompt?
     private var mailUnreadSyncBaselineEstablished = Set<UUID>()
+    private var dashboardMailAlertSnoozed = false
+    private var dashboardMailAlertRecheckMessageIDs = Set<String>()
+    private var dashboardMailAlertRecheckAccountID: UUID?
     private var mailSignInPendingAccountIDs = Set<UUID>()
     private var billReminderRefreshTask: Task<Void, Never>?
     private var billReminderSettingsObserver: AnyCancellable?
@@ -202,6 +205,13 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         AppSettings.shared.selectedWorkspacePane = pane.rawValue
         pushSyncedConfiguration()
         WorkspaceIdleController.shared.recordActivity()
+
+        if pane == .inbox {
+            InboxIdleRecheckController.shared.resumeIfActive()
+        } else {
+            InboxIdleRecheckController.shared.pause()
+        }
+
         revealQueuedDashboardIncomingMailIfNeeded()
     }
 
@@ -210,11 +220,104 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
     }
 
     func openDashboardIncomingMail() {
-        guard let prompt = dashboardIncomingMailPrompt else { return }
-        AppSettings.shared.selectedMailAccountID = prompt.primaryAccountID
+        openInboxFromDashboardEmailNotification()
+    }
+
+    func openInboxFromDashboardUnreadSummary() {
+        guard totalUnread > 0 else {
+            sidebarSelection = .workspace(.inbox)
+            return
+        }
+        openInboxFromDashboardEmailNotification()
+    }
+
+    func openInboxFromDashboardEmailNotification() {
+        let prompt = dashboardIncomingMailPrompt
+        let accountID = prompt?.primaryAccountID
+            ?? AppSettings.shared.selectedMailAccountID
+            ?? accounts.first(where: { (unreadByAccount[$0.id] ?? 0) > 0 })?.id
+            ?? accounts.first?.id
+
+        if let accountID {
+            AppSettings.shared.selectedMailAccountID = accountID
+        }
+
+        beginDashboardMailInboxRecheck(accountID: accountID, prompt: prompt)
+        sidebarSelection = .workspace(.inbox)
+    }
+
+    func completeDashboardMailAlertInboxRecheck() async {
+        guard dashboardMailAlertSnoozed else { return }
+
+        if let accountID = dashboardMailAlertRecheckAccountID,
+           let account = accounts.first(where: { $0.id == accountID }) {
+            GmailWebView.ensureUnreadSync(accountID: account.id, email: account.email)
+        }
+        NotificationCenter.default.post(name: .gmailWebUnreadPollNow, object: nil)
+
+        await syncMail()
+
+        try? await Task.sleep(nanoseconds: 2_000_000_000)
+        NotificationCenter.default.post(name: .gmailWebUnreadPollNow, object: nil)
+
+        let recheckIDs = dashboardMailAlertRecheckMessageIDs
+        let remaining = mailMessages
+            .filter { recheckIDs.contains($0.id) && $0.isUnread }
+            .sorted { $0.receivedAt > $1.receivedAt }
+
+        for id in recheckIDs where !mailMessages.contains(where: { $0.id == id && $0.isUnread }) {
+            notifiedMessageIDs.remove(id)
+        }
+
+        let accountID = dashboardMailAlertRecheckAccountID
+        dashboardMailAlertSnoozed = false
+        dashboardMailAlertRecheckMessageIDs.removeAll()
+        dashboardMailAlertRecheckAccountID = nil
+
+        guard !remaining.isEmpty, let accountID else { return }
+
+        let prompt = DashboardIncomingMailPrompt(
+            primaryAccountID: accountID,
+            accountName: accountDisplayName(for: accountID),
+            newCount: remaining.count,
+            totalUnreadCount: totalUnread,
+            previewMessages: Array(remaining.prefix(3))
+        )
+
+        if isShowingDashboard {
+            dashboardIncomingMailPrompt = prompt
+        } else {
+            queuedDashboardIncomingMail = prompt
+        }
+    }
+
+    private func beginDashboardMailInboxRecheck(
+        accountID: UUID?,
+        prompt: DashboardIncomingMailPrompt?
+    ) {
         dashboardIncomingMailPrompt = nil
         queuedDashboardIncomingMail = nil
-        sidebarSelection = .workspace(.inbox)
+        dashboardMailAlertSnoozed = true
+        dashboardMailAlertRecheckAccountID = accountID
+
+        if let prompt {
+            var ids = Set(prompt.previewMessages.map(\.id))
+            let accountMessages = mailMessages
+                .filter { $0.accountID == prompt.primaryAccountID && notifiedMessageIDs.contains($0.id) }
+                .sorted { $0.receivedAt > $1.receivedAt }
+            for message in accountMessages.prefix(max(prompt.newCount, prompt.previewMessages.count)) {
+                ids.insert(message.id)
+            }
+            dashboardMailAlertRecheckMessageIDs = ids
+        } else if let accountID {
+            dashboardMailAlertRecheckMessageIDs = Set(
+                mailMessages.filter { $0.accountID == accountID && $0.isUnread }.map(\.id)
+            )
+        } else {
+            dashboardMailAlertRecheckMessageIDs = Set(mailMessages.filter(\.isUnread).map(\.id))
+        }
+
+        InboxIdleRecheckController.shared.begin(viewModel: self)
     }
 
     private var isShowingDashboard: Bool {
@@ -248,6 +351,13 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         )
         guard merged.newCount > 0 else { return }
 
+        if dashboardMailAlertSnoozed {
+            for message in messages {
+                dashboardMailAlertRecheckMessageIDs.insert(message.id)
+            }
+            return
+        }
+
         if isShowingDashboard {
             dashboardIncomingMailPrompt = merged
             queuedDashboardIncomingMail = nil
@@ -261,7 +371,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
     }
 
     private func revealQueuedDashboardIncomingMailIfNeeded() {
-        guard isShowingDashboard, let queued = queuedDashboardIncomingMail else { return }
+        guard isShowingDashboard, !dashboardMailAlertSnoozed, let queued = queuedDashboardIncomingMail else { return }
         dashboardIncomingMailPrompt = DashboardIncomingMailPrompt.merged(
             existing: dashboardIncomingMailPrompt,
             accountID: queued.primaryAccountID,

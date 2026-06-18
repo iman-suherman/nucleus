@@ -89,6 +89,7 @@
 		E61500042BE1E8A2138B4EDD /* MailKit in Frameworks */ = {isa = PBXBuildFile; productRef = 05DB77AAF24A6898436A8A52 /* MailKit */; };
 		E626F33CBD98D177740BFAA8 /* FoundationModels.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6EC98A7D2AD632EB0F27A607 /* FoundationModels.framework */; };
 		EDB250E352E4A3372A211D5C /* AddWebGmailAccountSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 015B76265392421D7C57E815 /* AddWebGmailAccountSheet.swift */; };
+		EEB7CEB73A5AAA37F8CC22A6 /* InboxIdleRecheckController.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFC4312DE2A7EC5DCF5D888A /* InboxIdleRecheckController.swift */; };
 		F0D6500DCFA05119C86E72BE /* CloudKitStoreMigration.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBE67C288974FF5B2F8524E6 /* CloudKitStoreMigration.swift */; };
 /* End PBXBuildFile section */
 
@@ -167,6 +168,7 @@
 		E5971F41F5427FCE836471DA /* EmbeddedWebViewContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmbeddedWebViewContainer.swift; sourceTree = "<group>"; };
 		E79434496C370BC490D26F0A /* nucleus-bills-import-demo.csv */ = {isa = PBXFileReference; path = "nucleus-bills-import-demo.csv"; sourceTree = "<group>"; };
 		EBE67C288974FF5B2F8524E6 /* CloudKitStoreMigration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitStoreMigration.swift; sourceTree = "<group>"; };
+		EFC4312DE2A7EC5DCF5D888A /* InboxIdleRecheckController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InboxIdleRecheckController.swift; sourceTree = "<group>"; };
 		F3040B14FCE7F0866274EF0E /* MenuBarStatusItemController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarStatusItemController.swift; sourceTree = "<group>"; };
 		F695044507986F1B738A6465 /* DashboardWorkspaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardWorkspaceView.swift; sourceTree = "<group>"; };
 		F73321C16D7956F50F538A6E /* ClipboardPasteController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardPasteController.swift; sourceTree = "<group>"; };
@@ -290,6 +292,7 @@
 				91C3018A0AFE8668C0B1FC5D /* GoogleWebSignInURL.swift */,
 				046B650FCA89CA8C322D0A3B /* HourlyBeep.swift */,
 				68AD664CB4410FC8FBE21B1C /* HourlyBeepService.swift */,
+				EFC4312DE2A7EC5DCF5D888A /* InboxIdleRecheckController.swift */,
 				97A7289328BE097836736716 /* MenuBarController.swift */,
 				D12215EBDC2CCD7294F9F071 /* MenuBarPopoverSession.swift */,
 				F3040B14FCE7F0866274EF0E /* MenuBarStatusItemController.swift */,
@@ -479,6 +482,7 @@
 				8893C084748D7E66C6211F57 /* GoogleWebSignInURL.swift in Sources */,
 				98D83C9FEF7CEB8DF54441FE /* HourlyBeep.swift in Sources */,
 				642590B42B17C9B63C0BB830 /* HourlyBeepService.swift in Sources */,
+				EEB7CEB73A5AAA37F8CC22A6 /* InboxIdleRecheckController.swift in Sources */,
 				AA2B9B165190FE2E23E7AD95 /* MailInboxLoadingPhase.swift in Sources */,
 				68F673476FAE5D0CA8204F89 /* MailWorkspaceView.swift in Sources */,
 				86F0B8E63AA373C254764688 /* MenuBarController.swift in Sources */,
