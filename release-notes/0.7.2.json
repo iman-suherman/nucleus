@@ -1,0 +1,16 @@
+{
+  "version": "0.7.2",
+  "summary": "Dashboard Summary adds a Recent clips metric, and the marketing site feature grid is capped at twelve cards.",
+  "releaseNotes": {
+    "introduced": [],
+    "changed": [
+      "Dashboard Summary header now includes your recent clip count alongside email and passwords",
+      "Summary metrics add a Recent clips tile — tap it to jump straight to the Clipboard workspace",
+      "Marketing website Everything in one workspace section shows twelve feature cards, including News feed"
+    ],
+    "fixed": [],
+    "updated": [],
+    "removed": [],
+    "breaking": []
+  }
+}

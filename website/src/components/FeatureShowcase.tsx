@@ -64,12 +64,20 @@ const features = [
     icon: "📎",
   },
   {
+    title: "News feed",
+    description:
+      "Headlines from your location and holiday countries, with mood-aware color coding, plain-language In brief summaries, and short notes on why each story feels urgent, concerning, or positive.",
+    icon: "📰",
+  },
+  {
     title: "Native macOS workspace",
     description:
       "SwiftUI shell with web Gmail sign-in, Sparkle auto-updates, dock badges for mail and bills, hourly beep, and a refreshed Nucleus app icon.",
     icon: "🖥️",
   },
 ];
+
+const MAX_FEATURE_CARDS = 12;
 
 export function FeatureShowcase() {
   return (
@@ -85,7 +93,7 @@ export function FeatureShowcase() {
         </p>
       </div>
       <div className="mt-10 grid gap-6 md:grid-cols-2">
-        {features.map((feature) => (
+        {features.slice(0, MAX_FEATURE_CARDS).map((feature) => (
           <article key={feature.title} className="card p-6">
             <div className="text-2xl">{feature.icon}</div>
             <h3 className="mt-4 text-xl font-semibold text-slate-100">{feature.title}</h3>

@@ -1271,7 +1271,8 @@ struct DashboardWorkspaceView: View {
     }
 
     private var summaryTitle: String {
-        "Summary · \(snapshot.unreadMailCount) email · \(snapshot.passwordCount) passwords"
+        let clipCount = viewModel.clipboardEntries.count
+        return "Summary · \(snapshot.unreadMailCount) email · \(snapshot.passwordCount) passwords · \(clipCount) clip\(clipCount == 1 ? "" : "s")"
     }
 
     private var paymentPreparationTitle: String {
@@ -1309,9 +1310,11 @@ struct DashboardWorkspaceView: View {
         DashboardMetricsSummaryBox(
             unreadMailCount: snapshot.unreadMailCount,
             passwordCount: snapshot.passwordCount,
+            clipboardCount: viewModel.clipboardEntries.count,
             upcomingBillsCount: snapshot.upcomingBills.count,
             onUnreadEmail: { viewModel.sidebarSelection = .workspace(.inbox) },
             onPasswords: { viewModel.sidebarSelection = .workspace(.notes) },
+            onClipboard: { viewModel.sidebarSelection = .workspace(.clipboard) },
             onBills: { viewModel.sidebarSelection = .workspace(.bills) }
         )
     }
@@ -1598,9 +1601,11 @@ struct DashboardWorkspaceView: View {
 private struct DashboardMetricsSummaryBox: View {
     let unreadMailCount: Int
     let passwordCount: Int
+    let clipboardCount: Int
     let upcomingBillsCount: Int
     let onUnreadEmail: () -> Void
     let onPasswords: () -> Void
+    let onClipboard: () -> Void
     let onBills: () -> Void
 
     var body: some View {
@@ -1634,14 +1639,22 @@ private struct DashboardMetricsSummaryBox: View {
 
                 HStack(spacing: 0) {
                     SummaryMetricItem(
+                        title: "Recent clips",
+                        value: "\(clipboardCount)",
+                        systemImage: "doc.on.clipboard",
+                        tint: .teal,
+                        action: onClipboard
+                    )
+
+                    Divider()
+
+                    SummaryMetricItem(
                         title: "Bills due soon",
                         value: "\(upcomingBillsCount)",
                         systemImage: "dollarsign.circle",
                         tint: .purple,
                         action: onBills
                     )
-
-                    Spacer(minLength: 0)
                 }
             }
         }
