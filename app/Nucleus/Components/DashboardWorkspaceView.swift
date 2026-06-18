@@ -20,10 +20,11 @@ struct DashboardWorkspaceView: View {
     @State private var holidayIcons: [String: String] = [:]
     @State private var holidayMetadataTask: Task<Void, Never>?
     @State private var companionCountryIndex = 0
-    @State private var weatherGroupHeight: CGFloat = 0
+    @State private var contextPanelsContentHeight: CGFloat = 0
 
     @State private var isConnectingNucleusCloud = false
     @State private var nucleusCloudMessage: String?
+    @State private var showsWeatherLocationChangePopover = false
 
     private var dashboardPreferences: DashboardPreferences {
         settings.dashboardPreferences
@@ -77,19 +78,21 @@ struct DashboardWorkspaceView: View {
         .onChange(of: settings.publicHolidayCountryCodes) { _, _ in
             companionCountryIndex = 0
             refreshPublicHolidays(force: true)
+            newsFeedService.refresh(countryCodes: preferredNewsCountryCodes(), force: true)
         }
         .onChange(of: weatherService.locationSnapshot) { _, _ in
             refreshPublicHolidays(force: false)
+            newsFeedService.refresh(countryCodes: preferredNewsCountryCodes(), force: false)
         }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             weatherService.refreshIfNeeded()
-            newsFeedService.refresh(countryCode: preferredNewsCountryCode(), force: false)
+            newsFeedService.refresh(countryCodes: preferredNewsCountryCodes(), force: false)
         }
         .onChange(of: holidayService.countryGroups.map(\.countryCode)) { _, _ in
             viewModel.refreshDashboardQuoteForCurrentContext()
             viewModel.refreshDashboardQuoteEmojis()
             refreshHolidayMetadata()
-            newsFeedService.refresh(countryCode: preferredNewsCountryCode(), force: false)
+            newsFeedService.refresh(countryCodes: preferredNewsCountryCodes(), force: false)
         }
         .alert("Show today's weather?", isPresented: $weatherService.showLocationPermissionPrompt) {
             Button("Allow Location Access") {
@@ -104,7 +107,7 @@ struct DashboardWorkspaceView: View {
     }
 
     private func applyDashboardServiceState() {
-        let countryCode = preferredNewsCountryCode()
+        let countryCodes = preferredNewsCountryCodes()
 
         if dashboardPreferences.weatherEnabled {
             weatherService.beginWeatherAccessFlow()
@@ -123,17 +126,34 @@ struct DashboardWorkspaceView: View {
         }
 
         if dashboardPreferences.newsFeedEnabled {
-            newsFeedService.startAutoRefresh(countryCode: countryCode)
+            newsFeedService.startAutoRefresh(countryCodes: countryCodes)
         } else {
             newsFeedService.stopAutoRefresh()
         }
     }
 
-    private func preferredNewsCountryCode() -> String? {
-        settings.publicHolidayCountryCodes.first
-            ?? weatherService.locationSnapshot?.countryCode
-            ?? holidayService.nextHoliday?.countryCode
-            ?? Locale.current.region?.identifier
+    private func preferredNewsCountryCodes() -> [String] {
+        var codes: [String] = []
+        var seen = Set<String>()
+
+        func append(_ code: String?) {
+            guard let code else { return }
+            let normalized = code.uppercased()
+            guard normalized.count == 2, seen.insert(normalized).inserted else { return }
+            codes.append(normalized)
+        }
+
+        append(weatherService.locationSnapshot?.countryCode)
+        for code in settings.publicHolidayCountryCodes {
+            append(code)
+        }
+
+        if codes.isEmpty {
+            append(holidayService.nextHoliday?.countryCode)
+            append(Locale.current.region?.identifier)
+        }
+
+        return codes
     }
 
     private func refreshPublicHolidays(force: Bool) {
@@ -163,8 +183,8 @@ struct DashboardWorkspaceView: View {
             }
             if showsWeatherResourceRow {
                 weatherResourceAndSidebarRow
-                    .onPreferenceChange(WeatherGroupHeightKey.self) { height in
-                        weatherGroupHeight = height
+                    .onPreferenceChange(ContextPanelsContentHeightKey.self) { height in
+                        contextPanelsContentHeight = height
                     }
             }
             if dashboardPreferences.publicHolidayEnabled {
@@ -430,62 +450,67 @@ struct DashboardWorkspaceView: View {
         }
     }
 
-    private func collapsibleDashboardSection<Content: View>(
+    private func collapsibleDashboardSection<Content: View, Trailing: View>(
         isExpanded: Binding<Bool>,
         title: String,
         systemImage: String,
         titleColor: Color = .primary,
         titleUsesGradient: Bool = false,
+        @ViewBuilder trailing: () -> Trailing = { EmptyView() },
         @ViewBuilder content: () -> Content
     ) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            Button {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    isExpanded.wrappedValue.toggle()
-                }
-            } label: {
-                HStack(alignment: .firstTextBaseline, spacing: 10) {
-                    Image(systemName: isExpanded.wrappedValue ? "chevron.down" : "chevron.right")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                        .frame(width: 12)
-
-                    if titleUsesGradient {
-                        Label {
-                            Text(title)
-                                .font(.headline)
-                                .foregroundStyle(
-                                    LinearGradient(
-                                        colors: [.orange, .pink, .purple],
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    )
-                                )
-                                .multilineTextAlignment(.leading)
-                                .fixedSize(horizontal: false, vertical: true)
-                        } icon: {
-                            Image(systemName: systemImage)
-                                .symbolRenderingMode(.multicolor)
-                        }
-                    } else {
-                        Label {
-                            Text(title)
-                                .font(.headline)
-                                .foregroundStyle(titleColor)
-                                .multilineTextAlignment(.leading)
-                                .fixedSize(horizontal: false, vertical: true)
-                        } icon: {
-                            Image(systemName: systemImage)
-                                .foregroundStyle(.teal)
-                        }
+            HStack(alignment: .firstTextBaseline, spacing: 10) {
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        isExpanded.wrappedValue.toggle()
                     }
+                } label: {
+                    HStack(alignment: .firstTextBaseline, spacing: 10) {
+                        Image(systemName: isExpanded.wrappedValue ? "chevron.down" : "chevron.right")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                            .frame(width: 12)
 
-                    Spacer(minLength: 0)
+                        if titleUsesGradient {
+                            Label {
+                                Text(title)
+                                    .font(.headline)
+                                    .foregroundStyle(
+                                        LinearGradient(
+                                            colors: [.orange, .pink, .purple],
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        )
+                                    )
+                                    .multilineTextAlignment(.leading)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            } icon: {
+                                Image(systemName: systemImage)
+                                    .symbolRenderingMode(.multicolor)
+                            }
+                        } else {
+                            Label {
+                                Text(title)
+                                    .font(.headline)
+                                    .foregroundStyle(titleColor)
+                                    .multilineTextAlignment(.leading)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            } icon: {
+                                Image(systemName: systemImage)
+                                    .foregroundStyle(.teal)
+                            }
+                        }
+
+                        Spacer(minLength: 0)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .contentShape(Rectangle())
+                .buttonStyle(.plain)
+
+                trailing()
             }
-            .buttonStyle(.plain)
             .padding(.horizontal, 18)
             .padding(.vertical, 14)
 
@@ -504,16 +529,14 @@ struct DashboardWorkspaceView: View {
                 collapsibleDashboardSection(
                     isExpanded: contextPanelsExpanded,
                     title: contextPanelsTitle,
-                    systemImage: "cloud.sun.fill"
-                ) {
-                    VStack(alignment: .leading, spacing: 16) {
+                    systemImage: "cloud.sun.fill",
+                    trailing: {
                         if dashboardPreferences.weatherEnabled {
-                            weatherForecastSection
-                        }
-                        if dashboardPreferences.resourceUsageEnabled || dashboardPreferences.cloudSyncPanelEnabled {
-                            resourceAndCloudSyncRow
+                            weatherHeaderActions
                         }
                     }
+                ) {
+                    contextPanelsContent
                 }
                 .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 14))
                 .overlay {
@@ -541,6 +564,22 @@ struct DashboardWorkspaceView: View {
         }
     }
 
+    private var contextPanelsContent: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            if dashboardPreferences.weatherEnabled {
+                weatherForecastSection
+            }
+            if dashboardPreferences.resourceUsageEnabled || dashboardPreferences.cloudSyncPanelEnabled {
+                resourceAndCloudSyncRow
+            }
+        }
+        .background {
+            GeometryReader { proxy in
+                Color.clear.preference(key: ContextPanelsContentHeightKey.self, value: proxy.size.height)
+            }
+        }
+    }
+
     private var contextPanelsTitle: String {
         var parts: [String] = []
         if dashboardPreferences.weatherEnabled {
@@ -551,9 +590,105 @@ struct DashboardWorkspaceView: View {
             }
         }
         if dashboardPreferences.resourceUsageEnabled || dashboardPreferences.cloudSyncPanelEnabled {
-            parts.append("Sync")
+            if !dashboardPreferences.weatherEnabled {
+                parts.append("Resource & sync")
+            }
         }
         return parts.isEmpty ? "Live panels" : parts.joined(separator: " · ")
+    }
+
+    private var weatherHeaderActions: some View {
+        HStack(spacing: 8) {
+            weatherSyncButton
+            changeWeatherLocationButton
+        }
+    }
+
+    private var weatherSyncButton: some View {
+        Button {
+            weatherService.retryWeatherFetch()
+        } label: {
+            if weatherService.isLoading {
+                HStack(spacing: 6) {
+                    ProgressView()
+                        .controlSize(.small)
+                    Text("Syncing…")
+                }
+            } else {
+                Label("Sync", systemImage: "arrow.clockwise")
+            }
+        }
+        .buttonStyle(.bordered)
+        .controlSize(.small)
+        .disabled(weatherService.isLoading)
+        .help("Refresh today's weather forecast")
+    }
+
+    private var changeWeatherLocationButton: some View {
+        Button {
+            prepareWeatherLocationChangePopover()
+            showsWeatherLocationChangePopover = true
+        } label: {
+            Label("Change location", systemImage: "mappin.and.ellipse")
+        }
+        .buttonStyle(.bordered)
+        .controlSize(.small)
+        .help("Look up weather for a different city or postcode")
+        .popover(isPresented: $showsWeatherLocationChangePopover, arrowEdge: .bottom) {
+            weatherLocationChangePopover
+        }
+    }
+
+    private var weatherLocationChangePopover: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Change weather location")
+                .font(.headline)
+
+            Text("Enter a city name or postcode, or use your current device location.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            TextField("City or postcode", text: $weatherService.manualLocationDraft)
+                .textFieldStyle(.roundedBorder)
+                .onSubmit {
+                    applyWeatherLocationChange(useDeviceLocation: false)
+                }
+
+            HStack {
+                Button("Cancel") {
+                    showsWeatherLocationChangePopover = false
+                }
+
+                Spacer(minLength: 0)
+
+                Button("Use my location") {
+                    applyWeatherLocationChange(useDeviceLocation: true)
+                }
+
+                Button("Use") {
+                    applyWeatherLocationChange(useDeviceLocation: false)
+                }
+                .keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(16)
+        .frame(width: 300)
+    }
+
+    private func prepareWeatherLocationChangePopover() {
+        if weatherService.manualLocationDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            weatherService.manualLocationDraft = weatherService.weather?.cityName ?? ""
+        }
+    }
+
+    private func applyWeatherLocationChange(useDeviceLocation: Bool) {
+        showsWeatherLocationChangePopover = false
+        if useDeviceLocation {
+            weatherService.retryWeatherFetch()
+        } else {
+            weatherService.submitManualLocation()
+        }
     }
 
     private var publicHolidayDisplayLayout: DashboardPublicHolidayDisplayLayout {
@@ -565,29 +700,7 @@ struct DashboardWorkspaceView: View {
     }
 
     private var publicHolidayRowTitle: String {
-        let layout = publicHolidayDisplayLayout
-        if layout.location == nil && layout.companions.isEmpty {
-            return "Public holidays"
-        }
-
-        var parts: [String] = []
-        if let location = layout.location {
-            if let locationLabel = location.locationLabel {
-                parts.append("\(location.countryName) · \(locationLabel)")
-            } else {
-                parts.append(location.countryName)
-            }
-        }
-
-        if !layout.companions.isEmpty {
-            if layout.companions.count == 1 {
-                parts.append(layout.companions[0].countryName)
-            } else {
-                parts.append("+\(layout.companions.count) countries")
-            }
-        }
-
-        return parts.isEmpty ? "Public holidays" : "Public holidays · \(parts.joined(separator: " · "))"
+        publicHolidayDisplayLayout.sectionTitle
     }
 
     private var publicHolidayRow: some View {
@@ -607,10 +720,38 @@ struct DashboardWorkspaceView: View {
     }
 
     private var newsFeedTitle: String {
-        if newsFeedService.headlines.isEmpty {
-            return "News feed"
+        let codes = preferredNewsCountryCodes()
+        let headlineCount = newsFeedService.headlines.count
+        let countryNames = codes.map {
+            DashboardPublicHolidayCountryCatalog.localizedCountryName(for: $0)
         }
-        return "News feed · \(newsFeedService.headlines.count) headline\(newsFeedService.headlines.count == 1 ? "" : "s")"
+        let countryLabel = newsFeedCountryLabel(for: countryNames)
+
+        if countryLabel.isEmpty {
+            if headlineCount == 0 {
+                return "News feed"
+            }
+            return "News feed · \(headlineCount) headline\(headlineCount == 1 ? "" : "s")"
+        }
+
+        if headlineCount == 0 {
+            return "News feed · \(countryLabel)"
+        }
+        return "News feed · \(countryLabel) · \(headlineCount) headline\(headlineCount == 1 ? "" : "s")"
+    }
+
+    private func newsFeedCountryLabel(for countryNames: [String]) -> String {
+        switch countryNames.count {
+        case 0:
+            return ""
+        case 1:
+            return countryNames[0]
+        case 2:
+            return "\(countryNames[0]) and \(countryNames[1])"
+        default:
+            let head = countryNames.dropLast().joined(separator: ", ")
+            return "\(head), and \(countryNames[countryNames.count - 1])"
+        }
     }
 
     private var showsLeftDashboardPanels: Bool {
@@ -640,14 +781,12 @@ struct DashboardWorkspaceView: View {
             isLoading: newsFeedService.isLoading,
             statusMessage: newsFeedService.statusMessage,
             showsHeader: false,
-            preferredContentHeight: matchesNewsFeedToWeatherHeight ? weatherGroupHeight : nil
+            preferredContentHeight: matchesNewsFeedToContextPanelsHeight ? contextPanelsContentHeight : nil
         )
     }
 
-    private var matchesNewsFeedToWeatherHeight: Bool {
-        dashboardPreferences.weatherEnabled
-            && dashboardPreferences.newsFeedEnabled
-            && showsLeftContextPanels
+    private var matchesNewsFeedToContextPanelsHeight: Bool {
+        dashboardPreferences.newsFeedEnabled && showsLeftContextPanels
     }
 
     private func holidayCacheToken(for holiday: DashboardNextPublicHoliday) -> String {
@@ -932,6 +1071,8 @@ struct DashboardWorkspaceView: View {
                 .padding(14)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 12))
+            } else if weatherService.isAwaitingDeviceLocation {
+                findingLocationCard
             } else if let statusMessage = weatherService.statusMessage {
                 HStack(alignment: .center, spacing: 10) {
                     Image(systemName: weatherService.isLoading ? "location" : "cloud.slash")
@@ -940,6 +1081,9 @@ struct DashboardWorkspaceView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
+                    if weatherService.showsManualLocationEntry {
+                        manualLocationEntryControls
+                    }
                     Spacer(minLength: 0)
                     if !weatherService.isLoading {
                         Button("Try Again") {
@@ -983,10 +1127,40 @@ struct DashboardWorkspaceView: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background {
-            GeometryReader { proxy in
-                Color.clear.preference(key: WeatherGroupHeightKey.self, value: proxy.size.height)
+    }
+
+    private var findingLocationCard: some View {
+        HStack(alignment: .center, spacing: 10) {
+            ProgressView()
+                .controlSize(.small)
+            Text(weatherService.statusMessage ?? "Finding your location…")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            if weatherService.showsManualLocationEntry {
+                manualLocationEntryControls
             }
+            Spacer(minLength: 0)
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.quaternary.opacity(0.25), in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    private var manualLocationEntryControls: some View {
+        HStack(spacing: 8) {
+            TextField("City or postcode", text: $weatherService.manualLocationDraft)
+                .textFieldStyle(.roundedBorder)
+                .frame(maxWidth: 180)
+                .controlSize(.small)
+                .onSubmit {
+                    weatherService.submitManualLocation()
+                }
+            Button("Use") {
+                weatherService.submitManualLocation()
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
         }
     }
 
@@ -1542,7 +1716,7 @@ private struct ResourceUsageSummaryCard: View {
     }
 }
 
-private struct WeatherGroupHeightKey: PreferenceKey {
+private struct ContextPanelsContentHeightKey: PreferenceKey {
     static var defaultValue: CGFloat = 0
 
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {

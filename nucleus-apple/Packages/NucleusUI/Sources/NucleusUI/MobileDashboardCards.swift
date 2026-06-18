@@ -5,24 +5,36 @@ import SwiftUI
 public struct DashboardWeatherCard: View {
     let weather: DashboardTodayWeather?
     let isLoading: Bool
+    let isAwaitingDeviceLocation: Bool
     let statusMessage: String?
     let locationPrompt: DashboardWeatherLocationPrompt?
+    let showsManualLocationEntry: Bool
+    @Binding var manualLocationDraft: String
     let onLocationAction: (DashboardWeatherLocationPrompt.Action) -> Void
+    var onManualLocationSubmit: (() -> Void)?
     var onRetry: (() -> Void)?
 
     public init(
         weather: DashboardTodayWeather?,
         isLoading: Bool,
+        isAwaitingDeviceLocation: Bool = false,
         statusMessage: String?,
         locationPrompt: DashboardWeatherLocationPrompt?,
+        showsManualLocationEntry: Bool = false,
+        manualLocationDraft: Binding<String> = .constant(""),
         onLocationAction: @escaping (DashboardWeatherLocationPrompt.Action) -> Void,
+        onManualLocationSubmit: (() -> Void)? = nil,
         onRetry: (() -> Void)? = nil
     ) {
         self.weather = weather
         self.isLoading = isLoading
+        self.isAwaitingDeviceLocation = isAwaitingDeviceLocation
         self.statusMessage = statusMessage
         self.locationPrompt = locationPrompt
+        self.showsManualLocationEntry = showsManualLocationEntry
+        self._manualLocationDraft = manualLocationDraft
         self.onLocationAction = onLocationAction
+        self.onManualLocationSubmit = onManualLocationSubmit
         self.onRetry = onRetry
     }
 
@@ -94,6 +106,8 @@ public struct DashboardWeatherCard: View {
                 .padding(14)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 12))
+            } else if isAwaitingDeviceLocation {
+                findingLocationRow
             } else if isLoading {
                 HStack(spacing: 10) {
                     ProgressView()
@@ -106,12 +120,17 @@ public struct DashboardWeatherCard: View {
                 .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 12))
             } else if let statusMessage {
                 VStack(alignment: .leading, spacing: 10) {
-                    Text(statusMessage)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
+                    HStack(alignment: .center, spacing: 10) {
+                        Text(statusMessage)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        if showsManualLocationEntry {
+                            manualLocationEntryControls
+                        }
+                    }
 
-                    if let onRetry {
+                    if let onRetry, !isLoading {
                         Button("Try again", action: onRetry)
                             .buttonStyle(.bordered)
                             .controlSize(.small)
@@ -120,6 +139,40 @@ public struct DashboardWeatherCard: View {
                 .padding(14)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 12))
+            }
+        }
+    }
+
+    private var findingLocationRow: some View {
+        HStack(alignment: .center, spacing: 10) {
+            ProgressView()
+            Text(statusMessage ?? "Finding your location…")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            if showsManualLocationEntry {
+                manualLocationEntryControls
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    private var manualLocationEntryControls: some View {
+        HStack(spacing: 8) {
+            TextField("City or postcode", text: $manualLocationDraft)
+                .textFieldStyle(.roundedBorder)
+                .frame(maxWidth: 140)
+                .submitLabel(.go)
+                .onSubmit {
+                    onManualLocationSubmit?()
+                }
+            if let onManualLocationSubmit {
+                Button("Use", action: onManualLocationSubmit)
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
             }
         }
     }
@@ -375,26 +428,7 @@ public struct DashboardPublicHolidayCard: View {
     }
 
     private var publicHolidayTitle: String {
-        if layout.location == nil && layout.companions.isEmpty {
-            return "Public holidays"
-        }
-
-        var parts: [String] = []
-        if let location = layout.location {
-            if let locationLabel = location.locationLabel {
-                parts.append("\(location.countryName) · \(locationLabel)")
-            } else {
-                parts.append(location.countryName)
-            }
-        }
-        if !layout.companions.isEmpty {
-            if layout.companions.count == 1 {
-                parts.append(layout.companions[0].countryName)
-            } else {
-                parts.append("+\(layout.companions.count) countries")
-            }
-        }
-        return parts.isEmpty ? "Public holidays" : "Public holidays · \(parts.joined(separator: " · "))"
+        layout.sectionTitle
     }
 
     @ViewBuilder

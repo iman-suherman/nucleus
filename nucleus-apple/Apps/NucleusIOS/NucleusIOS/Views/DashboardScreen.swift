@@ -109,9 +109,13 @@ struct DashboardWorkspaceScreen: View {
         DashboardWeatherCard(
             weather: weatherService.weather,
             isLoading: weatherService.isLoading,
+            isAwaitingDeviceLocation: weatherService.isAwaitingDeviceLocation,
             statusMessage: weatherService.statusMessage,
             locationPrompt: weatherService.locationAccessPrompt,
+            showsManualLocationEntry: weatherService.showsManualLocationEntry,
+            manualLocationDraft: $weatherService.manualLocationDraft,
             onLocationAction: weatherService.performLocationAccessAction,
+            onManualLocationSubmit: weatherService.submitManualLocation,
             onRetry: weatherService.retryWeatherFetch
         )
     }

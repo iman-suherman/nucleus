@@ -79,6 +79,58 @@ public struct DashboardPublicHolidayDisplayLayout: Equatable, Sendable {
         location != nil && !companions.isEmpty
     }
 
+    public var sectionTitle: String {
+        Self.makeSectionTitle(location: location, companions: companions)
+    }
+
+    public static func makeSectionTitle(
+        location: DashboardPublicHolidayCountryGroup?,
+        companions: [DashboardPublicHolidayCountryGroup]
+    ) -> String {
+        guard location != nil || !companions.isEmpty else {
+            return "Public holidays"
+        }
+
+        if let location {
+            let place = placePhrase(for: location)
+            if companions.isEmpty {
+                return "Public holidays in \(place)"
+            }
+            let companionNames = companions.map(\.countryName)
+            if companionNames.count == 1 {
+                return "Public holidays in \(place) and \(companionNames[0])"
+            }
+            return "Public holidays in \(place), plus \(naturalJoin(companionNames))"
+        }
+
+        let names = companions.map(\.countryName)
+        if names.count == 1 {
+            return "Public holidays in \(names[0])"
+        }
+        return "Public holidays in \(naturalJoin(names))"
+    }
+
+    private static func placePhrase(for group: DashboardPublicHolidayCountryGroup) -> String {
+        if let locationLabel = group.locationLabel, !locationLabel.isEmpty {
+            return "\(locationLabel), \(group.countryName)"
+        }
+        return group.countryName
+    }
+
+    private static func naturalJoin(_ items: [String]) -> String {
+        switch items.count {
+        case 0:
+            return ""
+        case 1:
+            return items[0]
+        case 2:
+            return "\(items[0]) and \(items[1])"
+        default:
+            let head = items.dropLast().joined(separator: ", ")
+            return "\(head), and \(items[items.count - 1])"
+        }
+    }
+
     public init(
         location: DashboardPublicHolidayCountryGroup?,
         companions: [DashboardPublicHolidayCountryGroup]

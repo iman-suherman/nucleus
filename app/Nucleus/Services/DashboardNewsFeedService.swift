@@ -32,6 +32,53 @@ enum DashboardNewsFeedClient {
         let headlines = RSSFeedParser.parse(data: data)
         return Array(headlines.prefix(limit))
     }
+
+    static func fetchHeadlines(
+        countryCodes: [String],
+        limitPerCountry: Int = 12,
+        totalLimit: Int = 24
+    ) async -> [DashboardNewsHeadline] {
+        let codes = countryCodes
+            .map { $0.uppercased() }
+            .filter { !$0.isEmpty }
+
+        guard !codes.isEmpty else { return [] }
+        if codes.count == 1 {
+            return (try? await fetchHeadlines(countryCode: codes[0], limit: totalLimit)) ?? []
+        }
+
+        var combined: [DashboardNewsHeadline] = []
+        var seenIDs = Set<String>()
+
+        await withTaskGroup(of: [DashboardNewsHeadline].self) { group in
+            for code in codes {
+                group.addTask {
+                    (try? await fetchHeadlines(countryCode: code, limit: limitPerCountry)) ?? []
+                }
+            }
+
+            for await batch in group {
+                for headline in batch where seenIDs.insert(headline.id).inserted {
+                    combined.append(headline)
+                }
+            }
+        }
+
+        combined.sort { lhs, rhs in
+            switch (lhs.publishedAt, rhs.publishedAt) {
+            case let (left?, right?):
+                return left > right
+            case (_?, nil):
+                return true
+            case (nil, _?):
+                return false
+            case (nil, nil):
+                return lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedAscending
+            }
+        }
+
+        return Array(combined.prefix(totalLimit))
+    }
 }
 
 private enum RSSFeedParser {
@@ -168,7 +215,8 @@ final class DashboardNewsFeedService: ObservableObject {
     @Published private(set) var isLoading = false
     @Published private(set) var statusMessage: String?
 
-    private var cachedCountryCode: String?
+    private var cachedCountryCodes: [String] = []
+    private var activeCountryCodes: [String] = []
     private var lastFetchAt: Date?
     private var fetchTask: Task<Void, Never>?
     private var refreshTimer: Timer?
@@ -179,11 +227,20 @@ final class DashboardNewsFeedService: ObservableObject {
     private init() {}
 
     func startAutoRefresh(countryCode: String?) {
-        refresh(countryCode: countryCode)
+        startAutoRefresh(countryCodes: countryCode.map { [$0] } ?? [])
+    }
+
+    func startAutoRefresh(countryCodes: [String]) {
+        activeCountryCodes = Self.normalizedCountryCodes(countryCodes)
+        if activeCountryCodes.isEmpty {
+            activeCountryCodes = [Self.fallbackCountryCode()]
+        }
+        refresh(countryCodes: activeCountryCodes)
         refreshTimer?.invalidate()
         refreshTimer = Timer.scheduledTimer(withTimeInterval: Self.refreshInterval, repeats: true) { [weak self] _ in
             Task { @MainActor in
-                self?.refresh(countryCode: countryCode ?? self?.cachedCountryCode, force: true)
+                guard let self else { return }
+                self.refresh(countryCodes: self.activeCountryCodes, force: true)
             }
         }
         if let refreshTimer {
@@ -199,9 +256,16 @@ final class DashboardNewsFeedService: ObservableObject {
     }
 
     func refresh(countryCode: String?, force: Bool = false) {
-        let normalized = (countryCode ?? Locale.current.region?.identifier ?? "US").uppercased()
+        refresh(countryCodes: countryCode.map { [$0] } ?? [], force: force)
+    }
+
+    func refresh(countryCodes: [String], force: Bool = false) {
+        let normalized = Self.normalizedCountryCodes(countryCodes)
+        let resolved = normalized.isEmpty ? [Self.fallbackCountryCode()] : normalized
+        activeCountryCodes = resolved
+
         if !force,
-           normalized == cachedCountryCode,
+           resolved == cachedCountryCodes,
            let lastFetchAt,
            Date().timeIntervalSince(lastFetchAt) < Self.refreshInterval,
            !headlines.isEmpty {
@@ -210,30 +274,46 @@ final class DashboardNewsFeedService: ObservableObject {
 
         fetchTask?.cancel()
         fetchTask = Task { @MainActor in
-            await loadHeadlines(countryCode: normalized)
+            await loadHeadlines(countryCodes: resolved)
         }
     }
 
-    private func loadHeadlines(countryCode: String) async {
+    private func loadHeadlines(countryCodes: [String]) async {
         isLoading = headlines.isEmpty
         if headlines.isEmpty {
             statusMessage = nil
         }
         defer { isLoading = false }
 
-        do {
-            let fetched = try await DashboardNewsFeedClient.fetchHeadlines(countryCode: countryCode)
-            guard !Task.isCancelled else { return }
-            headlines = fetched
-            cachedCountryCode = countryCode
-            lastFetchAt = Date()
-            statusMessage = fetched.isEmpty ? "No headlines available right now." : nil
-        } catch {
-            guard !Task.isCancelled else { return }
-            logger.error("News feed fetch failed: \(error.localizedDescription, privacy: .public)")
+        let fetched = await DashboardNewsFeedClient.fetchHeadlines(countryCodes: countryCodes)
+        guard !Task.isCancelled else { return }
+
+        if fetched.isEmpty {
+            logger.error("News feed fetch returned no headlines for \(countryCodes.joined(separator: ", "), privacy: .public)")
             if headlines.isEmpty {
-                statusMessage = "Couldn't load headlines right now."
+                statusMessage = "No headlines available right now."
             }
+            return
         }
+
+        headlines = fetched
+        cachedCountryCodes = countryCodes
+        lastFetchAt = Date()
+        statusMessage = nil
+    }
+
+    private static func normalizedCountryCodes(_ codes: [String]) -> [String] {
+        var seen = Set<String>()
+        var normalized: [String] = []
+        for code in codes {
+            let upper = code.uppercased()
+            guard upper.count == 2, seen.insert(upper).inserted else { continue }
+            normalized.append(upper)
+        }
+        return normalized
+    }
+
+    private static func fallbackCountryCode() -> String {
+        (Locale.current.region?.identifier ?? "US").uppercased()
     }
 }

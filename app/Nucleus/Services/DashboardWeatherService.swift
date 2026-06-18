@@ -87,21 +87,32 @@ final class DashboardWeatherService: NSObject, ObservableObject {
 
     /// When false, the Dashboard hides Today's weather entirely.
     @Published private(set) var isWeatherSectionVisible = false
+    @Published private(set) var showsManualLocationEntry = false
+    @Published var manualLocationDraft = ""
+
+    /// True while waiting on Core Location (including retry backoff), before weather fetch starts.
+    var isAwaitingDeviceLocation: Bool {
+        (pendingLocationRequest || locationRetryTask != nil) && !isFetchingWeather && weather == nil
+    }
 
     private let weatherService = WeatherService.shared
     private let locationManager = CLLocationManager()
     private let logger = Logger(subsystem: "net.suherman.nucleus", category: "DashboardWeather")
     private var hasStarted = false
     private var pendingLocationRequest = false
+    private var queuedForcedLocationRefresh = false
     private var locationRetryCount = 0
     private var locationRetryTask: Task<Void, Never>?
     private var weatherFetchTask: Task<Void, Never>?
     private var isFetchingWeather = false
     private var weatherFetchGeneration = 0
     private var lastSuccessfulFetchAt: Date?
+    private var manualLocationRevealTask: Task<Void, Never>?
+    private var manualLocationRequestGeneration = 0
 
     private static let maxLocationRetries = 2
     private static let locationRetryDelay: Duration = .seconds(2)
+    private static let manualLocationRevealDelay: Duration = .seconds(5)
     private static let weatherRefreshInterval: TimeInterval = 15 * 60
 
     private override init() {
@@ -141,9 +152,34 @@ final class DashboardWeatherService: NSObject, ObservableObject {
         locationRetryCount = 0
         locationRetryTask?.cancel()
         locationRetryTask = nil
-        pendingLocationRequest = false
         statusMessage = nil
+
+        if pendingLocationRequest {
+            queueForcedLocationRefreshIfNeeded()
+            return
+        }
+
         requestWeatherIfAuthorized(force: true)
+    }
+
+    func submitManualLocation() {
+        let query = manualLocationDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return }
+
+        manualLocationRequestGeneration += 1
+        let generation = manualLocationRequestGeneration
+        pendingLocationRequest = false
+        queuedForcedLocationRefresh = false
+        locationRetryTask?.cancel()
+        locationRetryTask = nil
+        endLocationLookupUI()
+
+        isLoading = true
+        statusMessage = nil
+
+        Task { @MainActor in
+            await resolveManualLocation(query: query, generation: generation)
+        }
     }
 
     func declineLocationPermission() {
@@ -292,8 +328,16 @@ final class DashboardWeatherService: NSObject, ObservableObject {
         switch locationManager.authorizationStatus {
         case .authorized, .authorizedAlways:
             if let location = locationManager.location {
+                if pendingLocationRequest, force {
+                    queueForcedLocationRefreshIfNeeded()
+                    return
+                }
                 startWeatherFetch(for: location, force: force)
-            } else if force || !pendingLocationRequest {
+            } else if pendingLocationRequest {
+                if force {
+                    queueForcedLocationRefreshIfNeeded()
+                }
+            } else {
                 requestSingleLocationUpdate()
             }
         case .denied, .restricted, .notDetermined:
@@ -306,14 +350,41 @@ final class DashboardWeatherService: NSObject, ObservableObject {
         }
     }
 
+    private func queueForcedLocationRefreshIfNeeded() {
+        queuedForcedLocationRefresh = true
+        isLoading = true
+        if !Self.isWeatherKitErrorMessage(statusMessage) {
+            statusMessage = "Finding your location…"
+        }
+        scheduleManualLocationEntryRevealIfNeeded()
+        logger.debug("Location request already in flight; queued forced refresh")
+    }
+
+    private func scheduleManualLocationEntryRevealIfNeeded() {
+        guard manualLocationRevealTask == nil else { return }
+
+        manualLocationRevealTask = Task { @MainActor in
+            try? await Task.sleep(for: Self.manualLocationRevealDelay)
+            guard !Task.isCancelled, isAwaitingDeviceLocation else { return }
+            showsManualLocationEntry = true
+        }
+    }
+
+    private func endLocationLookupUI() {
+        manualLocationRevealTask?.cancel()
+        manualLocationRevealTask = nil
+        showsManualLocationEntry = false
+    }
+
     private func requestSingleLocationUpdate() {
         guard !pendingLocationRequest else { return }
 
         pendingLocationRequest = true
         isLoading = true
         if !Self.isWeatherKitErrorMessage(statusMessage) {
-            statusMessage = locationRetryCount > 0 ? "Finding your location…" : nil
+            statusMessage = "Finding your location…"
         }
+        scheduleManualLocationEntryRevealIfNeeded()
         locationManager.requestLocation()
     }
 
@@ -333,6 +404,7 @@ final class DashboardWeatherService: NSObject, ObservableObject {
         locationRetryTask = nil
         locationRetryCount = 0
         pendingLocationRequest = false
+        endLocationLookupUI()
 
         weatherFetchGeneration += 1
         let generation = weatherFetchGeneration
@@ -344,6 +416,15 @@ final class DashboardWeatherService: NSObject, ObservableObject {
 
     private func handleLocationFailure(_ error: Error) {
         pendingLocationRequest = false
+
+        if queuedForcedLocationRefresh {
+            queuedForcedLocationRefresh = false
+            locationRetryCount = 0
+            locationRetryTask?.cancel()
+            locationRetryTask = nil
+            requestSingleLocationUpdate()
+            return
+        }
 
         if isFetchingWeather {
             logger.warning("Ignoring location failure during active weather fetch")
@@ -380,8 +461,37 @@ final class DashboardWeatherService: NSObject, ObservableObject {
 
         weather = nil
         isLoading = false
+        endLocationLookupUI()
         statusMessage = Self.locationFailureMessage(for: error)
         logger.error("Location request failed: \(String(describing: error), privacy: .public)")
+    }
+
+    private func resolveManualLocation(query: String, generation: Int) async {
+        defer {
+            if generation == manualLocationRequestGeneration, weather == nil, !isFetchingWeather {
+                isLoading = isAwaitingDeviceLocation
+            }
+        }
+
+        let geocoder = CLGeocoder()
+        do {
+            let placemarks = try await geocoder.geocodeAddressString(query)
+            guard generation == manualLocationRequestGeneration else { return }
+            guard let location = placemarks.first?.location else {
+                isLoading = false
+                statusMessage = "Couldn't find that place. Try a city name or postcode."
+                showsManualLocationEntry = true
+                return
+            }
+            manualLocationDraft = query
+            startWeatherFetch(for: location, force: true)
+        } catch {
+            guard generation == manualLocationRequestGeneration else { return }
+            isLoading = false
+            statusMessage = "Couldn't find that place. Try a city name or postcode."
+            showsManualLocationEntry = true
+            logger.error("Manual location geocode failed: \(String(describing: error), privacy: .public)")
+        }
     }
 
     private func handleAuthorizationChange() {
@@ -428,7 +538,6 @@ final class DashboardWeatherService: NSObject, ObservableObject {
                     locationLabel: locationContext?.dashboardLocationLabel
                 )
             }
-            DashboardNewsFeedService.shared.startAutoRefresh(countryCode: countryCode)
         } catch {
             guard !Task.isCancelled, generation == weatherFetchGeneration else { return }
 
@@ -645,10 +754,13 @@ extension DashboardWeatherService: CLLocationManagerDelegate {
     nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let location = locations.last else { return }
         Task { @MainActor in
+            guard pendingLocationRequest else { return }
             pendingLocationRequest = false
+            queuedForcedLocationRefresh = false
             locationRetryCount = 0
             locationRetryTask?.cancel()
             locationRetryTask = nil
+            endLocationLookupUI()
             startWeatherFetch(for: location)
         }
     }
