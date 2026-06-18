@@ -212,6 +212,7 @@ final class DashboardNewsFeedService: ObservableObject {
     static let shared = DashboardNewsFeedService()
 
     @Published private(set) var headlines: [DashboardNewsHeadline] = []
+    @Published private(set) var enrichments: [String: DashboardNewsEnrichment] = [:]
     @Published private(set) var isLoading = false
     @Published private(set) var statusMessage: String?
 
@@ -219,6 +220,7 @@ final class DashboardNewsFeedService: ObservableObject {
     private var activeCountryCodes: [String] = []
     private var lastFetchAt: Date?
     private var fetchTask: Task<Void, Never>?
+    private var enrichmentTask: Task<Void, Never>?
     private var refreshTimer: Timer?
     private let logger = Logger(subsystem: "net.suherman.nucleus", category: "DashboardNewsFeed")
 
@@ -253,6 +255,8 @@ final class DashboardNewsFeedService: ObservableObject {
         refreshTimer = nil
         fetchTask?.cancel()
         fetchTask = nil
+        enrichmentTask?.cancel()
+        enrichmentTask = nil
     }
 
     func refresh(countryCode: String?, force: Bool = false) {
@@ -300,6 +304,37 @@ final class DashboardNewsFeedService: ObservableObject {
         cachedCountryCodes = countryCodes
         lastFetchAt = Date()
         statusMessage = nil
+        enrichHeadlines(fetched)
+    }
+
+    private func enrichHeadlines(_ items: [DashboardNewsHeadline]) {
+        enrichmentTask?.cancel()
+
+        var seeded = enrichments
+        for headline in items {
+            if seeded[headline.id] == nil,
+               let cached = DashboardNewsAnalysisService.cachedEnrichment(for: headline) {
+                seeded[headline.id] = cached
+            }
+        }
+        enrichments = seeded
+
+        enrichmentTask = Task { @MainActor in
+            var updated = seeded
+            for headline in items {
+                guard !Task.isCancelled else { return }
+                let enrichment = await DashboardNewsAnalysisService.resolveEnrichment(for: headline)
+                updated[headline.id] = enrichment
+                enrichments = updated
+            }
+        }
+    }
+
+    func enrichment(for headline: DashboardNewsHeadline) -> DashboardNewsEnrichment {
+        if let cached = enrichments[headline.id] {
+            return cached
+        }
+        return DashboardNewsAnalysisService.fallbackEnrichment(for: headline)
     }
 
     private static func normalizedCountryCodes(_ codes: [String]) -> [String] {

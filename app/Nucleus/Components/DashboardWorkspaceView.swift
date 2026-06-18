@@ -42,6 +42,21 @@ struct DashboardWorkspaceView: View {
     }
 
     var body: some View {
+        ZStack {
+            dashboardContent
+
+            if let prompt = viewModel.dashboardIncomingMailPrompt {
+                DashboardIncomingMailOverlay(
+                    prompt: prompt,
+                    onOpenInbox: viewModel.openDashboardIncomingMail,
+                    onDismiss: viewModel.dismissDashboardIncomingMail
+                )
+            }
+        }
+        .animation(.easeInOut(duration: 0.2), value: viewModel.dashboardIncomingMailPrompt?.id)
+    }
+
+    private var dashboardContent: some View {
         GeometryReader { geometry in
             ScrollView {
                 VStack(alignment: .leading, spacing: 28) {
@@ -62,6 +77,7 @@ struct DashboardWorkspaceView: View {
         .background(Color(nsColor: .windowBackgroundColor))
         .onAppear {
             applyDashboardServiceState()
+            viewModel.refreshDashboardIncomingMailAlertIfNeeded()
             viewModel.refreshDashboardQuoteForCurrentContext()
             viewModel.refreshDashboardQuoteEmojis()
             viewModel.refreshClipboardDayAnalysisIfNeeded()
@@ -778,6 +794,7 @@ struct DashboardWorkspaceView: View {
     private var newsFeedSection: some View {
         DashboardNewsTickerView(
             headlines: newsFeedService.headlines,
+            enrichments: newsFeedService.enrichments,
             isLoading: newsFeedService.isLoading,
             statusMessage: newsFeedService.statusMessage,
             showsHeader: false,
@@ -1604,6 +1621,7 @@ private struct DashboardMetricsSummaryBox: View {
                         value: "\(unreadMailCount)",
                         systemImage: "envelope.badge",
                         tint: .blue,
+                        isHighlighted: unreadMailCount > 0,
                         action: onUnreadEmail
                     )
 
@@ -1656,6 +1674,7 @@ private struct SummaryMetricItem: View {
     let value: String
     let systemImage: String
     let tint: Color
+    var isHighlighted: Bool = false
     let action: () -> Void
 
     var body: some View {
@@ -1678,6 +1697,18 @@ private struct SummaryMetricItem: View {
             }
             .padding(12)
             .frame(maxWidth: .infinity, minHeight: 96, alignment: .leading)
+            .background {
+                if isHighlighted {
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(Color.yellow.opacity(0.24))
+                }
+            }
+            .overlay {
+                if isHighlighted {
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .strokeBorder(Color.yellow.opacity(0.55), lineWidth: 1)
+                }
+            }
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

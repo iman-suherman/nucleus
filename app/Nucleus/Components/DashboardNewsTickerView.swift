@@ -3,6 +3,7 @@ import SwiftUI
 
 struct DashboardNewsTickerView: View {
     let headlines: [DashboardNewsHeadline]
+    let enrichments: [String: DashboardNewsEnrichment]
     let isLoading: Bool
     let statusMessage: String?
     var showsHeader: Bool = true
@@ -11,9 +12,9 @@ struct DashboardNewsTickerView: View {
     @State private var visibleIndex = 0
     @State private var scrollTimer: Timer?
 
-    private let rowHeight: CGFloat = 112
-    private let visibleRows = 4
-    private let advanceInterval: TimeInterval = 12
+    private let rowHeight: CGFloat = 168
+    private let visibleRows = 3
+    private let advanceInterval: TimeInterval = 14
     private let cardVerticalPadding: CGFloat = 20
 
     private var viewportHeight: CGFloat {
@@ -78,7 +79,7 @@ struct DashboardNewsTickerView: View {
         }
         .frame(height: viewportHeight, alignment: .top)
         .clipped()
-        .padding(.horizontal, 14)
+        .padding(.horizontal, 10)
         .padding(.vertical, 10)
         .frame(maxWidth: .infinity, minHeight: preferredContentHeight, alignment: .leading)
         .background(.quaternary.opacity(0.25), in: RoundedRectangle(cornerRadius: 12))
@@ -89,35 +90,75 @@ struct DashboardNewsTickerView: View {
         return headlines + headlines.prefix(effectiveVisibleRows)
     }
 
-    private func headlineRow(_ headline: DashboardNewsHeadline) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            headlineTitleButton(headline)
+    private func enrichment(for headline: DashboardNewsHeadline) -> DashboardNewsEnrichment {
+        enrichments[headline.id]
+            ?? DashboardNewsAnalysisService.fallbackEnrichment(for: headline)
+    }
 
-            if !headline.summary.isEmpty {
-                Text(headline.summary)
+    private func headlineRow(_ headline: DashboardNewsHeadline) -> some View {
+        let enrichment = enrichment(for: headline)
+        let mood = enrichment.mood
+        let displayTitle = DashboardNewsAnalysisService.cleanedTitle(headline.title)
+
+        return HStack(alignment: .top, spacing: 10) {
+            RoundedRectangle(cornerRadius: 2, style: .continuous)
+                .fill(mood.accentColor)
+                .frame(width: 4)
+                .padding(.vertical, 2)
+
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    moodBadge(mood)
+                    Spacer(minLength: 0)
+                    if let publishedAt = headline.publishedAt {
+                        Text(relativeTime(from: publishedAt))
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                    }
+                }
+
+                headlineTitleButton(displayTitle, link: headline.link)
+
+                Text(enrichment.readerSummary)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(4)
+                    .foregroundStyle(.primary.opacity(0.88))
+                    .lineLimit(3)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Text(enrichment.moodExplanation)
+                    .font(.caption2)
+                    .foregroundStyle(mood.accentColor.opacity(0.92))
+                    .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
             }
-
-            if let publishedAt = headline.publishedAt {
-                Text(relativeTime(from: publishedAt))
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-            }
         }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.vertical, 4)
+        .background(mood.backgroundColor, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .strokeBorder(mood.accentColor.opacity(0.22), lineWidth: 1)
+        }
+        .padding(.vertical, 2)
+    }
+
+    private func moodBadge(_ mood: DashboardNewsMood) -> some View {
+        Label(mood.label, systemImage: mood.systemImage)
+            .font(.caption2.weight(.semibold))
+            .foregroundStyle(mood.accentColor)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(mood.accentColor.opacity(0.14), in: Capsule())
     }
 
     @ViewBuilder
-    private func headlineTitleButton(_ headline: DashboardNewsHeadline) -> some View {
-        if let link = headline.link {
+    private func headlineTitleButton(_ title: String, link: URL?) -> some View {
+        if let link {
             Button {
                 ChromeLauncher.open(url: link)
             } label: {
-                Text(headline.title)
+                Text(title)
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.primary)
                     .multilineTextAlignment(.leading)
@@ -133,7 +174,7 @@ struct DashboardNewsTickerView: View {
                 }
             }
         } else {
-            Text(headline.title)
+            Text(title)
                 .font(.subheadline.weight(.semibold))
                 .lineLimit(2)
         }
@@ -200,6 +241,37 @@ struct DashboardNewsTickerView: View {
             visibleIndex = 0
         } else {
             visibleIndex += 1
+        }
+    }
+}
+
+private extension DashboardNewsMood {
+    var accentColor: Color {
+        switch self {
+        case .uplifting:
+            return Color(red: 0.18, green: 0.62, blue: 0.34)
+        case .neutral:
+            return Color(red: 0.36, green: 0.48, blue: 0.62)
+        case .analytical:
+            return Color(red: 0.24, green: 0.45, blue: 0.82)
+        case .concerning:
+            return Color(red: 0.86, green: 0.52, blue: 0.14)
+        case .urgent:
+            return Color(red: 0.84, green: 0.22, blue: 0.24)
+        }
+    }
+
+    var backgroundColor: Color {
+        accentColor.opacity(0.10)
+    }
+
+    var systemImage: String {
+        switch self {
+        case .uplifting: return "sun.max.fill"
+        case .neutral: return "newspaper.fill"
+        case .analytical: return "chart.bar.doc.horizontal.fill"
+        case .concerning: return "exclamationmark.triangle.fill"
+        case .urgent: return "bolt.fill"
         }
     }
 }

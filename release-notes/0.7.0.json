@@ -1,0 +1,21 @@
+{
+  "version": "0.7.0",
+  "summary": "Smarter news with mood-aware summaries, plus Dashboard alerts when new email arrives.",
+  "releaseNotes": {
+    "introduced": [
+      "News feed analyzes each headline for mood — uplifting, informative, analytical, concerning, or breaking — with color-coded cards and a plain-language summary",
+      "Each news story includes a short mood explanation so you know why it feels urgent, concerning, or positive before you open it",
+      "Dashboard modal when new email arrives while you are on the Dashboard — shows the count, a preview, and Open inbox to jump straight to mail",
+      "Unread email in the Summary metrics box is highlighted in yellow whenever you have mail waiting"
+    ],
+    "changed": [
+      "News summaries are rewritten for everyday readers — In brief explains what happened and why it matters",
+      "Apple Intelligence improves news summaries and mood notes when available, with smart fallbacks offline",
+      "New email alerts queue while you are away from the Dashboard and appear when you return"
+    ],
+    "fixed": [],
+    "updated": [],
+    "removed": [],
+    "breaking": []
+  }
+}

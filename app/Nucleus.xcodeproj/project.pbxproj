@@ -37,6 +37,7 @@
 		4F29C2E3364B7255A5262494 /* DashboardClipboardDayAnalysisService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 329FF20CA7D961E315EAAC62 /* DashboardClipboardDayAnalysisService.swift */; };
 		4F9239E03B04C76F97BF4728 /* SettingsSyncBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18EF3BE5CDCDF196B18E0AAC /* SettingsSyncBridge.swift */; };
 		51EAB3CEA8190FEC48F1F8B8 /* NotesWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 953865571573F05622595783 /* NotesWorkspaceView.swift */; };
+		51F5F59CEBB58934E8084747 /* DashboardNewsAnalysisService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A73239886ECAEB5F1DE3660 /* DashboardNewsAnalysisService.swift */; };
 		5239A1B7AB185A4515F4E005 /* MenuBarPopoverSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = D12215EBDC2CCD7294F9F071 /* MenuBarPopoverSession.swift */; };
 		54097C655AC0AD8DD2FCFDFC /* DashboardAnalysisService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5BDDEC8A6712481CBFAABBE /* DashboardAnalysisService.swift */; };
 		56034055BB801694A50A22D7 /* MenuBarNucleusIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = B42E9D0E0216144EA63B3A7F /* MenuBarNucleusIcon.swift */; };
@@ -64,6 +65,7 @@
 		98D83C9FEF7CEB8DF54441FE /* HourlyBeep.swift in Sources */ = {isa = PBXBuildFile; fileRef = 046B650FCA89CA8C322D0A3B /* HourlyBeep.swift */; };
 		9B0DCC0F8A21372D7F8D82F1 /* WorkspaceStatusBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95F9299FA19C03821267F616 /* WorkspaceStatusBadge.swift */; };
 		9DD421879CE8E2380986DE94 /* GmailWebSessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C19EFA3DE919CAF339A8D6E /* GmailWebSessionStore.swift */; };
+		9EC8527F349AA5FE72F4ABE8 /* DashboardIncomingMailOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E48A7B5023CD11F5F01726F /* DashboardIncomingMailOverlay.swift */; };
 		A1A5748F0C26C23E62073279 /* DashboardProcessMetricsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5A1AEBE23399CD601B924A8 /* DashboardProcessMetricsService.swift */; };
 		AA2B9B165190FE2E23E7AD95 /* MailInboxLoadingPhase.swift in Sources */ = {isa = PBXBuildFile; fileRef = C201B6D32546E035E9D04B57 /* MailInboxLoadingPhase.swift */; };
 		B78F1CBC004C7A7D60CE6175 /* DashboardQuotes.json in Resources */ = {isa = PBXBuildFile; fileRef = B1446CE8EB0EF69B17A5FEAE /* DashboardQuotes.json */; };
@@ -98,6 +100,7 @@
 		035D0E9FC4A418A7C52523C6 /* DockBadgeController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DockBadgeController.swift; sourceTree = "<group>"; };
 		046B650FCA89CA8C322D0A3B /* HourlyBeep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HourlyBeep.swift; sourceTree = "<group>"; };
 		0A4515FC13933C08473E2A2F /* BillsWorkspaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BillsWorkspaceView.swift; sourceTree = "<group>"; };
+		0A73239886ECAEB5F1DE3660 /* DashboardNewsAnalysisService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardNewsAnalysisService.swift; sourceTree = "<group>"; };
 		0B2285F2575AB46242481E99 /* WeatherKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WeatherKit.framework; path = System/Library/Frameworks/WeatherKit.framework; sourceTree = SDKROOT; };
 		0E94FBF67AC3185DD7F65D61 /* nucleus */ = {isa = PBXFileReference; lastKnownFileType = folder; name = nucleus; path = ..; sourceTree = SOURCE_ROOT; };
 		18EF3BE5CDCDF196B18E0AAC /* SettingsSyncBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsSyncBridge.swift; sourceTree = "<group>"; };
@@ -114,6 +117,7 @@
 		3C96EA452B81430207A5A9FB /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		414321C6FA288B25C3F312A3 /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
 		4A99D2A6C2B4A64C1E115EC0 /* DashboardPublicHolidayService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardPublicHolidayService.swift; sourceTree = "<group>"; };
+		4E48A7B5023CD11F5F01726F /* DashboardIncomingMailOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardIncomingMailOverlay.swift; sourceTree = "<group>"; };
 		4FE025998DE849CA2FCBCC91 /* NucleusTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NucleusTheme.swift; sourceTree = "<group>"; };
 		500EAAED9E0A3F359D797709 /* Funky.caf */ = {isa = PBXFileReference; path = Funky.caf; sourceTree = "<group>"; };
 		50537B36D31255DB7C3030C9 /* BackgroundSyncServices.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundSyncServices.swift; sourceTree = "<group>"; };
@@ -209,6 +213,7 @@
 				536C10D58B577BC3DF9EE13E /* ClipboardPasswordSuggestionOverlay.swift */,
 				2D130F5FD244D81A8B8DBE22 /* ClipboardPickerView.swift */,
 				C643F64124025FA6F196C435 /* ClipboardWorkspaceView.swift */,
+				4E48A7B5023CD11F5F01726F /* DashboardIncomingMailOverlay.swift */,
 				75CD049259B1B6242B15B6DF /* DashboardNewsTickerView.swift */,
 				F695044507986F1B738A6465 /* DashboardWorkspaceView.swift */,
 				C201B6D32546E035E9D04B57 /* MailInboxLoadingPhase.swift */,
@@ -276,6 +281,7 @@
 				A5BDDEC8A6712481CBFAABBE /* DashboardAnalysisService.swift */,
 				329FF20CA7D961E315EAAC62 /* DashboardClipboardDayAnalysisService.swift */,
 				6F3E574A6A6CAA16B60DF4F8 /* DashboardLocationSubdivisionResolver.swift */,
+				0A73239886ECAEB5F1DE3660 /* DashboardNewsAnalysisService.swift */,
 				7070B325206A2DB90B1C3F2C /* DashboardNewsFeedService.swift */,
 				A5A1AEBE23399CD601B924A8 /* DashboardProcessMetricsService.swift */,
 				DA1A423DE933BDFCA8CCE384 /* DashboardPublicHolidayCountryCatalog.swift */,
@@ -463,7 +469,9 @@
 				F0D6500DCFA05119C86E72BE /* CloudKitStoreMigration.swift in Sources */,
 				54097C655AC0AD8DD2FCFDFC /* DashboardAnalysisService.swift in Sources */,
 				4F29C2E3364B7255A5262494 /* DashboardClipboardDayAnalysisService.swift in Sources */,
+				9EC8527F349AA5FE72F4ABE8 /* DashboardIncomingMailOverlay.swift in Sources */,
 				3CAE1AF1473C860F9A01DED6 /* DashboardLocationSubdivisionResolver.swift in Sources */,
+				51F5F59CEBB58934E8084747 /* DashboardNewsAnalysisService.swift in Sources */,
 				DC31225F8CF5E258002AAF0A /* DashboardNewsFeedService.swift in Sources */,
 				4071421F270EE4B407D173F7 /* DashboardNewsTickerView.swift in Sources */,
 				A1A5748F0C26C23E62073279 /* DashboardProcessMetricsService.swift in Sources */,

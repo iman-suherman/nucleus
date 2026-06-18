@@ -52,6 +52,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
     @Published var showWhatsNew = false
     @Published var whatsNewRelease: AppReleaseNotes?
     @Published var quickReplyContext: QuickReplyContext?
+    @Published var dashboardIncomingMailPrompt: DashboardIncomingMailPrompt?
     @Published var clipboardPasswordSuggestion: ClipboardPasswordSuggestion?
     @Published private(set) var storedDashboardAnalysis: StoredDashboardAnalysis?
     @Published var dashboardAnalyzedAt: Date?
@@ -74,6 +75,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
     private var chatUnreadBaselineEstablished = Set<UUID>()
     private var notifiedMessageIDs = Set<String>()
     private var pendingMailNotificationDeltas: [UUID: Int] = [:]
+    private var queuedDashboardIncomingMail: DashboardIncomingMailPrompt?
     private var mailUnreadSyncBaselineEstablished = Set<UUID>()
     private var mailSignInPendingAccountIDs = Set<UUID>()
     private var billReminderRefreshTask: Task<Void, Never>?
@@ -197,6 +199,75 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         AppSettings.shared.selectedWorkspacePane = pane.rawValue
         pushSyncedConfiguration()
         WorkspaceIdleController.shared.recordActivity()
+        revealQueuedDashboardIncomingMailIfNeeded()
+    }
+
+    func dismissDashboardIncomingMail() {
+        dashboardIncomingMailPrompt = nil
+    }
+
+    func openDashboardIncomingMail() {
+        guard let prompt = dashboardIncomingMailPrompt else { return }
+        AppSettings.shared.selectedMailAccountID = prompt.primaryAccountID
+        dashboardIncomingMailPrompt = nil
+        queuedDashboardIncomingMail = nil
+        sidebarSelection = .workspace(.inbox)
+    }
+
+    private var isShowingDashboard: Bool {
+        if case .workspace(.dashboard) = sidebarSelection {
+            return true
+        }
+        return false
+    }
+
+    private func accountDisplayName(for accountID: UUID) -> String {
+        guard let account = accounts.first(where: { $0.id == accountID }) else {
+            return "Inbox"
+        }
+        return account.displayName.isEmpty ? account.email : account.displayName
+    }
+
+    private func presentDashboardIncomingMail(
+        accountID: UUID,
+        delta: Int,
+        messages: [MailMessageSummary] = []
+    ) {
+        guard delta > 0 else { return }
+
+        let merged = DashboardIncomingMailPrompt.merged(
+            existing: queuedDashboardIncomingMail ?? dashboardIncomingMailPrompt,
+            accountID: accountID,
+            accountName: accountDisplayName(for: accountID),
+            delta: delta,
+            totalUnread: totalUnread,
+            messages: messages
+        )
+        guard merged.newCount > 0 else { return }
+
+        if isShowingDashboard {
+            dashboardIncomingMailPrompt = merged
+            queuedDashboardIncomingMail = nil
+        } else {
+            queuedDashboardIncomingMail = merged
+        }
+    }
+
+    func refreshDashboardIncomingMailAlertIfNeeded() {
+        revealQueuedDashboardIncomingMailIfNeeded()
+    }
+
+    private func revealQueuedDashboardIncomingMailIfNeeded() {
+        guard isShowingDashboard, let queued = queuedDashboardIncomingMail else { return }
+        dashboardIncomingMailPrompt = DashboardIncomingMailPrompt.merged(
+            existing: dashboardIncomingMailPrompt,
+            accountID: queued.primaryAccountID,
+            accountName: queued.accountName,
+            delta: queued.newCount,
+            totalUnread: totalUnread,
+            messages: queued.previewMessages
+        )
+        queuedDashboardIncomingMail = nil
     }
 
     func openSettings(tab: SettingsTab) {
@@ -326,6 +397,14 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
             delivered += 1
         }
 
+        if delivered > 0 {
+            presentDashboardIncomingMail(
+                accountID: accountID,
+                delta: delivered,
+                messages: Array(orderedCandidates.prefix(delivered))
+            )
+        }
+
         return delivered
     }
 
@@ -355,6 +434,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
                     accountName: accountName,
                     accountID: account.id
                 )
+                presentDashboardIncomingMail(accountID: account.id, delta: delta)
             }
             pendingMailNotificationDeltas.removeValue(forKey: account.id)
         }
