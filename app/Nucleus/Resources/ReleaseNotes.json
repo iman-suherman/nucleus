@@ -1,12 +1,18 @@
 {
-  "version": "0.6.16",
-  "summary": "The 7-day weather strip skips today, and the news feed aligns with the weather card when shown side by side.",
+  "version": "0.6.17",
+  "summary": "Weather controls, smarter location lookup, combined multi-country news, and clearer public holiday labels on the Dashboard.",
   "releaseNotes": {
-    "introduced": [],
+    "introduced": [
+      "Change location button on the weather panel — enter a city or postcode, or switch back to your device location",
+      "Manual city/postcode entry appears while GPS lookup is still running if finding your location takes a while",
+      "News feed combines headlines from your detected country and every public-holiday country you follow"
+    ],
     "changed": [
-      "7-day weather forecast strip shows tomorrow through the next week — today stays in the main weather card only",
-      "News feed height matches the weather card on the dashboard so the two panels line up cleanly side by side",
-      "Removed the duplicate weather heading inside the left context panel on macOS"
+      "Sync button on the weather panel refreshes today's forecast without reloading the whole Dashboard",
+      "News feed title shows which countries the headlines come from, e.g. Australia and Indonesia",
+      "Public holiday section titles read naturally — Public holidays in Roseville, Australia and Indonesia",
+      "News feed height matches the full left context panel (weather, resource usage, and cloud sync)",
+      "Weather location lookup no longer fires duplicate GPS requests while a fix is already in progress"
     ],
     "fixed": [],
     "updated": [],
