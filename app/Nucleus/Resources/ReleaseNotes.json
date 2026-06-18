@@ -1,24 +1,16 @@
 {
-  "version": "0.7.1",
-  "summary": "Removes Calendar and Chat workspaces to focus Nucleus on mail, bills, clipboard, notes, and passwords.",
+  "version": "0.7.2",
+  "summary": "Dashboard Summary adds a Recent clips metric, and the marketing site feature grid is capped at twelve cards.",
   "releaseNotes": {
     "introduced": [],
     "changed": [
-      "Sidebar workspace list now covers Dashboard, Inbox, Clipboard, Notes and Passwords, and Bills",
-      "Dashboard summary metrics focus on unread email, saved passwords, and upcoming bills",
-      "Intelligent insight copy describes inbox status without chat mentions"
+      "Dashboard Summary header now includes your recent clip count alongside email and passwords",
+      "Summary metrics add a Recent clips tile — tap it to jump straight to the Clipboard workspace",
+      "Marketing website Everything in one workspace section shows twelve feature cards, including News feed"
     ],
     "fixed": [],
-    "updated": [
-      "Marketing website copy updated to match the slimmer workspace scope"
-    ],
-    "removed": [
-      "Google Calendar workspace and embedded week view",
-      "Google Chat workspace, unread polling, dock badges, and chat notification settings tab",
-      "Chat and calendar notification toggles from Settings"
-    ],
-    "breaking": [
-      "Saved sidebar selection for Calendar or Chat resets to Dashboard on upgrade"
-    ]
+    "updated": [],
+    "removed": [],
+    "breaking": []
   }
 }
