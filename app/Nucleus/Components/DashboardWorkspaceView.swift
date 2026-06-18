@@ -20,6 +20,7 @@ struct DashboardWorkspaceView: View {
     @State private var holidayIcons: [String: String] = [:]
     @State private var holidayMetadataTask: Task<Void, Never>?
     @State private var companionCountryIndex = 0
+    @State private var weatherGroupHeight: CGFloat = 0
 
     @State private var isConnectingNucleusCloud = false
     @State private var nucleusCloudMessage: String?
@@ -162,6 +163,9 @@ struct DashboardWorkspaceView: View {
             }
             if showsWeatherResourceRow {
                 weatherResourceAndSidebarRow
+                    .onPreferenceChange(WeatherGroupHeightKey.self) { height in
+                        weatherGroupHeight = height
+                    }
             }
             if dashboardPreferences.publicHolidayEnabled {
                 publicHolidayRow
@@ -635,8 +639,15 @@ struct DashboardWorkspaceView: View {
             headlines: newsFeedService.headlines,
             isLoading: newsFeedService.isLoading,
             statusMessage: newsFeedService.statusMessage,
-            showsHeader: false
+            showsHeader: false,
+            preferredContentHeight: matchesNewsFeedToWeatherHeight ? weatherGroupHeight : nil
         )
+    }
+
+    private var matchesNewsFeedToWeatherHeight: Bool {
+        dashboardPreferences.weatherEnabled
+            && dashboardPreferences.newsFeedEnabled
+            && showsLeftContextPanels
     }
 
     private func holidayCacheToken(for holiday: DashboardNextPublicHoliday) -> String {
@@ -886,17 +897,7 @@ struct DashboardWorkspaceView: View {
 
     @ViewBuilder
     private var weatherForecastSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            if let weather = weatherService.weather, let cityName = weather.cityName {
-                Label("Weather · \(cityName)", systemImage: "cloud.sun.fill")
-                    .font(.headline)
-                    .symbolRenderingMode(.multicolor)
-            } else {
-                Label("Weather", systemImage: "cloud.sun.fill")
-                    .font(.headline)
-                    .symbolRenderingMode(.multicolor)
-            }
-
+        Group {
             if let prompt = weatherService.locationAccessPrompt {
                 locationAccessPromptCard(prompt)
             } else if let weather = weatherService.weather {
@@ -979,6 +980,12 @@ struct DashboardWorkspaceView: View {
                 .padding(14)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(.quaternary.opacity(0.25), in: RoundedRectangle(cornerRadius: 12))
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background {
+            GeometryReader { proxy in
+                Color.clear.preference(key: WeatherGroupHeightKey.self, value: proxy.size.height)
             }
         }
     }
@@ -1532,5 +1539,13 @@ private struct ResourceUsageSummaryCard: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+private struct WeatherGroupHeightKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
     }
 }

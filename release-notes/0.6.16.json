@@ -1,0 +1,16 @@
+{
+  "version": "0.6.16",
+  "summary": "The 7-day weather strip skips today, and the news feed aligns with the weather card when shown side by side.",
+  "releaseNotes": {
+    "introduced": [],
+    "changed": [
+      "7-day weather forecast strip shows tomorrow through the next week — today stays in the main weather card only",
+      "News feed height matches the weather card on the dashboard so the two panels line up cleanly side by side",
+      "Removed the duplicate weather heading inside the left context panel on macOS"
+    ],
+    "fixed": [],
+    "updated": [],
+    "removed": [],
+    "breaking": []
+  }
+}

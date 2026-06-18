@@ -547,16 +547,18 @@ final class DashboardWeatherService: NSObject, ObservableObject {
         let dayNameFormatter = DateFormatter()
         dayNameFormatter.dateFormat = "EEE"
 
-        let dailyForecast = weather.dailyForecast.prefix(7).map { day in
-            let isToday = calendar.isDate(day.date, inSameDayAs: now)
-            return DashboardDailyWeatherForecast(
-                date: day.date,
-                dayLabel: isToday ? "Today" : dayNameFormatter.string(from: day.date),
-                conditionSymbol: symbolName(for: day.condition),
-                highTemperature: formatter.string(from: day.highTemperature),
-                lowTemperature: formatter.string(from: day.lowTemperature)
-            )
-        }
+        let dailyForecast = weather.dailyForecast
+            .filter { !calendar.isDate($0.date, inSameDayAs: now) }
+            .prefix(7)
+            .map { day in
+                DashboardDailyWeatherForecast(
+                    date: day.date,
+                    dayLabel: dayNameFormatter.string(from: day.date),
+                    conditionSymbol: symbolName(for: day.condition),
+                    highTemperature: formatter.string(from: day.highTemperature),
+                    lowTemperature: formatter.string(from: day.lowTemperature)
+                )
+            }
 
         return DashboardTodayWeather(
             cityName: cityName,

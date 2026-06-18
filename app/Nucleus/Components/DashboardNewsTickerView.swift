@@ -6,6 +6,7 @@ struct DashboardNewsTickerView: View {
     let isLoading: Bool
     let statusMessage: String?
     var showsHeader: Bool = true
+    var preferredContentHeight: CGFloat?
 
     @State private var visibleIndex = 0
     @State private var scrollTimer: Timer?
@@ -13,6 +14,21 @@ struct DashboardNewsTickerView: View {
     private let rowHeight: CGFloat = 112
     private let visibleRows = 4
     private let advanceInterval: TimeInterval = 12
+    private let cardVerticalPadding: CGFloat = 20
+
+    private var viewportHeight: CGFloat {
+        if let preferredContentHeight, preferredContentHeight > 0 {
+            return max(preferredContentHeight - cardVerticalPadding, rowHeight)
+        }
+        return rowHeight * CGFloat(visibleRows)
+    }
+
+    private var effectiveVisibleRows: Int {
+        if preferredContentHeight != nil {
+            return max(1, Int(viewportHeight / rowHeight))
+        }
+        return visibleRows
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -40,6 +56,10 @@ struct DashboardNewsTickerView: View {
             visibleIndex = 0
             restartScrolling()
         }
+        .onChange(of: preferredContentHeight) { _, _ in
+            visibleIndex = 0
+            restartScrolling()
+        }
     }
 
     private var tickerCard: some View {
@@ -56,17 +76,17 @@ struct DashboardNewsTickerView: View {
             .offset(y: -offset)
             .animation(.easeInOut(duration: 0.85), value: visibleIndex)
         }
-        .frame(height: rowHeight * CGFloat(visibleRows), alignment: .top)
+        .frame(height: viewportHeight, alignment: .top)
         .clipped()
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, minHeight: preferredContentHeight, alignment: .leading)
         .background(.quaternary.opacity(0.25), in: RoundedRectangle(cornerRadius: 12))
     }
 
     private var loopedHeadlines: [DashboardNewsHeadline] {
         guard !headlines.isEmpty else { return [] }
-        return headlines + headlines.prefix(visibleRows)
+        return headlines + headlines.prefix(effectiveVisibleRows)
     }
 
     private func headlineRow(_ headline: DashboardNewsHeadline) -> some View {
@@ -128,7 +148,7 @@ struct DashboardNewsTickerView: View {
                 .foregroundStyle(.secondary)
         }
         .padding(14)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, minHeight: preferredContentHeight, alignment: .leading)
         .background(.quaternary.opacity(0.25), in: RoundedRectangle(cornerRadius: 12))
     }
 
@@ -137,7 +157,7 @@ struct DashboardNewsTickerView: View {
             .font(.caption)
             .foregroundStyle(.secondary)
             .padding(14)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(maxWidth: .infinity, minHeight: preferredContentHeight, alignment: .leading)
             .background(.quaternary.opacity(0.25), in: RoundedRectangle(cornerRadius: 12))
     }
 
@@ -152,7 +172,7 @@ struct DashboardNewsTickerView: View {
     }
 
     private func startScrollingIfNeeded() {
-        guard scrollTimer == nil, headlines.count > visibleRows else { return }
+        guard scrollTimer == nil, headlines.count > effectiveVisibleRows else { return }
         scrollTimer = Timer.scheduledTimer(withTimeInterval: advanceInterval, repeats: true) { _ in
             Task { @MainActor in
                 advanceTicker()
