@@ -18,7 +18,7 @@ const dashboardModules = [
     title: "Intelligent insight",
     eyebrow: "Workspace status at a glance",
     description:
-      "A dated narrative that weaves together unread mail, chat messages, saved passwords, upcoming bills, and clipboard trends — so you know what needs attention before opening a single tab.",
+      "A dated narrative that weaves together unread mail, saved passwords, upcoming bills, and clipboard trends — so you know what needs attention before opening a single tab.",
     bullets: [
       "Collapsible sections keep the dashboard scannable when you only need a quick read",
       "Manual Analyse Now with automatic refresh every 30 minutes",
@@ -43,7 +43,7 @@ const dashboardModules = [
     description:
       "Weather, live CPU and memory for Nucleus, Nucleus Cloud and iCloud sync status, the next public holiday, a scrolling news feed, summary metrics, and payment preparation — all configurable from Settings → Dashboard.",
     bullets: [
-      "Jump straight into mail, chat, passwords, or bills from summary tiles",
+      "Jump straight into mail, passwords, or bills from summary tiles",
       "Payment preparation groups bills due in the next two weeks by category and currency",
       "Toggle any section on or off to match how you start your day",
     ],

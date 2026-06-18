@@ -10,7 +10,7 @@ final class DashboardInsightsEngineTests: XCTestCase {
         )
         let snapshot = DashboardInsightsEngine.build(
             unreadMailCount: 2,
-            unreadChatCount: 1,
+            unreadChatCount: 0,
             passwordCount: 3,
             notesCount: 5,
             bills: [bill],
@@ -22,7 +22,7 @@ final class DashboardInsightsEngineTests: XCTestCase {
         )
 
         XCTAssertEqual(snapshot.unreadMailCount, 2)
-        XCTAssertEqual(snapshot.unreadChatCount, 1)
+        XCTAssertEqual(snapshot.unreadChatCount, 0)
         XCTAssertEqual(snapshot.passwordCount, 3)
         XCTAssertEqual(snapshot.upcomingBills.count, 1)
         XCTAssertEqual(snapshot.upcomingBills.first?.name, "Internet")

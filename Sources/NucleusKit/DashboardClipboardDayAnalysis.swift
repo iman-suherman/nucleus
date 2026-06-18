@@ -135,7 +135,6 @@ public enum DashboardClipboardDigestBuilder {
         lines.append("")
         lines.append("Workspace context:")
         lines.append("- Unread emails: \(snapshot.unreadMailCount)")
-        lines.append("- Unread chat messages: \(snapshot.unreadChatCount)")
         lines.append("- Saved passwords: \(snapshot.passwordCount)")
 
         if snapshot.upcomingBills.isEmpty {

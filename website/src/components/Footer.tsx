@@ -6,9 +6,9 @@ export function Footer() {
     <footer className="border-t border-white/10 bg-black/40">
       <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 sm:py-6">
         <p className="max-w-5xl text-sm leading-6 text-slate-400">
-          {BRAND_NAME} is a native macOS personal operating system for Gmail, Google Chat, calendar,
-          bills, clipboard, notes, passwords, and Funky alerts — with a Dashboard that analyses your
-          day from clipboard activity, plus Nucleus Cloud and iCloud sync.
+          {BRAND_NAME} is a native macOS personal operating system for Gmail, bills, clipboard,
+          notes, passwords, and Funky alerts — with a Dashboard that analyses your day from
+          clipboard activity, plus Nucleus Cloud and iCloud sync.
           Your Google web sessions stay in isolated cookie stores on your Mac. Contributions and
           issue reports are welcome on{" "}
           <a

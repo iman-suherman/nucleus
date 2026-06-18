@@ -40,8 +40,6 @@ public struct GoogleAccount: Identifiable, Codable, Hashable, Sendable {
 public enum WorkspacePane: String, CaseIterable, Identifiable, Sendable {
     case dashboard
     case inbox
-    case calendar
-    case chat
     case clipboard
     case notes
     case bills
@@ -54,8 +52,6 @@ public enum WorkspacePane: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .dashboard: return "Dashboard"
         case .inbox: return "Inbox"
-        case .calendar: return "Calendar"
-        case .chat: return "Chat"
         case .clipboard: return "Clipboard"
         case .notes: return "Notes and Passwords"
         case .bills: return "Bills"
@@ -68,8 +64,6 @@ public enum WorkspacePane: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .dashboard: return "Summary, bills, and activity"
         case .inbox: return "Gmail across all accounts"
-        case .calendar: return "Google Calendar in Nucleus"
-        case .chat: return "Google Chat messages"
         case .clipboard: return "Recent clips and templates"
         case .notes: return "Markdown notes and password vault"
         case .bills: return "Monthly bills and payments"
@@ -82,8 +76,6 @@ public enum WorkspacePane: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .dashboard: return "square.grid.2x2.fill"
         case .inbox: return "tray.full"
-        case .calendar: return "calendar"
-        case .chat: return "message"
         case .clipboard: return "doc.on.clipboard"
         case .notes: return "note.text"
         case .bills: return "dollarsign.circle"
@@ -92,7 +84,7 @@ public enum WorkspacePane: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
-    public static let primaryWorkspaces: [WorkspacePane] = [.dashboard, .inbox, .calendar, .chat, .clipboard, .notes, .bills]
+    public static let primaryWorkspaces: [WorkspacePane] = [.dashboard, .inbox, .clipboard, .notes, .bills]
     public static let utilityWorkspaces: [WorkspacePane] = [.settings, .accounts]
 }
 

@@ -11,8 +11,8 @@ enum DockBadgeController {
         alpha: 1
     )
 
-    static func update(mailUnread: Int, chatUnread: Int, billsDueSoon: Int) {
-        if mailUnread == 0 && chatUnread == 0 && billsDueSoon == 0 {
+    static func update(mailUnread: Int, billsDueSoon: Int) {
+        if mailUnread == 0 && billsDueSoon == 0 {
             NSApp.dockTile.badgeLabel = nil
             NSApp.dockTile.contentView = nil
             NSApp.dockTile.display()
@@ -39,12 +39,6 @@ enum DockBadgeController {
         if mailUnread > 0 {
             contentView.addSubview(
                 makeBadge(count: mailUnread, color: .systemRed, corner: .topTrailing, scale: 1.25)
-            )
-        }
-
-        if chatUnread > 0 {
-            contentView.addSubview(
-                makeBadge(count: chatUnread, color: .systemBlue, corner: .bottomTrailing, scale: 1.1)
             )
         }
 

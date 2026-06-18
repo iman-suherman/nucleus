@@ -54,15 +54,14 @@ const sections = [
     title: "Notifications",
     bullets: [
       "Bill due reminders are scheduled as local notifications on your device based on bills you track in the app",
-      "Calendar-related settings may sync with your Mac; the iOS app does not read Google Calendar directly in this release",
-      "Email and chat notification toggles sync with your Mac settings but do not deliver remote push notifications on iOS unless a separate push service is configured by you",
+      "Email notification toggles sync with your Mac settings but do not deliver remote push notifications on iOS unless a separate push service is configured by you",
     ],
   },
   {
     title: "Google accounts (macOS)",
     paragraphs: [
-      "The macOS app can connect Gmail, Google Chat, and Google Calendar through Google sign-in in an embedded web session. Google OAuth tokens can optionally sync via iCloud Keychain when that setting is enabled on your Mac.",
-      "The iOS companion app does not include Mail, Chat, or Calendar workspaces and does not require Google sign-in.",
+      "The macOS app connects Gmail through Google sign-in in an embedded web session. Google OAuth tokens can optionally sync via iCloud Keychain when that setting is enabled on your Mac.",
+      "The iOS companion app does not include a Mail workspace and does not require Google sign-in.",
     ],
   },
   {

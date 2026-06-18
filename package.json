@@ -4,7 +4,7 @@
   "displayName": "Nucleus",
   "publisher": "Iman Suherman",
   "private": true,
-  "description": "Personal Operating System for macOS. A native Swift workspace that unifies Gmail, Google Calendar, notes, clipboard intelligence, notifications, and meeting workflows across multiple Google accounts.",
+  "description": "Personal Operating System for macOS. A native Swift workspace that unifies Gmail, notes, clipboard intelligence, bills, passwords, and notifications across multiple Google accounts.",
   "dependencies": {
     "@google-cloud/firestore": "^8.6.0"
   },

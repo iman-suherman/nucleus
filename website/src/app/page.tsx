@@ -10,7 +10,7 @@ import { SHARE_IMAGE, SITE_URL } from "@/lib/site";
 
 const homeTitle = "Nucleus — Personal Operating System for macOS";
 const homeDescription =
-  "Unify Gmail, Google Chat, Calendar, bills, clipboard intelligence, markdown notes, password vault, and Funky alerts across multiple Google accounts — with a Dashboard that analyses your day, surfaces productivity insights from clipboard activity, and summarizes what needs attention at a glance.";
+  "Unify Gmail, bills, clipboard intelligence, markdown notes, password vault, and Funky alerts across multiple Google accounts — with a Dashboard that analyses your day, surfaces productivity insights from clipboard activity, and summarizes what needs attention at a glance.";
 
 export const metadata: Metadata = {
   title: homeTitle,

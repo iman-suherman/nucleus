@@ -6,8 +6,6 @@ import WebKit
 enum EmbeddedWebViewRegistry {
     enum Surface: Hashable {
         case mail
-        case chat
-        case calendar
     }
 
     private static let safariUserAgent =
@@ -52,23 +50,13 @@ enum EmbeddedWebViewRegistry {
     }
 
     static func remove(accountID: UUID) {
-        for surface in [Surface.mail, .chat, .calendar] {
-            let key = CacheKey(accountID: accountID, surface: surface)
-            webViews.removeValue(forKey: key)?.stopLoading()
-        }
+        let key = CacheKey(accountID: accountID, surface: .mail)
+        webViews.removeValue(forKey: key)?.stopLoading()
     }
 
     static func syncVisibility(activePane: WorkspacePane?) {
         for (key, webView) in webViews {
-            let pane: WorkspacePane
-            switch key.surface {
-            case .mail:
-                pane = .inbox
-            case .chat:
-                pane = .chat
-            case .calendar:
-                pane = .calendar
-            }
+            let pane: WorkspacePane = .inbox
             if activePane != pane {
                 webView.setEmbeddedVisibility(false)
             }

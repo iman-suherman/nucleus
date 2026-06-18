@@ -503,17 +503,12 @@ public enum DashboardInsightsEngine {
         var openingParts: [String] = []
 
         if includeCommunicationActivity {
-            if unreadMailCount == 0, unreadChatCount == 0 {
-                openingParts.append("Your inbox and chat are clear right now.")
+            if unreadMailCount == 0 {
+                openingParts.append("Your inbox is clear right now.")
             } else {
-                var comms: [String] = []
-                if unreadMailCount > 0 {
-                    comms.append("\(unreadMailCount) unread email\(unreadMailCount == 1 ? "" : "s")")
-                }
-                if unreadChatCount > 0 {
-                    comms.append("\(unreadChatCount) unread chat message\(unreadChatCount == 1 ? "" : "s")")
-                }
-                openingParts.append("You have \(comms.joined(separator: " and ")) waiting for attention.")
+                openingParts.append(
+                    "You have \(unreadMailCount) unread email\(unreadMailCount == 1 ? "" : "s") waiting for attention."
+                )
             }
         }
 

@@ -18,7 +18,7 @@ const features = [
   {
     title: "Intelligent insight",
     description:
-      "Rule-based analysis turns unread mail, chat, passwords, bills, and clipboard captures into a dated workspace narrative. Collapsible on the Dashboard with manual Analyse Now and automatic refresh every 30 minutes.",
+      "Rule-based analysis turns unread mail, passwords, bills, and clipboard captures into a dated workspace narrative. Collapsible on the Dashboard with manual Analyse Now and automatic refresh every 30 minutes.",
     icon: "🧠",
   },
   {
@@ -32,18 +32,6 @@ const features = [
     description:
       "Category tabs for Personal, Work, and Client inboxes with isolated web sessions per account. Unread badges, per-message alerts, dock badge sync, and external links open in your browser.",
     icon: "✉️",
-  },
-  {
-    title: "Google Chat workspace",
-    description:
-      "Dedicated Chat sidebar with per-account tabs, green unread badges, background polling even when Chat isn't open, and Funky alert sounds when new messages arrive.",
-    icon: "💬",
-  },
-  {
-    title: "Unified calendar",
-    description:
-      "Embedded Google Calendar week view for each web-sign-in account — switch between Personal, Work, and Client calendars without leaving Nucleus.",
-    icon: "📅",
   },
   {
     title: "Clipboard memory",
@@ -66,7 +54,7 @@ const features = [
   {
     title: "Smart notifications",
     description:
-      "Per-message email alerts with sender and subject, chat notifications, bill due reminders, and clipboard password prompts — with per-account Funky, Nucleus Mail, or system sounds.",
+      "Per-message email alerts with sender and subject, bill due reminders, and clipboard password prompts — with per-account Funky, Nucleus Mail, or system sounds.",
     icon: "🔔",
   },
   {
@@ -78,7 +66,7 @@ const features = [
   {
     title: "Native macOS workspace",
     description:
-      "SwiftUI shell with web Gmail sign-in, Sparkle auto-updates, dock badges for mail, chat, and bills, hourly beep, and a refreshed Nucleus app icon.",
+      "SwiftUI shell with web Gmail sign-in, Sparkle auto-updates, dock badges for mail and bills, hourly beep, and a refreshed Nucleus app icon.",
     icon: "🖥️",
   },
 ];
@@ -91,9 +79,9 @@ export function FeatureShowcase() {
           Everything in one workspace
         </h2>
         <p className="mt-4 text-lg text-slate-400">
-          {BRAND_NAME} started as a unified Gmail and calendar cockpit and has grown into a daily
-          operating system — mail, chat, calendar, bills, clipboard, notes, passwords, cloud sync,
-          and alerts in one native macOS app.
+          {BRAND_NAME} started as a unified Gmail cockpit and has grown into a daily operating
+          system — mail, bills, clipboard, notes, passwords, cloud sync, and alerts in one native
+          macOS app.
         </p>
       </div>
       <div className="mt-10 grid gap-6 md:grid-cols-2">

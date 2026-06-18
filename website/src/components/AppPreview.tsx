@@ -10,7 +10,7 @@ const previews = [
     title: "Dashboard",
     headline: "Your workspace at a glance — and a read on how you work.",
     description:
-      "Start with a personal greeting and daily quote. Your day analyses today's clipboard captures into productivity insights and improvement suggestions — category mix, source apps, context switching, and focused recommendations. Intelligent insight weaves unread mail, chat, bills, and clipboard trends into plain-language status. Today's weather, live resource usage, Cloud sync, public holidays, and a news feed sit alongside summary metrics and payment preparation. A seven-day productivity chart shows where your clipboard attention goes across Development, Communication, Research, Notes & drafts, Admin & text, and Data & numbers.",
+      "Start with a personal greeting and daily quote. Your day analyses today's clipboard captures into productivity insights and improvement suggestions — category mix, source apps, context switching, and focused recommendations. Intelligent insight weaves unread mail, bills, and clipboard trends into plain-language status. Today's weather, live resource usage, Cloud sync, public holidays, and a news feed sit alongside summary metrics and payment preparation. A seven-day productivity chart shows where your clipboard attention goes across Development, Communication, Research, Notes & drafts, Admin & text, and Data & numbers.",
     imageFirst: true,
     large: true,
   },
@@ -33,9 +33,8 @@ export function AppPreview() {
           Open one cockpit every morning.
         </h2>
         <p className="mt-3 text-base leading-7 text-slate-400">
-          {BRAND_NAME} keeps mail, chat, calendar, bills, clipboard, notes, and passwords in one
-          SwiftUI workspace — with a Dashboard that analyses your day and tells you what needs
-          attention first.
+          {BRAND_NAME} keeps mail, bills, clipboard, notes, and passwords in one SwiftUI workspace
+          — with a Dashboard that analyses your day and tells you what needs attention first.
         </p>
       </div>
 

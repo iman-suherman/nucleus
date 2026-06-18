@@ -97,8 +97,6 @@ struct AppSettingsView: View {
             notificationsSection
         case .mail:
             mailSection
-        case .chat:
-            chatSection
         case .about:
             aboutSection
         }
@@ -444,8 +442,6 @@ struct AppSettingsView: View {
         Group {
             Section("Notifications") {
                 Toggle("Email notifications", isOn: $settings.emailNotificationsEnabled)
-                Toggle("Chat notifications", isOn: $settings.chatNotificationsEnabled)
-                Toggle("Calendar notifications", isOn: $settings.calendarNotificationsEnabled)
             }
 
             Section("Hourly beep") {
@@ -529,29 +525,6 @@ struct AppSettingsView: View {
         }
     }
 
-    private var chatSection: some View {
-        Section("Chat notifications") {
-            if accounts.isEmpty {
-                Text("Add a Gmail account to choose chat notification sounds.")
-                    .foregroundStyle(.secondary)
-            } else {
-                ForEach(accounts) { account in
-                    chatSoundRow(for: account)
-                }
-            }
-
-            Picker("Default for new accounts", selection: $settings.chatNotificationSound) {
-                ForEach(ChatNotificationSound.allCases) { sound in
-                    Text(sound.label).tag(sound)
-                }
-            }
-
-            Text("Chat uses a separate tone from mail. Notifications include the account name and unread count.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-    }
-
     private var aboutSection: some View {
         Section("About") {
             LabeledContent("Version", value: AppSettings.currentAppVersion)
@@ -590,26 +563,6 @@ struct AppSettingsView: View {
         return VStack(alignment: .leading, spacing: 8) {
             Picker(accountLabel, selection: binding) {
                 ForEach(MailNotificationSound.allCases) { sound in
-                    Text(sound.label).tag(sound)
-                }
-            }
-            Button("Play preview") {
-                binding.wrappedValue.playAlert()
-            }
-            .disabled(binding.wrappedValue == .silent)
-        }
-    }
-
-    private func chatSoundRow(for account: GoogleAccount) -> some View {
-        let binding = Binding(
-            get: { settings.chatNotificationSound(for: account.id) },
-            set: { settings.setChatNotificationSound($0, for: account.id) }
-        )
-        let accountLabel = account.displayName.isEmpty ? account.email : account.displayName
-
-        return VStack(alignment: .leading, spacing: 8) {
-            Picker(accountLabel, selection: binding) {
-                ForEach(ChatNotificationSound.allCases) { sound in
                     Text(sound.label).tag(sound)
                 }
             }
@@ -694,7 +647,6 @@ enum SettingsTab: String, CaseIterable, Identifiable {
     case keychain
     case notifications
     case mail
-    case chat
     case about
 
     var id: String { rawValue }
@@ -708,7 +660,6 @@ enum SettingsTab: String, CaseIterable, Identifiable {
         case .keychain: return "Keychain"
         case .notifications: return "Notifications"
         case .mail: return "Mail"
-        case .chat: return "Chat"
         case .about: return "About"
         }
     }
@@ -722,7 +673,6 @@ enum SettingsTab: String, CaseIterable, Identifiable {
         case .keychain: return "key"
         case .notifications: return "bell"
         case .mail: return "envelope"
-        case .chat: return "message"
         case .about: return "info.circle"
         }
     }
@@ -743,8 +693,6 @@ enum SettingsTab: String, CaseIterable, Identifiable {
             return "Choose which alerts Nucleus can send and optional hourly beeps."
         case .mail:
             return "Notification sounds and background mail sync intervals."
-        case .chat:
-            return "Chat alert tones and per-account notification sounds."
         case .about:
             return "Version and app information."
         }

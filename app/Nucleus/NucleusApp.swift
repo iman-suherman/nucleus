@@ -157,9 +157,7 @@ struct ContentView: View {
                     WorkspaceStatusBadge(
                         message: viewModel.statusMessage,
                         mailUnreadCount: viewModel.totalUnread,
-                        chatUnreadCount: viewModel.totalChatUnread,
-                        mailAccounts: viewModel.unreadBreakdown(for: viewModel.unreadByAccount),
-                        chatAccounts: viewModel.unreadBreakdown(for: viewModel.chatUnreadByAccount)
+                        mailAccounts: viewModel.unreadBreakdown(for: viewModel.unreadByAccount)
                     )
                 }
                 ToolbarItem(placement: .automatic) {
@@ -182,7 +180,6 @@ struct ContentView: View {
 
             ForEach(viewModel.webSessionAccounts) { account in
                 GmailUnreadPoller(accountID: account.id, accountEmail: account.email)
-                ChatUnreadPoller(accountID: account.id)
             }
         }
         .background(
@@ -212,10 +209,6 @@ struct ContentView: View {
                 DashboardWorkspaceView()
             case .inbox:
                 MailWorkspaceView(isVisible: true)
-            case .calendar:
-                CalendarWorkspaceView(isVisible: true)
-            case .chat:
-                ChatWorkspaceView(isVisible: true)
             case .clipboard:
                 ClipboardWorkspaceView()
             case .notes:
@@ -285,14 +278,12 @@ struct ContentView: View {
     @ViewBuilder
     private func badge(for pane: WorkspacePane) -> some View {
         switch pane {
-        case .dashboard where viewModel.totalUnread + viewModel.totalChatUnread + viewModel.billsDueDockBadgeCount > 0:
+        case .dashboard where viewModel.totalUnread + viewModel.billsDueDockBadgeCount > 0:
             NucleusCountBadge(
-                count: viewModel.totalUnread + viewModel.totalChatUnread + viewModel.billsDueDockBadgeCount
+                count: viewModel.totalUnread + viewModel.billsDueDockBadgeCount
             )
         case .inbox where viewModel.totalUnread > 0:
             NucleusCountBadge(count: viewModel.totalUnread, kind: .mail)
-        case .chat where viewModel.totalChatUnread > 0:
-            NucleusCountBadge(count: viewModel.totalChatUnread, kind: .chat)
         case .clipboard where !viewModel.clipboardEntries.isEmpty:
             NucleusCountBadge(count: viewModel.clipboardEntries.count)
         case .bills where !viewModel.activeBills.isEmpty:

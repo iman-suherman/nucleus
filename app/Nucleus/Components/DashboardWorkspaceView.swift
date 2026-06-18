@@ -1271,7 +1271,7 @@ struct DashboardWorkspaceView: View {
     }
 
     private var summaryTitle: String {
-        "Summary · \(snapshot.unreadMailCount) email · \(snapshot.unreadChatCount) chat · \(snapshot.passwordCount) passwords"
+        "Summary · \(snapshot.unreadMailCount) email · \(snapshot.passwordCount) passwords"
     }
 
     private var paymentPreparationTitle: String {
@@ -1308,11 +1308,9 @@ struct DashboardWorkspaceView: View {
     private var summaryAndResourceCards: some View {
         DashboardMetricsSummaryBox(
             unreadMailCount: snapshot.unreadMailCount,
-            unreadChatCount: snapshot.unreadChatCount,
             passwordCount: snapshot.passwordCount,
             upcomingBillsCount: snapshot.upcomingBills.count,
             onUnreadEmail: { viewModel.sidebarSelection = .workspace(.inbox) },
-            onUnreadChat: { viewModel.sidebarSelection = .workspace(.chat) },
             onPasswords: { viewModel.sidebarSelection = .workspace(.notes) },
             onBills: { viewModel.sidebarSelection = .workspace(.bills) }
         )
@@ -1599,15 +1597,11 @@ struct DashboardWorkspaceView: View {
 
 private struct DashboardMetricsSummaryBox: View {
     let unreadMailCount: Int
-    let unreadChatCount: Int
     let passwordCount: Int
     let upcomingBillsCount: Int
     let onUnreadEmail: () -> Void
-    let onUnreadChat: () -> Void
     let onPasswords: () -> Void
     let onBills: () -> Void
-
-    private static let chatTint = Color(red: 129 / 255, green: 201 / 255, blue: 149 / 255)
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -1628,11 +1622,11 @@ private struct DashboardMetricsSummaryBox: View {
                     Divider()
 
                     SummaryMetricItem(
-                        title: "Unread chat",
-                        value: "\(unreadChatCount)",
-                        systemImage: "message.badge",
-                        tint: Self.chatTint,
-                        action: onUnreadChat
+                        title: "Passwords stored",
+                        value: "\(passwordCount)",
+                        systemImage: "key.fill",
+                        tint: .orange,
+                        action: onPasswords
                     )
                 }
 
@@ -1640,22 +1634,14 @@ private struct DashboardMetricsSummaryBox: View {
 
                 HStack(spacing: 0) {
                     SummaryMetricItem(
-                        title: "Passwords stored",
-                        value: "\(passwordCount)",
-                        systemImage: "key.fill",
-                        tint: .orange,
-                        action: onPasswords
-                    )
-
-                    Divider()
-
-                    SummaryMetricItem(
                         title: "Bills due soon",
                         value: "\(upcomingBillsCount)",
                         systemImage: "dollarsign.circle",
                         tint: .purple,
                         action: onBills
                     )
+
+                    Spacer(minLength: 0)
                 }
             }
         }

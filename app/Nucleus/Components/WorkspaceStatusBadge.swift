@@ -9,14 +9,10 @@ struct UnreadAccountBreakdown: Identifiable {
 struct WorkspaceStatusBadge: View {
     let message: String
     let mailUnreadCount: Int
-    let chatUnreadCount: Int
     let mailAccounts: [UnreadAccountBreakdown]
-    let chatAccounts: [UnreadAccountBreakdown]
-
-    private let chatBadgeColor = Color(red: 129 / 255, green: 201 / 255, blue: 149 / 255)
 
     private var hasUnread: Bool {
-        mailUnreadCount > 0 || chatUnreadCount > 0
+        mailUnreadCount > 0
     }
 
     private var statusLine: String {
@@ -27,23 +23,14 @@ struct WorkspaceStatusBadge: View {
     }
 
     private var unreadSummaryMessage: String {
-        var parts: [String] = []
-        if mailUnreadCount > 0 {
-            parts.append("\(mailUnreadCount) unread email\(mailUnreadCount == 1 ? "" : "s")")
-        }
-        if chatUnreadCount > 0 {
-            parts.append("\(chatUnreadCount) unread chat\(chatUnreadCount == 1 ? "" : "s")")
-        }
-        return parts.joined(separator: " · ")
+        guard mailUnreadCount > 0 else { return message }
+        return "\(mailUnreadCount) unread email\(mailUnreadCount == 1 ? "" : "s")"
     }
 
     private var unreadDetailMessage: String {
         var accountParts: [String] = []
         for account in mailAccounts where account.count > 0 {
             accountParts.append("\(account.name) \(account.count) mail")
-        }
-        for account in chatAccounts where account.count > 0 {
-            accountParts.append("\(account.name) \(account.count) chat")
         }
 
         guard !accountParts.isEmpty else { return unreadSummaryMessage }
@@ -53,14 +40,7 @@ struct WorkspaceStatusBadge: View {
     var body: some View {
         HStack(spacing: 10) {
             if hasUnread {
-                HStack(spacing: 6) {
-                    if mailUnreadCount > 0 {
-                        unreadPill(count: mailUnreadCount, icon: "envelope.fill", tint: .blue)
-                    }
-                    if chatUnreadCount > 0 {
-                        unreadPill(count: chatUnreadCount, icon: "message.fill", tint: chatBadgeColor)
-                    }
-                }
+                unreadPill(count: mailUnreadCount, icon: "envelope.fill", tint: .blue)
             } else {
                 Image(systemName: "checkmark.circle.fill")
                     .font(.subheadline.weight(.semibold))

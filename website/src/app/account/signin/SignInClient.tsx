@@ -37,8 +37,8 @@ export function SignInClient() {
         </a>
 
         <p className="mt-6 text-center text-xs text-slate-500">
-          Nucleus Cloud stores your workspace data. Google OAuth tokens for Gmail and Calendar stay
-          on your Mac in Keychain.
+          Nucleus Cloud stores your workspace data. Google OAuth tokens for Gmail stay on your Mac
+          in Keychain.
         </p>
       </div>
     </div>

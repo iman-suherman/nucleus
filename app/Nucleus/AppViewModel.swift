@@ -38,9 +38,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
     @Published var notes: [NoteDocument] = []
     @Published var mailMessages: [MailMessageSummary] = []
     @Published var unreadByAccount: [UUID: Int] = [:]
-    @Published var chatUnreadByAccount: [UUID: Int] = [:]
     @Published var totalUnread = 0
-    @Published var totalChatUnread = 0
     @Published var clipboardSearchQuery = ""
     @Published var selectedNoteID: UUID?
     @Published var isStartingUp = true
@@ -71,8 +69,6 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
     private var knownMessageIDs = Set<String>()
     private var webReportedUnread: [UUID: Int] = [:]
     private var unreadBaselineEstablished = Set<UUID>()
-    private var webReportedChatUnread: [UUID: Int] = [:]
-    private var chatUnreadBaselineEstablished = Set<UUID>()
     private var notifiedMessageIDs = Set<String>()
     private var pendingMailNotificationDeltas: [UUID: Int] = [:]
     private var queuedDashboardIncomingMail: DashboardIncomingMailPrompt?
@@ -99,15 +95,22 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
             fatalError("Failed to create Nucleus database container")
         }()
         AppViewModel.current = self
+        migrateLegacyWorkspaceSelection()
         runSynchronousLaunchPrep()
         observeGmailWebSignIn()
         observeGmailWebUnreadCount()
-        observeChatWebUnreadCount()
         observeCloudKitChanges()
         observeNucleusCloudConnection()
         observeMenuBarSettings()
         startWindowLayoutTracking()
         observeBillReminderSettings()
+    }
+
+    private func migrateLegacyWorkspaceSelection() {
+        if let saved = AppSettings.shared.selectedWorkspacePane,
+           saved == "calendar" || saved == "chat" {
+            AppSettings.shared.selectedWorkspacePane = WorkspacePane.dashboard.rawValue
+        }
     }
 
     private func runSynchronousLaunchPrep() {
@@ -440,38 +443,6 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         }
     }
 
-    private func observeChatWebUnreadCount() {
-        NotificationCenter.default.addObserver(
-            forName: .chatWebUnreadCountDidChange,
-            object: nil,
-            queue: .main
-        ) { [weak self] notification in
-            guard let accountID = NotificationUserInfo.accountID(from: notification.userInfo),
-                  let count = NotificationUserInfo.unreadCount(from: notification.userInfo) else { return }
-            self?.applyWebChatUnreadCount(accountID: accountID, count: count)
-        }
-    }
-
-    func applyWebChatUnreadCount(accountID: UUID, count: Int) {
-        let previous = webReportedChatUnread[accountID] ?? 0
-        webReportedChatUnread[accountID] = max(0, count)
-        chatUnreadByAccount[accountID] = max(0, count)
-        totalChatUnread = chatUnreadByAccount.values.reduce(0, +)
-        updateDockBadge()
-        statusMessage = statusMessageForCurrentState()
-
-        if chatUnreadBaselineEstablished.contains(accountID), count > previous {
-            let account = accounts.first(where: { $0.id == accountID })
-            NucleusNotificationService.shared.notifyIncomingChat(
-                unreadCount: count,
-                delta: count - previous,
-                accountName: account?.displayName ?? account?.email ?? "Chat",
-                accountID: accountID
-            )
-        }
-        chatUnreadBaselineEstablished.insert(accountID)
-    }
-
     private func observeGmailWebSignIn() {
         NotificationCenter.default.addObserver(
             forName: .gmailWebSessionDidSignIn,
@@ -782,9 +753,6 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         if totalUnread > 0 {
             parts.append("\(totalUnread) unread email\(totalUnread == 1 ? "" : "s")")
         }
-        if totalChatUnread > 0 {
-            parts.append("\(totalChatUnread) unread chat\(totalChatUnread == 1 ? "" : "s")")
-        }
         if !parts.isEmpty {
             return parts.joined(separator: " · ")
         }
@@ -875,7 +843,6 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
     private func updateDockBadge() {
         DockBadgeController.update(
             mailUnread: totalUnread,
-            chatUnread: totalChatUnread,
             billsDueSoon: billsDueDockBadgeCount
         )
     }
@@ -894,7 +861,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
     func computeDashboardSnapshot() -> DashboardSnapshot {
         DashboardInsightsEngine.build(
             unreadMailCount: totalUnread,
-            unreadChatCount: totalChatUnread,
+            unreadChatCount: 0,
             passwordCount: notes.filter { $0.folder == .passwords }.count,
             notesCount: notes.count,
             bills: bills,
@@ -1089,23 +1056,6 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         } else if settings.selectedMailAccountID == nil {
             settings.selectedMailAccountID = fallback?.id
         }
-
-        if let selected = settings.selectedCalendarAccountID, !accountIDs.contains(selected) {
-            settings.selectedCalendarAccountID = fallback?.id
-        } else if settings.selectedCalendarAccountID == nil {
-            settings.selectedCalendarAccountID = fallback?.id
-        }
-
-        if let selected = settings.selectedChatAccountID, !accountIDs.contains(selected) {
-            settings.selectedChatAccountID = fallback?.id
-        } else if settings.selectedChatAccountID == nil {
-            settings.selectedChatAccountID = fallback?.id
-        }
-    }
-
-    func openChat(for accountID: UUID) {
-        AppSettings.shared.selectedChatAccountID = accountID
-        sidebarSelection = .workspace(.chat)
     }
 
     func hasStoredTokens(for accountID: UUID) -> Bool {
@@ -1133,8 +1083,6 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
             accountError = "That Gmail address is already added."
             if let existing = accounts.first(where: { $0.email.lowercased() == trimmedEmail }) {
                 AppSettings.shared.selectedMailAccountID = existing.id
-                AppSettings.shared.selectedCalendarAccountID = existing.id
-                AppSettings.shared.selectedChatAccountID = existing.id
                 sidebarSelection = .workspace(.inbox)
             }
             return
@@ -1155,8 +1103,6 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         try? AccountRepository.upsert(account, context: context)
         reloadLocalData()
         AppSettings.shared.selectedMailAccountID = account.id
-        AppSettings.shared.selectedCalendarAccountID = account.id
-        AppSettings.shared.selectedChatAccountID = account.id
         sidebarSelection = .workspace(.inbox)
         statusMessage = "Sign in to Gmail for \(trimmedEmail)"
         markMailSignInPending(account.id)
@@ -1183,8 +1129,6 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         let context = ModelContext(modelContainer)
         try? AccountRepository.setPrimary(id: account.id, context: context)
         AppSettings.shared.selectedMailAccountID = account.id
-        AppSettings.shared.selectedCalendarAccountID = account.id
-        AppSettings.shared.selectedChatAccountID = account.id
         reloadLocalData()
         pushSyncedConfiguration()
     }

@@ -1,0 +1,24 @@
+{
+  "version": "0.8.0",
+  "summary": "Removes Calendar and Chat workspaces to focus Nucleus on mail, bills, clipboard, notes, and passwords.",
+  "releaseNotes": {
+    "introduced": [],
+    "changed": [
+      "Sidebar workspace list now covers Dashboard, Inbox, Clipboard, Notes and Passwords, and Bills",
+      "Dashboard summary metrics focus on unread email, saved passwords, and upcoming bills",
+      "Intelligent insight copy describes inbox status without chat mentions"
+    ],
+    "fixed": [],
+    "updated": [
+      "Marketing website copy updated to match the slimmer workspace scope"
+    ],
+    "removed": [
+      "Google Calendar workspace and embedded week view",
+      "Google Chat workspace, unread polling, dock badges, and chat notification settings tab",
+      "Chat and calendar notification toggles from Settings"
+    ],
+    "breaking": [
+      "Saved sidebar selection for Calendar or Chat resets to Dashboard on upgrade"
+    ]
+  }
+}
