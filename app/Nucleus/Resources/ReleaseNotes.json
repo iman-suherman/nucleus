@@ -1,15 +1,12 @@
 {
-  "version": "0.6.15",
-  "summary": "Public holidays always show your location alongside selected countries in a two-column dashboard row.",
+  "version": "0.6.16",
+  "summary": "The 7-day weather strip skips today, and the news feed aligns with the weather card when shown side by side.",
   "releaseNotes": {
-    "introduced": [
-      "Public holidays use a two-column layout — your location on the left, selected countries on the right",
-      "When two countries are selected, the right column rotates between them every eight seconds with manual prev/next controls"
-    ],
+    "introduced": [],
     "changed": [
-      "Selected countries always appear alongside your location instead of replacing it",
-      "Location holidays include state and regional filtering; selected countries show nationwide holidays",
-      "Settings copy clarifies that chosen countries appear in the right column next to your location"
+      "7-day weather forecast strip shows tomorrow through the next week — today stays in the main weather card only",
+      "News feed height matches the weather card on the dashboard so the two panels line up cleanly side by side",
+      "Removed the duplicate weather heading inside the left context panel on macOS"
     ],
     "fixed": [],
     "updated": [],
