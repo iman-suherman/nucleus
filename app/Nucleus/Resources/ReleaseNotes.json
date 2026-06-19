@@ -1,11 +1,13 @@
 {
-  "version": "0.7.9",
-  "summary": "Public holidays show weekday and weekend context, with aligned card rows on the dashboard.",
+  "version": "0.8.0",
+  "summary": "Breaking news alerts, celebratory dashboard greetings, and ⇧⌘V opens the clipboard picker without pasting.",
   "releaseNotes": {
-    "introduced": [],
+    "introduced": [
+      "Breaking news modal appears the first time an urgent headline arrives — larger text, Speak, and Open story with a blurred backdrop"
+    ],
     "changed": [
-      "Public holiday cards show the day of the week and whether the date falls on a weekend or weekday",
-      "Side-by-side public holiday columns use equal-height rows so cards stay aligned without uneven gaps"
+      "Dashboard greeting celebrates weekends and public holidays for your location and selected countries",
+      "⇧⌘V opens the clipboard history picker only — selecting a clip copies it; press ⌘V to paste (requires Accessibility permission to block Paste and Match Style globally)"
     ],
     "fixed": [],
     "updated": [],
