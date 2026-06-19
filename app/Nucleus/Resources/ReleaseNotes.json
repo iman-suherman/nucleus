@@ -1,12 +1,10 @@
 {
-  "version": "0.7.4",
-  "summary": "Dashboard email alerts dismiss when you open the inbox and only return after you finish reviewing mail.",
+  "version": "0.7.5",
+  "summary": "Share individual dashboard news headlines with the macOS system share sheet.",
   "releaseNotes": {
     "introduced": [],
     "changed": [
-      "Clicking unread email on the Dashboard or Open inbox on the mail alert dismisses the notification and takes you to the inbox",
-      "The alert stays hidden while you review mail and reappears only after 45 seconds of inbox inactivity if unread messages remain",
-      "Messages you read during review are cleared from the alert so they are not shown again"
+      "Dashboard news headlines include a Share button that opens the macOS share dialog for the title, summary, and article link"
     ],
     "fixed": [],
     "updated": [],
