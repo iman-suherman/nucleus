@@ -126,6 +126,14 @@ struct DashboardNewsTickerView: View {
                         countryBadge(for: headline.countryCode)
                     }
                     Spacer(minLength: 0)
+                    MacSharingServiceButton(
+                        items: DashboardNewsSharePayload.items(
+                            headline: headline,
+                            enrichment: enrichment,
+                            displayTitle: displayTitle
+                        ),
+                        helpText: "Share headline"
+                    )
                     if let publishedAt = headline.publishedAt {
                         Text(relativeTime(from: publishedAt))
                             .font(.caption2)

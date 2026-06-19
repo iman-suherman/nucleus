@@ -1,0 +1,14 @@
+{
+  "version": "0.7.5",
+  "summary": "Share individual dashboard news headlines with the macOS system share sheet.",
+  "releaseNotes": {
+    "introduced": [],
+    "changed": [
+      "Dashboard news headlines include a Share button that opens the macOS share dialog for the title, summary, and article link"
+    ],
+    "fixed": [],
+    "updated": [],
+    "removed": [],
+    "breaking": []
+  }
+}

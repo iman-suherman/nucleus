@@ -77,6 +77,7 @@
 		CD6372D2C3B60CF249E70D00 /* NotesClipboardMigration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81F61F31E82EC125D210B051 /* NotesClipboardMigration.swift */; };
 		D21146D10DFFE04416870233 /* ReleaseNotesDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6EDADCCF24985DEF2C1A2DB /* ReleaseNotesDetailView.swift */; };
 		D269748A37583FCD001DE941 /* WindowLayoutController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36D30869A475802CF2EC37F9 /* WindowLayoutController.swift */; };
+		D55AE78B777E319F67953F54 /* MacSharingServiceButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 588507DCB51F53ABD73D2EE2 /* MacSharingServiceButton.swift */; };
 		D867766C290D28A0DCB552EA /* DatabaseKit in Frameworks */ = {isa = PBXBuildFile; productRef = DAECE07451118013D6E717ED /* DatabaseKit */; };
 		DA24CFEA61CAC79C5A243DA0 /* SupportViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4CEADA0142869F8949F55DD /* SupportViews.swift */; };
 		DC31225F8CF5E258002AAF0A /* DashboardNewsFeedService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7070B325206A2DB90B1C3F2C /* DashboardNewsFeedService.swift */; };
@@ -121,6 +122,7 @@
 		50537B36D31255DB7C3030C9 /* BackgroundSyncServices.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundSyncServices.swift; sourceTree = "<group>"; };
 		536C10D58B577BC3DF9EE13E /* ClipboardPasswordSuggestionOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardPasswordSuggestionOverlay.swift; sourceTree = "<group>"; };
 		584F84F9AF029CC4D8800A01 /* NucleusNotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NucleusNotificationService.swift; sourceTree = "<group>"; };
+		588507DCB51F53ABD73D2EE2 /* MacSharingServiceButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacSharingServiceButton.swift; sourceTree = "<group>"; };
 		5A55CAAB4D2D33098BEFB97A /* DashboardPublicHolidayExplanationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardPublicHolidayExplanationService.swift; sourceTree = "<group>"; };
 		68AD664CB4410FC8FBE21B1C /* HourlyBeepService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HourlyBeepService.swift; sourceTree = "<group>"; };
 		69A7BEC28EFE1D402738D081 /* AccountCenterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountCenterView.swift; sourceTree = "<group>"; };
@@ -293,6 +295,7 @@
 				046B650FCA89CA8C322D0A3B /* HourlyBeep.swift */,
 				68AD664CB4410FC8FBE21B1C /* HourlyBeepService.swift */,
 				EFC4312DE2A7EC5DCF5D888A /* InboxIdleRecheckController.swift */,
+				588507DCB51F53ABD73D2EE2 /* MacSharingServiceButton.swift */,
 				97A7289328BE097836736716 /* MenuBarController.swift */,
 				D12215EBDC2CCD7294F9F071 /* MenuBarPopoverSession.swift */,
 				F3040B14FCE7F0866274EF0E /* MenuBarStatusItemController.swift */,
@@ -483,6 +486,7 @@
 				98D83C9FEF7CEB8DF54441FE /* HourlyBeep.swift in Sources */,
 				642590B42B17C9B63C0BB830 /* HourlyBeepService.swift in Sources */,
 				EEB7CEB73A5AAA37F8CC22A6 /* InboxIdleRecheckController.swift in Sources */,
+				D55AE78B777E319F67953F54 /* MacSharingServiceButton.swift in Sources */,
 				AA2B9B165190FE2E23E7AD95 /* MailInboxLoadingPhase.swift in Sources */,
 				68F673476FAE5D0CA8204F89 /* MailWorkspaceView.swift in Sources */,
 				86F0B8E63AA373C254764688 /* MenuBarController.swift in Sources */,
