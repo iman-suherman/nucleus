@@ -1,11 +1,12 @@
 {
-  "version": "0.7.6",
-  "summary": "Speak today's dashboard weather forecast aloud with the macOS system voice.",
+  "version": "0.7.7",
+  "summary": "Balanced public holiday columns, reliable 30-minute dashboard analysis, and weather UI polish.",
   "releaseNotes": {
     "introduced": [],
     "changed": [
-      "Dashboard weather includes a Speak button that reads today's forecast for your current or selected location aloud",
-      "Uses the macOS system voice, preferring Siri when available, with Stop while speaking"
+      "Public holiday columns balance card counts by filling shorter country lists with the next upcoming holidays",
+      "Dashboard analysis runs automatically every 30 minutes, including when returning to the app or opening the dashboard",
+      "Weather location button renamed to Location and no longer truncates in the panel header"
     ],
     "fixed": [],
     "updated": [],
