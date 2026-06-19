@@ -896,14 +896,19 @@ struct DashboardWorkspaceView: View {
         let companionIndex = companions.isEmpty ? 0 : companionCountryIndex % companions.count
         let activeCompanion = companions.isEmpty ? nil : companions[companionIndex]
 
-        if layout.location != nil || activeCompanion != nil {
-            HStack(alignment: .top, spacing: 16) {
-                if let location = layout.location {
+        if let location = layout.location, let activeCompanion {
+            if !location.holidays.isEmpty, !activeCompanion.holidays.isEmpty {
+                publicHolidayPairedRows(
+                    location: location,
+                    companion: activeCompanion,
+                    companions: companions,
+                    companionIndex: companionIndex
+                )
+            } else {
+                HStack(alignment: .top, spacing: 16) {
                     publicHolidayCountryColumn(location, subtitle: "Your location")
                         .frame(maxWidth: .infinity, alignment: .leading)
-                }
 
-                if let activeCompanion {
                     publicHolidayCountryColumn(
                         activeCompanion,
                         subtitle: companions.count > 1 ? "Selected country \(companionIndex + 1) of \(companions.count)" : "Selected country",
@@ -920,7 +925,31 @@ struct DashboardWorkspaceView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .animation(.easeInOut(duration: 0.2), value: companionIndex)
                 }
+                .onAppear { refreshHolidayMetadata() }
+                .onReceive(Timer.publish(every: 8, on: .main, in: .common).autoconnect()) { _ in
+                    guard companions.count > 1 else { return }
+                    companionCountryIndex = (companionIndex + 1) % companions.count
+                }
             }
+        } else if let location = layout.location {
+            publicHolidayCountryColumn(location, subtitle: "Your location")
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .onAppear { refreshHolidayMetadata() }
+        } else if let activeCompanion {
+            publicHolidayCountryColumn(
+                activeCompanion,
+                subtitle: companions.count > 1 ? "Selected country \(companionIndex + 1) of \(companions.count)" : "Selected country",
+                showsCompanionControls: companions.count > 1,
+                onPreviousCompanion: {
+                    guard companions.count > 1 else { return }
+                    companionCountryIndex = (companionIndex - 1 + companions.count) % companions.count
+                },
+                onNextCompanion: {
+                    guard companions.count > 1 else { return }
+                    companionCountryIndex = (companionIndex + 1) % companions.count
+                }
+            )
+            .frame(maxWidth: .infinity, alignment: .leading)
             .onAppear { refreshHolidayMetadata() }
             .onReceive(Timer.publish(every: 8, on: .main, in: .common).autoconnect()) { _ in
                 guard companions.count > 1 else { return }
@@ -947,6 +976,114 @@ struct DashboardWorkspaceView: View {
         }
     }
 
+    private func publicHolidayPairedRows(
+        location: DashboardPublicHolidayCountryGroup,
+        companion: DashboardPublicHolidayCountryGroup,
+        companions: [DashboardPublicHolidayCountryGroup],
+        companionIndex: Int
+    ) -> some View {
+        let rowCount = max(location.holidays.count, companion.holidays.count)
+
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .top, spacing: 16) {
+                publicHolidayColumnHeader(location, subtitle: "Your location")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                publicHolidayColumnHeader(
+                    companion,
+                    subtitle: companions.count > 1
+                        ? "Selected country \(companionIndex + 1) of \(companions.count)"
+                        : "Selected country",
+                    showsCompanionControls: companions.count > 1,
+                    onPreviousCompanion: {
+                        guard companions.count > 1 else { return }
+                        companionCountryIndex = (companionIndex - 1 + companions.count) % companions.count
+                    },
+                    onNextCompanion: {
+                        guard companions.count > 1 else { return }
+                        companionCountryIndex = (companionIndex + 1) % companions.count
+                    }
+                )
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            ForEach(0..<rowCount, id: \.self) { index in
+                HStack(alignment: .top, spacing: 16) {
+                    publicHolidayCardSlot(
+                        holiday: index < location.holidays.count ? location.holidays[index] : nil,
+                        accentIndex: index
+                    )
+                    publicHolidayCardSlot(
+                        holiday: index < companion.holidays.count ? companion.holidays[index] : nil,
+                        accentIndex: index
+                    )
+                }
+            }
+        }
+        .onAppear { refreshHolidayMetadata() }
+        .onReceive(Timer.publish(every: 8, on: .main, in: .common).autoconnect()) { _ in
+            guard companions.count > 1 else { return }
+            companionCountryIndex = (companionIndex + 1) % companions.count
+        }
+        .animation(.easeInOut(duration: 0.2), value: companionIndex)
+    }
+
+    @ViewBuilder
+    private func publicHolidayCardSlot(holiday: DashboardNextPublicHoliday?, accentIndex: Int) -> some View {
+        Group {
+            if let holiday {
+                publicHolidayCard(holiday, accentIndex: accentIndex)
+            } else {
+                Color.clear
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+
+    @ViewBuilder
+    private func publicHolidayColumnHeader(
+        _ group: DashboardPublicHolidayCountryGroup,
+        subtitle: String,
+        showsCompanionControls: Bool = false,
+        onPreviousCompanion: (() -> Void)? = nil,
+        onNextCompanion: (() -> Void)? = nil
+    ) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(subtitle)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                if let locationLabel = group.locationLabel {
+                    Text("\(group.countryName) · \(locationLabel)")
+                        .font(.subheadline.weight(.semibold))
+                } else {
+                    Text(group.countryName)
+                        .font(.subheadline.weight(.semibold))
+                }
+            }
+
+            Spacer(minLength: 0)
+
+            if showsCompanionControls {
+                HStack(spacing: 4) {
+                    Button(action: { onPreviousCompanion?() }) {
+                        Image(systemName: "chevron.left")
+                    }
+                    .buttonStyle(.plain)
+                    .help("Previous selected country")
+
+                    Button(action: { onNextCompanion?() }) {
+                        Image(systemName: "chevron.right")
+                    }
+                    .buttonStyle(.plain)
+                    .help("Next selected country")
+                }
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+            }
+        }
+    }
+
     @ViewBuilder
     private func publicHolidayCountryColumn(
         _ group: DashboardPublicHolidayCountryGroup,
@@ -956,40 +1093,13 @@ struct DashboardWorkspaceView: View {
         onNextCompanion: (() -> Void)? = nil
     ) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(subtitle)
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                    if let locationLabel = group.locationLabel {
-                        Text("\(group.countryName) · \(locationLabel)")
-                            .font(.subheadline.weight(.semibold))
-                    } else {
-                        Text(group.countryName)
-                            .font(.subheadline.weight(.semibold))
-                    }
-                }
-
-                Spacer(minLength: 0)
-
-                if showsCompanionControls {
-                    HStack(spacing: 4) {
-                        Button(action: { onPreviousCompanion?() }) {
-                            Image(systemName: "chevron.left")
-                        }
-                        .buttonStyle(.plain)
-                        .help("Previous selected country")
-
-                        Button(action: { onNextCompanion?() }) {
-                            Image(systemName: "chevron.right")
-                        }
-                        .buttonStyle(.plain)
-                        .help("Next selected country")
-                    }
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                }
-            }
+            publicHolidayColumnHeader(
+                group,
+                subtitle: subtitle,
+                showsCompanionControls: showsCompanionControls,
+                onPreviousCompanion: onPreviousCompanion,
+                onNextCompanion: onNextCompanion
+            )
 
             if group.holidays.isEmpty {
                 Text("No upcoming public holidays.")
@@ -1023,7 +1133,7 @@ struct DashboardWorkspaceView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(holiday.name)
                         .font(.subheadline.weight(.semibold))
-                    Text("\(holiday.relativeDescription) · \(formattedHolidayDate(holiday.date))")
+                    Text("\(holiday.relativeDescription) · \(formattedHolidayDate(holiday.date)) · \(holiday.weekdayName) · \(holiday.dayKindLabel)")
                         .font(.caption)
                         .foregroundStyle(.secondary)
 
@@ -1050,7 +1160,7 @@ struct DashboardWorkspaceView: View {
             }
         }
         .padding(14)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(iconColor.opacity(0.1), in: RoundedRectangle(cornerRadius: 12))
     }
 

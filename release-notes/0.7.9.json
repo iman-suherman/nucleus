@@ -1,0 +1,15 @@
+{
+  "version": "0.7.9",
+  "summary": "Public holidays show weekday and weekend context, with aligned card rows on the dashboard.",
+  "releaseNotes": {
+    "introduced": [],
+    "changed": [
+      "Public holiday cards show the day of the week and whether the date falls on a weekend or weekday",
+      "Side-by-side public holiday columns use equal-height rows so cards stay aligned without uneven gaps"
+    ],
+    "fixed": [],
+    "updated": [],
+    "removed": [],
+    "breaking": []
+  }
+}

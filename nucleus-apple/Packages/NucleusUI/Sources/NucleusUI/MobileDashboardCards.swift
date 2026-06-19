@@ -377,34 +377,46 @@ public struct DashboardPublicHolidayCard: View {
                 .symbolRenderingMode(.multicolor)
 
             if layout.location != nil || activeCompanion != nil {
-                HStack(alignment: .top, spacing: 12) {
-                    if let location = layout.location {
-                        countryColumn(location, subtitle: "Your location")
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
+                if let location = layout.location,
+                   let activeCompanion,
+                   !location.holidays.isEmpty,
+                   !activeCompanion.holidays.isEmpty {
+                    publicHolidayPairedRows(
+                        location: location,
+                        companion: activeCompanion,
+                        companions: companions,
+                        companionIndex: companionIndex
+                    )
+                } else {
+                    HStack(alignment: .top, spacing: 12) {
+                        if let location = layout.location {
+                            countryColumn(location, subtitle: "Your location")
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
 
-                    if let activeCompanion {
-                        countryColumn(
-                            activeCompanion,
-                            subtitle: companions.count > 1
-                                ? "Selected country \(companionIndex + 1) of \(companions.count)"
-                                : "Selected country",
-                            showsCompanionControls: companions.count > 1,
-                            onPrevious: {
-                                guard companions.count > 1 else { return }
-                                companionCountryIndex = (companionIndex - 1 + companions.count) % companions.count
-                            },
-                            onNext: {
-                                guard companions.count > 1 else { return }
-                                companionCountryIndex = (companionIndex + 1) % companions.count
-                            }
-                        )
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                        if let activeCompanion {
+                            countryColumn(
+                                activeCompanion,
+                                subtitle: companions.count > 1
+                                    ? "Selected country \(companionIndex + 1) of \(companions.count)"
+                                    : "Selected country",
+                                showsCompanionControls: companions.count > 1,
+                                onPrevious: {
+                                    guard companions.count > 1 else { return }
+                                    companionCountryIndex = (companionIndex - 1 + companions.count) % companions.count
+                                },
+                                onNext: {
+                                    guard companions.count > 1 else { return }
+                                    companionCountryIndex = (companionIndex + 1) % companions.count
+                                }
+                            )
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        }
                     }
-                }
-                .onReceive(Timer.publish(every: 8, on: .main, in: .common).autoconnect()) { _ in
-                    guard companions.count > 1 else { return }
-                    companionCountryIndex = (companionIndex + 1) % companions.count
+                    .onReceive(Timer.publish(every: 8, on: .main, in: .common).autoconnect()) { _ in
+                        guard companions.count > 1 else { return }
+                        companionCountryIndex = (companionIndex + 1) % companions.count
+                    }
                 }
             } else if isLoading {
                 HStack(spacing: 10) {
@@ -431,6 +443,107 @@ public struct DashboardPublicHolidayCard: View {
         layout.sectionTitle
     }
 
+    private func publicHolidayPairedRows(
+        location: DashboardPublicHolidayCountryGroup,
+        companion: DashboardPublicHolidayCountryGroup,
+        companions: [DashboardPublicHolidayCountryGroup],
+        companionIndex: Int
+    ) -> some View {
+        let rowCount = max(location.holidays.count, companion.holidays.count)
+
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .top, spacing: 12) {
+                countryColumnHeader(location, subtitle: "Your location")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                countryColumnHeader(
+                    companion,
+                    subtitle: companions.count > 1
+                        ? "Selected country \(companionIndex + 1) of \(companions.count)"
+                        : "Selected country",
+                    showsCompanionControls: companions.count > 1,
+                    onPrevious: {
+                        guard companions.count > 1 else { return }
+                        companionCountryIndex = (companionIndex - 1 + companions.count) % companions.count
+                    },
+                    onNext: {
+                        guard companions.count > 1 else { return }
+                        companionCountryIndex = (companionIndex + 1) % companions.count
+                    }
+                )
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            ForEach(0..<rowCount, id: \.self) { index in
+                HStack(alignment: .top, spacing: 12) {
+                    holidayRowSlot(
+                        holiday: index < location.holidays.count ? location.holidays[index] : nil,
+                        accentIndex: index
+                    )
+                    holidayRowSlot(
+                        holiday: index < companion.holidays.count ? companion.holidays[index] : nil,
+                        accentIndex: index
+                    )
+                }
+            }
+        }
+        .onReceive(Timer.publish(every: 8, on: .main, in: .common).autoconnect()) { _ in
+            guard companions.count > 1 else { return }
+            companionCountryIndex = (companionIndex + 1) % companions.count
+        }
+    }
+
+    @ViewBuilder
+    private func holidayRowSlot(holiday: DashboardNextPublicHoliday?, accentIndex: Int) -> some View {
+        Group {
+            if let holiday {
+                holidayRow(holiday, accentIndex: accentIndex)
+            } else {
+                Color.clear
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+
+    @ViewBuilder
+    private func countryColumnHeader(
+        _ group: DashboardPublicHolidayCountryGroup,
+        subtitle: String,
+        showsCompanionControls: Bool = false,
+        onPrevious: (() -> Void)? = nil,
+        onNext: (() -> Void)? = nil
+    ) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(subtitle)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                if let locationLabel = group.locationLabel {
+                    Text("\(group.countryName) · \(locationLabel)")
+                        .font(.subheadline.weight(.semibold))
+                } else {
+                    Text(group.countryName)
+                        .font(.subheadline.weight(.semibold))
+                }
+            }
+
+            Spacer(minLength: 0)
+
+            if showsCompanionControls {
+                HStack(spacing: 8) {
+                    Button(action: { onPrevious?() }) {
+                        Image(systemName: "chevron.left")
+                    }
+                    Button(action: { onNext?() }) {
+                        Image(systemName: "chevron.right")
+                    }
+                }
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+            }
+        }
+    }
+
     @ViewBuilder
     private func countryColumn(
         _ group: DashboardPublicHolidayCountryGroup,
@@ -440,35 +553,13 @@ public struct DashboardPublicHolidayCard: View {
         onNext: (() -> Void)? = nil
     ) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(subtitle)
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                    if let locationLabel = group.locationLabel {
-                        Text("\(group.countryName) · \(locationLabel)")
-                            .font(.subheadline.weight(.semibold))
-                    } else {
-                        Text(group.countryName)
-                            .font(.subheadline.weight(.semibold))
-                    }
-                }
-
-                Spacer(minLength: 0)
-
-                if showsCompanionControls {
-                    HStack(spacing: 8) {
-                        Button(action: { onPrevious?() }) {
-                            Image(systemName: "chevron.left")
-                        }
-                        Button(action: { onNext?() }) {
-                            Image(systemName: "chevron.right")
-                        }
-                    }
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                }
-            }
+            countryColumnHeader(
+                group,
+                subtitle: subtitle,
+                showsCompanionControls: showsCompanionControls,
+                onPrevious: onPrevious,
+                onNext: onNext
+            )
 
             if group.holidays.isEmpty {
                 Text("No upcoming public holidays.")
@@ -497,7 +588,7 @@ public struct DashboardPublicHolidayCard: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(holiday.name)
                     .font(.subheadline.weight(.semibold))
-                Text("\(holiday.relativeDescription) · \(formattedHolidayDate(holiday.date))")
+                Text("\(holiday.relativeDescription) · \(formattedHolidayDate(holiday.date)) · \(holiday.weekdayName) · \(holiday.dayKindLabel)")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Text(holiday.scopeLabel)
@@ -513,7 +604,7 @@ public struct DashboardPublicHolidayCard: View {
             Spacer(minLength: 0)
         }
         .padding(14)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(accent.opacity(0.12), in: RoundedRectangle(cornerRadius: 12))
     }
 

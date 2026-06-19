@@ -43,6 +43,18 @@ public struct DashboardNextPublicHoliday: Equatable, Sendable {
     public var scopeLabel: String {
         isNationwide ? "Nationwide" : "State & regional"
     }
+
+    public var weekdayName: String {
+        date.formatted(.dateTime.weekday(.wide))
+    }
+
+    public var isWeekend: Bool {
+        Calendar.current.isDateInWeekend(date)
+    }
+
+    public var dayKindLabel: String {
+        isWeekend ? "weekend" : "weekday"
+    }
 }
 
 public struct DashboardPublicHolidayCountryGroup: Identifiable, Equatable, Sendable {
