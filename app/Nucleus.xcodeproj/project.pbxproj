@@ -64,6 +64,7 @@
 		9B0DCC0F8A21372D7F8D82F1 /* WorkspaceStatusBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95F9299FA19C03821267F616 /* WorkspaceStatusBadge.swift */; };
 		9DD421879CE8E2380986DE94 /* GmailWebSessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C19EFA3DE919CAF339A8D6E /* GmailWebSessionStore.swift */; };
 		9EC8527F349AA5FE72F4ABE8 /* DashboardIncomingMailOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E48A7B5023CD11F5F01726F /* DashboardIncomingMailOverlay.swift */; };
+		9EF5B80A8FD01BADCAC44647 /* DashboardWeatherSpeechService.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA356A3F1FC0966F4066DD9F /* DashboardWeatherSpeechService.swift */; };
 		A1A5748F0C26C23E62073279 /* DashboardProcessMetricsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5A1AEBE23399CD601B924A8 /* DashboardProcessMetricsService.swift */; };
 		AA2B9B165190FE2E23E7AD95 /* MailInboxLoadingPhase.swift in Sources */ = {isa = PBXBuildFile; fileRef = C201B6D32546E035E9D04B57 /* MailInboxLoadingPhase.swift */; };
 		B78F1CBC004C7A7D60CE6175 /* DashboardQuotes.json in Resources */ = {isa = PBXBuildFile; fileRef = B1446CE8EB0EF69B17A5FEAE /* DashboardQuotes.json */; };
@@ -169,6 +170,7 @@
 		E4CEADA0142869F8949F55DD /* SupportViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupportViews.swift; sourceTree = "<group>"; };
 		E5971F41F5427FCE836471DA /* EmbeddedWebViewContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmbeddedWebViewContainer.swift; sourceTree = "<group>"; };
 		E79434496C370BC490D26F0A /* nucleus-bills-import-demo.csv */ = {isa = PBXFileReference; path = "nucleus-bills-import-demo.csv"; sourceTree = "<group>"; };
+		EA356A3F1FC0966F4066DD9F /* DashboardWeatherSpeechService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardWeatherSpeechService.swift; sourceTree = "<group>"; };
 		EBE67C288974FF5B2F8524E6 /* CloudKitStoreMigration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitStoreMigration.swift; sourceTree = "<group>"; };
 		EFC4312DE2A7EC5DCF5D888A /* InboxIdleRecheckController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InboxIdleRecheckController.swift; sourceTree = "<group>"; };
 		F3040B14FCE7F0866274EF0E /* MenuBarStatusItemController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarStatusItemController.swift; sourceTree = "<group>"; };
@@ -286,6 +288,7 @@
 				AB5ECBBA5D7B3B965303F247 /* DashboardQuoteEmojiService.swift */,
 				7DE2251B69DA22713A864959 /* DashboardQuotes.swift */,
 				C4AB09CEFF7019C07BF7A676 /* DashboardWeatherService.swift */,
+				EA356A3F1FC0966F4066DD9F /* DashboardWeatherSpeechService.swift */,
 				035D0E9FC4A418A7C52523C6 /* DockBadgeController.swift */,
 				E5971F41F5427FCE836471DA /* EmbeddedWebViewContainer.swift */,
 				8D37475DD0560D594BCD02DC /* EmbeddedWebViewRegistry.swift */,
@@ -476,6 +479,7 @@
 				2B8811DCCB2E638B2C0D6E57 /* DashboardQuoteEmojiService.swift in Sources */,
 				945B9D5BE4AF3E47C2EB2A85 /* DashboardQuotes.swift in Sources */,
 				4145571152831419B598BCD1 /* DashboardWeatherService.swift in Sources */,
+				9EF5B80A8FD01BADCAC44647 /* DashboardWeatherSpeechService.swift in Sources */,
 				369B622F3177919D55C55827 /* DashboardWorkspaceView.swift in Sources */,
 				C442A46B050B3F01536FCC47 /* DockBadgeController.swift in Sources */,
 				37A6CBA22087747F45F0F4F5 /* EmbeddedWebViewContainer.swift in Sources */,

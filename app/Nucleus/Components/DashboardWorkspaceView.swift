@@ -12,6 +12,7 @@ struct DashboardWorkspaceView: View {
     @ObservedObject private var syncService = CloudKitSyncService.shared
     @ObservedObject private var cloudSyncService = NucleusCloudSyncService.shared
     @ObservedObject private var weatherService = DashboardWeatherService.shared
+    @ObservedObject private var weatherSpeechService = DashboardWeatherSpeechService.shared
     @ObservedObject private var processMetricsService = DashboardProcessMetricsService.shared
     @ObservedObject private var holidayService = DashboardPublicHolidayService.shared
     @ObservedObject private var newsFeedService = DashboardNewsFeedService.shared
@@ -86,6 +87,7 @@ struct DashboardWorkspaceView: View {
         .onDisappear {
             processMetricsService.stopSampling()
             newsFeedService.stopAutoRefresh()
+            weatherSpeechService.stop()
             holidayMetadataTask?.cancel()
         }
         .onChange(of: settings.dashboardPreferences) { _, _ in
@@ -615,9 +617,38 @@ struct DashboardWorkspaceView: View {
 
     private var weatherHeaderActions: some View {
         HStack(spacing: 8) {
+            speakWeatherButton
             weatherSyncButton
             changeWeatherLocationButton
         }
+    }
+
+    private var speakWeatherButton: some View {
+        Button {
+            toggleWeatherSpeech()
+        } label: {
+            if weatherSpeechService.isSpeaking {
+                Label("Stop", systemImage: "stop.fill")
+            } else {
+                Label("Speak", systemImage: "speaker.wave.2.fill")
+            }
+        }
+        .buttonStyle(.bordered)
+        .controlSize(.small)
+        .disabled(weatherService.weather == nil)
+        .help("Speak today's weather forecast aloud")
+    }
+
+    private func toggleWeatherSpeech() {
+        if weatherSpeechService.isSpeaking {
+            weatherSpeechService.stop()
+            return
+        }
+        guard let weather = weatherService.weather else { return }
+        weatherSpeechService.speak(
+            weather: weather,
+            locationLabel: weatherService.locationSnapshot?.locationLabel
+        )
     }
 
     private var weatherSyncButton: some View {
@@ -1079,6 +1110,17 @@ struct DashboardWorkspaceView: View {
                         }
 
                         Spacer(minLength: 0)
+
+                        Button {
+                            toggleWeatherSpeech()
+                        } label: {
+                            Image(systemName: weatherSpeechService.isSpeaking ? "stop.fill" : "speaker.wave.2.fill")
+                                .font(.title3)
+                                .symbolRenderingMode(.hierarchical)
+                                .foregroundStyle(.secondary)
+                        }
+                        .buttonStyle(.plain)
+                        .help(weatherSpeechService.isSpeaking ? "Stop speaking weather" : "Speak today's weather forecast")
                     }
 
                     if !weather.dailyForecast.isEmpty {
