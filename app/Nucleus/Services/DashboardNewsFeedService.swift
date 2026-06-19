@@ -225,6 +225,7 @@ final class DashboardNewsFeedService: ObservableObject {
 
     @Published private(set) var headlines: [DashboardNewsHeadline] = []
     @Published private(set) var enrichments: [String: DashboardNewsEnrichment] = [:]
+    @Published private(set) var breakingNewsAlert: DashboardBreakingNewsAlert?
     @Published private(set) var isLoading = false
     @Published private(set) var statusMessage: String?
 
@@ -234,6 +235,7 @@ final class DashboardNewsFeedService: ObservableObject {
     private var fetchTask: Task<Void, Never>?
     private var enrichmentTask: Task<Void, Never>?
     private var refreshTimer: Timer?
+    private var queuedBreakingNewsAlerts: [DashboardBreakingNewsAlert] = []
     private let logger = Logger(subsystem: "net.suherman.nucleus", category: "DashboardNewsFeed")
 
     private static let refreshInterval: TimeInterval = 60 * 60
@@ -269,6 +271,35 @@ final class DashboardNewsFeedService: ObservableObject {
         fetchTask = nil
         enrichmentTask?.cancel()
         enrichmentTask = nil
+    }
+
+    func clearBreakingNewsPresentation() {
+        breakingNewsAlert = nil
+        queuedBreakingNewsAlerts = []
+    }
+
+    func dismissBreakingNewsAlert() {
+        if let alert = breakingNewsAlert {
+            BreakingNewsPresentationStore.markSeen(alert.id)
+        }
+        breakingNewsAlert = nil
+        presentNextBreakingNewsAlertIfNeeded()
+    }
+
+    func openBreakingNewsAlertLink() {
+        if let link = breakingNewsAlert?.headline.link {
+            ChromeLauncher.open(url: link)
+        }
+        if let alert = breakingNewsAlert {
+            BreakingNewsPresentationStore.markSeen(alert.id)
+        }
+        breakingNewsAlert = nil
+        presentNextBreakingNewsAlertIfNeeded()
+    }
+
+    func refreshBreakingNewsAlertIfNeeded() {
+        scanForBreakingNewsAlerts()
+        presentNextBreakingNewsAlertIfNeeded()
     }
 
     func refresh(countryCode: String?, force: Bool = false) {
@@ -317,6 +348,7 @@ final class DashboardNewsFeedService: ObservableObject {
         lastFetchAt = Date()
         statusMessage = nil
         enrichHeadlines(fetched)
+        scanForBreakingNewsAlerts()
     }
 
     private func enrichHeadlines(_ items: [DashboardNewsHeadline]) {
@@ -338,8 +370,46 @@ final class DashboardNewsFeedService: ObservableObject {
                 let enrichment = await DashboardNewsAnalysisService.resolveEnrichment(for: headline)
                 updated[headline.id] = enrichment
                 enrichments = updated
+                registerBreakingNewsCandidate(headline: headline, enrichment: enrichment)
             }
         }
+    }
+
+    private func scanForBreakingNewsAlerts() {
+        for headline in headlines {
+            let enrichment = enrichment(for: headline)
+            registerBreakingNewsCandidate(headline: headline, enrichment: enrichment)
+        }
+    }
+
+    private func registerBreakingNewsCandidate(
+        headline: DashboardNewsHeadline,
+        enrichment: DashboardNewsEnrichment
+    ) {
+        guard enrichment.mood == .urgent else { return }
+        guard !BreakingNewsPresentationStore.hasSeen(headline.id) else { return }
+
+        let alert = DashboardBreakingNewsAlert(
+            headline: headline,
+            enrichment: enrichment,
+            displayTitle: DashboardNewsAnalysisService.cleanedTitle(headline.title)
+        )
+        guard breakingNewsAlert?.id != alert.id else { return }
+        guard !queuedBreakingNewsAlerts.contains(where: { $0.id == alert.id }) else { return }
+
+        if breakingNewsAlert == nil {
+            breakingNewsAlert = alert
+        } else {
+            queuedBreakingNewsAlerts.append(alert)
+            queuedBreakingNewsAlerts.sort {
+                ($0.headline.publishedAt ?? .distantPast) > ($1.headline.publishedAt ?? .distantPast)
+            }
+        }
+    }
+
+    private func presentNextBreakingNewsAlertIfNeeded() {
+        guard breakingNewsAlert == nil, !queuedBreakingNewsAlerts.isEmpty else { return }
+        breakingNewsAlert = queuedBreakingNewsAlerts.removeFirst()
     }
 
     func enrichment(for headline: DashboardNewsHeadline) -> DashboardNewsEnrichment {

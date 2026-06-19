@@ -64,6 +64,8 @@
 		9B0DCC0F8A21372D7F8D82F1 /* WorkspaceStatusBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95F9299FA19C03821267F616 /* WorkspaceStatusBadge.swift */; };
 		9DD421879CE8E2380986DE94 /* GmailWebSessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C19EFA3DE919CAF339A8D6E /* GmailWebSessionStore.swift */; };
 		9EC8527F349AA5FE72F4ABE8 /* DashboardIncomingMailOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E48A7B5023CD11F5F01726F /* DashboardIncomingMailOverlay.swift */; };
+		A1B2C3D4E5F6789012345A01 /* DashboardBreakingNewsOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1E2A3C4D5E6789012345A01 /* DashboardBreakingNewsOverlay.swift */; };
+		D3E4F5A6B7C8901234567A02 /* DashboardNewsSpeechService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2D3E4F5A6B7890123456A02 /* DashboardNewsSpeechService.swift */; };
 		9EF5B80A8FD01BADCAC44647 /* DashboardWeatherSpeechService.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA356A3F1FC0966F4066DD9F /* DashboardWeatherSpeechService.swift */; };
 		A1A5748F0C26C23E62073279 /* DashboardProcessMetricsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5A1AEBE23399CD601B924A8 /* DashboardProcessMetricsService.swift */; };
 		AA2B9B165190FE2E23E7AD95 /* MailInboxLoadingPhase.swift in Sources */ = {isa = PBXBuildFile; fileRef = C201B6D32546E035E9D04B57 /* MailInboxLoadingPhase.swift */; };
@@ -118,6 +120,8 @@
 		414321C6FA288B25C3F312A3 /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
 		4A99D2A6C2B4A64C1E115EC0 /* DashboardPublicHolidayService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardPublicHolidayService.swift; sourceTree = "<group>"; };
 		4E48A7B5023CD11F5F01726F /* DashboardIncomingMailOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardIncomingMailOverlay.swift; sourceTree = "<group>"; };
+		B1E2A3C4D5E6789012345A01 /* DashboardBreakingNewsOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardBreakingNewsOverlay.swift; sourceTree = "<group>"; };
+		C2D3E4F5A6B7890123456A02 /* DashboardNewsSpeechService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardNewsSpeechService.swift; sourceTree = "<group>"; };
 		4FE025998DE849CA2FCBCC91 /* NucleusTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NucleusTheme.swift; sourceTree = "<group>"; };
 		500EAAED9E0A3F359D797709 /* Funky.caf */ = {isa = PBXFileReference; path = Funky.caf; sourceTree = "<group>"; };
 		50537B36D31255DB7C3030C9 /* BackgroundSyncServices.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundSyncServices.swift; sourceTree = "<group>"; };
@@ -212,6 +216,7 @@
 				2D130F5FD244D81A8B8DBE22 /* ClipboardPickerView.swift */,
 				C643F64124025FA6F196C435 /* ClipboardWorkspaceView.swift */,
 				4E48A7B5023CD11F5F01726F /* DashboardIncomingMailOverlay.swift */,
+				B1E2A3C4D5E6789012345A01 /* DashboardBreakingNewsOverlay.swift */,
 				75CD049259B1B6242B15B6DF /* DashboardNewsTickerView.swift */,
 				F695044507986F1B738A6465 /* DashboardWorkspaceView.swift */,
 				C201B6D32546E035E9D04B57 /* MailInboxLoadingPhase.swift */,
@@ -280,6 +285,7 @@
 				6F3E574A6A6CAA16B60DF4F8 /* DashboardLocationSubdivisionResolver.swift */,
 				0A73239886ECAEB5F1DE3660 /* DashboardNewsAnalysisService.swift */,
 				7070B325206A2DB90B1C3F2C /* DashboardNewsFeedService.swift */,
+				C2D3E4F5A6B7890123456A02 /* DashboardNewsSpeechService.swift */,
 				A5A1AEBE23399CD601B924A8 /* DashboardProcessMetricsService.swift */,
 				DA1A423DE933BDFCA8CCE384 /* DashboardPublicHolidayCountryCatalog.swift */,
 				5A55CAAB4D2D33098BEFB97A /* DashboardPublicHolidayExplanationService.swift */,
@@ -467,9 +473,11 @@
 				54097C655AC0AD8DD2FCFDFC /* DashboardAnalysisService.swift in Sources */,
 				4F29C2E3364B7255A5262494 /* DashboardClipboardDayAnalysisService.swift in Sources */,
 				9EC8527F349AA5FE72F4ABE8 /* DashboardIncomingMailOverlay.swift in Sources */,
+				A1B2C3D4E5F6789012345A01 /* DashboardBreakingNewsOverlay.swift in Sources */,
 				3CAE1AF1473C860F9A01DED6 /* DashboardLocationSubdivisionResolver.swift in Sources */,
 				51F5F59CEBB58934E8084747 /* DashboardNewsAnalysisService.swift in Sources */,
 				DC31225F8CF5E258002AAF0A /* DashboardNewsFeedService.swift in Sources */,
+				D3E4F5A6B7C8901234567A02 /* DashboardNewsSpeechService.swift in Sources */,
 				4071421F270EE4B407D173F7 /* DashboardNewsTickerView.swift in Sources */,
 				A1A5748F0C26C23E62073279 /* DashboardProcessMetricsService.swift in Sources */,
 				CC2FE3B6D8AD40C7F6D5A4B9 /* DashboardPublicHolidayCountryCatalog.swift in Sources */,

@@ -219,9 +219,25 @@ enum DashboardPublicHolidayClient {
     }
 
     static func isPublicHoliday(on date: Date, in holidays: [DashboardNextPublicHoliday]) -> Bool {
+        !publicHolidays(on: date, in: holidays).isEmpty
+    }
+
+    static func publicHolidays(on date: Date, in holidays: [DashboardNextPublicHoliday]) -> [DashboardNextPublicHoliday] {
         let calendar = Calendar.current
         let target = calendar.startOfDay(for: date)
-        return holidays.contains { calendar.isDate($0.date, inSameDayAs: target) }
+        return holidays.filter { calendar.isDate($0.date, inSameDayAs: target) }
+    }
+
+    static func primaryHolidayName(on date: Date, in holidays: [DashboardNextPublicHoliday]) -> String? {
+        let names = Array(Set(publicHolidays(on: date, in: holidays).map(\.name))).sorted()
+        switch names.count {
+        case 0:
+            return nil
+        case 1:
+            return names[0]
+        default:
+            return "holidays"
+        }
     }
 
     static func displayHolidays(
@@ -297,7 +313,15 @@ final class DashboardPublicHolidayService: ObservableObject {
     private init() {}
 
     var isTodayPublicHoliday: Bool {
-        DashboardPublicHolidayClient.isPublicHoliday(on: Date(), in: cachedHolidays)
+        isPublicHoliday(on: Date())
+    }
+
+    func isPublicHoliday(on date: Date) -> Bool {
+        DashboardPublicHolidayClient.isPublicHoliday(on: date, in: cachedHolidays)
+    }
+
+    func todayPublicHolidayName(on date: Date = Date()) -> String? {
+        DashboardPublicHolidayClient.primaryHolidayName(on: date, in: cachedHolidays)
     }
 
     static func resolveRefreshTargets(

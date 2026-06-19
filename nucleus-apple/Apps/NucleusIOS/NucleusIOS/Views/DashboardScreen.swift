@@ -86,8 +86,13 @@ struct DashboardWorkspaceScreen: View {
     }
 
     private func greetingLine(asOf date: Date) -> String {
-        let firstName = DashboardGreeting.firstName(from: viewModel.iCloudSync.accountName)
-        return "\(DashboardGreeting.timeOfDay(now: date)), \(firstName)!"
+        let celebrateHoliday = holidayService.isPublicHoliday(on: date)
+        return DashboardGreeting.line(
+            firstName: DashboardGreeting.firstName(from: viewModel.iCloudSync.accountName),
+            now: date,
+            isPublicHoliday: celebrateHoliday,
+            publicHolidayName: celebrateHoliday ? holidayService.todayPublicHolidayName(on: date) : nil
+        )
     }
 
     private var quoteLine: String? {

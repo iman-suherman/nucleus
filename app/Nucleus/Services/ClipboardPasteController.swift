@@ -1,4 +1,5 @@
 import AppKit
+import ApplicationServices
 import ClipboardKit
 import NucleusKit
 import SwiftUI
@@ -11,6 +12,8 @@ final class ClipboardPasteController: NSObject {
     private var globalMonitor: Any?
     private var localMonitor: Any?
     private var outsideClickMonitor: Any?
+    private var eventTap: CFMachPort?
+    private var eventTapRunLoopSource: CFRunLoopSource?
     private var previousFrontmostApp: NSRunningApplication?
 
     private override init() {
@@ -18,23 +21,34 @@ final class ClipboardPasteController: NSObject {
     }
 
     func start() {
-        guard globalMonitor == nil, localMonitor == nil else { return }
-
-        localMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
-            guard let self, Self.matchesHotkey(event) else { return event }
-            self.presentPicker()
-            return nil
+        if eventTap != nil || globalMonitor != nil || localMonitor != nil {
+            refreshEventTapIfNeeded()
+            return
         }
 
-        globalMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
-            guard let self, Self.matchesHotkey(event) else { return }
-            Task { @MainActor in
-                self.presentPicker()
-            }
+        if startEventTap() {
+            return
+        }
+
+        installFallbackKeyMonitors()
+    }
+
+    func refreshEventTapIfNeeded() {
+        guard eventTap == nil, AXIsProcessTrusted(), startEventTap() else { return }
+
+        if let globalMonitor {
+            NSEvent.removeMonitor(globalMonitor)
+            self.globalMonitor = nil
+        }
+        if let localMonitor {
+            NSEvent.removeMonitor(localMonitor)
+            self.localMonitor = nil
         }
     }
 
     func stop() {
+        stopEventTap()
+
         if let globalMonitor {
             NSEvent.removeMonitor(globalMonitor)
             self.globalMonitor = nil
@@ -123,6 +137,100 @@ final class ClipboardPasteController: NSObject {
         previousFrontmostApp = nil
     }
 
+    private func installFallbackKeyMonitors() {
+        localMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard let self, Self.matchesHotkey(event) else { return event }
+            self.presentPicker()
+            return nil
+        }
+
+        globalMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard let self, Self.matchesHotkey(event) else { return }
+            Task { @MainActor in
+                self.presentPicker()
+            }
+        }
+    }
+
+    @discardableResult
+    private func startEventTap() -> Bool {
+        guard AXIsProcessTrusted() else {
+            promptForAccessibilityIfNeeded()
+            return false
+        }
+
+        let eventMask = CGEventMask(1 << CGEventType.keyDown.rawValue)
+        let userInfo = Unmanaged.passUnretained(self).toOpaque()
+
+        guard let tap = CGEvent.tapCreate(
+            tap: .cgSessionEventTap,
+            place: .headInsertEventTap,
+            options: .defaultTap,
+            eventsOfInterest: eventMask,
+            callback: Self.eventTapCallback,
+            userInfo: userInfo
+        ) else {
+            return false
+        }
+
+        eventTap = tap
+        let source = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
+        eventTapRunLoopSource = source
+        CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
+        CGEvent.tapEnable(tap: tap, enable: true)
+        return true
+    }
+
+    private func stopEventTap() {
+        if let eventTapRunLoopSource {
+            CFRunLoopRemoveSource(CFRunLoopGetMain(), eventTapRunLoopSource, .commonModes)
+            self.eventTapRunLoopSource = nil
+        }
+        if let eventTap {
+            CGEvent.tapEnable(tap: eventTap, enable: false)
+            self.eventTap = nil
+        }
+    }
+
+    private func promptForAccessibilityIfNeeded() {
+        let key = "nucleus.clipboardPaste.accessibilityPromptShown"
+        guard !UserDefaults.standard.bool(forKey: key) else { return }
+        UserDefaults.standard.set(true, forKey: key)
+
+        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
+        AXIsProcessTrustedWithOptions(options)
+    }
+
+    private static let eventTapCallback: CGEventTapCallBack = { _, type, event, userInfo in
+        if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
+            if let userInfo {
+                let controller = Unmanaged<ClipboardPasteController>.fromOpaque(userInfo).takeUnretainedValue()
+                DispatchQueue.main.async {
+                    if let tap = controller.eventTap {
+                        CGEvent.tapEnable(tap: tap, enable: true)
+                    }
+                }
+            }
+            return Unmanaged.passUnretained(event)
+        }
+
+        guard type == .keyDown, let userInfo else {
+            return Unmanaged.passUnretained(event)
+        }
+
+        guard matchesCGEvent(event) else {
+            return Unmanaged.passUnretained(event)
+        }
+
+        let controller = Unmanaged<ClipboardPasteController>.fromOpaque(userInfo).takeUnretainedValue()
+        DispatchQueue.main.async {
+            Task { @MainActor in
+                controller.presentPicker()
+            }
+        }
+        return nil
+    }
+
     private func installOutsideClickMonitor() {
         removeOutsideClickMonitor()
         outsideClickMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
@@ -145,6 +253,16 @@ final class ClipboardPasteController: NSObject {
     private static func matchesHotkey(_ event: NSEvent) -> Bool {
         event.modifierFlags.intersection([.command, .shift, .option, .control]) == [.command, .shift]
             && event.charactersIgnoringModifiers?.lowercased() == "v"
+    }
+
+    private static func matchesCGEvent(_ event: CGEvent) -> Bool {
+        guard event.getIntegerValueField(.keyboardEventKeycode) == 9 else { return false }
+
+        let flags = event.flags
+        return flags.contains(.maskCommand)
+            && flags.contains(.maskShift)
+            && !flags.contains(.maskAlternate)
+            && !flags.contains(.maskControl)
     }
 }
 

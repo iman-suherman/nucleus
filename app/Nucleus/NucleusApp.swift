@@ -97,6 +97,7 @@ private struct AppRootView: View {
             .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
                 viewModel.checkForUpdatesWhenEligible()
                 viewModel.refreshMailUnreadNow()
+                ClipboardPasteController.shared.refreshEventTapIfNeeded()
             }
             .onOpenURL { url in
                 Task { await viewModel.handleIncomingURL(url) }

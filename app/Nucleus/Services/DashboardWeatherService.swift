@@ -70,6 +70,32 @@ enum DashboardGreeting {
     static func isWeekend(now: Date = Date(), calendar: Calendar = .current) -> Bool {
         calendar.isDateInWeekend(now)
     }
+
+    static func line(
+        firstName: String,
+        now: Date = Date(),
+        calendar: Calendar = .current,
+        isPublicHoliday: Bool = false,
+        publicHolidayName: String? = nil
+    ) -> String {
+        let weekend = isWeekend(now: now, calendar: calendar)
+
+        if isPublicHoliday {
+            if let publicHolidayName, !publicHolidayName.isEmpty {
+                return "Happy \(publicHolidayName), \(firstName)!"
+            }
+            if weekend {
+                return "Happy holiday weekend, \(firstName)!"
+            }
+            return "Happy holiday, \(firstName)!"
+        }
+
+        if weekend {
+            return "Happy weekend, \(firstName)!"
+        }
+
+        return "\(timeOfDay(now: now, calendar: calendar)), \(firstName)!"
+    }
 }
 
 @MainActor

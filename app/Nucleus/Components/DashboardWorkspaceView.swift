@@ -16,6 +16,7 @@ struct DashboardWorkspaceView: View {
     @ObservedObject private var processMetricsService = DashboardProcessMetricsService.shared
     @ObservedObject private var holidayService = DashboardPublicHolidayService.shared
     @ObservedObject private var newsFeedService = DashboardNewsFeedService.shared
+    @ObservedObject private var newsSpeechService = DashboardNewsSpeechService.shared
 
     @State private var holidayExplanations: [String: String] = [:]
     @State private var holidayIcons: [String: String] = [:]
@@ -53,8 +54,25 @@ struct DashboardWorkspaceView: View {
                     onDismiss: viewModel.dismissDashboardIncomingMail
                 )
             }
+
+            if dashboardPreferences.newsFeedEnabled,
+               let alert = newsFeedService.breakingNewsAlert {
+                DashboardBreakingNewsOverlay(
+                    alert: alert,
+                    speechService: newsSpeechService,
+                    onOpenLink: {
+                        newsSpeechService.stop()
+                        newsFeedService.openBreakingNewsAlertLink()
+                    },
+                    onDismiss: {
+                        newsSpeechService.stop()
+                        newsFeedService.dismissBreakingNewsAlert()
+                    }
+                )
+            }
         }
         .animation(.easeInOut(duration: 0.2), value: viewModel.dashboardIncomingMailPrompt?.id)
+        .animation(.easeInOut(duration: 0.2), value: newsFeedService.breakingNewsAlert?.id)
     }
 
     private var dashboardContent: some View {
@@ -80,6 +98,7 @@ struct DashboardWorkspaceView: View {
             applyDashboardServiceState()
             DashboardAnalysisService.shared.runAnalysisIfNeeded(force: false)
             viewModel.refreshDashboardIncomingMailAlertIfNeeded()
+            newsFeedService.refreshBreakingNewsAlertIfNeeded()
             viewModel.refreshDashboardQuoteForCurrentContext()
             viewModel.refreshDashboardQuoteEmojis()
             viewModel.refreshClipboardDayAnalysisIfNeeded()
@@ -89,6 +108,7 @@ struct DashboardWorkspaceView: View {
             processMetricsService.stopSampling()
             newsFeedService.stopAutoRefresh()
             weatherSpeechService.stop()
+            newsSpeechService.stop()
             holidayMetadataTask?.cancel()
         }
         .onChange(of: settings.dashboardPreferences) { _, _ in
@@ -293,7 +313,13 @@ struct DashboardWorkspaceView: View {
     }
 
     private func greetingLine(asOf date: Date) -> String {
-        "\(DashboardGreeting.timeOfDay(now: date)), \(DashboardGreeting.firstName)!"
+        let celebrateHoliday = dashboardPreferences.publicHolidayEnabled && holidayService.isPublicHoliday(on: date)
+        return DashboardGreeting.line(
+            firstName: DashboardGreeting.firstName,
+            now: date,
+            isPublicHoliday: celebrateHoliday,
+            publicHolidayName: celebrateHoliday ? holidayService.todayPublicHolidayName(on: date) : nil
+        )
     }
 
     private var quoteLine: String? {
