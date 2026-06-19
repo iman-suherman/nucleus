@@ -236,7 +236,27 @@ public enum DashboardPublicHolidayClient {
         return holidays.contains { calendar.isDate($0.date, inSameDayAs: target) }
     }
 
-    public static func displayHolidays(from holidays: [DashboardNextPublicHoliday]) -> [DashboardNextPublicHoliday] {
+    public static func displayHolidays(
+        from holidays: [DashboardNextPublicHoliday],
+        fillingToCount minimumCount: Int = 0
+    ) -> [DashboardNextPublicHoliday] {
+        var result = primaryDisplayHolidays(from: holidays)
+        guard minimumCount > result.count else {
+            return result
+        }
+
+        for holiday in holidays.sorted(by: { $0.date < $1.date }) {
+            guard result.count < minimumCount else { break }
+            if result.contains(where: { sameDisplayHoliday($0, holiday) }) {
+                continue
+            }
+            result.append(holiday)
+        }
+
+        return result.sorted { $0.date < $1.date }
+    }
+
+    fileprivate static func primaryDisplayHolidays(from holidays: [DashboardNextPublicHoliday]) -> [DashboardNextPublicHoliday] {
         guard !holidays.isEmpty else { return [] }
 
         let nationwide = holidays.first(where: \.isNationwide)
@@ -391,6 +411,10 @@ public final class DashboardPublicHolidayService: ObservableObject {
         return result
     }
 
+    private static func targetKey(for target: DashboardPublicHolidayRefreshTarget) -> String {
+        "\(target.countryCode)|\(target.subdivisionCode ?? "")"
+    }
+
     public func refresh(
         selectedCountryCodes: [String] = [],
         locationCountryCode: String?,
@@ -463,7 +487,7 @@ public final class DashboardPublicHolidayService: ObservableObject {
         statusMessage = nil
         defer { isLoading = false }
 
-        var groups: [DashboardPublicHolidayCountryGroup] = []
+        var fetchedGroups: [(DashboardPublicHolidayRefreshTarget, [DashboardNextPublicHoliday])] = []
         var allHolidays: [DashboardNextPublicHoliday] = []
         var hadError = false
 
@@ -486,15 +510,7 @@ public final class DashboardPublicHolidayService: ObservableObject {
                 guard !Task.isCancelled else { return }
                 switch result {
                 case .success(let holidays):
-                    let display = DashboardPublicHolidayClient.displayHolidays(from: holidays)
-                    groups.append(
-                        DashboardPublicHolidayCountryGroup(
-                            countryCode: target.countryCode,
-                            countryName: target.countryName,
-                            locationLabel: target.locationLabel,
-                            holidays: display
-                        )
-                    )
+                    fetchedGroups.append((target, holidays))
                     allHolidays.append(contentsOf: holidays)
                 case .failure:
                     hadError = true
@@ -504,11 +520,34 @@ public final class DashboardPublicHolidayService: ObservableObject {
 
         guard !Task.isCancelled else { return }
 
+        let fetchedByKey = Dictionary(
+            uniqueKeysWithValues: fetchedGroups.map {
+                (Self.targetKey(for: $0.0), $0)
+            }
+        )
+        let orderedFetched = targets.compactMap { fetchedByKey[Self.targetKey(for: $0)] }
+
+        let targetDisplayCount = orderedFetched
+            .map { DashboardPublicHolidayClient.primaryDisplayHolidays(from: $0.1).count }
+            .max() ?? 0
+
+        let groups = orderedFetched.map { target, holidays in
+            DashboardPublicHolidayCountryGroup(
+                countryCode: target.countryCode,
+                countryName: target.countryName,
+                locationLabel: target.locationLabel,
+                holidays: DashboardPublicHolidayClient.displayHolidays(
+                    from: holidays,
+                    fillingToCount: targetDisplayCount
+                )
+            )
+        }
+
         countryGroups = groups
         cachedHolidays = allHolidays
         cachedTargetsKey = targetsKey
         lastFetchAt = Date()
-        displayHolidays = groups.flatMap(\.holidays)
+        displayHolidays = groups.flatMap { $0.holidays }
         nextHoliday = displayHolidays.min(by: { $0.date < $1.date })
 
         if groups.isEmpty {

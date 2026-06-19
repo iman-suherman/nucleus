@@ -78,6 +78,7 @@ struct DashboardWorkspaceView: View {
         .background(Color(nsColor: .windowBackgroundColor))
         .onAppear {
             applyDashboardServiceState()
+            DashboardAnalysisService.shared.runAnalysisIfNeeded(force: false)
             viewModel.refreshDashboardIncomingMailAlertIfNeeded()
             viewModel.refreshDashboardQuoteForCurrentContext()
             viewModel.refreshDashboardQuoteEmojis()
@@ -105,6 +106,7 @@ struct DashboardWorkspaceView: View {
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             weatherService.refreshIfNeeded()
             newsFeedService.refresh(countryCodes: preferredNewsCountryCodes(), force: false)
+            DashboardAnalysisService.shared.runAnalysisIfNeeded(force: false)
         }
         .onChange(of: holidayService.countryGroups.map(\.countryCode)) { _, _ in
             viewModel.refreshDashboardQuoteForCurrentContext()
@@ -528,6 +530,7 @@ struct DashboardWorkspaceView: View {
                 .buttonStyle(.plain)
 
                 trailing()
+                    .layoutPriority(1)
             }
             .padding(.horizontal, 18)
             .padding(.vertical, 14)
@@ -621,6 +624,7 @@ struct DashboardWorkspaceView: View {
             weatherSyncButton
             changeWeatherLocationButton
         }
+        .fixedSize(horizontal: true, vertical: false)
     }
 
     private var speakWeatherButton: some View {
@@ -676,7 +680,8 @@ struct DashboardWorkspaceView: View {
             prepareWeatherLocationChangePopover()
             showsWeatherLocationChangePopover = true
         } label: {
-            Label("Change location", systemImage: "mappin.and.ellipse")
+            Label("Location", systemImage: "mappin.and.ellipse")
+                .fixedSize(horizontal: true, vertical: false)
         }
         .buttonStyle(.bordered)
         .controlSize(.small)
