@@ -1,11 +1,11 @@
 {
-  "version": "0.7.8",
-  "summary": "Clipboard history picker copies on selection — paste with ⌘V when you are ready.",
+  "version": "0.7.9",
+  "summary": "Public holidays show weekday and weekend context, with aligned card rows on the dashboard.",
   "releaseNotes": {
     "introduced": [],
     "changed": [
-      "⇧⌘V opens the clipboard history picker without pasting — selecting a clip copies it to the system clipboard and returns focus to your app",
-      "Press ⌘V after choosing a clip to paste at your own pace"
+      "Public holiday cards show the day of the week and whether the date falls on a weekend or weekday",
+      "Side-by-side public holiday columns use equal-height rows so cards stay aligned without uneven gaps"
     ],
     "fixed": [],
     "updated": [],
