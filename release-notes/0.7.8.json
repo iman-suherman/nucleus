@@ -1,0 +1,15 @@
+{
+  "version": "0.7.8",
+  "summary": "Clipboard history picker copies on selection — paste with ⌘V when you are ready.",
+  "releaseNotes": {
+    "introduced": [],
+    "changed": [
+      "⇧⌘V opens the clipboard history picker without pasting — selecting a clip copies it to the system clipboard and returns focus to your app",
+      "Press ⌘V after choosing a clip to paste at your own pace"
+    ],
+    "fixed": [],
+    "updated": [],
+    "removed": [],
+    "breaking": []
+  }
+}

@@ -1,5 +1,4 @@
 import AppKit
-import ApplicationServices
 import ClipboardKit
 import NucleusKit
 import SwiftUI
@@ -111,10 +110,6 @@ final class ClipboardPasteController: NSObject {
         ClipboardMonitorService.shared.completePaste()
 
         targetApp?.activate(options: [.activateIgnoringOtherApps, .activateAllWindows])
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
-            Self.simulateCommandV()
-        }
     }
 
     private func dismissPicker(reactivatePreviousApp: Bool) {
@@ -150,21 +145,6 @@ final class ClipboardPasteController: NSObject {
     private static func matchesHotkey(_ event: NSEvent) -> Bool {
         event.modifierFlags.intersection([.command, .shift, .option, .control]) == [.command, .shift]
             && event.charactersIgnoringModifiers?.lowercased() == "v"
-    }
-
-    private static func simulateCommandV() {
-        guard AXIsProcessTrusted() else { return }
-
-        let source = CGEventSource(stateID: .combinedSessionState)
-        let keyCode = CGKeyCode(9) // ANSI V
-
-        let keyDown = CGEvent(keyboardEventSource: source, virtualKey: keyCode, keyDown: true)
-        keyDown?.flags = .maskCommand
-        keyDown?.post(tap: .cghidEventTap)
-
-        let keyUp = CGEvent(keyboardEventSource: source, virtualKey: keyCode, keyDown: false)
-        keyUp?.flags = .maskCommand
-        keyUp?.post(tap: .cghidEventTap)
     }
 }
 

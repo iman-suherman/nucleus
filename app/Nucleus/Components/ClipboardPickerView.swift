@@ -58,7 +58,7 @@ struct ClipboardPickerView: View {
                 .listStyle(.inset)
             }
 
-            Text("Click a clip to paste · Return on selection · Esc to close")
+            Text("Click a clip to copy · ⌘V to paste · Return · Esc to close")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
