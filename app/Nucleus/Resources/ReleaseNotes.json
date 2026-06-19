@@ -1,12 +1,11 @@
 {
-  "version": "0.7.7",
-  "summary": "Balanced public holiday columns, reliable 30-minute dashboard analysis, and weather UI polish.",
+  "version": "0.7.8",
+  "summary": "Clipboard history picker copies on selection — paste with ⌘V when you are ready.",
   "releaseNotes": {
     "introduced": [],
     "changed": [
-      "Public holiday columns balance card counts by filling shorter country lists with the next upcoming holidays",
-      "Dashboard analysis runs automatically every 30 minutes, including when returning to the app or opening the dashboard",
-      "Weather location button renamed to Location and no longer truncates in the panel header"
+      "⇧⌘V opens the clipboard history picker without pasting — selecting a clip copies it to the system clipboard and returns focus to your app",
+      "Press ⌘V after choosing a clip to paste at your own pace"
     ],
     "fixed": [],
     "updated": [],
