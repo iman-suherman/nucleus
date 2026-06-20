@@ -33,8 +33,9 @@ const DEPLOY_TARGETS = [
   {
     repo: "nucleus-download",
     label: "nucleus-download.suherman.net",
+    infraDeploy: true,
     note: "manual",
-    details: ["Deploy from suherman-net-infra: npm run cloudflare:nucleus"],
+    details: ["Deploy from suherman-net-infra: npm run cloudflare:nucleus -- --skip-website --skip-sync --skip-registry"],
   },
 ];
 

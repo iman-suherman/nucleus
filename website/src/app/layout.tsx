@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import { Suspense } from "react";
 import "./globals.css";
+import { GoogleAnalytics } from "@/components/GoogleAnalytics";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { BRAND_NAME, BRAND_TAGLINE } from "@/lib/brand";
@@ -52,6 +54,9 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className={`${inter.className} bg-[#0a0a0b] text-slate-100 antialiased`}>
+        <Suspense fallback={null}>
+          <GoogleAnalytics />
+        </Suspense>
         <Header />
         <main>{children}</main>
         <Footer />
