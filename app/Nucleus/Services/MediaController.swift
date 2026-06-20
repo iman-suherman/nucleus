@@ -159,10 +159,16 @@ final class MediaController: ObservableObject {
         musicMonitor.refresh()
     }
 
-    func playSearchResult(_ result: MediaSearchResult) {
+    func playSearchResult(_ result: MediaSearchResult) async {
         playbackSource = .musicApp
-        catalogService.play(result)
+        musicMonitor.applyOptimisticNowPlaying(from: result)
+        await catalogService.play(result)
         musicMonitor.refresh()
+        if let error = catalogService.lastError, !error.hasPrefix("Showing your Music library") {
+            statusMessage = error
+        } else {
+            statusMessage = "Playing “\(result.title)”"
+        }
     }
 
     func runShortcut(named name: String) async {

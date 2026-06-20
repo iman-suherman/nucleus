@@ -19,6 +19,16 @@ final class MusicPlaybackMonitor: ObservableObject {
         refreshTimer?.invalidate()
     }
 
+    func applyOptimisticNowPlaying(from result: MediaSearchResult) {
+        nowPlaying = MediaNowPlayingInfo(
+            title: result.title,
+            artist: result.subtitle,
+            album: result.kind == .album ? result.title : "",
+            isPlaying: true,
+            artworkURL: result.artworkURL
+        )
+    }
+
     func refresh() {
         if let scriptState = MusicAppScriptController.fetchNowPlaying() {
             nowPlaying = scriptState

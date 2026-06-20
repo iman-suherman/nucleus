@@ -4,6 +4,7 @@ import NotesKit
 import NucleusKit
 import SwiftUI
 import SyncKit
+import WebKit
 
 private enum NoteSaveStatus: Equatable {
     case idle
@@ -118,6 +119,14 @@ struct NotesWorkspaceView: View {
         }
     }
 
+    private var notesCount: Int {
+        viewModel.notes.filter { $0.folder == .notes }.count
+    }
+
+    private var passwordsCount: Int {
+        viewModel.notes.filter { $0.folder == .passwords }.count
+    }
+
     private var notesList: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
@@ -140,13 +149,7 @@ struct NotesWorkspaceView: View {
             .padding(.horizontal, 16)
             .padding(.top, 16)
 
-            Picker("Organize", selection: $listFilter) {
-                Text("All").tag(Optional<NoteFolder>.none)
-                Text(NoteFolder.notes.rawValue).tag(Optional(NoteFolder.notes))
-                Text(NoteFolder.passwords.rawValue).tag(Optional(NoteFolder.passwords))
-            }
-            .pickerStyle(.segmented)
-            .padding(.horizontal, 16)
+            folderFilterBar
 
             NotesICloudSyncStatusCard(syncService: syncService)
                 .padding(.horizontal, 16)
@@ -170,6 +173,55 @@ struct NotesWorkspaceView: View {
                     }
             }
         }
+    }
+
+    private var folderFilterBar: some View {
+        HStack(spacing: 4) {
+            folderFilterOption(title: "All", folder: nil)
+            folderFilterOption(
+                title: NoteFolder.notes.rawValue,
+                folder: .notes,
+                count: notesCount,
+                accent: .blue
+            )
+            folderFilterOption(
+                title: NoteFolder.passwords.rawValue,
+                folder: .passwords,
+                count: passwordsCount,
+                accent: .orange
+            )
+        }
+        .padding(4)
+        .background(.quaternary.opacity(0.45), in: RoundedRectangle(cornerRadius: 8))
+        .padding(.horizontal, 16)
+    }
+
+    private func folderFilterOption(
+        title: String,
+        folder: NoteFolder?,
+        count: Int? = nil,
+        accent: Color? = nil
+    ) -> some View {
+        let isSelected = listFilter == folder
+
+        return Button {
+            listFilter = folder
+        } label: {
+            HStack(spacing: 6) {
+                Text(title)
+                    .lineLimit(1)
+                if let count, let accent {
+                    NoteFolderCountBadge(count: count, accent: accent)
+                }
+            }
+            .font(.subheadline.weight(isSelected ? .semibold : .regular))
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 6)
+            .padding(.horizontal, 8)
+            .background(isSelected ? Color.primary.opacity(0.08) : Color.clear, in: RoundedRectangle(cornerRadius: 6))
+            .contentShape(RoundedRectangle(cornerRadius: 6))
+        }
+        .buttonStyle(.plain)
     }
 
     private func noteRow(for note: NoteDocument) -> some View {
@@ -251,10 +303,16 @@ struct NotesWorkspaceView: View {
     @ViewBuilder
     private func editorHeader(for note: NoteDocument) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 10) {
-            Label(note.folder.rawValue, systemImage: note.folder.systemImage)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.secondary)
-                .labelStyle(.titleAndIcon)
+            HStack(spacing: 6) {
+                Label(note.folder.rawValue, systemImage: note.folder.systemImage)
+                    .labelStyle(.titleAndIcon)
+                NoteFolderCountBadge(
+                    count: note.folder == .notes ? notesCount : passwordsCount,
+                    accent: note.folder == .notes ? .blue : .orange
+                )
+            }
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(.secondary)
 
             if note.folder != .passwords {
                 TextField("Title", text: bindingTitle(for: note))
@@ -432,7 +490,28 @@ struct NotesWorkspaceView: View {
     }
 }
 
+private struct NoteFolderCountBadge: View {
+    let count: Int
+    let accent: Color
+
+    var body: some View {
+        Text("\(count)")
+            .font(.caption2.weight(.bold))
+            .monospacedDigit()
+            .foregroundStyle(accent)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(accent.opacity(0.16), in: Capsule())
+            .overlay {
+                Capsule()
+                    .strokeBorder(accent.opacity(0.28), lineWidth: 0.5)
+            }
+            .accessibilityLabel("\(count) stored")
+    }
+}
+
 private struct NoteMarkdownPreview: View {
+    @Environment(\.colorScheme) private var colorScheme
     let markdown: String
 
     private var bodyMarkdown: String {
@@ -440,29 +519,47 @@ private struct NoteMarkdownPreview: View {
     }
 
     var body: some View {
-        ScrollView {
-            Group {
-                if bodyMarkdown.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    Text("Nothing to preview yet.")
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                } else if let rendered = renderedMarkdown {
-                    Text(rendered)
-                        .textSelection(.enabled)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                } else {
-                    Text(bodyMarkdown)
-                        .textSelection(.enabled)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
+        Group {
+            if bodyMarkdown.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                Text("Nothing to preview yet.")
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    .padding(16)
+            } else {
+                NoteMarkdownWebPreview(markdown: markdown, colorScheme: colorScheme)
             }
-            .padding(12)
         }
         .background(.quaternary.opacity(0.25), in: RoundedRectangle(cornerRadius: 10))
     }
+}
 
-    private var renderedMarkdown: AttributedString? {
-        try? AttributedString(markdown: bodyMarkdown)
+private struct NoteMarkdownWebPreview: NSViewRepresentable {
+    let markdown: String
+    let colorScheme: ColorScheme
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
+
+    func makeNSView(context: Context) -> WKWebView {
+        let configuration = WKWebViewConfiguration()
+        configuration.defaultWebpagePreferences.allowsContentJavaScript = false
+        let webView = WKWebView(frame: .zero, configuration: configuration)
+        webView.setValue(false, forKey: "drawsBackground")
+        webView.enclosingScrollView?.drawsBackground = false
+        return webView
+    }
+
+    func updateNSView(_ webView: WKWebView, context: Context) {
+        let scheme = colorScheme == .dark ? "dark" : "light"
+        let html = NotesMarkdownHTML.previewDocument(from: markdown, colorScheme: scheme)
+        guard context.coordinator.loadedHTML != html else { return }
+        context.coordinator.loadedHTML = html
+        webView.loadHTMLString(html, baseURL: nil)
+    }
+
+    final class Coordinator {
+        var loadedHTML: String?
     }
 }
 

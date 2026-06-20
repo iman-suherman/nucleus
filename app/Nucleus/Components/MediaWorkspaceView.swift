@@ -88,26 +88,31 @@ struct MediaWorkspaceView: View {
     }
 
     private var mainColumn: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            searchField
-            searchStatusSection
-            nowPlayingCard
-            if !controller.searchResults.isEmpty {
-                searchResultsSection
-            } else if controller.catalogService.isSearching {
-                ProgressView("Searching…")
-                    .frame(maxWidth: .infinity, alignment: .center)
-            } else if !controller.searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                ContentUnavailableView(
-                    "No Results",
-                    systemImage: "music.note.list",
-                    description: Text(controller.catalogService.lastError ?? "Try a different search term.")
-                )
-                .frame(maxWidth: .infinity)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                searchField
+                searchStatusSection
+                nowPlayingCard
+                if !controller.searchResults.isEmpty {
+                    searchResultsSection
+                } else if controller.catalogService.isSearching {
+                    ProgressView("Searching…")
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.vertical, 24)
+                } else if !controller.searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    ContentUnavailableView(
+                        "No Results",
+                        systemImage: "music.note.list",
+                        description: Text(controller.catalogService.lastError ?? "Try a different search term.")
+                    )
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 24)
+                }
             }
-            Spacer(minLength: 0)
+            .padding()
+            .frame(maxWidth: .infinity, alignment: .topLeading)
         }
-        .padding()
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
     @ViewBuilder
@@ -311,31 +316,93 @@ struct MediaWorkspaceView: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Search Results")
                 .font(.headline)
-            ForEach(controller.searchResults) { result in
-                Button {
-                    controller.playSearchResult(result)
-                } label: {
-                    HStack(spacing: 12) {
-                        Image(systemName: icon(for: result.kind))
-                            .frame(width: 20)
-                            .foregroundStyle(.secondary)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(result.title)
-                                .font(.body.weight(.medium))
-                            Text(result.subtitle)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        Spacer()
-                        Text(result.kind.rawValue.capitalized)
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
+
+            VStack(spacing: 0) {
+                ForEach(controller.searchResults) { result in
+                    searchResultRow(result)
+                    if result.id != controller.searchResults.last?.id {
+                        Divider()
+                            .padding(.leading, 60)
                     }
-                    .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
-                .padding(.vertical, 4)
             }
+            .background(.background.secondary, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        }
+    }
+
+    private func searchResultRow(_ result: MediaSearchResult) -> some View {
+        Button {
+            Task { await controller.playSearchResult(result) }
+        } label: {
+            HStack(spacing: 12) {
+                searchResultArtwork(for: result)
+                    .frame(width: 48, height: 48)
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(result.title)
+                        .font(.body.weight(.medium))
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+                    Text(result.subtitle)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+
+                Spacer(minLength: 8)
+
+                Text(result.kind.rawValue.capitalized)
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(.tertiary)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(.quaternary.opacity(0.6), in: Capsule())
+
+                Image(systemName: "play.circle.fill")
+                    .font(.title2)
+                    .foregroundStyle(Color.accentColor)
+                    .symbolRenderingMode(.hierarchical)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help("Play \(result.title)")
+    }
+
+    @ViewBuilder
+    private func searchResultArtwork(for result: MediaSearchResult) -> some View {
+        if let urlString = result.artworkURL, let url = URL(string: urlString) {
+            AsyncImage(url: url) { phase in
+                switch phase {
+                case .success(let image):
+                    image
+                        .resizable()
+                        .scaledToFill()
+                case .failure:
+                    searchResultArtworkPlaceholder(for: result)
+                default:
+                    ZStack {
+                        searchResultArtworkPlaceholder(for: result)
+                        ProgressView()
+                            .controlSize(.small)
+                    }
+                }
+            }
+        } else {
+            searchResultArtworkPlaceholder(for: result)
+        }
+    }
+
+    private func searchResultArtworkPlaceholder(for result: MediaSearchResult) -> some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(.quaternary)
+            Image(systemName: icon(for: result.kind))
+                .font(.system(size: 18))
+                .foregroundStyle(.secondary)
         }
     }
 

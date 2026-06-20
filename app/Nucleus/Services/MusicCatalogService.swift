@@ -80,16 +80,130 @@ final class MusicCatalogService: ObservableObject {
         return []
     }
 
-    func play(_ result: MediaSearchResult) {
+    func play(_ result: MediaSearchResult) async {
+        if result.id.hasPrefix("library-") {
+            playViaMusicApp(result)
+            return
+        }
+
+        guard authorizationStatus == .authorized else {
+            lastError = "Allow Apple Music access to play catalog results."
+            playViaMusicApp(result)
+            return
+        }
+
+        do {
+            switch result.kind {
+            case .song:
+                try await playCatalogSong(id: result.id)
+            case .album:
+                try await playCatalogAlbum(id: result.id)
+            case .playlist:
+                try await playCatalogPlaylist(id: result.id)
+            case .artist:
+                try await playCatalogArtist(id: result.id)
+            }
+            lastError = nil
+        } catch {
+            lastError = "Could not play via Apple Music (\(error.localizedDescription)). Trying Music app…"
+            playViaMusicApp(result)
+        }
+    }
+
+    private func playViaMusicApp(_ result: MediaSearchResult) {
         switch result.kind {
         case .song:
             MusicAppScriptController.playTrack(named: result.title, artist: result.subtitle.nilIfEmpty)
         case .playlist:
             MusicAppScriptController.playPlaylist(named: result.title)
         case .album:
-            MusicAppScriptController.playTrack(named: result.title, artist: result.subtitle.nilIfEmpty)
+            MusicAppScriptController.playAlbum(named: result.title, artist: result.subtitle.nilIfEmpty)
         case .artist:
             MusicAppScriptController.playTrack(named: result.title)
+        }
+    }
+
+    private func playCatalogSong(id: String) async throws {
+        let song = try await catalogSong(id: id)
+        let player = ApplicationMusicPlayer.shared
+        player.queue = ApplicationMusicPlayer.Queue(for: [song], startingAt: song)
+        try await player.play()
+    }
+
+    private func playCatalogAlbum(id: String) async throws {
+        let album = try await catalogAlbum(id: id)
+        let player = ApplicationMusicPlayer.shared
+        player.queue = ApplicationMusicPlayer.Queue(for: [album], startingAt: album)
+        try await player.play()
+    }
+
+    private func playCatalogPlaylist(id: String) async throws {
+        let playlist = try await catalogPlaylist(id: id)
+        let player = ApplicationMusicPlayer.shared
+        player.queue = ApplicationMusicPlayer.Queue(for: [playlist])
+        try await player.play()
+    }
+
+    private func playCatalogArtist(id: String) async throws {
+        let artist = try await catalogArtist(id: id)
+        var request = MusicCatalogSearchRequest(term: artist.name, types: [Song.self])
+        request.limit = 25
+        let response = try await request.response()
+        guard let song = response.songs.first else {
+            throw CatalogPlaybackError.itemNotFound
+        }
+        let player = ApplicationMusicPlayer.shared
+        player.queue = ApplicationMusicPlayer.Queue(for: Array(response.songs), startingAt: song)
+        try await player.play()
+    }
+
+    private func catalogSong(id: String) async throws -> Song {
+        let itemID = MusicItemID(rawValue: id)
+        var request = MusicCatalogResourceRequest<Song>(matching: \.id, equalTo: itemID)
+        let response = try await request.response()
+        guard let song = response.items.first else {
+            throw CatalogPlaybackError.itemNotFound
+        }
+        return song
+    }
+
+    private func catalogAlbum(id: String) async throws -> Album {
+        let itemID = MusicItemID(rawValue: id)
+        var request = MusicCatalogResourceRequest<Album>(matching: \.id, equalTo: itemID)
+        let response = try await request.response()
+        guard let album = response.items.first else {
+            throw CatalogPlaybackError.itemNotFound
+        }
+        return album
+    }
+
+    private func catalogPlaylist(id: String) async throws -> Playlist {
+        let itemID = MusicItemID(rawValue: id)
+        var request = MusicCatalogResourceRequest<Playlist>(matching: \.id, equalTo: itemID)
+        let response = try await request.response()
+        guard let playlist = response.items.first else {
+            throw CatalogPlaybackError.itemNotFound
+        }
+        return playlist
+    }
+
+    private func catalogArtist(id: String) async throws -> Artist {
+        let itemID = MusicItemID(rawValue: id)
+        var request = MusicCatalogResourceRequest<Artist>(matching: \.id, equalTo: itemID)
+        let response = try await request.response()
+        guard let artist = response.items.first else {
+            throw CatalogPlaybackError.itemNotFound
+        }
+        return artist
+    }
+
+    private enum CatalogPlaybackError: LocalizedError {
+        case itemNotFound
+
+        var errorDescription: String? {
+            switch self {
+            case .itemNotFound: return "Item not found in Apple Music."
+            }
         }
     }
 

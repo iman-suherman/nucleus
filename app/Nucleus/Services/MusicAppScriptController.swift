@@ -45,6 +45,27 @@ enum MusicAppScriptController {
         run("tell application \"Music\" to play playlist \"\(escaped)\"")
     }
 
+    static func playAlbum(named title: String, artist: String? = nil) {
+        let escapedTitle = escapeAppleScriptString(title)
+        if let artist, !artist.isEmpty {
+            let escapedArtist = escapeAppleScriptString(artist)
+            run("""
+            tell application "Music"
+                set matches to (search library playlist 1 for "\(escapedTitle)" only albums)
+                repeat with anAlbum in matches
+                    if artist of anAlbum is "\(escapedArtist)" then
+                        play anAlbum
+                        return
+                    end if
+                end repeat
+                play album "\(escapedTitle)"
+            end tell
+            """)
+        } else {
+            run("tell application \"Music\" to play album \"\(escapedTitle)\"")
+        }
+    }
+
     static func playTrack(named title: String, artist: String? = nil) {
         let escapedTitle = escapeAppleScriptString(title)
         if let artist, !artist.isEmpty {
@@ -142,7 +163,6 @@ enum MusicAppScriptController {
         let escaped = escapeAppleScriptString(query)
         let script = """
         tell application "Music"
-            activate
             set q to "\(escaped)"
             set output to ""
             set counter to 0
