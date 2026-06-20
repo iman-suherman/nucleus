@@ -39,9 +39,9 @@ final class MusicPlaybackMonitor: ObservableObject {
             nowPlaying = musicKitState
         } else if let scriptState = MusicAppScriptController.fetchNowPlaying() {
             nowPlaying = scriptState
-        } else if nowPlaying.isPlaying {
-            nowPlaying.playerState = .stopped
+        } else if nowPlaying.hasContent {
             nowPlaying.isPlaying = false
+            nowPlaying.playerState = .stopped
         } else {
             nowPlaying = MediaNowPlayingInfo()
         }

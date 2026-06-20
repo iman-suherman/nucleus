@@ -105,7 +105,16 @@ enum MusicAppScriptController {
         let script = """
         tell application "Music"
             if player state is stopped then
-                return ""
+                try
+                    set trackName to name of current track
+                    set trackArtist to artist of current track
+                    set trackAlbum to album of current track
+                    set trackDuration to duration of current track
+                    set trackPosition to player position
+                    return trackName & "|||" & trackArtist & "|||" & trackAlbum & "|||" & (trackDuration as string) & "|||" & (trackPosition as string) & "|||stopped|||"
+                on error
+                    return ""
+                end try
             end if
             set trackName to name of current track
             set trackArtist to artist of current track
@@ -152,8 +161,36 @@ enum MusicAppScriptController {
         return Int(value.trimmingCharacters(in: .whitespacesAndNewlines))
     }
 
-    static func fetchAirPlayDevices() -> [(name: String, isSelected: Bool)] {
-        guard isInstalled() else { return [] }
+    static func fetchAirPlayDevices() -> MusicAirPlayDevicesResult {
+        guard isInstalled() else {
+            return MusicAirPlayDevicesResult(
+                devices: [],
+                errorMessage: "Apple Music is not installed."
+            )
+        }
+
+        switch probeAutomationAccess() {
+        case .denied:
+            return MusicAirPlayDevicesResult(
+                devices: [],
+                errorMessage: "Allow Nucleus to control Music.app in System Settings → Privacy & Security → Automation."
+            )
+        case .musicAppMissing:
+            return MusicAirPlayDevicesResult(
+                devices: [],
+                errorMessage: "Apple Music is not installed."
+            )
+        case .failed(let message):
+            return MusicAirPlayDevicesResult(devices: [], errorMessage: message)
+        case .granted:
+            break
+        }
+
+        _ = runReturningString("""
+        tell application "Music"
+            if not running then launch
+        end tell
+        """)
 
         let script = """
         tell application "Music"
@@ -165,7 +202,23 @@ enum MusicAppScriptController {
         end tell
         """
 
-        guard let raw = runReturningString(script), !raw.isEmpty else { return [] }
+        switch runReturningResult(script) {
+        case .failure(.message(let message)):
+            return MusicAirPlayDevicesResult(devices: [], errorMessage: message)
+        case .success(let raw):
+            let devices = parseAirPlayDevices(raw)
+            if devices.isEmpty {
+                return MusicAirPlayDevicesResult(
+                    devices: [],
+                    errorMessage: "No AirPlay speakers found. Open Music once and make sure HomePods or AirPlay devices are on the same network."
+                )
+            }
+            return MusicAirPlayDevicesResult(devices: devices, errorMessage: nil)
+        }
+    }
+
+    private static func parseAirPlayDevices(_ raw: String) -> [(name: String, isSelected: Bool)] {
+        guard !raw.isEmpty else { return [] }
 
         return raw
             .split(separator: "###", omittingEmptySubsequences: true)
@@ -188,6 +241,27 @@ enum MusicAppScriptController {
 
     static func isInstalled() -> Bool {
         NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.apple.Music") != nil
+    }
+
+    /// Harmless probe used to detect (and trigger) Automation permission for Music.app.
+    static func probeAutomationAccess() -> MusicAutomationAccessState {
+        guard isInstalled() else {
+            return .musicAppMissing
+        }
+
+        switch runReturningResult("tell application \"Music\" to return name") {
+        case .success:
+            return .granted
+        case .failure(.message(let message)):
+            if isAutomationDenied(message) {
+                return .denied
+            }
+            return .failed(message)
+        }
+    }
+
+    static func requestAutomationAccess() {
+        _ = probeAutomationAccess()
     }
 
     static func searchLibrary(query: String, limit: Int = 12) -> (results: [MediaSearchResult], error: String?) {
@@ -305,4 +379,23 @@ enum MusicAppScriptController {
         value.replacingOccurrences(of: "\\", with: "\\\\")
             .replacingOccurrences(of: "\"", with: "\\\"")
     }
+
+    private static func isAutomationDenied(_ message: String) -> Bool {
+        let normalized = message.lowercased()
+        return normalized.contains("not authorized to send apple events")
+            || normalized.contains("appleevent handler failed")
+            || message.contains("-1743")
+    }
+}
+
+enum MusicAutomationAccessState: Equatable {
+    case granted
+    case denied
+    case musicAppMissing
+    case failed(String)
+}
+
+struct MusicAirPlayDevicesResult {
+    var devices: [(name: String, isSelected: Bool)]
+    var errorMessage: String?
 }

@@ -1,16 +1,12 @@
+import AppKit
 import NucleusKit
 import SwiftUI
 import UniformTypeIdentifiers
 
 struct MediaWorkspaceView: View {
     @EnvironmentObject private var viewModel: AppViewModel
-    @EnvironmentObject private var appSettings: AppSettings
     @ObservedObject private var controller = MediaController.shared
-    @State private var showingAddPlaylist = false
-    @State private var showingAddShortcut = false
-    @State private var newPlaylistName = ""
-    @State private var newShortcutName = ""
-    @State private var newShortcutDetail = ""
+    @StateObject private var lyricsController = MusicLyricsController()
     @State private var showingFileImporter = false
 
     var body: some View {
@@ -22,7 +18,7 @@ struct MediaWorkspaceView: View {
                     mainColumn
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                     Divider()
-                    quickLaunchColumn
+                    lyricsColumn
                         .frame(minWidth: 280, idealWidth: 320, maxWidth: 360, maxHeight: .infinity, alignment: .topLeading)
                 }
             }
@@ -39,32 +35,11 @@ struct MediaWorkspaceView: View {
         .animation(.easeInOut(duration: 0.2), value: viewModel.dashboardIncomingMailPrompt?.id)
         .onAppear {
             controller.refreshNowPlaying()
+            controller.refreshMusicAccess()
             viewModel.refreshDashboardIncomingMailAlertIfNeeded()
         }
-        .alert("Add Playlist", isPresented: $showingAddPlaylist) {
-            TextField("Playlist name", text: $newPlaylistName)
-            Button("Add") {
-                appSettings.addMediaFavoritePlaylist(name: newPlaylistName)
-                newPlaylistName = ""
-            }
-            Button("Cancel", role: .cancel) {
-                newPlaylistName = ""
-            }
-        }
-        .alert("Add Shortcut", isPresented: $showingAddShortcut) {
-            TextField("Shortcut name", text: $newShortcutName)
-            TextField("Description", text: $newShortcutDetail)
-            Button("Add") {
-                appSettings.addMediaShortcut(
-                    MediaShortcut(name: newShortcutName, detail: newShortcutDetail)
-                )
-                newShortcutName = ""
-                newShortcutDetail = ""
-            }
-            Button("Cancel", role: .cancel) {
-                newShortcutName = ""
-                newShortcutDetail = ""
-            }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            controller.refreshMusicAccess()
         }
         .fileImporter(
             isPresented: $showingFileImporter,
@@ -87,6 +62,14 @@ struct MediaWorkspaceView: View {
             .pickerStyle(.segmented)
             .frame(maxWidth: 360)
             Spacer()
+            Button {
+                showingFileImporter = true
+            } label: {
+                Label("Open Files", systemImage: "folder")
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .help("Play local audio files in Nucleus Player")
             MediaAirPlayButton()
             if let statusMessage = controller.statusMessage {
                 Text(statusMessage)
@@ -101,6 +84,9 @@ struct MediaWorkspaceView: View {
     private var mainColumn: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
+                if controller.playbackSource == .musicApp, controller.musicAccess.needsSetup {
+                    MusicAccessSetupView(controller: controller)
+                }
                 searchField
                 searchStatusSection
                 nowPlayingCard
@@ -128,7 +114,12 @@ struct MediaWorkspaceView: View {
 
     @ViewBuilder
     private var searchStatusSection: some View {
-        if controller.catalogService.authorizationStatus == .denied {
+        if controller.playbackSource == .musicApp,
+           controller.musicAccess.needsSetup,
+           controller.catalogService.authorizationStatus != .authorized,
+           !controller.searchQuery.isEmpty {
+            EmptyView()
+        } else if controller.catalogService.authorizationStatus == .denied {
             HStack {
                 Text("Allow Apple Music in System Settings → Privacy & Security → Media & Apple Music.")
                     .font(.caption)
@@ -433,134 +424,11 @@ struct MediaWorkspaceView: View {
         }
     }
 
-    private var quickLaunchColumn: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Text("Quick Launch")
-                    .font(.headline)
-                Spacer()
-            }
-
-            if !controller.isMusicAppAvailable {
-                ContentUnavailableView(
-                    "Music App Not Found",
-                    systemImage: "music.note.slash",
-                    description: Text("Install Apple Music to control playback from Nucleus.")
-                )
-            }
-
-            favoritePlaylistsSection
-            shortcutsSection
-            localPlayerSection
-
-            Spacer(minLength: 0)
-        }
-        .padding()
-    }
-
-    private var favoritePlaylistsSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text("Playlists")
-                    .font(.subheadline.weight(.semibold))
-                Spacer()
-                Button {
-                    showingAddPlaylist = true
-                } label: {
-                    Image(systemName: "plus")
-                }
-                .buttonStyle(.borderless)
-            }
-
-            if appSettings.mediaFavoritePlaylists.isEmpty {
-                Text("Add favorite playlists from your Music library.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            } else {
-                ForEach(appSettings.mediaFavoritePlaylists) { playlist in
-                    HStack {
-                        Button {
-                            controller.playPlaylist(named: playlist.name)
-                        } label: {
-                            Label(playlist.name, systemImage: "music.note.list")
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-                        .buttonStyle(.plain)
-                        Button {
-                            appSettings.removeMediaFavoritePlaylist(id: playlist.id)
-                        } label: {
-                            Image(systemName: "trash")
-                                .foregroundStyle(.secondary)
-                        }
-                        .buttonStyle(.borderless)
-                    }
-                }
-            }
-        }
-    }
-
-    private var shortcutsSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text("Shortcuts")
-                    .font(.subheadline.weight(.semibold))
-                Spacer()
-                Button {
-                    showingAddShortcut = true
-                } label: {
-                    Image(systemName: "plus")
-                }
-                .buttonStyle(.borderless)
-            }
-
-            if appSettings.mediaShortcuts.isEmpty {
-                Text("Run Siri Shortcuts for HomePod-specific automations.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            } else {
-                ForEach(appSettings.mediaShortcuts) { shortcut in
-                    HStack(alignment: .top) {
-                        Button {
-                            Task { await controller.runShortcut(named: shortcut.name) }
-                        } label: {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Label(shortcut.name, systemImage: "bolt.fill")
-                                if !shortcut.detail.isEmpty {
-                                    Text(shortcut.detail)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-                        .buttonStyle(.plain)
-                        Button {
-                            appSettings.removeMediaShortcut(id: shortcut.id)
-                        } label: {
-                            Image(systemName: "trash")
-                                .foregroundStyle(.secondary)
-                        }
-                        .buttonStyle(.borderless)
-                    }
-                }
-            }
-        }
-    }
-
-    private var localPlayerSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Local Audio")
-                .font(.subheadline.weight(.semibold))
-            Text("Play files from Nucleus and route them to AirPlay speakers or HomePods.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            Button {
-                showingFileImporter = true
-            } label: {
-                Label("Open Audio Files…", systemImage: "folder")
-            }
-            .buttonStyle(.bordered)
-        }
+    private var lyricsColumn: some View {
+        KaraokeLyricsView(
+            lyricsController: lyricsController,
+            nowPlaying: controller.nowPlaying
+        )
     }
 
     private func icon(for kind: MediaSearchKind) -> String {

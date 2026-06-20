@@ -104,8 +104,10 @@ final class MusicCatalogService: ObservableObject {
                 try await playCatalogArtist(id: result.id)
             }
             lastError = nil
+            NucleusLog.music.info("catalog play started title=\(result.title, privacy: .public) kind=\(result.kind.rawValue, privacy: .public)")
         } catch {
             lastError = "Could not play via Apple Music (\(error.localizedDescription)). Trying Music app…"
+            NucleusLog.music.error("catalog play failed title=\(result.title, privacy: .public) error=\(error.localizedDescription, privacy: .public)")
             playViaMusicApp(result)
         }
     }

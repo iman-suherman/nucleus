@@ -1,0 +1,21 @@
+{
+  "version": "0.8.7",
+  "summary": "Karaoke lyrics in Music, Apple Music access setup, and cleaner logging.",
+  "releaseNotes": {
+    "introduced": [
+      "Music workspace shows synced karaoke lyrics from LRCLib while a track plays",
+      "Grant Music access card walks through Media & Apple Music and Music.app Automation permissions"
+    ],
+    "changed": [
+      "Music sidebar drops Quick Launch, playlists, and shortcuts in favor of the lyrics panel",
+      "Open Files button in the Music header for local audio playback",
+      "npm run logs, logs:all, and logs:network for easier Nucleus debugging"
+    ],
+    "fixed": [],
+    "updated": [
+      "Structured os.Logger output under net.suherman.nucleus for app log tailing"
+    ],
+    "removed": [],
+    "breaking": []
+  }
+}

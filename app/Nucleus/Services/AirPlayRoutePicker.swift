@@ -36,13 +36,28 @@ private struct MusicAppAirPlayMenuButton: View {
 
     @ObservedObject private var controller = MediaController.shared
     @State private var devices: [(name: String, isSelected: Bool)] = []
+    @State private var loadError: String?
 
     var body: some View {
         Menu {
             Group {
-                if devices.isEmpty {
-                    Button("No AirPlay devices found") {}
-                        .disabled(true)
+                if let loadError {
+                    Text(loadError)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    if controller.musicAccess.musicAutomation == .denied {
+                        Button("Open Automation Settings…") {
+                            controller.openMusicAccessSettings(.automation)
+                        }
+                    } else {
+                        Button("Allow Music Control…") {
+                            Task { await controller.setupMusicAccess() }
+                        }
+                    }
+                } else if devices.isEmpty {
+                    Text("No AirPlay devices found.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 } else {
                     ForEach(devices, id: \.name) { device in
                         Button {
@@ -66,14 +81,17 @@ private struct MusicAppAirPlayMenuButton: View {
                 .frame(width: compact ? 22 : 28, height: compact ? 22 : 28)
         }
         .menuStyle(.borderlessButton)
-        .help("Choose AirPlay output")
+        .help(loadError ?? "Choose AirPlay output")
         .accessibilityLabel("Choose AirPlay output")
         .disabled(!controller.isMusicAppAvailable)
         .onAppear(perform: refreshDevices)
     }
 
     private func refreshDevices() {
-        devices = MusicAppScriptController.fetchAirPlayDevices()
+        controller.refreshMusicAccess()
+        let result = MusicAppScriptController.fetchAirPlayDevices()
+        devices = result.devices
+        loadError = result.errorMessage
     }
 }
 

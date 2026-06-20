@@ -7,15 +7,6 @@ enum MusicKitNowPlayingReader {
         let player = ApplicationMusicPlayer.shared
         let playbackStatus = player.state.playbackStatus
 
-        switch playbackStatus {
-        case .stopped:
-            return nil
-        case .playing, .paused, .interrupted:
-            break
-        @unknown default:
-            return nil
-        }
-
         var info = MediaNowPlayingInfo()
         info.elapsed = max(0, player.playbackTime)
         info.isPlaying = playbackStatus == .playing
@@ -46,7 +37,16 @@ enum MusicKitNowPlayingReader {
             }
         }
 
-        return info.hasContent ? info : nil
+        guard info.hasContent else { return nil }
+
+        switch playbackStatus {
+        case .stopped:
+            return info
+        case .playing, .paused, .interrupted:
+            return info
+        @unknown default:
+            return nil
+        }
     }
 
     private static func playerState(for status: MusicPlayer.PlaybackStatus) -> MediaPlayerState {

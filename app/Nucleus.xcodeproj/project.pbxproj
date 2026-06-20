@@ -19,6 +19,7 @@
 		1C8764470EA8BC3927644C63 /* ShortcutsRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = B211BFC3B3A9B72B9E76F91C /* ShortcutsRunner.swift */; };
 		1DDFDCAF38135EC627A0E7A8 /* GoogleOAuthConfigurationLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = B95AA6B0D2A2C4F3ACD4653E /* GoogleOAuthConfigurationLoader.swift */; };
 		23C9C5F3795363AD4BB207AD /* DashboardBreakingNewsOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 622EA3088C0B8BBC591777A3 /* DashboardBreakingNewsOverlay.swift */; };
+		27082CFD35E02F3DB28AAD8E /* LRCLibLyricsClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13B5AE182663F4D5C2C2321A /* LRCLibLyricsClient.swift */; };
 		2A0B56C8E90F257BB66650C4 /* NucleusNotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 584F84F9AF029CC4D8800A01 /* NucleusNotificationService.swift */; };
 		2A4D12C1C5D153675FC4F7E6 /* MusicKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A552122023BCB903B5C94A36 /* MusicKit.framework */; };
 		2B8811DCCB2E638B2C0D6E57 /* DashboardQuoteEmojiService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB5ECBBA5D7B3B965303F247 /* DashboardQuoteEmojiService.swift */; };
@@ -45,6 +46,7 @@
 		51F5F59CEBB58934E8084747 /* DashboardNewsAnalysisService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A73239886ECAEB5F1DE3660 /* DashboardNewsAnalysisService.swift */; };
 		5239A1B7AB185A4515F4E005 /* MenuBarPopoverSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = D12215EBDC2CCD7294F9F071 /* MenuBarPopoverSession.swift */; };
 		54097C655AC0AD8DD2FCFDFC /* DashboardAnalysisService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5BDDEC8A6712481CBFAABBE /* DashboardAnalysisService.swift */; };
+		55EF56B6133BB09050B745B7 /* MusicLyricsController.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7638A6786F3E8CB94036DB4 /* MusicLyricsController.swift */; };
 		56034055BB801694A50A22D7 /* MenuBarNucleusIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = B42E9D0E0216144EA63B3A7F /* MenuBarNucleusIcon.swift */; };
 		5AB3E566D34F7195E90F8AF2 /* NucleusTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FE025998DE849CA2FCBCC91 /* NucleusTheme.swift */; };
 		5C5D19FBE763E1524A4E831C /* RegistryReleaseNotesClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDFFBFACBD2632D34A43FC55 /* RegistryReleaseNotesClient.swift */; };
@@ -54,6 +56,7 @@
 		642D789BDE016C476CEA1A3C /* WeatherKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0B2285F2575AB46242481E99 /* WeatherKit.framework */; };
 		650D21C4C88640C42F258396 /* nucleus-bills-import-demo.csv in Resources */ = {isa = PBXBuildFile; fileRef = E79434496C370BC490D26F0A /* nucleus-bills-import-demo.csv */; };
 		67D16211CC02FDAF4A0379CD /* ReleaseNotes.json in Resources */ = {isa = PBXBuildFile; fileRef = 2F1A694368885A964F497B45 /* ReleaseNotes.json */; };
+		67DDAB8C429943D32C744A78 /* NucleusLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE21FFF77FD2D44BA923CC18 /* NucleusLog.swift */; };
 		68556500C668B7A54CCA4BA4 /* SparkleUpdater.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6238A17B183A8059CB7A2C0 /* SparkleUpdater.swift */; };
 		68F673476FAE5D0CA8204F89 /* MailWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 948AE221487288E373756BDD /* MailWorkspaceView.swift */; };
 		6A81848593CE059032A516A7 /* ReleaseNotesLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9987E7B42A89E15817F7CAD9 /* ReleaseNotesLoader.swift */; };
@@ -69,6 +72,7 @@
 		8AA22D21D12A34FDC718D87B /* EmbeddedWebViewRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D37475DD0560D594BCD02DC /* EmbeddedWebViewRegistry.swift */; };
 		914183577EE397F3EA7C0EF7 /* WhatsNewOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31C5C1AF3794BF5FF1456573 /* WhatsNewOverlay.swift */; };
 		92F3296DC4AFB5C4A78EF11D /* ClipboardPasteController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F73321C16D7956F50F538A6E /* ClipboardPasteController.swift */; };
+		944B7642AD3C23FEBB31D70E /* SyncedLyricLine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FD7092B84F9EABC6648CF44 /* SyncedLyricLine.swift */; };
 		945B9D5BE4AF3E47C2EB2A85 /* DashboardQuotes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DE2251B69DA22713A864959 /* DashboardQuotes.swift */; };
 		98D83C9FEF7CEB8DF54441FE /* HourlyBeep.swift in Sources */ = {isa = PBXBuildFile; fileRef = 046B650FCA89CA8C322D0A3B /* HourlyBeep.swift */; };
 		9B0DCC0F8A21372D7F8D82F1 /* WorkspaceStatusBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95F9299FA19C03821267F616 /* WorkspaceStatusBadge.swift */; };
@@ -79,6 +83,7 @@
 		AA2B9B165190FE2E23E7AD95 /* MailInboxLoadingPhase.swift in Sources */ = {isa = PBXBuildFile; fileRef = C201B6D32546E035E9D04B57 /* MailInboxLoadingPhase.swift */; };
 		B78F1CBC004C7A7D60CE6175 /* DashboardQuotes.json in Resources */ = {isa = PBXBuildFile; fileRef = B1446CE8EB0EF69B17A5FEAE /* DashboardQuotes.json */; };
 		B9E2844DD110DC0608825A91 /* AppViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9169DE152DD2077D9F7C4DB3 /* AppViewModel.swift */; };
+		BAD2D989ABF9843D869F98FF /* MusicAccessSetup.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3E81940F121AFE818CA7631 /* MusicAccessSetup.swift */; };
 		C0DBC257A8BAB9C658468527 /* NucleusApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2698972D63EAE12C5F050DE /* NucleusApp.swift */; };
 		C1FF893494C3B5AE2F58C5A3 /* MediaController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6006FFDC6A45F10043EEBCF5 /* MediaController.swift */; };
 		C442A46B050B3F01536FCC47 /* DockBadgeController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 035D0E9FC4A418A7C52523C6 /* DockBadgeController.swift */; };
@@ -103,9 +108,11 @@
 		E45F6E0F6660F34010CFDEBE /* ClipboardPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D130F5FD244D81A8B8DBE22 /* ClipboardPickerView.swift */; };
 		E61500042BE1E8A2138B4EDD /* MailKit in Frameworks */ = {isa = PBXBuildFile; productRef = 05DB77AAF24A6898436A8A52 /* MailKit */; };
 		E626F33CBD98D177740BFAA8 /* FoundationModels.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6EC98A7D2AD632EB0F27A607 /* FoundationModels.framework */; };
+		E73244E30CB363CA84393025 /* MusicAccessSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6E470F09EDC0FD0928F432 /* MusicAccessSetupView.swift */; };
 		EDB250E352E4A3372A211D5C /* AddWebGmailAccountSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 015B76265392421D7C57E815 /* AddWebGmailAccountSheet.swift */; };
 		EEB7CEB73A5AAA37F8CC22A6 /* InboxIdleRecheckController.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFC4312DE2A7EC5DCF5D888A /* InboxIdleRecheckController.swift */; };
 		F0D6500DCFA05119C86E72BE /* CloudKitStoreMigration.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBE67C288974FF5B2F8524E6 /* CloudKitStoreMigration.swift */; };
+		F2D4DCEA095BBC57BC8F3390 /* KaraokeLyricsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73EBDA4D81C6867B0FF2D7F5 /* KaraokeLyricsView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -118,6 +125,7 @@
 		0B2285F2575AB46242481E99 /* WeatherKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WeatherKit.framework; path = System/Library/Frameworks/WeatherKit.framework; sourceTree = SDKROOT; };
 		0E94FBF67AC3185DD7F65D61 /* nucleus */ = {isa = PBXFileReference; lastKnownFileType = folder; name = nucleus; path = ..; sourceTree = SOURCE_ROOT; };
 		0FEBAE1808B1DAD31BB7C733 /* MusicKitNowPlayingReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicKitNowPlayingReader.swift; sourceTree = "<group>"; };
+		13B5AE182663F4D5C2C2321A /* LRCLibLyricsClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LRCLibLyricsClient.swift; sourceTree = "<group>"; };
 		1854B544721D5126CFF5A0F1 /* LocalMediaPlayerService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalMediaPlayerService.swift; sourceTree = "<group>"; };
 		18EF3BE5CDCDF196B18E0AAC /* SettingsSyncBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsSyncBridge.swift; sourceTree = "<group>"; };
 		2ADEB9B8C248DDB0410D9749 /* MenuBarPopoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarPopoverView.swift; sourceTree = "<group>"; };
@@ -151,9 +159,12 @@
 		6EC98A7D2AD632EB0F27A607 /* FoundationModels.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = FoundationModels.framework; path = System/Library/Frameworks/FoundationModels.framework; sourceTree = SDKROOT; };
 		6ED92D3B0C9CE1BDD7CB1483 /* CoreLocation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreLocation.framework; path = System/Library/Frameworks/CoreLocation.framework; sourceTree = SDKROOT; };
 		6F3E574A6A6CAA16B60DF4F8 /* DashboardLocationSubdivisionResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardLocationSubdivisionResolver.swift; sourceTree = "<group>"; };
+		6FD7092B84F9EABC6648CF44 /* SyncedLyricLine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncedLyricLine.swift; sourceTree = "<group>"; };
 		7070B325206A2DB90B1C3F2C /* DashboardNewsFeedService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardNewsFeedService.swift; sourceTree = "<group>"; };
+		73EBDA4D81C6867B0FF2D7F5 /* KaraokeLyricsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KaraokeLyricsView.swift; sourceTree = "<group>"; };
 		75CD049259B1B6242B15B6DF /* DashboardNewsTickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardNewsTickerView.swift; sourceTree = "<group>"; };
 		7A0BFA8EFB82901232FB9B24 /* NotificationUserInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationUserInfo.swift; sourceTree = "<group>"; };
+		7A6E470F09EDC0FD0928F432 /* MusicAccessSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicAccessSetupView.swift; sourceTree = "<group>"; };
 		7C19EFA3DE919CAF339A8D6E /* GmailWebSessionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GmailWebSessionStore.swift; sourceTree = "<group>"; };
 		7DE2251B69DA22713A864959 /* DashboardQuotes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardQuotes.swift; sourceTree = "<group>"; };
 		8015330A043A8BED0ED7120D /* DashboardNewsSpeechService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardNewsSpeechService.swift; sourceTree = "<group>"; };
@@ -186,9 +197,11 @@
 		BF4B3460305D779B31B79D8C /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		C201B6D32546E035E9D04B57 /* MailInboxLoadingPhase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MailInboxLoadingPhase.swift; sourceTree = "<group>"; };
 		C2698972D63EAE12C5F050DE /* NucleusApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NucleusApp.swift; sourceTree = "<group>"; };
+		C3E81940F121AFE818CA7631 /* MusicAccessSetup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicAccessSetup.swift; sourceTree = "<group>"; };
 		C4AB09CEFF7019C07BF7A676 /* DashboardWeatherService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardWeatherService.swift; sourceTree = "<group>"; };
 		C643F64124025FA6F196C435 /* ClipboardWorkspaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardWorkspaceView.swift; sourceTree = "<group>"; };
 		C6C43800AFF7B02A1B95466D /* Nucleus_DeveloperID.provisionprofile */ = {isa = PBXFileReference; path = Nucleus_DeveloperID.provisionprofile; sourceTree = "<group>"; };
+		C7638A6786F3E8CB94036DB4 /* MusicLyricsController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicLyricsController.swift; sourceTree = "<group>"; };
 		CDFFBFACBD2632D34A43FC55 /* RegistryReleaseNotesClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegistryReleaseNotesClient.swift; sourceTree = "<group>"; };
 		D12215EBDC2CCD7294F9F071 /* MenuBarPopoverSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarPopoverSession.swift; sourceTree = "<group>"; };
 		D25355470BC63425B500B871 /* WorkspaceIdleController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceIdleController.swift; sourceTree = "<group>"; };
@@ -202,6 +215,7 @@
 		F3040B14FCE7F0866274EF0E /* MenuBarStatusItemController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarStatusItemController.swift; sourceTree = "<group>"; };
 		F695044507986F1B738A6465 /* DashboardWorkspaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardWorkspaceView.swift; sourceTree = "<group>"; };
 		F73321C16D7956F50F538A6E /* ClipboardPasteController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardPasteController.swift; sourceTree = "<group>"; };
+		FE21FFF77FD2D44BA923CC18 /* NucleusLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NucleusLog.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -243,12 +257,14 @@
 				4E48A7B5023CD11F5F01726F /* DashboardIncomingMailOverlay.swift */,
 				75CD049259B1B6242B15B6DF /* DashboardNewsTickerView.swift */,
 				F695044507986F1B738A6465 /* DashboardWorkspaceView.swift */,
+				73EBDA4D81C6867B0FF2D7F5 /* KaraokeLyricsView.swift */,
 				C201B6D32546E035E9D04B57 /* MailInboxLoadingPhase.swift */,
 				948AE221487288E373756BDD /* MailWorkspaceView.swift */,
 				9260391FB479E89BB561D1E0 /* MediaWorkspaceView.swift */,
 				B42E9D0E0216144EA63B3A7F /* MenuBarNucleusIcon.swift */,
 				A5293EFD704186720E36251C /* MenuBarNucleusMark.swift */,
 				2ADEB9B8C248DDB0410D9749 /* MenuBarPopoverView.swift */,
+				7A6E470F09EDC0FD0928F432 /* MusicAccessSetupView.swift */,
 				953865571573F05622595783 /* NotesWorkspaceView.swift */,
 				4FE025998DE849CA2FCBCC91 /* NucleusTheme.swift */,
 				A6EDADCCF24985DEF2C1A2DB /* ReleaseNotesDetailView.swift */,
@@ -331,22 +347,27 @@
 				68AD664CB4410FC8FBE21B1C /* HourlyBeepService.swift */,
 				EFC4312DE2A7EC5DCF5D888A /* InboxIdleRecheckController.swift */,
 				1854B544721D5126CFF5A0F1 /* LocalMediaPlayerService.swift */,
+				13B5AE182663F4D5C2C2321A /* LRCLibLyricsClient.swift */,
 				588507DCB51F53ABD73D2EE2 /* MacSharingServiceButton.swift */,
 				6006FFDC6A45F10043EEBCF5 /* MediaController.swift */,
 				97A7289328BE097836736716 /* MenuBarController.swift */,
 				D12215EBDC2CCD7294F9F071 /* MenuBarPopoverSession.swift */,
 				F3040B14FCE7F0866274EF0E /* MenuBarStatusItemController.swift */,
+				C3E81940F121AFE818CA7631 /* MusicAccessSetup.swift */,
 				348968184ADDA9AFF50D1A77 /* MusicAppScriptController.swift */,
 				08A06A60B358C2BEBE0ADF31 /* MusicCatalogService.swift */,
 				0FEBAE1808B1DAD31BB7C733 /* MusicKitNowPlayingReader.swift */,
+				C7638A6786F3E8CB94036DB4 /* MusicLyricsController.swift */,
 				57198357174E7DA48A1866B3 /* MusicPlaybackMonitor.swift */,
 				81F61F31E82EC125D210B051 /* NotesClipboardMigration.swift */,
 				7A0BFA8EFB82901232FB9B24 /* NotificationUserInfo.swift */,
+				FE21FFF77FD2D44BA923CC18 /* NucleusLog.swift */,
 				584F84F9AF029CC4D8800A01 /* NucleusNotificationService.swift */,
 				CDFFBFACBD2632D34A43FC55 /* RegistryReleaseNotesClient.swift */,
 				9987E7B42A89E15817F7CAD9 /* ReleaseNotesLoader.swift */,
 				18EF3BE5CDCDF196B18E0AAC /* SettingsSyncBridge.swift */,
 				B211BFC3B3A9B72B9E76F91C /* ShortcutsRunner.swift */,
+				6FD7092B84F9EABC6648CF44 /* SyncedLyricLine.swift */,
 				36D30869A475802CF2EC37F9 /* WindowLayoutController.swift */,
 				2C3B6F07B15EF705C5429DF9 /* WKWebView+Visibility.swift */,
 				D25355470BC63425B500B871 /* WorkspaceIdleController.swift */,
@@ -534,6 +555,8 @@
 				98D83C9FEF7CEB8DF54441FE /* HourlyBeep.swift in Sources */,
 				642590B42B17C9B63C0BB830 /* HourlyBeepService.swift in Sources */,
 				EEB7CEB73A5AAA37F8CC22A6 /* InboxIdleRecheckController.swift in Sources */,
+				F2D4DCEA095BBC57BC8F3390 /* KaraokeLyricsView.swift in Sources */,
+				27082CFD35E02F3DB28AAD8E /* LRCLibLyricsClient.swift in Sources */,
 				CC66A763B81D1FEF20E2900B /* LocalMediaPlayerService.swift in Sources */,
 				D55AE78B777E319F67953F54 /* MacSharingServiceButton.swift in Sources */,
 				AA2B9B165190FE2E23E7AD95 /* MailInboxLoadingPhase.swift in Sources */,
@@ -546,14 +569,18 @@
 				5239A1B7AB185A4515F4E005 /* MenuBarPopoverSession.swift in Sources */,
 				2D9BBC35081BBFC740FBA05F /* MenuBarPopoverView.swift in Sources */,
 				31C2FB18B651A30B5F381A6F /* MenuBarStatusItemController.swift in Sources */,
+				BAD2D989ABF9843D869F98FF /* MusicAccessSetup.swift in Sources */,
+				E73244E30CB363CA84393025 /* MusicAccessSetupView.swift in Sources */,
 				77836E6A3C231E33047AACBA /* MusicAppScriptController.swift in Sources */,
 				4B8017CFC0FB8C2FAC917EAC /* MusicCatalogService.swift in Sources */,
 				74517CB4537D4B8B3D162003 /* MusicKitNowPlayingReader.swift in Sources */,
+				55EF56B6133BB09050B745B7 /* MusicLyricsController.swift in Sources */,
 				72E293C6D0604B0AB23FF5B4 /* MusicPlaybackMonitor.swift in Sources */,
 				CD6372D2C3B60CF249E70D00 /* NotesClipboardMigration.swift in Sources */,
 				51EAB3CEA8190FEC48F1F8B8 /* NotesWorkspaceView.swift in Sources */,
 				89DD2F6A9B7E342945B2F792 /* NotificationUserInfo.swift in Sources */,
 				C0DBC257A8BAB9C658468527 /* NucleusApp.swift in Sources */,
+				67DDAB8C429943D32C744A78 /* NucleusLog.swift in Sources */,
 				2A0B56C8E90F257BB66650C4 /* NucleusNotificationService.swift in Sources */,
 				5AB3E566D34F7195E90F8AF2 /* NucleusTheme.swift in Sources */,
 				5C5D19FBE763E1524A4E831C /* RegistryReleaseNotesClient.swift in Sources */,
@@ -564,6 +591,7 @@
 				68556500C668B7A54CCA4BA4 /* SparkleUpdater.swift in Sources */,
 				5E7C65A062AF7D911926A67F /* StartupSplashView.swift in Sources */,
 				DA24CFEA61CAC79C5A243DA0 /* SupportViews.swift in Sources */,
+				944B7642AD3C23FEBB31D70E /* SyncedLyricLine.swift in Sources */,
 				4C597A31214F502918BAE394 /* WKWebView+Visibility.swift in Sources */,
 				914183577EE397F3EA7C0EF7 /* WhatsNewOverlay.swift in Sources */,
 				D269748A37583FCD001DE941 /* WindowLayoutController.swift in Sources */,

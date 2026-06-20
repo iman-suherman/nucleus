@@ -1,5 +1,6 @@
 import Combine
 import Foundation
+import MusicKit
 import NucleusKit
 
 @MainActor
@@ -14,6 +15,10 @@ final class MediaController: ObservableObject {
     @Published private(set) var repeatMode: MediaRepeatMode = .off
     @Published private(set) var nowPlaying = MediaNowPlayingInfo()
     @Published private(set) var activeSearchResultID: String?
+    @Published private(set) var musicAccess = MusicAccessSetup.makeSnapshot(
+        catalogStatus: .notDetermined,
+        automation: .musicAppMissing
+    )
 
     let musicMonitor = MusicPlaybackMonitor()
     let catalogService = MusicCatalogService()
@@ -21,10 +26,12 @@ final class MediaController: ObservableObject {
 
     private var searchTask: Task<Void, Never>?
     private var searchQueueTask: Task<Void, Never>?
+    private var searchPlaybackQueue: [MediaSearchResult] = []
     private var cancellables = Set<AnyCancellable>()
 
     private init() {
         catalogService.refreshAuthorization()
+        refreshMusicAccess()
         musicMonitor.$nowPlaying
             .combineLatest(localPlayer.$nowPlaying, $playbackSource)
             .map { music, local, source in
@@ -182,55 +189,150 @@ final class MediaController: ObservableObject {
         searchQueueTask?.cancel()
 
         guard let startIndex = searchResults.firstIndex(where: { $0.id == result.id }) else {
-            await playSingleSearchResult(result)
+            searchPlaybackQueue = [result]
+            searchQueueTask = Task { await playSearchQueue(from: 0) }
             return
         }
 
-        let queue = Array(searchResults[startIndex...])
-        guard !queue.isEmpty else { return }
+        searchPlaybackQueue = Array(searchResults[startIndex...])
+        guard !searchPlaybackQueue.isEmpty else { return }
 
         searchQueueTask = Task {
-            await playSearchQueue(queue)
+            await playSearchQueue(from: 0)
         }
     }
 
-    private func playSingleSearchResult(_ result: MediaSearchResult) async {
-        playbackSource = .musicApp
-        activeSearchResultID = result.id
-        musicMonitor.applyOptimisticNowPlaying(from: result)
-        await catalogService.play(result)
-        musicMonitor.refresh()
-        updateSearchPlaybackStatus(for: result, index: 0, total: 1)
-    }
-
-    private func playSearchQueue(_ queue: [MediaSearchResult]) async {
+    private func playSearchQueue(from startIndex: Int) async {
         playbackSource = .musicApp
 
-        if await catalogService.playCatalogSongQueue(queue) {
-            activeSearchResultID = queue.first?.id
-            if let first = queue.first {
+        if startIndex == 0,
+           await catalogService.playCatalogSongQueue(searchPlaybackQueue) {
+            activeSearchResultID = searchPlaybackQueue.first?.id
+            if let first = searchPlaybackQueue.first {
                 musicMonitor.applyOptimisticNowPlaying(from: first)
             }
             musicMonitor.refresh()
-            statusMessage = queue.count == 1
-                ? "Playing “\(queue[0].title)”"
-                : "Playing \(queue.count) tracks from search"
+            statusMessage = searchPlaybackQueue.count == 1
+                ? "Playing “\(searchPlaybackQueue[0].title)”"
+                : "Playing \(searchPlaybackQueue.count) tracks from search"
+
+            if searchPlaybackQueue.count > 1 {
+                await waitForMusicKitSearchQueueToFinish(startIndex: 0)
+            }
             return
         }
 
-        for (index, result) in queue.enumerated() {
+        for index in startIndex..<searchPlaybackQueue.count {
             guard !Task.isCancelled else { return }
 
+            let result = searchPlaybackQueue[index]
             activeSearchResultID = result.id
             musicMonitor.applyOptimisticNowPlaying(from: result)
             await catalogService.play(result)
             musicMonitor.refresh()
-            updateSearchPlaybackStatus(for: result, index: index, total: queue.count)
+            updateSearchPlaybackStatus(for: result, index: index, total: searchPlaybackQueue.count)
 
-            guard index < queue.count - 1 else { break }
+            guard index < searchPlaybackQueue.count - 1 else { break }
             await waitForSearchQueueAdvance()
             guard !Task.isCancelled else { return }
         }
+    }
+
+    private func waitForMusicKitSearchQueueToFinish(startIndex: Int) async {
+        let lastIndex = searchPlaybackQueue.count - 1
+        var sawPlaying = false
+        var lastTitle = ""
+
+        while !Task.isCancelled {
+            try? await Task.sleep(nanoseconds: 500_000_000)
+            musicMonitor.refresh()
+            let info = musicMonitor.nowPlaying
+
+            if info.playerState == .playing {
+                sawPlaying = true
+            }
+
+            if sawPlaying, !info.title.isEmpty, info.title != lastTitle {
+                lastTitle = info.title
+                if let matchedIndex = searchPlaybackQueue.firstIndex(where: {
+                    $0.title.caseInsensitiveCompare(info.title) == .orderedSame
+                }) {
+                    activeSearchResultID = searchPlaybackQueue[matchedIndex].id
+                    updateSearchPlaybackStatus(
+                        for: searchPlaybackQueue[matchedIndex],
+                        index: matchedIndex,
+                        total: searchPlaybackQueue.count
+                    )
+                }
+            }
+
+            guard sawPlaying, hasSearchTrackFinished(info) else { continue }
+
+            let currentIndex = searchPlaybackQueue.firstIndex(where: {
+                $0.title.caseInsensitiveCompare(info.title) == .orderedSame
+            }) ?? startIndex
+
+            if currentIndex >= lastIndex {
+                try? await Task.sleep(nanoseconds: 350_000_000)
+                musicMonitor.refresh()
+                if hasSearchTrackFinished(musicMonitor.nowPlaying) {
+                    return
+                }
+            } else {
+                try? await Task.sleep(nanoseconds: 800_000_000)
+                musicMonitor.refresh()
+                if musicMonitor.nowPlaying.playerState == .playing {
+                    continue
+                }
+            }
+        }
+    }
+
+    private func waitForSearchQueueAdvance() async {
+        var sawPlaying = false
+        var stoppedTicks = 0
+
+        while !Task.isCancelled {
+            try? await Task.sleep(nanoseconds: 500_000_000)
+            musicMonitor.refresh()
+            let info = musicMonitor.nowPlaying
+
+            if info.playerState == .playing {
+                sawPlaying = true
+                stoppedTicks = 0
+            }
+
+            guard sawPlaying else { continue }
+
+            if hasSearchTrackFinished(info) {
+                try? await Task.sleep(nanoseconds: 350_000_000)
+                musicMonitor.refresh()
+                if hasSearchTrackFinished(musicMonitor.nowPlaying) {
+                    return
+                }
+            }
+
+            if info.playerState == .stopped {
+                stoppedTicks += 1
+                if stoppedTicks >= 2 {
+                    return
+                }
+            }
+        }
+    }
+
+    private func hasSearchTrackFinished(_ info: MediaNowPlayingInfo) -> Bool {
+        if info.playerState == .stopped {
+            return true
+        }
+
+        if info.duration > 0,
+           info.elapsed >= max(0, info.duration - 1.0),
+           info.playerState != .playing {
+            return true
+        }
+
+        return false
     }
 
     private func updateSearchPlaybackStatus(for result: MediaSearchResult, index: Int, total: Int) {
@@ -240,26 +342,6 @@ final class MediaController: ObservableObject {
             statusMessage = "Playing “\(result.title)” (\(index + 1)/\(total))"
         } else {
             statusMessage = "Playing “\(result.title)”"
-        }
-    }
-
-    private func waitForSearchQueueAdvance() async {
-        var sawPlaying = false
-
-        while !Task.isCancelled {
-            try? await Task.sleep(nanoseconds: 1_000_000_000)
-            musicMonitor.refresh()
-            let state = musicMonitor.nowPlaying.playerState
-
-            if state == .playing {
-                sawPlaying = true
-            } else if sawPlaying && state == .stopped {
-                try? await Task.sleep(nanoseconds: 400_000_000)
-                musicMonitor.refresh()
-                if musicMonitor.nowPlaying.playerState == .stopped {
-                    return
-                }
-            }
         }
     }
 
@@ -309,7 +391,45 @@ final class MediaController: ObservableObject {
 
     func requestAppleMusicAccess() async {
         await catalogService.requestAuthorization()
+        refreshMusicAccess()
         scheduleSearch()
+    }
+
+    func refreshMusicAccess() {
+        catalogService.refreshAuthorization()
+        musicAccess = MusicAccessSetup.makeSnapshot(
+            catalogStatus: catalogService.authorizationStatus,
+            automation: MusicAppScriptController.probeAutomationAccess()
+        )
+    }
+
+    func setupMusicAccess() async {
+        NucleusLog.music.info("music access setup started (catalog=\(String(describing: self.catalogService.authorizationStatus), privacy: .public))")
+
+        if catalogService.authorizationStatus != .authorized {
+            await catalogService.requestAuthorization()
+        }
+
+        MusicAppScriptController.requestAutomationAccess()
+        refreshMusicAccess()
+
+        NucleusLog.music.info(
+            "music access setup finished (catalog=\(String(describing: self.musicAccess.catalogAccess), privacy: .public) automation=\(String(describing: self.musicAccess.musicAutomation), privacy: .public))"
+        )
+
+        if musicAccess.isFullyReady {
+            statusMessage = "Music access is ready."
+        } else if musicAccess.catalogAccess == .denied || musicAccess.musicAutomation == .denied {
+            statusMessage = "Enable the remaining permissions in System Settings."
+        } else if musicAccess.musicAutomation == .musicAppMissing {
+            statusMessage = "Install Music.app to play your library from Nucleus."
+        } else {
+            statusMessage = "Finish the macOS prompts, then return to Nucleus."
+        }
+    }
+
+    func openMusicAccessSettings(_ pane: MusicAccessSettingsPane) {
+        MusicAccessSetup.openSettings(pane)
     }
 
     func reportStatus(_ message: String?) {
