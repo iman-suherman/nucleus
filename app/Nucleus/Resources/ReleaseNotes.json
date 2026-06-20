@@ -1,20 +1,18 @@
 {
-  "version": "0.8.7",
-  "summary": "Karaoke lyrics in Music, Apple Music access setup, and cleaner logging.",
+  "version": "0.8.8",
+  "summary": "Music queue fixes, AirPlay guidance, and UI polish.",
   "releaseNotes": {
-    "introduced": [
-      "Music workspace shows synced karaoke lyrics from LRCLib while a track plays",
-      "Grant Music access card walks through Media & Apple Music and Music.app Automation permissions"
-    ],
+    "introduced": [],
     "changed": [
-      "Music sidebar drops Quick Launch, playlists, and shortcuts in favor of the lyrics panel",
-      "Open Files button in the Music header for local audio playback",
-      "npm run logs, logs:all, and logs:network for easier Nucleus debugging"
+      "Header mini player fits on one row with inline progress",
+      "AirPlay menu explains catalog vs Music.app routing and offers Play via Music.app for speakers",
+      "Search results show a pointer cursor on hover"
     ],
-    "fixed": [],
-    "updated": [
-      "Structured os.Logger output under net.suherman.nucleus for app log tailing"
+    "fixed": [
+      "Search playback continues to the next song when a track finishes",
+      "Mixed search results (songs plus albums) queue songs correctly for continuous playback"
     ],
+    "updated": [],
     "removed": [],
     "breaking": []
   }
