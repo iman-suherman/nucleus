@@ -1,6 +1,6 @@
 {
   "name": "nucleus",
-  "version": "0.8.2",
+  "version": "0.8.3",
   "displayName": "Nucleus",
   "publisher": "Iman Suherman",
   "private": true,
@@ -32,6 +32,8 @@
     "sign": "bash scripts/sign.sh",
     "package": "bash scripts/package.sh",
     "release": "node scripts/release-publish.cjs",
+    "release:direct": "node scripts/release-publish.cjs",
+    "deploy:app": "node scripts/deploy-runner.cjs --repo nucleus-app",
     "release:local": "bash scripts/release.sh",
     "upload:release": "node scripts/upload-release.cjs",
     "run:app": "bash scripts/run-app.sh",
