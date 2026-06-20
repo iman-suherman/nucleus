@@ -3,6 +3,7 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 struct MediaWorkspaceView: View {
+    @EnvironmentObject private var viewModel: AppViewModel
     @EnvironmentObject private var appSettings: AppSettings
     @ObservedObject private var controller = MediaController.shared
     @State private var showingAddPlaylist = false
@@ -13,20 +14,32 @@ struct MediaWorkspaceView: View {
     @State private var showingFileImporter = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            header
-            Divider()
-            HStack(alignment: .top, spacing: 0) {
-                mainColumn
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        ZStack {
+            VStack(alignment: .leading, spacing: 0) {
+                header
                 Divider()
-                quickLaunchColumn
-                    .frame(minWidth: 280, idealWidth: 320, maxWidth: 360, maxHeight: .infinity, alignment: .topLeading)
+                HStack(alignment: .top, spacing: 0) {
+                    mainColumn
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    Divider()
+                    quickLaunchColumn
+                        .frame(minWidth: 280, idealWidth: 320, maxWidth: 360, maxHeight: .infinity, alignment: .topLeading)
+                }
+            }
+
+            if let prompt = viewModel.dashboardIncomingMailPrompt {
+                DashboardIncomingMailOverlay(
+                    prompt: prompt,
+                    onOpenInbox: viewModel.openDashboardIncomingMail,
+                    onDismiss: viewModel.dismissDashboardIncomingMail
+                )
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .animation(.easeInOut(duration: 0.2), value: viewModel.dashboardIncomingMailPrompt?.id)
         .onAppear {
             controller.refreshNowPlaying()
+            viewModel.refreshDashboardIncomingMailAlertIfNeeded()
         }
         .alert("Add Playlist", isPresented: $showingAddPlaylist) {
             TextField("Playlist name", text: $newPlaylistName)
@@ -74,9 +87,7 @@ struct MediaWorkspaceView: View {
             .pickerStyle(.segmented)
             .frame(maxWidth: 360)
             Spacer()
-            if controller.playbackSource == .localPlayer {
-                AirPlayRoutePickerButton()
-            }
+            MediaAirPlayButton()
             if let statusMessage = controller.statusMessage {
                 Text(statusMessage)
                     .font(.caption)
@@ -182,8 +193,12 @@ struct MediaWorkspaceView: View {
     private var nowPlayingCard: some View {
         let info = controller.nowPlaying
         return VStack(alignment: .leading, spacing: 14) {
-            Text("Now Playing")
-                .font(.headline)
+            HStack {
+                Text("Now Playing")
+                    .font(.headline)
+                Spacer()
+                MediaAirPlayButton()
+            }
 
             HStack(alignment: .top, spacing: 16) {
                 artwork(for: info)
@@ -209,7 +224,7 @@ struct MediaWorkspaceView: View {
                 Spacer()
             }
 
-            if info.duration > 0 {
+            if info.isPlaying || info.duration > 0 {
                 MediaProgressBar(
                     progress: info.progress,
                     elapsed: info.elapsed,
@@ -331,7 +346,8 @@ struct MediaWorkspaceView: View {
     }
 
     private func searchResultRow(_ result: MediaSearchResult) -> some View {
-        Button {
+        let isActive = controller.activeSearchResultID == result.id
+        return Button {
             Task { await controller.playSearchResult(result) }
         } label: {
             HStack(spacing: 12) {
@@ -352,6 +368,13 @@ struct MediaWorkspaceView: View {
 
                 Spacer(minLength: 8)
 
+                if isActive {
+                    Image(systemName: controller.nowPlaying.isPlaying ? "waveform" : "checkmark.circle.fill")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Color.accentColor)
+                        .symbolEffect(.variableColor.iterative, isActive: controller.nowPlaying.isPlaying)
+                }
+
                 Text(result.kind.rawValue.capitalized)
                     .font(.caption2.weight(.medium))
                     .foregroundStyle(.tertiary)
@@ -366,10 +389,14 @@ struct MediaWorkspaceView: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 10)
+            .background(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(isActive ? Color.accentColor.opacity(0.1) : Color.clear)
+            )
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .help("Play \(result.title)")
+        .help("Play \(result.title) and continue through search results")
     }
 
     @ViewBuilder
@@ -605,41 +632,51 @@ struct MediaMiniPlayer: View {
 
     var body: some View {
         if controller.nowPlaying.hasContent {
-            HStack(spacing: 10) {
-                Image(systemName: "music.note")
-                    .foregroundStyle(.secondary)
-                VStack(alignment: .leading, spacing: 0) {
-                    Text(controller.nowPlaying.title)
-                        .font(.caption.weight(.semibold))
-                        .lineLimit(1)
-                    Text(controller.nowPlaying.artist)
-                        .font(.caption2)
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 10) {
+                    Image(systemName: "music.note")
                         .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                }
-                .frame(maxWidth: 180, alignment: .leading)
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text(controller.nowPlaying.title)
+                            .font(.caption.weight(.semibold))
+                            .lineLimit(1)
+                        Text(controller.nowPlaying.artist)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                    .frame(maxWidth: 180, alignment: .leading)
 
-                Button {
-                    controller.togglePlayPause()
-                } label: {
-                    Image(systemName: controller.nowPlaying.isPlaying ? "pause.fill" : "play.fill")
-                }
-                .buttonStyle(.borderless)
+                    Button {
+                        controller.togglePlayPause()
+                    } label: {
+                        Image(systemName: controller.nowPlaying.isPlaying ? "pause.fill" : "play.fill")
+                    }
+                    .buttonStyle(.borderless)
 
-                Button {
-                    controller.nextTrack()
-                } label: {
-                    Image(systemName: "forward.fill")
-                }
-                .buttonStyle(.borderless)
+                    Button {
+                        controller.nextTrack()
+                    } label: {
+                        Image(systemName: "forward.fill")
+                    }
+                    .buttonStyle(.borderless)
 
-                Button {
-                    AppViewModel.current?.sidebarSelection = .workspace(.media)
-                } label: {
-                    Image(systemName: "arrow.up.right.square")
+                    MediaAirPlayButton(compact: true)
+
+                    Button {
+                        AppViewModel.current?.sidebarSelection = .workspace(.media)
+                    } label: {
+                        Image(systemName: "arrow.up.right.square")
+                    }
+                    .buttonStyle(.borderless)
+                    .help("Open Music workspace")
                 }
-                .buttonStyle(.borderless)
-                .help("Open Music workspace")
+
+                if controller.nowPlaying.isPlaying || controller.nowPlaying.duration > 0 {
+                    ProgressView(value: controller.nowPlaying.progress)
+                        .progressViewStyle(.linear)
+                        .frame(maxWidth: 260)
+                }
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 6)

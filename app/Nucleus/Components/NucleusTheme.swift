@@ -116,16 +116,10 @@ struct NoteFolderCountBadge: View {
     var body: some View {
         Text("\(count)")
             .font(.caption2.weight(.bold))
-            .monospacedDigit()
-            .foregroundStyle(accent)
             .padding(.horizontal, 6)
             .padding(.vertical, 2)
-            .background(accent.opacity(0.16), in: Capsule())
-            .overlay {
-                Capsule()
-                    .strokeBorder(accent.opacity(0.28), lineWidth: 0.5)
-            }
-            .accessibilityLabel("\(count) stored")
+            .foregroundStyle(.white)
+            .background(accent.opacity(0.85), in: Capsule())
     }
 }
 
@@ -135,11 +129,31 @@ struct NoteFolderCountBadges: View {
 
     var body: some View {
         HStack(spacing: 6) {
-            NoteFolderCountBadge(count: notesCount, accent: .blue)
-                .accessibilityLabel("\(notesCount) notes")
-            NoteFolderCountBadge(count: passwordsCount, accent: .orange)
-                .accessibilityLabel("\(passwordsCount) passwords")
+            if notesCount > 0 {
+                NoteFolderCountBadge(count: notesCount, accent: .blue)
+                    .accessibilityLabel("\(notesCount) notes")
+            }
+            if passwordsCount > 0 {
+                NoteFolderCountBadge(count: passwordsCount, accent: .orange)
+                    .accessibilityLabel("\(passwordsCount) passwords")
+            }
         }
+    }
+}
+
+struct MusicPlayingSidebarIndicator: View {
+    var body: some View {
+        HStack(spacing: 4) {
+            Image(systemName: "waveform")
+                .font(.caption2.weight(.bold))
+            Text("Playing")
+                .font(.caption2.weight(.bold))
+        }
+        .foregroundStyle(Color.accentColor)
+        .padding(.horizontal, 7)
+        .padding(.vertical, 3)
+        .background(Color.accentColor.opacity(0.14), in: Capsule())
+        .accessibilityLabel("Music is playing")
     }
 }
 

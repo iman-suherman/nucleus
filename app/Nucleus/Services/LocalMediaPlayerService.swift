@@ -136,6 +136,7 @@ final class LocalMediaPlayerService: ObservableObject {
         let current = player.currentTime().seconds
         nowPlaying.elapsed = current.isFinite ? max(0, current) : 0
         nowPlaying.isPlaying = player.rate > 0
+        nowPlaying.playerState = player.rate > 0 ? .playing : .paused
         refreshDuration()
     }
 

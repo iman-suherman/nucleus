@@ -58,6 +58,7 @@
 		68F673476FAE5D0CA8204F89 /* MailWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 948AE221487288E373756BDD /* MailWorkspaceView.swift */; };
 		6A81848593CE059032A516A7 /* ReleaseNotesLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9987E7B42A89E15817F7CAD9 /* ReleaseNotesLoader.swift */; };
 		72E293C6D0604B0AB23FF5B4 /* MusicPlaybackMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57198357174E7DA48A1866B3 /* MusicPlaybackMonitor.swift */; };
+		74517CB4537D4B8B3D162003 /* MusicKitNowPlayingReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FEBAE1808B1DAD31BB7C733 /* MusicKitNowPlayingReader.swift */; };
 		77836E6A3C231E33047AACBA /* MusicAppScriptController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 348968184ADDA9AFF50D1A77 /* MusicAppScriptController.swift */; };
 		779C8BFFA5C17B8EEC8E9296 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 414321C6FA288B25C3F312A3 /* AppSettings.swift */; };
 		783057E4009C73525D14D797 /* AVKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A1EF778F3F3692600B832ADC /* AVKit.framework */; };
@@ -116,6 +117,7 @@
 		0A73239886ECAEB5F1DE3660 /* DashboardNewsAnalysisService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardNewsAnalysisService.swift; sourceTree = "<group>"; };
 		0B2285F2575AB46242481E99 /* WeatherKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WeatherKit.framework; path = System/Library/Frameworks/WeatherKit.framework; sourceTree = SDKROOT; };
 		0E94FBF67AC3185DD7F65D61 /* nucleus */ = {isa = PBXFileReference; lastKnownFileType = folder; name = nucleus; path = ..; sourceTree = SOURCE_ROOT; };
+		0FEBAE1808B1DAD31BB7C733 /* MusicKitNowPlayingReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicKitNowPlayingReader.swift; sourceTree = "<group>"; };
 		1854B544721D5126CFF5A0F1 /* LocalMediaPlayerService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalMediaPlayerService.swift; sourceTree = "<group>"; };
 		18EF3BE5CDCDF196B18E0AAC /* SettingsSyncBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsSyncBridge.swift; sourceTree = "<group>"; };
 		2ADEB9B8C248DDB0410D9749 /* MenuBarPopoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarPopoverView.swift; sourceTree = "<group>"; };
@@ -336,6 +338,7 @@
 				F3040B14FCE7F0866274EF0E /* MenuBarStatusItemController.swift */,
 				348968184ADDA9AFF50D1A77 /* MusicAppScriptController.swift */,
 				08A06A60B358C2BEBE0ADF31 /* MusicCatalogService.swift */,
+				0FEBAE1808B1DAD31BB7C733 /* MusicKitNowPlayingReader.swift */,
 				57198357174E7DA48A1866B3 /* MusicPlaybackMonitor.swift */,
 				81F61F31E82EC125D210B051 /* NotesClipboardMigration.swift */,
 				7A0BFA8EFB82901232FB9B24 /* NotificationUserInfo.swift */,
@@ -545,6 +548,7 @@
 				31C2FB18B651A30B5F381A6F /* MenuBarStatusItemController.swift in Sources */,
 				77836E6A3C231E33047AACBA /* MusicAppScriptController.swift in Sources */,
 				4B8017CFC0FB8C2FAC917EAC /* MusicCatalogService.swift in Sources */,
+				74517CB4537D4B8B3D162003 /* MusicKitNowPlayingReader.swift in Sources */,
 				72E293C6D0604B0AB23FF5B4 /* MusicPlaybackMonitor.swift in Sources */,
 				CD6372D2C3B60CF249E70D00 /* NotesClipboardMigration.swift in Sources */,
 				51EAB3CEA8190FEC48F1F8B8 /* NotesWorkspaceView.swift in Sources */,

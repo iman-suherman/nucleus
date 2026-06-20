@@ -50,6 +50,11 @@ final class WorkspaceIdleController {
               pane != .dashboard,
               pane != .notes else { return }
 
+        if pane == .media, MediaController.shared.nowPlaying.isPlaying {
+            scheduleIdleReturn()
+            return
+        }
+
         viewModel.sidebarSelection = .workspace(.dashboard)
         AppSettings.shared.selectedWorkspacePane = WorkspacePane.dashboard.rawValue
         scheduleIdleReturn()

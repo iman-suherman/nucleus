@@ -124,6 +124,7 @@ private struct WindowToolbarChromeModifier: ViewModifier {
 struct ContentView: View {
     @EnvironmentObject private var viewModel: AppViewModel
     @EnvironmentObject private var appSettings: AppSettings
+    @ObservedObject private var mediaController = MediaController.shared
 
     var body: some View {
         Group {
@@ -253,7 +254,7 @@ struct ContentView: View {
     }
 
     private var sidebar: some View {
-        List(selection: $viewModel.sidebarSelection) {
+        List {
             Section {
                 NucleusBrandMark(logoSize: 44, showText: true)
                     .padding(.vertical, 4)
@@ -261,20 +262,40 @@ struct ContentView: View {
 
             Section("Workspace") {
                 ForEach(WorkspacePane.primaryWorkspaces) { pane in
-                    sidebarRow(for: pane)
-                        .tag(SidebarSelection.workspace(pane))
+                    sidebarSelectableRow(for: pane)
                 }
             }
 
             Section("System") {
                 ForEach(WorkspacePane.utilityWorkspaces) { pane in
-                    sidebarRow(for: pane)
-                        .tag(SidebarSelection.workspace(pane))
+                    sidebarSelectableRow(for: pane)
                 }
             }
         }
         .listStyle(.sidebar)
         .safeAreaPadding(.top, 28)
+    }
+
+    private func sidebarSelectableRow(for pane: WorkspacePane) -> some View {
+        let selection = SidebarSelection.workspace(pane)
+        let isSelected = viewModel.sidebarSelection == selection
+
+        return Button {
+            viewModel.sidebarSelection = selection
+        } label: {
+            sidebarRow(for: pane)
+                .padding(.vertical, 3)
+                .padding(.horizontal, 8)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(
+                    isSelected ? Color.accentColor.opacity(0.18) : Color.clear,
+                    in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+                )
+        }
+        .buttonStyle(.plain)
+        .pointerCursor()
+        .listRowInsets(EdgeInsets(top: 2, leading: 8, bottom: 2, trailing: 8))
+        .listRowBackground(Color.clear)
     }
 
     private func sidebarRow(for pane: WorkspacePane) -> some View {
@@ -283,15 +304,7 @@ struct ContentView: View {
                 .frame(width: 20)
                 .foregroundStyle(.secondary)
             VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 6) {
-                    Text(pane.title)
-                    if pane == .notes {
-                        NoteFolderCountBadges(
-                            notesCount: viewModel.regularNotesCount,
-                            passwordsCount: viewModel.passwordNotesCount
-                        )
-                    }
-                }
+                Text(pane.title)
                 Text(pane.subtitle)
                     .font(.caption2)
                     .foregroundStyle(.secondary)
@@ -299,6 +312,7 @@ struct ContentView: View {
             }
             Spacer()
             badge(for: pane)
+                .allowsHitTesting(false)
         }
     }
 
@@ -315,6 +329,13 @@ struct ContentView: View {
             NucleusCountBadge(count: viewModel.clipboardEntries.count)
         case .bills where !viewModel.activeBills.isEmpty:
             NucleusCountBadge(count: viewModel.activeBills.count)
+        case .notes where viewModel.regularNotesCount > 0 || viewModel.passwordNotesCount > 0:
+            NoteFolderCountBadges(
+                notesCount: viewModel.regularNotesCount,
+                passwordsCount: viewModel.passwordNotesCount
+            )
+        case .media where mediaController.nowPlaying.isPlaying:
+            MusicPlayingSidebarIndicator()
         default:
             EmptyView()
         }

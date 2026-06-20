@@ -112,12 +112,12 @@ enum MusicAppScriptController {
             set trackAlbum to album of current track
             set trackDuration to duration of current track
             set trackPosition to player position
-            set isPlaying to player state is playing
+            set playerState to player state as string
             set outputName to ""
             try
                 set outputName to name of current AirPlay devices
             end try
-            return trackName & "|||" & trackArtist & "|||" & trackAlbum & "|||" & (trackDuration as string) & "|||" & (trackPosition as string) & "|||" & isPlaying & "|||" & outputName
+            return trackName & "|||" & trackArtist & "|||" & trackAlbum & "|||" & (trackDuration as string) & "|||" & (trackPosition as string) & "|||" & playerState & "|||" & outputName
         end tell
         """
 
@@ -130,7 +130,7 @@ enum MusicAppScriptController {
 
         let duration = TimeInterval(parts[3]) ?? 0
         let elapsed = TimeInterval(parts[4]) ?? 0
-        let isPlaying = parts[5].lowercased() == "true"
+        let playerState = parsePlayerState(parts[5])
         let output = parts.count > 6 ? parts[6] : ""
 
         return MediaNowPlayingInfo(
@@ -139,7 +139,8 @@ enum MusicAppScriptController {
             album: parts[2],
             duration: duration,
             elapsed: elapsed,
-            isPlaying: isPlaying,
+            isPlaying: playerState == .playing,
+            playerState: playerState,
             outputDevice: output
         )
     }
@@ -149,6 +150,40 @@ enum MusicAppScriptController {
             return nil
         }
         return Int(value.trimmingCharacters(in: .whitespacesAndNewlines))
+    }
+
+    static func fetchAirPlayDevices() -> [(name: String, isSelected: Bool)] {
+        guard isInstalled() else { return [] }
+
+        let script = """
+        tell application "Music"
+            set output to ""
+            repeat with d in AirPlay devices
+                set output to output & (name of d) & "|||" & (selected of d) & "###"
+            end repeat
+            return output
+        end tell
+        """
+
+        guard let raw = runReturningString(script), !raw.isEmpty else { return [] }
+
+        return raw
+            .split(separator: "###", omittingEmptySubsequences: true)
+            .compactMap { entry -> (name: String, isSelected: Bool)? in
+                let parts = entry.split(separator: "|||", omittingEmptySubsequences: false).map(String.init)
+                guard let name = parts.first, !name.isEmpty else { return nil }
+                let isSelected = parts.count > 1 && parts[1].lowercased() == "true"
+                return (name: name, isSelected: isSelected)
+            }
+    }
+
+    static func setAirPlayDevice(named name: String) {
+        let escaped = escapeAppleScriptString(name)
+        run("""
+        tell application "Music"
+            set current AirPlay devices to AirPlay device "\(escaped)"
+        end tell
+        """)
     }
 
     static func isInstalled() -> Bool {
@@ -253,6 +288,17 @@ enum MusicAppScriptController {
             return .failure(.message(message))
         }
         return .success(descriptor.stringValue ?? "")
+    }
+
+    private static func parsePlayerState(_ raw: String) -> MediaPlayerState {
+        switch raw.lowercased() {
+        case "playing":
+            return .playing
+        case "paused", "interrupted":
+            return .paused
+        default:
+            return .stopped
+        }
     }
 
     private static func escapeAppleScriptString(_ value: String) -> String {

@@ -110,6 +110,33 @@ final class MusicCatalogService: ObservableObject {
         }
     }
 
+    func playCatalogSongQueue(_ results: [MediaSearchResult]) async -> Bool {
+        let songs = results.filter { $0.kind == .song && !$0.id.hasPrefix("library-") }
+        guard songs.count == results.count, !songs.isEmpty else { return false }
+
+        if authorizationStatus != .authorized {
+            await requestAuthorization()
+        }
+        guard authorizationStatus == .authorized else { return false }
+
+        do {
+            var loadedSongs: [Song] = []
+            for result in songs {
+                loadedSongs.append(try await catalogSong(id: result.id))
+            }
+            guard !loadedSongs.isEmpty else { return false }
+
+            let player = ApplicationMusicPlayer.shared
+            player.queue = ApplicationMusicPlayer.Queue(for: loadedSongs, startingAt: loadedSongs[0])
+            try await player.play()
+            lastError = nil
+            return true
+        } catch {
+            lastError = "Could not queue catalog songs (\(error.localizedDescription))."
+            return false
+        }
+    }
+
     private func playViaMusicApp(_ result: MediaSearchResult) {
         switch result.kind {
         case .song:

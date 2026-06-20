@@ -77,6 +77,12 @@ public struct MediaFavoritePlaylist: Identifiable, Codable, Hashable, Sendable {
     }
 }
 
+public enum MediaPlayerState: String, Sendable, Equatable {
+    case stopped
+    case playing
+    case paused
+}
+
 public struct MediaNowPlayingInfo: Equatable, Sendable {
     public var title: String
     public var artist: String
@@ -84,6 +90,7 @@ public struct MediaNowPlayingInfo: Equatable, Sendable {
     public var duration: TimeInterval
     public var elapsed: TimeInterval
     public var isPlaying: Bool
+    public var playerState: MediaPlayerState
     public var artworkURL: String?
     public var outputDevice: String
 
@@ -94,6 +101,7 @@ public struct MediaNowPlayingInfo: Equatable, Sendable {
         duration: TimeInterval = 0,
         elapsed: TimeInterval = 0,
         isPlaying: Bool = false,
+        playerState: MediaPlayerState = .stopped,
         artworkURL: String? = nil,
         outputDevice: String = ""
     ) {
@@ -103,6 +111,7 @@ public struct MediaNowPlayingInfo: Equatable, Sendable {
         self.duration = duration
         self.elapsed = elapsed
         self.isPlaying = isPlaying
+        self.playerState = playerState
         self.artworkURL = artworkURL
         self.outputDevice = outputDevice
     }

@@ -335,8 +335,15 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         return false
     }
 
+    private var isShowingMedia: Bool {
+        if case .workspace(.media) = sidebarSelection {
+            return true
+        }
+        return false
+    }
+
     private var showsIncomingMailAlert: Bool {
-        isShowingDashboard || isShowingNotes
+        isShowingDashboard || isShowingNotes || isShowingMedia
     }
 
     private func accountDisplayName(for accountID: UUID) -> String {
