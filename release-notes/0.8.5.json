@@ -1,0 +1,14 @@
+{
+  "version": "0.8.5",
+  "summary": "Clipboard history paste search works while you type.",
+  "releaseNotes": {
+    "introduced": [],
+    "changed": [],
+    "fixed": [
+      "⇧⌘V paste picker lets you type to filter clips immediately; arrow keys move through results and Return selects"
+    ],
+    "updated": [],
+    "removed": [],
+    "breaking": []
+  }
+}

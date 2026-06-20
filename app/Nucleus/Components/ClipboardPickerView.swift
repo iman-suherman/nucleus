@@ -1,4 +1,5 @@
 import AppKit
+import ClipboardKit
 import NucleusKit
 import SwiftUI
 
@@ -16,14 +17,7 @@ struct ClipboardPickerView: View {
     private let selectionConfirmationDelay: Duration = .milliseconds(420)
 
     private var filteredEntries: [ClipboardEntry] {
-        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return entries }
-        let lower = trimmed.lowercased()
-        return entries.filter {
-            $0.content.lowercased().contains(lower)
-                || $0.sourceApplication.lowercased().contains(lower)
-                || $0.tags.contains(where: { $0.lowercased().contains(lower) })
-        }
+        ClipboardSearch.rank(entries, query: query)
     }
 
     var body: some View {
@@ -41,6 +35,17 @@ struct ClipboardPickerView: View {
                 .textFieldStyle(.roundedBorder)
                 .focused($searchFocused)
                 .disabled(isConfirmingSelection)
+                .onKeyPress(.upArrow) {
+                    moveHighlight(by: -1)
+                    return .handled
+                }
+                .onKeyPress(.downArrow) {
+                    moveHighlight(by: 1)
+                    return .handled
+                }
+                .onSubmit {
+                    submitHighlightedSelection()
+                }
 
             if filteredEntries.isEmpty {
                 ContentUnavailableView(
@@ -68,6 +73,7 @@ struct ClipboardPickerView: View {
                         }
                     }
                     .listStyle(.inset)
+                    .focusable(false)
                     .onChange(of: highlightedID) { _, id in
                         scrollToHighlight(id, proxy: proxy)
                     }
@@ -77,7 +83,7 @@ struct ClipboardPickerView: View {
                 }
             }
 
-            Text("Click a clip to copy · ⌘V to paste · Return · Esc to close")
+            Text("Type to search · ↑↓ to move · Return to select · ⌘V to paste · Esc to close")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -99,24 +105,6 @@ struct ClipboardPickerView: View {
             guard !isConfirmingSelection else { return }
             searchFocused = true
         }
-        .background(
-            ClipboardPickerKeyHandler(
-                isEnabled: !isConfirmingSelection,
-                onReturn: {
-                    guard let highlightedID,
-                          let entry = filteredEntries.first(where: { $0.id == highlightedID }) else {
-                        return
-                    }
-                    confirmSelection(entry)
-                },
-                onMoveUp: { moveHighlight(by: -1) },
-                onMoveDown: { moveHighlight(by: 1) },
-                onEscape: {
-                    guard !isConfirmingSelection else { return }
-                    onDismiss()
-                }
-            )
-        )
     }
 
     private func scrollToHighlight(_ id: UUID?, proxy: ScrollViewProxy) {
@@ -135,6 +123,15 @@ struct ClipboardPickerView: View {
         }
         let nextIndex = min(max(index + offset, 0), filteredEntries.count - 1)
         highlightedID = filteredEntries[nextIndex].id
+    }
+
+    private func submitHighlightedSelection() {
+        guard !isConfirmingSelection,
+              let highlightedID,
+              let entry = filteredEntries.first(where: { $0.id == highlightedID }) else {
+            return
+        }
+        confirmSelection(entry)
     }
 
     private func confirmSelection(_ entry: ClipboardEntry) {
@@ -194,62 +191,5 @@ private struct ClipboardPickerRow: View {
             return Color.accentColor.opacity(0.12)
         }
         return Color.clear
-    }
-}
-
-private struct ClipboardPickerKeyHandler: NSViewRepresentable {
-    var isEnabled: Bool = true
-    let onReturn: () -> Void
-    let onMoveUp: () -> Void
-    let onMoveDown: () -> Void
-    let onEscape: () -> Void
-
-    func makeNSView(context: Context) -> NSView {
-        let view = KeyCatcherView()
-        view.isEnabled = isEnabled
-        view.onReturn = onReturn
-        view.onMoveUp = onMoveUp
-        view.onMoveDown = onMoveDown
-        view.onEscape = onEscape
-        DispatchQueue.main.async {
-            view.window?.makeFirstResponder(view)
-        }
-        return view
-    }
-
-    func updateNSView(_ nsView: NSView, context: Context) {
-        guard let view = nsView as? KeyCatcherView else { return }
-        view.isEnabled = isEnabled
-        view.onReturn = onReturn
-        view.onMoveUp = onMoveUp
-        view.onMoveDown = onMoveDown
-        view.onEscape = onEscape
-    }
-}
-
-private final class KeyCatcherView: NSView {
-    var isEnabled = true
-    var onReturn: (() -> Void)?
-    var onMoveUp: (() -> Void)?
-    var onMoveDown: (() -> Void)?
-    var onEscape: (() -> Void)?
-
-    override var acceptsFirstResponder: Bool { true }
-
-    override func keyDown(with event: NSEvent) {
-        guard isEnabled else { return }
-
-        switch event.keyCode {
-        case 36, 76: // Return, keypad Enter
-            onReturn?()
-        case 126:
-            onMoveUp?()
-        case 125:
-            onMoveDown?()
-        case 53:
-            onEscape?()
-        default:
-            super.keyDown(with: event)
-        }
     }
 }
