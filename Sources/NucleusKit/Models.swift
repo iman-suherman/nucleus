@@ -43,6 +43,7 @@ public enum WorkspacePane: String, CaseIterable, Identifiable, Sendable {
     case clipboard
     case notes
     case bills
+    case media
     case accounts
     case settings
 
@@ -55,6 +56,7 @@ public enum WorkspacePane: String, CaseIterable, Identifiable, Sendable {
         case .clipboard: return "Clipboard"
         case .notes: return "Notes and Passwords"
         case .bills: return "Bills"
+        case .media: return "Music"
         case .accounts: return "Accounts"
         case .settings: return "Settings"
         }
@@ -67,6 +69,7 @@ public enum WorkspacePane: String, CaseIterable, Identifiable, Sendable {
         case .clipboard: return "Recent clips and templates"
         case .notes: return "Markdown notes and password vault"
         case .bills: return "Monthly bills and payments"
+        case .media: return "Apple Music and AirPlay"
         case .accounts: return "Google identities"
         case .settings: return "Sync and notifications"
         }
@@ -79,12 +82,13 @@ public enum WorkspacePane: String, CaseIterable, Identifiable, Sendable {
         case .clipboard: return "doc.on.clipboard"
         case .notes: return "note.text"
         case .bills: return "dollarsign.circle"
+        case .media: return "music.note"
         case .accounts: return "person.crop.circle.badge.plus"
         case .settings: return "gearshape"
         }
     }
 
-    public static let primaryWorkspaces: [WorkspacePane] = [.dashboard, .inbox, .clipboard, .notes, .bills]
+    public static let primaryWorkspaces: [WorkspacePane] = [.dashboard, .inbox, .clipboard, .notes, .bills, .media]
     public static let utilityWorkspaces: [WorkspacePane] = [.settings, .accounts]
 }
 

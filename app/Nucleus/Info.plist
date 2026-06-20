@@ -35,6 +35,10 @@
 	<string>Nucleus uses your location to show today's weather on the Dashboard.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Nucleus uses your location to show today's weather on the Dashboard.</string>
+	<key>NSAppleMusicUsageDescription</key>
+	<string>Nucleus searches Apple Music and your library so you can play songs, albums, artists, and playlists.</string>
+	<key>NSAppleEventsUsageDescription</key>
+	<string>Nucleus controls the Music app to play, pause, and skip tracks on your Mac or AirPlay speakers.</string>
 	<key>NSUserNotificationAlertStyle</key>
 	<string>alert</string>
 	<key>SUAllowsAutomaticUpdates</key>

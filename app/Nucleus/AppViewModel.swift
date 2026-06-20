@@ -284,7 +284,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
             previewMessages: Array(remaining.prefix(3))
         )
 
-        if isShowingDashboard {
+        if showsIncomingMailAlert {
             dashboardIncomingMailPrompt = prompt
         } else {
             queuedDashboardIncomingMail = prompt
@@ -327,6 +327,17 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         return false
     }
 
+    private var isShowingNotes: Bool {
+        if case .workspace(.notes) = sidebarSelection {
+            return true
+        }
+        return false
+    }
+
+    private var showsIncomingMailAlert: Bool {
+        isShowingDashboard || isShowingNotes
+    }
+
     private func accountDisplayName(for accountID: UUID) -> String {
         guard let account = accounts.first(where: { $0.id == accountID }) else {
             return "Inbox"
@@ -358,7 +369,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
             return
         }
 
-        if isShowingDashboard {
+        if showsIncomingMailAlert {
             dashboardIncomingMailPrompt = merged
             queuedDashboardIncomingMail = nil
         } else {
@@ -371,7 +382,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
     }
 
     private func revealQueuedDashboardIncomingMailIfNeeded() {
-        guard isShowingDashboard, !dashboardMailAlertSnoozed, let queued = queuedDashboardIncomingMail else { return }
+        guard showsIncomingMailAlert, !dashboardMailAlertSnoozed, let queued = queuedDashboardIncomingMail else { return }
         dashboardIncomingMailPrompt = DashboardIncomingMailPrompt.merged(
             existing: dashboardIncomingMailPrompt,
             accountID: queued.primaryAccountID,

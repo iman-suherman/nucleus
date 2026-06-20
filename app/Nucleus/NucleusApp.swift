@@ -162,6 +162,9 @@ struct ContentView: View {
                     )
                 }
                 ToolbarItem(placement: .automatic) {
+                    MediaMiniPlayer()
+                }
+                ToolbarItem(placement: .automatic) {
                     Button {
                         SparkleUpdaterController.shared.checkForUpdates()
                     } label: {
@@ -216,6 +219,8 @@ struct ContentView: View {
                 NotesWorkspaceView()
             case .bills:
                 BillsWorkspaceView()
+            case .media:
+                MediaWorkspaceView()
             case .accounts:
                 AccountCenterView()
             case .settings:

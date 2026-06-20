@@ -72,6 +72,8 @@ targets:
       - sdk: WeatherKit.framework
       - sdk: CoreLocation.framework
       - sdk: FoundationModels.framework
+      - sdk: MusicKit.framework
+      - sdk: AVKit.framework
     scheme:
       testTargets: []
 

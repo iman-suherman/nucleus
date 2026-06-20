@@ -171,6 +171,8 @@ final class AppSettings: ObservableObject {
         static let billNotifyOnDueDate = "nucleus.settings.billNotifyOnDueDate"
         static let dashboardPreferences = "nucleus.settings.dashboardPreferences"
         static let publicHolidayCountryCodes = "nucleus.settings.publicHolidayCountryCodes"
+        static let mediaFavoritePlaylists = "nucleus.settings.mediaFavoritePlaylists"
+        static let mediaShortcuts = "nucleus.settings.mediaShortcuts"
     }
 
     static let currentAppVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.1.0"
@@ -333,6 +335,36 @@ final class AppSettings: ObservableObject {
             }
             UserDefaults.standard.set(normalized, forKey: Keys.publicHolidayCountryCodes)
         }
+    }
+
+    @Published var mediaFavoritePlaylists: [MediaFavoritePlaylist] {
+        didSet { Self.persistMediaFavoritePlaylists(mediaFavoritePlaylists) }
+    }
+
+    @Published var mediaShortcuts: [MediaShortcut] {
+        didSet { Self.persistMediaShortcuts(mediaShortcuts) }
+    }
+
+    func addMediaFavoritePlaylist(name: String) {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        mediaFavoritePlaylists.append(MediaFavoritePlaylist(name: trimmed))
+    }
+
+    func removeMediaFavoritePlaylist(id: UUID) {
+        mediaFavoritePlaylists.removeAll { $0.id == id }
+    }
+
+    func addMediaShortcut(_ shortcut: MediaShortcut) {
+        let trimmed = shortcut.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        mediaShortcuts.append(
+            MediaShortcut(id: shortcut.id, name: trimmed, detail: shortcut.detail.trimmingCharacters(in: .whitespacesAndNewlines))
+        )
+    }
+
+    func removeMediaShortcut(id: UUID) {
+        mediaShortcuts.removeAll { $0.id == id }
     }
 
     var billDueReminderConfiguration: BillDueReminderConfiguration {
@@ -535,6 +567,8 @@ final class AppSettings: ObservableObject {
 
         dashboardPreferences = Self.loadDashboardPreferences()
         publicHolidayCountryCodes = UserDefaults.standard.stringArray(forKey: Keys.publicHolidayCountryCodes) ?? []
+        mediaFavoritePlaylists = Self.loadMediaFavoritePlaylists()
+        mediaShortcuts = Self.loadMediaShortcuts()
     }
 
     func resetDashboardPreferences() {
@@ -607,6 +641,32 @@ final class AppSettings: ObservableObject {
             overrides[accountID] = sound
         }
         return overrides
+    }
+
+    private static func persistMediaFavoritePlaylists(_ playlists: [MediaFavoritePlaylist]) {
+        guard let data = try? JSONEncoder().encode(playlists) else { return }
+        UserDefaults.standard.set(data, forKey: Keys.mediaFavoritePlaylists)
+    }
+
+    private static func loadMediaFavoritePlaylists() -> [MediaFavoritePlaylist] {
+        guard let data = UserDefaults.standard.data(forKey: Keys.mediaFavoritePlaylists),
+              let playlists = try? JSONDecoder().decode([MediaFavoritePlaylist].self, from: data) else {
+            return []
+        }
+        return playlists
+    }
+
+    private static func persistMediaShortcuts(_ shortcuts: [MediaShortcut]) {
+        guard let data = try? JSONEncoder().encode(shortcuts) else { return }
+        UserDefaults.standard.set(data, forKey: Keys.mediaShortcuts)
+    }
+
+    private static func loadMediaShortcuts() -> [MediaShortcut] {
+        guard let data = UserDefaults.standard.data(forKey: Keys.mediaShortcuts),
+              let shortcuts = try? JSONDecoder().decode([MediaShortcut].self, from: data) else {
+            return []
+        }
+        return shortcuts
     }
 }
 

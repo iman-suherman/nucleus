@@ -4,6 +4,48 @@ import SwiftUI
 import UIKit
 #endif
 
+private enum NoteSaveStatus: Equatable {
+    case idle
+    case saving
+    case saved
+}
+
+private struct NoteEditorSnapshot: Equatable {
+    var markdown: String
+    var title: String
+    var folder: NoteFolder
+}
+
+private struct NoteSaveStatusIndicator: View {
+    let status: NoteSaveStatus
+
+    var body: some View {
+        switch status {
+        case .idle:
+            EmptyView()
+        case .saving:
+            HStack(spacing: 4) {
+                ProgressView()
+                Text("Saving…")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("Saving")
+        case .saved:
+            HStack(spacing: 4) {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundStyle(.green)
+                Text("Saved")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("Saved")
+        }
+    }
+}
+
 public struct NoteDetailView: View {
     let note: NoteDocument
     let onSave: (NoteDocument) throws -> Void
@@ -16,6 +58,10 @@ public struct NoteDetailView: View {
     @State private var saveError: String?
     @State private var deleteError: String?
     @State private var showingDeleteConfirmation = false
+    @State private var saveStatus: NoteSaveStatus = .idle
+    @State private var savedSnapshot: NoteEditorSnapshot?
+    @State private var autoSaveTask: Task<Void, Never>?
+    @State private var savedIndicatorTask: Task<Void, Never>?
 
     public init(
         note: NoteDocument,
@@ -57,10 +103,20 @@ public struct NoteDetailView: View {
                 }
             }
             ToolbarItem(placement: .topBarTrailing) {
-                Button("Save") {
-                    saveNote()
-                }
+                NoteSaveStatusIndicator(status: saveStatus)
             }
+        }
+        .onAppear {
+            savedSnapshot = currentSnapshot()
+        }
+        .onChange(of: editorText) { _, _ in
+            scheduleAutoSave()
+        }
+        .onChange(of: passwordFields) { _, _ in
+            scheduleAutoSave()
+        }
+        .onDisappear {
+            flushAutoSave()
         }
         .confirmationDialog(
             "Delete this \(folder == .passwords ? "password entry" : "note")?",
@@ -90,26 +146,83 @@ public struct NoteDetailView: View {
         }
     }
 
-    private func saveNote() {
-        var updated = note
-        updated.folder = folder
-        updated.updatedAt = Date()
+    private var isDirty: Bool {
+        guard let savedSnapshot else { return true }
+        return currentSnapshot() != savedSnapshot
+    }
 
+    private func currentSnapshot() -> NoteEditorSnapshot {
         if folder == .passwords {
-            updated.markdown = passwordFields.markdown()
-            updated.title = passwordFields.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            let markdown = passwordFields.markdown()
+            let title = passwordFields.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                 ? note.title
                 : passwordFields.name
-        } else {
-            let title = NotesMarkdown.title(from: editorText, fallback: note.title)
-            updated.markdown = NotesMarkdown.settingTitle(title, in: editorText)
-            updated.title = title
+            return NoteEditorSnapshot(markdown: markdown, title: title, folder: folder)
         }
+
+        let title = NotesMarkdown.title(from: editorText, fallback: note.title)
+        let markdown = NotesMarkdown.settingTitle(title, in: editorText)
+        return NoteEditorSnapshot(markdown: markdown, title: title, folder: folder)
+    }
+
+    private func buildUpdatedNote() -> NoteDocument {
+        var updated = note
+        let snapshot = currentSnapshot()
+        updated.folder = snapshot.folder
+        updated.markdown = snapshot.markdown
+        updated.title = snapshot.title
+        updated.updatedAt = Date()
+        return updated
+    }
+
+    private func scheduleAutoSave() {
+        autoSaveTask?.cancel()
+        guard isDirty else { return }
+
+        autoSaveTask = Task {
+            try? await Task.sleep(for: .milliseconds(500))
+            guard !Task.isCancelled, isDirty else { return }
+            await performSave()
+        }
+    }
+
+    private func flushAutoSave() {
+        autoSaveTask?.cancel()
+        autoSaveTask = nil
+        guard isDirty else { return }
+        saveNote()
+    }
+
+    @MainActor
+    private func performSave() async {
+        saveNote()
+    }
+
+    private func saveNote() {
+        guard isDirty else { return }
+
+        let updated = buildUpdatedNote()
+        saveStatus = .saving
 
         do {
             try onSave(updated)
+            savedSnapshot = currentSnapshot()
+            markSaved()
         } catch {
+            saveStatus = .idle
             saveError = error.localizedDescription
+        }
+    }
+
+    private func markSaved() {
+        saveStatus = .saved
+        savedIndicatorTask?.cancel()
+        savedIndicatorTask = Task {
+            try? await Task.sleep(for: .seconds(2))
+            guard !Task.isCancelled else { return }
+            if saveStatus == .saved {
+                saveStatus = .idle
+            }
         }
     }
 

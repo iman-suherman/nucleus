@@ -46,7 +46,9 @@ final class WorkspaceIdleController {
 
     private func returnToDashboardIfNeeded() {
         guard let viewModel, !viewModel.isStartingUp else { return }
-        guard case .workspace(let pane) = viewModel.sidebarSelection, pane != .dashboard else { return }
+        guard case .workspace(let pane) = viewModel.sidebarSelection,
+              pane != .dashboard,
+              pane != .notes else { return }
 
         viewModel.sidebarSelection = .workspace(.dashboard)
         AppSettings.shared.selectedWorkspacePane = WorkspacePane.dashboard.rawValue

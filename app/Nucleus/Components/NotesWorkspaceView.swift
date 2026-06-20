@@ -5,6 +5,59 @@ import NucleusKit
 import SwiftUI
 import SyncKit
 
+private enum NoteSaveStatus: Equatable {
+    case idle
+    case saving
+    case saved
+}
+
+private enum NoteEditorMode: String, CaseIterable, Identifiable {
+    case edit
+    case preview
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .edit: return "Edit"
+        case .preview: return "Preview"
+        }
+    }
+}
+
+private struct NoteEditorSnapshot: Equatable {
+    var markdown: String
+    var title: String
+    var folder: NoteFolder
+}
+
+private struct NoteSaveStatusIndicator: View {
+    let status: NoteSaveStatus
+
+    var body: some View {
+        switch status {
+        case .idle:
+            EmptyView()
+        case .saving:
+            HStack(spacing: 6) {
+                ProgressView()
+                    .controlSize(.small)
+                Text("Saving…")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        case .saved:
+            HStack(spacing: 6) {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundStyle(.green)
+                Text("Saved")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+}
+
 struct NotesWorkspaceView: View {
     @EnvironmentObject private var viewModel: AppViewModel
     @EnvironmentObject private var appSettings: AppSettings
@@ -12,24 +65,56 @@ struct NotesWorkspaceView: View {
     @State private var editorText = ""
     @State private var passwordFields = PasswordNoteFields.empty()
     @State private var listFilter: NoteFolder?
+    @State private var saveStatus: NoteSaveStatus = .idle
+    @State private var savedSnapshot: NoteEditorSnapshot?
+    @State private var autoSaveTask: Task<Void, Never>?
+    @State private var savedIndicatorTask: Task<Void, Never>?
+    @State private var editorMode: NoteEditorMode = .edit
 
     var body: some View {
-        HSplitView {
-            notesList
-                .frame(minWidth: 240, idealWidth: appSettings.notesListWidth, maxWidth: 340)
+        ZStack {
+            HSplitView {
+                notesList
+                    .frame(minWidth: 240, idealWidth: appSettings.notesListWidth, maxWidth: 340)
 
-            noteEditor
-                .frame(minWidth: 420)
+                noteEditor
+                    .frame(minWidth: 420)
+            }
+
+            if let prompt = viewModel.dashboardIncomingMailPrompt {
+                DashboardIncomingMailOverlay(
+                    prompt: prompt,
+                    onOpenInbox: viewModel.openDashboardIncomingMail,
+                    onDismiss: viewModel.dismissDashboardIncomingMail
+                )
+            }
         }
-        .onAppear(perform: loadSelectedNote)
-        .onChange(of: viewModel.selectedNoteID) { _, _ in
+        .animation(.easeInOut(duration: 0.2), value: viewModel.dashboardIncomingMailPrompt?.id)
+        .onAppear {
+            loadSelectedNote()
+            viewModel.refreshDashboardIncomingMailAlertIfNeeded()
+        }
+        .onChange(of: viewModel.selectedNoteID) { oldID, newID in
+            if let oldID, oldID != newID,
+               let note = viewModel.notes.first(where: { $0.id == oldID }) {
+                autoSaveTask?.cancel()
+                if isDirty(for: note) {
+                    let updated = buildUpdatedNote(from: note)
+                    Task {
+                        saveStatus = .saving
+                        await viewModel.saveNote(updated)
+                    }
+                }
+            }
             loadSelectedNote()
         }
-        .onChange(of: editorText) { _, newText in
-            syncTitleFromMarkdown(newText)
+        .onChange(of: editorText) { _, _ in
+            syncTitleFromMarkdown(editorText)
+            scheduleAutoSave()
         }
-        .onChange(of: passwordFields.name) { _, newName in
-            syncTitleFromPasswordName(newName)
+        .onChange(of: passwordFields) { _, _ in
+            syncTitleFromPasswordName(passwordFields.name)
+            scheduleAutoSave()
         }
     }
 
@@ -131,11 +216,16 @@ struct NotesWorkspaceView: View {
 
                 if note.folder == .passwords {
                     PasswordNoteEditor(fields: $passwordFields)
-                } else {
+                        .frame(maxHeight: .infinity, alignment: .top)
+                } else if editorMode == .edit {
                     TextEditor(text: $editorText)
                         .font(.body.monospaced())
                         .padding(8)
                         .background(.quaternary.opacity(0.25), in: RoundedRectangle(cornerRadius: 10))
+                        .frame(maxHeight: .infinity)
+                } else {
+                    NoteMarkdownPreview(markdown: editorText)
+                        .frame(maxHeight: .infinity)
                 }
 
                 HStack(spacing: 12) {
@@ -143,10 +233,7 @@ struct NotesWorkspaceView: View {
                         Task { await viewModel.deleteNote(note) }
                     }
 
-                    Button("Save") {
-                        Task { await saveCurrentNote(note) }
-                    }
-                    .buttonStyle(.borderedProminent)
+                    NoteSaveStatusIndicator(status: saveStatus)
 
                     Spacer()
                 }
@@ -163,19 +250,31 @@ struct NotesWorkspaceView: View {
 
     @ViewBuilder
     private func editorHeader(for note: NoteDocument) -> some View {
-        if note.folder != .passwords {
-            TextField("Title", text: bindingTitle(for: note))
-                .font(.title3.bold())
-                .textFieldStyle(.plain)
-        }
+        HStack(alignment: .firstTextBaseline, spacing: 10) {
+            Label(note.folder.rawValue, systemImage: note.folder.systemImage)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .labelStyle(.titleAndIcon)
 
-        Picker("Type", selection: bindingFolder(for: note)) {
-            ForEach(NoteFolder.allCases, id: \.self) { folder in
-                Label(folder.rawValue, systemImage: folder.systemImage)
-                    .tag(folder)
+            if note.folder != .passwords {
+                TextField("Title", text: bindingTitle(for: note))
+                    .font(.title3.bold())
+                    .textFieldStyle(.plain)
+            } else {
+                Text(passwordFields.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "New Entry" : passwordFields.name)
+                    .font(.title3.bold())
+                    .foregroundStyle(passwordFields.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? .tertiary : .primary)
             }
         }
-        .pickerStyle(.segmented)
+
+        if note.folder != .passwords {
+            Picker("View", selection: $editorMode) {
+                ForEach(NoteEditorMode.allCases) { mode in
+                    Text(mode.label).tag(mode)
+                }
+            }
+            .pickerStyle(.segmented)
+        }
 
         if note.folder.isSensitive {
             Text("Stored in \(note.folder.rawValue). Syncs via iCloud — avoid sharing this device while unlocked.")
@@ -214,10 +313,57 @@ struct NotesWorkspaceView: View {
         viewModel.notes[index].title = newTitle
     }
 
+    private func isDirty(for note: NoteDocument) -> Bool {
+        guard let savedSnapshot else { return true }
+        return editorSnapshot(for: note) != savedSnapshot
+    }
+
+    private func editorSnapshot(for note: NoteDocument) -> NoteEditorSnapshot {
+        let folder = currentFolder(for: note)
+
+        if folder == .passwords {
+            let markdown = passwordFields.markdown()
+            let title = NotesMarkdown.title(from: markdown, fallback: note.title)
+            return NoteEditorSnapshot(markdown: markdown, title: title, folder: folder)
+        }
+
+        let normalizedTitle = NotesMarkdown.title(from: editorText, fallback: note.title)
+        let markdown = NotesMarkdown.settingTitle(normalizedTitle, in: editorText)
+        return NoteEditorSnapshot(markdown: markdown, title: normalizedTitle, folder: folder)
+    }
+
+    private func buildUpdatedNote(from note: NoteDocument) -> NoteDocument {
+        var updated = note
+        let snapshot = editorSnapshot(for: note)
+        updated.folder = snapshot.folder
+        updated.markdown = snapshot.markdown
+        updated.title = snapshot.title
+        return updated
+    }
+
+    private func scheduleAutoSave() {
+        autoSaveTask?.cancel()
+        guard let note = selectedNote, isDirty(for: note) else { return }
+
+        autoSaveTask = Task {
+            try? await Task.sleep(for: .milliseconds(500))
+            guard !Task.isCancelled,
+                  let note = selectedNote,
+                  isDirty(for: note) else { return }
+            await saveCurrentNote(note)
+        }
+    }
+
     private func loadSelectedNote() {
+        autoSaveTask?.cancel()
+        saveStatus = .idle
+        savedIndicatorTask?.cancel()
+        editorMode = .edit
+
         guard let note = selectedNote else {
             editorText = ""
             passwordFields = .empty()
+            savedSnapshot = nil
             return
         }
 
@@ -234,23 +380,35 @@ struct NotesWorkspaceView: View {
                 viewModel.notes[index].title = NotesMarkdown.title(from: editorText, fallback: note.title)
             }
         }
+
+        savedSnapshot = editorSnapshot(for: note)
     }
 
     private func saveCurrentNote(_ note: NoteDocument) async {
-        var updated = note
-        updated.folder = bindingFolder(for: note).wrappedValue
+        guard isDirty(for: note) else { return }
 
-        if updated.folder == .passwords {
-            updated.markdown = passwordFields.markdown()
-            updated.title = NotesMarkdown.title(from: updated.markdown, fallback: note.title)
-        } else {
-            let normalizedTitle = NotesMarkdown.title(from: editorText, fallback: note.title)
-            updated.markdown = NotesMarkdown.settingTitle(normalizedTitle, in: editorText)
-            updated.title = normalizedTitle
+        saveStatus = .saving
+        let updated = buildUpdatedNote(from: note)
+
+        if updated.folder != .passwords {
             editorText = updated.markdown
         }
 
         await viewModel.saveNote(updated)
+        savedSnapshot = editorSnapshot(for: updated)
+        markSaved()
+    }
+
+    private func markSaved() {
+        saveStatus = .saved
+        savedIndicatorTask?.cancel()
+        savedIndicatorTask = Task {
+            try? await Task.sleep(for: .seconds(2))
+            guard !Task.isCancelled else { return }
+            if saveStatus == .saved {
+                saveStatus = .idle
+            }
+        }
     }
 
     private func bindingTitle(for note: NoteDocument) -> Binding<String> {
@@ -269,17 +427,42 @@ struct NotesWorkspaceView: View {
         )
     }
 
-    private func bindingFolder(for note: NoteDocument) -> Binding<NoteFolder> {
-        Binding(
-            get: {
-                viewModel.notes.first(where: { $0.id == note.id })?.folder ?? note.folder
-            },
-            set: { newValue in
-                guard let current = viewModel.notes.first(where: { $0.id == note.id }) else { return }
-                guard current.folder != newValue else { return }
-                Task { await viewModel.moveNote(current, to: newValue) }
+    private func currentFolder(for note: NoteDocument) -> NoteFolder {
+        viewModel.notes.first(where: { $0.id == note.id })?.folder ?? note.folder
+    }
+}
+
+private struct NoteMarkdownPreview: View {
+    let markdown: String
+
+    private var bodyMarkdown: String {
+        NotesMarkdown.body(from: markdown)
+    }
+
+    var body: some View {
+        ScrollView {
+            Group {
+                if bodyMarkdown.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    Text("Nothing to preview yet.")
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                } else if let rendered = renderedMarkdown {
+                    Text(rendered)
+                        .textSelection(.enabled)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                } else {
+                    Text(bodyMarkdown)
+                        .textSelection(.enabled)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
             }
-        )
+            .padding(12)
+        }
+        .background(.quaternary.opacity(0.25), in: RoundedRectangle(cornerRadius: 10))
+    }
+
+    private var renderedMarkdown: AttributedString? {
+        try? AttributedString(markdown: bodyMarkdown)
     }
 }
 

@@ -66,6 +66,20 @@ public enum NotesMarkdown {
 
         return lines.joined(separator: "\n")
     }
+
+    public static func body(from markdown: String) -> String {
+        var lines = markdown.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
+        if let headingIndex = lines.firstIndex(where: {
+            let trimmed = $0.trimmingCharacters(in: .whitespacesAndNewlines)
+            return !trimmed.isEmpty && trimmed.hasPrefix("#")
+        }) {
+            lines.remove(at: headingIndex)
+            while lines.first?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == true {
+                lines.removeFirst()
+            }
+        }
+        return lines.joined(separator: "\n")
+    }
 }
 
 public enum DriveNotesClient {
