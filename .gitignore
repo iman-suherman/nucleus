@@ -24,6 +24,12 @@ Nucleus.zip
 .env.local
 .env.release
 app/Nucleus/Nucleus_DeveloperID.provisionprofile
+.gcloud/
+logs/*
+!logs/.gitkeep
+__pycache__/
+*.pyc
+nucleus-apple/Apps/NucleusIOS/build/
 node_modules/
 .venv/
 website/node_modules/
