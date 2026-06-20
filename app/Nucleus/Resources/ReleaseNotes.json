@@ -1,12 +1,16 @@
 {
-  "version": "0.8.5",
-  "summary": "Clipboard history paste search works while you type.",
+  "version": "0.8.6",
+  "summary": "Music workspace polish, AirPlay routing, and sidebar UX improvements.",
   "releaseNotes": {
     "introduced": [],
-    "changed": [],
-    "fixed": [
-      "⇧⌘V paste picker lets you type to filter clips immediately; arrow keys move through results and Return selects"
+    "changed": [
+      "Music Now Playing shows live progress; search results play through in order from the row you pick",
+      "AirPlay button in Now Playing routes catalog playback and Music.app speakers or HomePods",
+      "Music workspace stays open while audio is playing; incoming mail shows a modal when you are on Music",
+      "Sidebar Music row shows a Playing badge; Notes counts align with other workspace badges",
+      "Sidebar rows use a pointer cursor and no longer beep when re-clicking Music"
     ],
+    "fixed": [],
     "updated": [],
     "removed": [],
     "breaking": []
