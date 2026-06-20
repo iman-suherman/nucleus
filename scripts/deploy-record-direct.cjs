@@ -68,7 +68,9 @@ function recordDirectDeployOutcome({
       `# Finished: ${finishedAt}`,
       `# Exit code: ${exitCode}`,
       error ? `# Error: ${error}` : "",
-      status === "success" ? "deploy: done" : `deploy: failed (${error || exitCode})`,
+      status === "success"
+        ? activityMessage || "deploy: done"
+        : `deploy: failed (${error || exitCode})`,
     ]
       .filter(Boolean)
       .join("\n") + "\n",
