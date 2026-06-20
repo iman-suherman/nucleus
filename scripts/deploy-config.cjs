@@ -21,6 +21,16 @@ const DEPLOY_TARGETS = [
     npmScript: "deploy:registry:direct",
   },
   {
+    repo: "nucleus-app",
+    label: "Nucleus macOS DMG",
+    branch: DEFAULT_BRANCH,
+    npmScript: "release:direct",
+    details: [
+      "Manual: npm run release",
+      "Retry: npm run nucleus:deploy:retry -- --repo nucleus-app",
+    ],
+  },
+  {
     repo: "nucleus-download",
     label: "nucleus-download.suherman.net",
     note: "manual",

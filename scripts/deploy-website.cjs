@@ -9,19 +9,38 @@ const { resolveGcpProjectId } = require("./gcp-config.cjs");
 const { getProjectAdcPath } = require("./gcp-lib-adc.cjs");
 const { loadDotenv } = require("./load-dotenv.cjs");
 const { secretExists } = require("./gcp-secrets.cjs");
+const { getDeployTarget } = require("./deploy-config.cjs");
+const { recordDirectDeployOutcome } = require("./deploy-record-direct.cjs");
 
 const root = path.join(__dirname, "..");
 const websiteDir = path.join(root, "website");
 const shell = process.platform === "win32";
+const DEPLOY_REPO = "nucleus-website";
+const DEPLOY_NPM_SCRIPT = "deploy:website:direct";
+const deployTarget = getDeployTarget(DEPLOY_REPO);
+const deployStartedAt = new Date().toISOString();
+
+function recordDeploy(status, { exitCode = 0, error = null } = {}) {
+  recordDirectDeployOutcome({
+    repo: DEPLOY_REPO,
+    label: deployTarget?.label,
+    npmScript: DEPLOY_NPM_SCRIPT,
+    status,
+    startedAt: deployStartedAt,
+    exitCode,
+    error,
+  });
+}
+
+function fail(message) {
+  recordDeploy("failure", { exitCode: 1, error: message });
+  console.error(`deploy:website: ${message}`);
+  process.exit(1);
+}
 
 const SYNC_SECRETS = ["AUTH_SECRET", "GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_SECRET"];
 const REQUIRED_SYNC_SECRETS = ["AUTH_SECRET"];
 const OPTIONAL_SYNC_SECRETS = ["GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_SECRET"];
-
-function fail(message) {
-  console.error(`deploy:website: ${message}`);
-  process.exit(1);
-}
 
 function applyGcpEnv() {
   loadDotenv(root);
@@ -39,7 +58,10 @@ function run(command, args, options = {}) {
     env: process.env,
   });
   if (r.error) throw r.error;
-  if (r.status !== 0) process.exit(r.status ?? 1);
+  if (r.status !== 0) {
+    recordDeploy("failure", { exitCode: r.status ?? 1, error: `${command} exited ${r.status ?? 1}` });
+    process.exit(r.status ?? 1);
+  }
 }
 
 function yamlString(value) {
@@ -202,6 +224,7 @@ function main() {
 
   console.log("deploy:website: done");
   console.log(`deploy:website: health check https://${new URL(syncBaseUrl).host}/api/health`);
+  recordDeploy("success", { exitCode: 0 });
 }
 
 main();
