@@ -8,6 +8,7 @@ final class MusicCatalogService: ObservableObject {
     @Published private(set) var isSearching = false
     @Published private(set) var lastError: String?
     @Published private(set) var searchScope: MediaSearchScope?
+    @Published private(set) var searchHint: String?
 
     func refreshAuthorization() {
         authorizationStatus = MusicAuthorization.currentStatus
@@ -20,6 +21,7 @@ final class MusicCatalogService: ObservableObject {
     func resetSearchState() {
         lastError = nil
         searchScope = nil
+        searchHint = nil
     }
 
     func search(query: String) async -> [MediaSearchResult] {
@@ -27,11 +29,25 @@ final class MusicCatalogService: ObservableObject {
         guard !trimmed.isEmpty else {
             lastError = nil
             searchScope = nil
+            searchHint = nil
             return []
         }
 
         isSearching = true
         defer { isSearching = false }
+
+        let intent = await MusicSemanticSearchService.resolveIntent(query: trimmed)
+        var merged: [MediaSearchResult] = []
+        var seen = Set<String>()
+        var catalogCount = 0
+        var lyricsCount = 0
+
+        func appendUnique(_ results: [MediaSearchResult]) {
+            for result in results where !seen.contains(result.id) {
+                seen.insert(result.id)
+                merged.append(result)
+            }
+        }
 
         var catalogError: String?
         if authorizationStatus != .authorized {
@@ -39,30 +55,53 @@ final class MusicCatalogService: ObservableObject {
         }
 
         if authorizationStatus == .authorized {
-            do {
-                var request = MusicCatalogSearchRequest(
-                    term: trimmed,
-                    types: [Song.self, Album.self, Artist.self, Playlist.self]
-                )
-                request.limit = 12
-                let response = try await request.response()
-                let results = mapResults(response)
-                if !results.isEmpty {
-                    lastError = nil
-                    searchScope = .appleMusicCatalog
-                    return results
+            var terms = [trimmed]
+            terms.append(contentsOf: intent.catalogTerms)
+            terms = uniqueSearchTerms(terms)
+
+            for term in terms {
+                do {
+                    let results = try await catalogSearch(term: term)
+                    if !results.isEmpty {
+                        catalogCount += results.count
+                        appendUnique(results)
+                    }
+                } catch {
+                    catalogError = error.localizedDescription
                 }
-                catalogError = "No Apple Music catalog matches."
-            } catch {
-                catalogError = error.localizedDescription
             }
         } else if authorizationStatus == .denied {
             catalogError = "Apple Music access denied in System Settings."
         }
 
+        let lyricsQuery = intent.lyricsQuery ?? (shouldSearchLyricsFallback(trimmed, catalogCount: merged.count) ? trimmed : nil)
+        if let lyricsQuery {
+            let lyricsResults = await MusicLyricsSearchService.searchCatalogSongs(query: lyricsQuery)
+            if !lyricsResults.isEmpty {
+                lyricsCount = lyricsResults.count
+                appendUnique(lyricsResults)
+            }
+        }
+
+        if !merged.isEmpty {
+            lastError = catalogError
+            searchScope = resolveSearchScope(
+                catalogCount: catalogCount,
+                lyricsCount: lyricsCount,
+                usedSemanticExpansion: intent.usedSemanticExpansion
+            )
+            searchHint = searchScopeHint(
+                intent: intent,
+                lyricsQuery: lyricsQuery,
+                scope: searchScope
+            )
+            return Array(merged.prefix(18))
+        }
+
         let librarySearch = MusicAppScriptController.searchLibrary(query: trimmed)
         if !librarySearch.results.isEmpty {
             searchScope = .musicLibrary
+            searchHint = nil
             if let catalogError {
                 lastError = "Showing your Music library. Catalog: \(catalogError)"
             } else {
@@ -72,12 +111,79 @@ final class MusicCatalogService: ObservableObject {
         }
 
         searchScope = nil
+        searchHint = nil
         if let catalogError {
             lastError = "\(catalogError) \(librarySearch.error ?? "")"
         } else {
             lastError = librarySearch.error
         }
         return []
+    }
+
+    private func catalogSearch(term: String) async throws -> [MediaSearchResult] {
+        var request = MusicCatalogSearchRequest(
+            term: term,
+            types: [Song.self, Album.self, Artist.self, Playlist.self]
+        )
+        request.limit = 12
+        let response = try await request.response()
+        return mapResults(response)
+    }
+
+    private func shouldSearchLyricsFallback(_ query: String, catalogCount: Int) -> Bool {
+        if catalogCount >= 6 { return false }
+        let words = query.split(whereSeparator: \.isWhitespace)
+        return words.count >= 3
+    }
+
+    private func resolveSearchScope(
+        catalogCount: Int,
+        lyricsCount: Int,
+        usedSemanticExpansion: Bool
+    ) -> MediaSearchScope {
+        if lyricsCount > 0, catalogCount == 0 {
+            return .lyricsMatch
+        }
+        if lyricsCount > 0 {
+            return .lyricsMatch
+        }
+        if usedSemanticExpansion {
+            return .semanticSearch
+        }
+        return .appleMusicCatalog
+    }
+
+    private func searchScopeHint(
+        intent: MusicSearchIntent,
+        lyricsQuery: String?,
+        scope: MediaSearchScope?
+    ) -> String? {
+        switch scope {
+        case .lyricsMatch:
+            if let lyricsQuery {
+                return "Includes songs matched by lyrics for “\(lyricsQuery)”."
+            }
+            return "Includes songs matched by lyrics."
+        case .semanticSearch:
+            if let lyricsQuery {
+                return "Expanded your request and searched lyrics for “\(lyricsQuery)”."
+            }
+            return "Expanded your request into related Apple Music searches."
+        case .appleMusicCatalog, .musicLibrary, .none:
+            return nil
+        }
+    }
+
+    private func uniqueSearchTerms(_ terms: [String]) -> [String] {
+        var seen = Set<String>()
+        var output: [String] = []
+        for term in terms {
+            let key = term.lowercased()
+            guard !key.isEmpty, !seen.contains(key) else { continue }
+            seen.insert(key)
+            output.append(term)
+        }
+        return output
     }
 
     /// Plays a search result. Returns `true` when streaming via MusicKit inside Nucleus.

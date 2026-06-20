@@ -141,9 +141,15 @@ struct MediaWorkspaceView: View {
         }
 
         if let scope = controller.catalogService.searchScope, !controller.searchResults.isEmpty {
-            Text(scope == .appleMusicCatalog ? "Apple Music catalog" : "Your Music library")
+            Text(searchScopeLabel(scope))
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.secondary)
+        }
+
+        if let hint = controller.catalogService.searchHint {
+            Text(hint)
+                .font(.caption)
+                .foregroundStyle(.tertiary)
         }
 
         if let error = controller.catalogService.lastError {
@@ -151,9 +157,22 @@ struct MediaWorkspaceView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
         } else if controller.searchQuery.isEmpty {
-            Text("Search Apple Music and your library. Library matches also work via the Music app.")
+            Text("Search titles, artists, lyrics, or describe a mood — e.g. “sad breakup song” or “hari ini kita mulai”.")
                 .font(.caption)
                 .foregroundStyle(.tertiary)
+        }
+    }
+
+    private func searchScopeLabel(_ scope: MediaSearchScope) -> String {
+        switch scope {
+        case .appleMusicCatalog:
+            return "Apple Music catalog"
+        case .musicLibrary:
+            return "Your Music library"
+        case .lyricsMatch:
+            return "Lyrics matches"
+        case .semanticSearch:
+            return "Semantic search"
         }
     }
 
@@ -161,7 +180,7 @@ struct MediaWorkspaceView: View {
         HStack(spacing: 8) {
             Image(systemName: "magnifyingglass")
                 .foregroundStyle(.secondary)
-            TextField("Search Apple Music and your library…", text: $controller.searchQuery)
+            TextField("Search songs, lyrics, or mood…", text: $controller.searchQuery)
                 .textFieldStyle(.plain)
                 .onSubmit { controller.scheduleSearch() }
                 .onChange(of: controller.searchQuery) { _, _ in
@@ -382,6 +401,12 @@ struct MediaWorkspaceView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
+                    if let matchReason = result.matchReason {
+                        Text(matchReason)
+                            .font(.caption2)
+                            .foregroundStyle(Color.accentColor)
+                            .lineLimit(2)
+                    }
                 }
 
                 Spacer(minLength: 8)

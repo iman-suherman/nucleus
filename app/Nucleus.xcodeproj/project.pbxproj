@@ -35,6 +35,7 @@
 		4145571152831419B598BCD1 /* DashboardWeatherService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4AB09CEFF7019C07BF7A676 /* DashboardWeatherService.swift */; };
 		4502C4FF7AEF207C5B35F583 /* NucleusKit in Frameworks */ = {isa = PBXBuildFile; productRef = 3AEE0E5864A512AD45140FF0 /* NucleusKit */; };
 		4573D9B3E1B2E7E5C1A01E2A /* BillsWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A4515FC13933C08473E2A2F /* BillsWorkspaceView.swift */; };
+		4A01FCAA8886DB2CFC744B4C /* MusicSemanticSearchService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1B95108DFC6D90EC524FF7F /* MusicSemanticSearchService.swift */; };
 		4B8017CFC0FB8C2FAC917EAC /* MusicCatalogService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08A06A60B358C2BEBE0ADF31 /* MusicCatalogService.swift */; };
 		4C3BE2AC88FBED2E84BB7DBA /* DashboardPublicHolidayIconService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B87857466880DD8F69C8DF4 /* DashboardPublicHolidayIconService.swift */; };
 		4C597A31214F502918BAE394 /* WKWebView+Visibility.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C3B6F07B15EF705C5429DF9 /* WKWebView+Visibility.swift */; };
@@ -109,6 +110,7 @@
 		E61500042BE1E8A2138B4EDD /* MailKit in Frameworks */ = {isa = PBXBuildFile; productRef = 05DB77AAF24A6898436A8A52 /* MailKit */; };
 		E626F33CBD98D177740BFAA8 /* FoundationModels.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6EC98A7D2AD632EB0F27A607 /* FoundationModels.framework */; };
 		E73244E30CB363CA84393025 /* MusicAccessSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6E470F09EDC0FD0928F432 /* MusicAccessSetupView.swift */; };
+		E93888DB4208C8F4596E5A75 /* MusicLyricsSearchService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5861EAEAD693E06EDEBAC1B4 /* MusicLyricsSearchService.swift */; };
 		EDB250E352E4A3372A211D5C /* AddWebGmailAccountSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 015B76265392421D7C57E815 /* AddWebGmailAccountSheet.swift */; };
 		EEB7CEB73A5AAA37F8CC22A6 /* InboxIdleRecheckController.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFC4312DE2A7EC5DCF5D888A /* InboxIdleRecheckController.swift */; };
 		F0D6500DCFA05119C86E72BE /* CloudKitStoreMigration.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBE67C288974FF5B2F8524E6 /* CloudKitStoreMigration.swift */; };
@@ -150,6 +152,7 @@
 		536C10D58B577BC3DF9EE13E /* ClipboardPasswordSuggestionOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardPasswordSuggestionOverlay.swift; sourceTree = "<group>"; };
 		57198357174E7DA48A1866B3 /* MusicPlaybackMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicPlaybackMonitor.swift; sourceTree = "<group>"; };
 		584F84F9AF029CC4D8800A01 /* NucleusNotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NucleusNotificationService.swift; sourceTree = "<group>"; };
+		5861EAEAD693E06EDEBAC1B4 /* MusicLyricsSearchService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicLyricsSearchService.swift; sourceTree = "<group>"; };
 		588507DCB51F53ABD73D2EE2 /* MacSharingServiceButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacSharingServiceButton.swift; sourceTree = "<group>"; };
 		5A55CAAB4D2D33098BEFB97A /* DashboardPublicHolidayExplanationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardPublicHolidayExplanationService.swift; sourceTree = "<group>"; };
 		6006FFDC6A45F10043EEBCF5 /* MediaController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaController.swift; sourceTree = "<group>"; };
@@ -190,6 +193,7 @@
 		A6EDADCCF24985DEF2C1A2DB /* ReleaseNotesDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReleaseNotesDetailView.swift; sourceTree = "<group>"; };
 		AB5ECBBA5D7B3B965303F247 /* DashboardQuoteEmojiService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardQuoteEmojiService.swift; sourceTree = "<group>"; };
 		B1446CE8EB0EF69B17A5FEAE /* DashboardQuotes.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = DashboardQuotes.json; sourceTree = "<group>"; };
+		B1B95108DFC6D90EC524FF7F /* MusicSemanticSearchService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicSemanticSearchService.swift; sourceTree = "<group>"; };
 		B211BFC3B3A9B72B9E76F91C /* ShortcutsRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShortcutsRunner.swift; sourceTree = "<group>"; };
 		B42E9D0E0216144EA63B3A7F /* MenuBarNucleusIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarNucleusIcon.swift; sourceTree = "<group>"; };
 		B6238A17B183A8059CB7A2C0 /* SparkleUpdater.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SparkleUpdater.swift; sourceTree = "<group>"; };
@@ -358,7 +362,9 @@
 				08A06A60B358C2BEBE0ADF31 /* MusicCatalogService.swift */,
 				0FEBAE1808B1DAD31BB7C733 /* MusicKitNowPlayingReader.swift */,
 				C7638A6786F3E8CB94036DB4 /* MusicLyricsController.swift */,
+				5861EAEAD693E06EDEBAC1B4 /* MusicLyricsSearchService.swift */,
 				57198357174E7DA48A1866B3 /* MusicPlaybackMonitor.swift */,
+				B1B95108DFC6D90EC524FF7F /* MusicSemanticSearchService.swift */,
 				81F61F31E82EC125D210B051 /* NotesClipboardMigration.swift */,
 				7A0BFA8EFB82901232FB9B24 /* NotificationUserInfo.swift */,
 				FE21FFF77FD2D44BA923CC18 /* NucleusLog.swift */,
@@ -575,7 +581,9 @@
 				4B8017CFC0FB8C2FAC917EAC /* MusicCatalogService.swift in Sources */,
 				74517CB4537D4B8B3D162003 /* MusicKitNowPlayingReader.swift in Sources */,
 				55EF56B6133BB09050B745B7 /* MusicLyricsController.swift in Sources */,
+				E93888DB4208C8F4596E5A75 /* MusicLyricsSearchService.swift in Sources */,
 				72E293C6D0604B0AB23FF5B4 /* MusicPlaybackMonitor.swift in Sources */,
+				4A01FCAA8886DB2CFC744B4C /* MusicSemanticSearchService.swift in Sources */,
 				CD6372D2C3B60CF249E70D00 /* NotesClipboardMigration.swift in Sources */,
 				51EAB3CEA8190FEC48F1F8B8 /* NotesWorkspaceView.swift in Sources */,
 				89DD2F6A9B7E342945B2F792 /* NotificationUserInfo.swift in Sources */,

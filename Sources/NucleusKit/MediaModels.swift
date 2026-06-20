@@ -24,6 +24,8 @@ public enum MediaPlaybackSource: String, Codable, CaseIterable, Sendable, Identi
 public enum MediaSearchScope: String, Sendable {
     case appleMusicCatalog
     case musicLibrary
+    case lyricsMatch
+    case semanticSearch
 }
 
 public enum MediaSearchKind: String, Codable, Sendable {
@@ -39,19 +41,23 @@ public struct MediaSearchResult: Identifiable, Codable, Hashable, Sendable {
     public var subtitle: String
     public var kind: MediaSearchKind
     public var artworkURL: String?
+    /// Why this result matched, e.g. a lyrics line or semantic expansion note.
+    public var matchReason: String?
 
     public init(
         id: String,
         title: String,
         subtitle: String,
         kind: MediaSearchKind,
-        artworkURL: String? = nil
+        artworkURL: String? = nil,
+        matchReason: String? = nil
     ) {
         self.id = id
         self.title = title
         self.subtitle = subtitle
         self.kind = kind
         self.artworkURL = artworkURL
+        self.matchReason = matchReason
     }
 }
 

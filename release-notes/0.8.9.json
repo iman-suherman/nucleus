@@ -1,0 +1,20 @@
+{
+  "version": "0.8.9",
+  "summary": "Search songs by lyrics and natural-language mood or theme.",
+  "releaseNotes": {
+    "introduced": [
+      "Music search matches lyric lines via LRCLib and resolves them to Apple Music tracks",
+      "Semantic search expands mood and theme requests (e.g. sad breakup song) into catalog queries"
+    ],
+    "changed": [
+      "Search field accepts titles, artists, lyrics phrases, and plain-language descriptions",
+      "Lyrics matches show the matched line under each search result"
+    ],
+    "fixed": [],
+    "updated": [
+      "Apple Intelligence on macOS 26 expands natural-language music queries when available"
+    ],
+    "removed": [],
+    "breaking": []
+  }
+}
