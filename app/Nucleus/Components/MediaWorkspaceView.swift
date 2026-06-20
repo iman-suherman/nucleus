@@ -215,6 +215,10 @@ struct MediaWorkspaceView: View {
                 Spacer()
             }
 
+            if controller.isCatalogStreamPlayback {
+                catalogAirPlayHint
+            }
+
             if info.isPlaying || info.duration > 0 {
                 MediaProgressBar(
                     progress: info.progress,
@@ -231,6 +235,29 @@ struct MediaWorkspaceView: View {
         }
         .padding()
         .background(.background.secondary, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+
+    private var catalogAirPlayHint: some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: "airplayaudio")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.orange)
+                .padding(.top, 1)
+            VStack(alignment: .leading, spacing: 6) {
+                Text(CatalogAirPlayHint.cardMessage)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Button("Play via Music.app for AirPlay") {
+                    controller.replayActiveTrackViaMusicApp()
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+            }
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.orange.opacity(0.1), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
     }
 
     @ViewBuilder
@@ -387,6 +414,7 @@ struct MediaWorkspaceView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .pointerCursor()
         .help("Play \(result.title) and continue through search results")
     }
 
@@ -500,55 +528,78 @@ struct MediaMiniPlayer: View {
 
     var body: some View {
         if controller.nowPlaying.hasContent {
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 10) {
-                    Image(systemName: "music.note")
-                        .foregroundStyle(.secondary)
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text(controller.nowPlaying.title)
-                            .font(.caption.weight(.semibold))
-                            .lineLimit(1)
-                        Text(controller.nowPlaying.artist)
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                    }
-                    .frame(maxWidth: 180, alignment: .leading)
+            HStack(spacing: 8) {
+                Image(systemName: "music.note")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.secondary)
 
-                    Button {
-                        controller.togglePlayPause()
-                    } label: {
-                        Image(systemName: controller.nowPlaying.isPlaying ? "pause.fill" : "play.fill")
-                    }
-                    .buttonStyle(.borderless)
+                Text(trackLabel)
+                    .font(.caption)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .frame(maxWidth: 168, alignment: .leading)
 
-                    Button {
-                        controller.nextTrack()
-                    } label: {
-                        Image(systemName: "forward.fill")
-                    }
-                    .buttonStyle(.borderless)
-
-                    MediaAirPlayButton(compact: true)
-
-                    Button {
-                        AppViewModel.current?.sidebarSelection = .workspace(.media)
-                    } label: {
-                        Image(systemName: "arrow.up.right.square")
-                    }
-                    .buttonStyle(.borderless)
-                    .help("Open Music workspace")
+                if controller.nowPlaying.duration > 0 {
+                    MiniPlaybackProgress(progress: controller.nowPlaying.progress)
                 }
 
-                if controller.nowPlaying.isPlaying || controller.nowPlaying.duration > 0 {
-                    ProgressView(value: controller.nowPlaying.progress)
-                        .progressViewStyle(.linear)
-                        .frame(maxWidth: 260)
+                Button {
+                    controller.togglePlayPause()
+                } label: {
+                    Image(systemName: controller.nowPlaying.isPlaying ? "pause.fill" : "play.fill")
+                        .font(.caption.weight(.semibold))
                 }
+                .buttonStyle(.borderless)
+
+                Button {
+                    controller.nextTrack()
+                } label: {
+                    Image(systemName: "forward.fill")
+                        .font(.caption2.weight(.semibold))
+                }
+                .buttonStyle(.borderless)
+
+                MediaAirPlayButton(compact: true)
+
+                Button {
+                    AppViewModel.current?.sidebarSelection = .workspace(.media)
+                } label: {
+                    Image(systemName: "arrow.up.right.square")
+                        .font(.caption2.weight(.semibold))
+                }
+                .buttonStyle(.borderless)
+                .help("Open Music workspace")
             }
             .padding(.horizontal, 10)
-            .padding(.vertical, 6)
+            .padding(.vertical, 4)
             .background(.quaternary.opacity(0.4), in: Capsule())
+            .fixedSize(horizontal: true, vertical: true)
         }
+    }
+
+    private var trackLabel: String {
+        let title = controller.nowPlaying.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let artist = controller.nowPlaying.artist.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !artist.isEmpty else { return title }
+        return "\(title) · \(artist)"
+    }
+}
+
+private struct MiniPlaybackProgress: View {
+    let progress: Double
+
+    var body: some View {
+        GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(Color.secondary.opacity(0.25))
+                Capsule()
+                    .fill(Color.accentColor)
+                    .frame(width: geo.size.width * min(max(progress, 0), 1))
+            }
+        }
+        .frame(width: 56, height: 3)
+        .accessibilityLabel("Playback progress")
+        .accessibilityValue("\(Int(progress * 100)) percent")
     }
 }

@@ -19,6 +19,7 @@ final class MediaController: ObservableObject {
         catalogStatus: .notDetermined,
         automation: .musicAppMissing
     )
+    @Published private(set) var catalogStreamPlaybackActive = false
 
     let musicMonitor = MusicPlaybackMonitor()
     let catalogService = MusicCatalogService()
@@ -69,6 +70,24 @@ final class MediaController: ObservableObject {
                 self?.syncActiveSearchResult(with: info)
             }
             .store(in: &cancellables)
+
+        musicMonitor.$nowPlaying
+            .sink { [weak self] _ in
+                self?.syncCatalogStreamPlaybackState()
+            }
+            .store(in: &cancellables)
+
+        $playbackSource
+            .sink { [weak self] source in
+                if source == .localPlayer {
+                    self?.catalogStreamPlaybackActive = false
+                }
+            }
+            .store(in: &cancellables)
+    }
+
+    var isCatalogStreamPlayback: Bool {
+        playbackSource == .musicApp && catalogStreamPlaybackActive
     }
 
     private func syncActiveSearchResult(with info: MediaNowPlayingInfo) {
@@ -97,6 +116,32 @@ final class MediaController: ObservableObject {
 
     func setPlaybackSource(_ source: MediaPlaybackSource) {
         playbackSource = source
+    }
+
+    func replayActiveTrackViaMusicApp() {
+        guard playbackSource == .musicApp else { return }
+        catalogStreamPlaybackActive = false
+
+        if let activeID = activeSearchResultID,
+           let result = searchResults.first(where: { $0.id == activeID }) {
+            catalogService.playThroughMusicApp(result)
+        } else if nowPlaying.hasContent {
+            let artist = nowPlaying.artist.trimmingCharacters(in: .whitespacesAndNewlines)
+            MusicAppScriptController.playTrack(
+                named: nowPlaying.title,
+                artist: artist.isEmpty ? nil : artist
+            )
+        }
+
+        musicMonitor.refresh()
+        statusMessage = "Playing via Music.app — AirPlay speakers are available."
+    }
+
+    private func syncCatalogStreamPlaybackState() {
+        guard catalogStreamPlaybackActive else { return }
+        if !MusicKitNowPlayingReader.isControllingPlayback {
+            catalogStreamPlaybackActive = false
+        }
     }
 
     func togglePlayPause() {
@@ -181,6 +226,7 @@ final class MediaController: ObservableObject {
 
     func playPlaylist(named name: String) {
         playbackSource = .musicApp
+        catalogStreamPlaybackActive = false
         MusicAppScriptController.playPlaylist(named: name)
         musicMonitor.refresh()
     }
@@ -204,19 +250,27 @@ final class MediaController: ObservableObject {
 
     private func playSearchQueue(from startIndex: Int) async {
         playbackSource = .musicApp
+        catalogStreamPlaybackActive = false
+
+        let catalogSongs = searchPlaybackQueue.filter {
+            $0.kind == .song && !$0.id.hasPrefix("library-")
+        }
 
         if startIndex == 0,
-           await catalogService.playCatalogSongQueue(searchPlaybackQueue) {
-            activeSearchResultID = searchPlaybackQueue.first?.id
-            if let first = searchPlaybackQueue.first {
+           catalogSongs.count >= 2,
+           await catalogService.playCatalogSongQueue(catalogSongs) {
+            searchPlaybackQueue = catalogSongs
+            catalogStreamPlaybackActive = true
+            activeSearchResultID = catalogSongs.first?.id
+            if let first = catalogSongs.first {
                 musicMonitor.applyOptimisticNowPlaying(from: first)
             }
             musicMonitor.refresh()
-            statusMessage = searchPlaybackQueue.count == 1
-                ? "Playing “\(searchPlaybackQueue[0].title)”"
-                : "Playing \(searchPlaybackQueue.count) tracks from search"
+            statusMessage = catalogSongs.count == 1
+                ? "Playing “\(catalogSongs[0].title)”"
+                : "Playing \(catalogSongs.count) tracks from search"
 
-            if searchPlaybackQueue.count > 1 {
+            if catalogSongs.count > 1 {
                 await waitForMusicKitSearchQueueToFinish(startIndex: 0)
             }
             return
@@ -228,7 +282,7 @@ final class MediaController: ObservableObject {
             let result = searchPlaybackQueue[index]
             activeSearchResultID = result.id
             musicMonitor.applyOptimisticNowPlaying(from: result)
-            await catalogService.play(result)
+            catalogStreamPlaybackActive = await catalogService.play(result)
             musicMonitor.refresh()
             updateSearchPlaybackStatus(for: result, index: index, total: searchPlaybackQueue.count)
 
@@ -278,19 +332,32 @@ final class MediaController: ObservableObject {
                 if hasSearchTrackFinished(musicMonitor.nowPlaying) {
                     return
                 }
-            } else {
-                try? await Task.sleep(nanoseconds: 800_000_000)
+                continue
+            }
+
+            try? await Task.sleep(nanoseconds: 1_200_000_000)
+            musicMonitor.refresh()
+            if musicMonitor.nowPlaying.playerState == .playing {
+                continue
+            }
+
+            if await catalogService.skipToNextCatalogEntry() {
                 musicMonitor.refresh()
                 if musicMonitor.nowPlaying.playerState == .playing {
                     continue
                 }
             }
+
+            catalogStreamPlaybackActive = false
+            await playSearchQueue(from: currentIndex + 1)
+            return
         }
     }
 
     private func waitForSearchQueueAdvance() async {
         var sawPlaying = false
         var stoppedTicks = 0
+        var pollsWithoutPlayback = 0
 
         while !Task.isCancelled {
             try? await Task.sleep(nanoseconds: 500_000_000)
@@ -300,6 +367,13 @@ final class MediaController: ObservableObject {
             if info.playerState == .playing {
                 sawPlaying = true
                 stoppedTicks = 0
+                pollsWithoutPlayback = 0
+            } else {
+                pollsWithoutPlayback += 1
+            }
+
+            if !sawPlaying, pollsWithoutPlayback >= 24 {
+                return
             }
 
             guard sawPlaying else { continue }
@@ -322,6 +396,10 @@ final class MediaController: ObservableObject {
     }
 
     private func hasSearchTrackFinished(_ info: MediaNowPlayingInfo) -> Bool {
+        if catalogStreamPlaybackActive || MusicKitNowPlayingReader.isControllingPlayback {
+            return MusicKitNowPlayingReader.hasFinishedCurrentEntry()
+        }
+
         if info.playerState == .stopped {
             return true
         }
@@ -358,6 +436,7 @@ final class MediaController: ObservableObject {
 
     func loadLocalFiles(urls: [URL]) {
         playbackSource = .localPlayer
+        catalogStreamPlaybackActive = false
         localPlayer.loadQueue(urls: urls)
         localPlayer.play()
     }

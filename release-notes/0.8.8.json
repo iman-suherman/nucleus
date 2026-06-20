@@ -1,0 +1,19 @@
+{
+  "version": "0.8.8",
+  "summary": "Music queue fixes, AirPlay guidance, and UI polish.",
+  "releaseNotes": {
+    "introduced": [],
+    "changed": [
+      "Header mini player fits on one row with inline progress",
+      "AirPlay menu explains catalog vs Music.app routing and offers Play via Music.app for speakers",
+      "Search results show a pointer cursor on hover"
+    ],
+    "fixed": [
+      "Search playback continues to the next song when a track finishes",
+      "Mixed search results (songs plus albums) queue songs correctly for continuous playback"
+    ],
+    "updated": [],
+    "removed": [],
+    "breaking": []
+  }
+}

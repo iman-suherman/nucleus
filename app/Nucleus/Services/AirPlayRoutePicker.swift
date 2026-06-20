@@ -3,6 +3,15 @@ import AppKit
 import NucleusKit
 import SwiftUI
 
+enum CatalogAirPlayHint {
+    static let menuMessage =
+        "This track streams inside Nucleus. AirPlay here routes Music.app only — library playback or Music.app can reach speakers."
+    static let cardMessage =
+        "AirPlay routes through Music.app. Catalog streaming plays inside Nucleus and won't move to HomePods from this menu."
+    static let tooltip =
+        "Catalog track — AirPlay uses Music.app. Play via Music.app for speaker output."
+}
+
 struct MediaAirPlayButton: View {
     var compact = false
 
@@ -41,6 +50,17 @@ private struct MusicAppAirPlayMenuButton: View {
     var body: some View {
         Menu {
             Group {
+                if controller.isCatalogStreamPlayback {
+                    Text(CatalogAirPlayHint.menuMessage)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Button("Play via Music.app for AirPlay…") {
+                        controller.replayActiveTrackViaMusicApp()
+                        refreshDevices()
+                    }
+                    Divider()
+                }
+
                 if let loadError {
                     Text(loadError)
                         .font(.caption)
@@ -81,10 +101,17 @@ private struct MusicAppAirPlayMenuButton: View {
                 .frame(width: compact ? 22 : 28, height: compact ? 22 : 28)
         }
         .menuStyle(.borderlessButton)
-        .help(loadError ?? "Choose AirPlay output")
+        .help(airPlayHelp)
         .accessibilityLabel("Choose AirPlay output")
         .disabled(!controller.isMusicAppAvailable)
         .onAppear(perform: refreshDevices)
+    }
+
+    private var airPlayHelp: String {
+        if controller.isCatalogStreamPlayback {
+            return CatalogAirPlayHint.tooltip
+        }
+        return loadError ?? "Choose AirPlay output"
     }
 
     private func refreshDevices() {

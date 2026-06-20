@@ -80,16 +80,18 @@ final class MusicCatalogService: ObservableObject {
         return []
     }
 
-    func play(_ result: MediaSearchResult) async {
+    /// Plays a search result. Returns `true` when streaming via MusicKit inside Nucleus.
+    @discardableResult
+    func play(_ result: MediaSearchResult) async -> Bool {
         if result.id.hasPrefix("library-") {
             playViaMusicApp(result)
-            return
+            return false
         }
 
         guard authorizationStatus == .authorized else {
             lastError = "Allow Apple Music access to play catalog results."
             playViaMusicApp(result)
-            return
+            return false
         }
 
         do {
@@ -105,16 +107,22 @@ final class MusicCatalogService: ObservableObject {
             }
             lastError = nil
             NucleusLog.music.info("catalog play started title=\(result.title, privacy: .public) kind=\(result.kind.rawValue, privacy: .public)")
+            return true
         } catch {
             lastError = "Could not play via Apple Music (\(error.localizedDescription)). Trying Music app…"
             NucleusLog.music.error("catalog play failed title=\(result.title, privacy: .public) error=\(error.localizedDescription, privacy: .public)")
             playViaMusicApp(result)
+            return false
         }
+    }
+
+    func playThroughMusicApp(_ result: MediaSearchResult) {
+        playViaMusicApp(result)
     }
 
     func playCatalogSongQueue(_ results: [MediaSearchResult]) async -> Bool {
         let songs = results.filter { $0.kind == .song && !$0.id.hasPrefix("library-") }
-        guard songs.count == results.count, !songs.isEmpty else { return false }
+        guard songs.count >= 2 else { return false }
 
         if authorizationStatus != .authorized {
             await requestAuthorization()
@@ -135,6 +143,20 @@ final class MusicCatalogService: ObservableObject {
             return true
         } catch {
             lastError = "Could not queue catalog songs (\(error.localizedDescription))."
+            return false
+        }
+    }
+
+    func skipToNextCatalogEntry() async -> Bool {
+        let player = ApplicationMusicPlayer.shared
+        do {
+            try await player.skipToNextEntry()
+            if player.state.playbackStatus != .playing {
+                try await player.play()
+            }
+            return true
+        } catch {
+            NucleusLog.music.error("catalog skip next failed: \(error.localizedDescription, privacy: .public)")
             return false
         }
     }
