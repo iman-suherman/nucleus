@@ -1,18 +1,19 @@
 {
-  "version": "0.8.8",
-  "summary": "Music queue fixes, AirPlay guidance, and UI polish.",
+  "version": "0.8.9",
+  "summary": "Search songs by lyrics and natural-language mood or theme.",
   "releaseNotes": {
-    "introduced": [],
+    "introduced": [
+      "Music search matches lyric lines via LRCLib and resolves them to Apple Music tracks",
+      "Semantic search expands mood and theme requests (e.g. sad breakup song) into catalog queries"
+    ],
     "changed": [
-      "Header mini player fits on one row with inline progress",
-      "AirPlay menu explains catalog vs Music.app routing and offers Play via Music.app for speakers",
-      "Search results show a pointer cursor on hover"
+      "Search field accepts titles, artists, lyrics phrases, and plain-language descriptions",
+      "Lyrics matches show the matched line under each search result"
     ],
-    "fixed": [
-      "Search playback continues to the next song when a track finishes",
-      "Mixed search results (songs plus albums) queue songs correctly for continuous playback"
+    "fixed": [],
+    "updated": [
+      "Apple Intelligence on macOS 26 expands natural-language music queries when available"
     ],
-    "updated": [],
     "removed": [],
     "breaking": []
   }
