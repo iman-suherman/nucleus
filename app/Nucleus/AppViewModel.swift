@@ -41,6 +41,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
     @Published var totalUnread = 0
     @Published var clipboardSearchQuery = ""
     @Published var selectedNoteID: UUID?
+    @Published var notesFolderFilter: NoteFolder?
     @Published var isStartingUp = true
     @Published var startupMessage = "Preparing workspace…"
     @Published var startupCompletedSteps: Set<StartupStep> = []
@@ -945,7 +946,9 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
             mailUnreadSyncBaselineEstablished.formUnion(accounts.map(\.id))
         }
 
-        if selectedNoteID == nil {
+        if let selectedNoteID, !notes.contains(where: { $0.id == selectedNoteID }) {
+            self.selectedNoteID = notes.first?.id
+        } else if selectedNoteID == nil {
             selectedNoteID = notes.first?.id
         }
         if selectedBillID == nil {
@@ -973,6 +976,14 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
             bills: bills,
             payments: billPayments
         )
+    }
+
+    var regularNotesCount: Int {
+        notes.filter { $0.folder == .notes }.count
+    }
+
+    var passwordNotesCount: Int {
+        notes.filter { $0.folder == .passwords }.count
     }
 
     func dashboardSnapshot() -> DashboardSnapshot {
@@ -1563,6 +1574,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
             folder: .passwords
         )
         sidebarSelection = .workspace(.notes)
+        notesFolderFilter = .passwords
         await saveNote(note, selectNote: true)
         statusMessage = "Password note created — fill in the details"
     }
@@ -1651,6 +1663,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
     }
 
     func createNote(in folder: NoteFolder) async {
+        notesFolderFilter = folder
         let note: NoteDocument
         if folder == .passwords {
             let title = "New Entry"

@@ -65,7 +65,6 @@ struct NotesWorkspaceView: View {
     @ObservedObject private var syncService = CloudKitSyncService.shared
     @State private var editorText = ""
     @State private var passwordFields = PasswordNoteFields.empty()
-    @State private var listFilter: NoteFolder?
     @State private var saveStatus: NoteSaveStatus = .idle
     @State private var savedSnapshot: NoteEditorSnapshot?
     @State private var autoSaveTask: Task<Void, Never>?
@@ -120,18 +119,22 @@ struct NotesWorkspaceView: View {
     }
 
     private var notesCount: Int {
-        viewModel.notes.filter { $0.folder == .notes }.count
+        viewModel.regularNotesCount
     }
 
     private var passwordsCount: Int {
-        viewModel.notes.filter { $0.folder == .passwords }.count
+        viewModel.passwordNotesCount
     }
 
     private var notesList: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack {
+            HStack(spacing: 8) {
                 Text("Notes and Passwords")
                     .font(.headline)
+                NoteFolderCountBadges(
+                    notesCount: viewModel.regularNotesCount,
+                    passwordsCount: viewModel.passwordNotesCount
+                )
                 Spacer()
                 Menu("New") {
                     Button {
@@ -202,10 +205,10 @@ struct NotesWorkspaceView: View {
         count: Int? = nil,
         accent: Color? = nil
     ) -> some View {
-        let isSelected = listFilter == folder
+        let isSelected = viewModel.notesFolderFilter == folder
 
         return Button {
-            listFilter = folder
+            viewModel.notesFolderFilter = folder
         } label: {
             HStack(spacing: 6) {
                 Text(title)
@@ -347,8 +350,8 @@ struct NotesWorkspaceView: View {
     }
 
     private var filteredNotes: [NoteDocument] {
-        guard let listFilter else { return viewModel.notes }
-        return viewModel.notes.filter { $0.folder == listFilter }
+        guard let notesFolderFilter = viewModel.notesFolderFilter else { return viewModel.notes }
+        return viewModel.notes.filter { $0.folder == notesFolderFilter }
     }
 
     private func displayTitle(for note: NoteDocument) -> String {
@@ -487,26 +490,6 @@ struct NotesWorkspaceView: View {
 
     private func currentFolder(for note: NoteDocument) -> NoteFolder {
         viewModel.notes.first(where: { $0.id == note.id })?.folder ?? note.folder
-    }
-}
-
-private struct NoteFolderCountBadge: View {
-    let count: Int
-    let accent: Color
-
-    var body: some View {
-        Text("\(count)")
-            .font(.caption2.weight(.bold))
-            .monospacedDigit()
-            .foregroundStyle(accent)
-            .padding(.horizontal, 6)
-            .padding(.vertical, 2)
-            .background(accent.opacity(0.16), in: Capsule())
-            .overlay {
-                Capsule()
-                    .strokeBorder(accent.opacity(0.28), lineWidth: 0.5)
-            }
-            .accessibilityLabel("\(count) stored")
     }
 }
 

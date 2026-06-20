@@ -109,6 +109,40 @@ struct NucleusCountBadge: View {
     }
 }
 
+struct NoteFolderCountBadge: View {
+    let count: Int
+    let accent: Color
+
+    var body: some View {
+        Text("\(count)")
+            .font(.caption2.weight(.bold))
+            .monospacedDigit()
+            .foregroundStyle(accent)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(accent.opacity(0.16), in: Capsule())
+            .overlay {
+                Capsule()
+                    .strokeBorder(accent.opacity(0.28), lineWidth: 0.5)
+            }
+            .accessibilityLabel("\(count) stored")
+    }
+}
+
+struct NoteFolderCountBadges: View {
+    let notesCount: Int
+    let passwordsCount: Int
+
+    var body: some View {
+        HStack(spacing: 6) {
+            NoteFolderCountBadge(count: notesCount, accent: .blue)
+                .accessibilityLabel("\(notesCount) notes")
+            NoteFolderCountBadge(count: passwordsCount, accent: .orange)
+                .accessibilityLabel("\(passwordsCount) passwords")
+        }
+    }
+}
+
 extension View {
     func nucleusAccountTab(isSelected: Bool) -> some View {
         padding(.horizontal, 12)

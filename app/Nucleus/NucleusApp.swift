@@ -207,29 +207,42 @@ struct ContentView: View {
 
     @ViewBuilder
     private var detailContent: some View {
-        Group {
-            switch activeWorkspacePane(from: viewModel.sidebarSelection) {
-            case .dashboard:
-                DashboardWorkspaceView()
-            case .inbox:
-                MailWorkspaceView(isVisible: true)
-            case .clipboard:
-                ClipboardWorkspaceView()
-            case .notes:
-                NotesWorkspaceView()
-            case .bills:
-                BillsWorkspaceView()
-            case .media:
-                MediaWorkspaceView()
-            case .accounts:
-                AccountCenterView()
-            case .settings:
-                SettingsWorkspaceView()
-            case .none:
-                MailWorkspaceView(isVisible: true)
+        let activePane = activeWorkspacePane(from: viewModel.sidebarSelection)
+
+        ZStack {
+            Group {
+                switch activePane {
+                case .dashboard:
+                    DashboardWorkspaceView()
+                case .inbox:
+                    MailWorkspaceView(isVisible: activePane == .inbox)
+                case .clipboard:
+                    ClipboardWorkspaceView()
+                case .notes:
+                    EmptyView()
+                case .bills:
+                    BillsWorkspaceView()
+                case .media:
+                    MediaWorkspaceView()
+                case .accounts:
+                    AccountCenterView()
+                case .settings:
+                    SettingsWorkspaceView()
+                case .none:
+                    MailWorkspaceView(isVisible: activePane == .inbox)
+                }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .opacity(activePane == .notes ? 0 : 1)
+            .allowsHitTesting(activePane != .notes)
+            .accessibilityHidden(activePane == .notes)
+
+            NotesWorkspaceView()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .opacity(activePane == .notes ? 1 : 0)
+                .allowsHitTesting(activePane == .notes)
+                .accessibilityHidden(activePane != .notes)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private func activeWorkspacePane(from selection: SidebarSelection) -> WorkspacePane? {
@@ -270,7 +283,15 @@ struct ContentView: View {
                 .frame(width: 20)
                 .foregroundStyle(.secondary)
             VStack(alignment: .leading, spacing: 2) {
-                Text(pane.title)
+                HStack(spacing: 6) {
+                    Text(pane.title)
+                    if pane == .notes {
+                        NoteFolderCountBadges(
+                            notesCount: viewModel.regularNotesCount,
+                            passwordsCount: viewModel.passwordNotesCount
+                        )
+                    }
+                }
                 Text(pane.subtitle)
                     .font(.caption2)
                     .foregroundStyle(.secondary)
