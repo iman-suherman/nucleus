@@ -1,14 +1,12 @@
 {
-  "version": "0.8.3",
-  "summary": "Clipboard picker keyboard polish and Notes that stay open when you switch workspaces.",
+  "version": "0.8.5",
+  "summary": "Clipboard history paste search works while you type.",
   "releaseNotes": {
     "introduced": [],
-    "changed": [
-      "⇧⌘V clipboard picker scrolls the list as you move with arrow keys and briefly highlights the chosen clip as Selected before copying",
-      "Notes workspace keeps your open note, list selection, and folder filter when you switch to another workspace and come back",
-      "Sidebar Notes row shows blue and orange count badges for notes and passwords"
+    "changed": [],
+    "fixed": [
+      "⇧⌘V paste picker lets you type to filter clips immediately; arrow keys move through results and Return selects"
     ],
-    "fixed": [],
     "updated": [],
     "removed": [],
     "breaking": []
