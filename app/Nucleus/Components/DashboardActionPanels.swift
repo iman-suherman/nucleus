@@ -12,7 +12,6 @@ struct DashboardNucleusAIPanel: View {
     @EnvironmentObject private var viewModel: AppViewModel
     @ObservedObject private var cloudSyncService = NucleusCloudSyncService.shared
     @ObservedObject private var aiService = NucleusAIService.shared
-    @ObservedObject private var mediaController = MediaController.shared
     @ObservedObject private var speechService = DashboardNewsSpeechService.shared
     @Binding var isExpanded: Bool
 
@@ -20,7 +19,6 @@ struct DashboardNucleusAIPanel: View {
     @State private var isConnecting = false
     @State private var connectMessage: String?
     @State private var copyConfirmed = false
-    @State private var musicInsightContext: String?
 
     init(isExpanded: Binding<Bool>) {
         _isExpanded = isExpanded
@@ -50,16 +48,6 @@ struct DashboardNucleusAIPanel: View {
                     lineWidth: 1
                 )
         }
-        .onChange(of: mediaController.nowPlaying) { _, info in
-            handleNowPlayingChange(info)
-        }
-        .onChange(of: cloudSyncService.status.isConnected) { _, isConnected in
-            guard isConnected else { return }
-            handleNowPlayingChange(mediaController.nowPlaying)
-        }
-        .onAppear {
-            handleNowPlayingChange(mediaController.nowPlaying)
-        }
     }
 
     private var connectedContent: some View {
@@ -82,20 +70,13 @@ struct DashboardNucleusAIPanel: View {
                     HStack(spacing: 8) {
                         ProgressView()
                             .controlSize(.small)
-                        Text(musicInsightContext ?? "Thinking…")
+                        Text("Thinking…")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .lineLimit(2)
                     }
                 } else if let answer = aiService.lastAnswer {
                     VStack(alignment: .leading, spacing: 6) {
-                        if let musicInsightContext {
-                            Text(musicInsightContext)
-                                .font(.caption2.weight(.semibold))
-                                .foregroundStyle(.purple.opacity(0.85))
-                                .lineLimit(2)
-                        }
-
                         HStack(spacing: 8) {
                             Button {
                                 copyAnswer(answer, question: question)
@@ -172,29 +153,8 @@ struct DashboardNucleusAIPanel: View {
         guard !trimmed.isEmpty else { return }
         speechService.stop()
         copyConfirmed = false
-        musicInsightContext = nil
         Task {
             await aiService.ask(question: trimmed)
-        }
-    }
-
-    private func handleNowPlayingChange(_ info: MediaNowPlayingInfo) {
-        guard DashboardMusicAIInsight.isDashboardVisible else { return }
-        guard cloudSyncService.status.isConnected else { return }
-        guard mediaController.playbackSource == .musicApp else { return }
-        guard info.isPlaying, info.hasContent else { return }
-        guard let track = DashboardMusicAIInsight.track(from: info) else { return }
-        guard DashboardMusicAIInsight.shouldAutoAsk(for: track.key) else { return }
-
-        let curatedQuestion = DashboardMusicAIInsight.curatedQuestion(for: track)
-        DashboardMusicAIInsight.markAsked(track.key)
-        musicInsightContext = DashboardMusicAIInsight.contextLabel(for: track)
-        question = curatedQuestion
-        copyConfirmed = false
-        speechService.stop()
-
-        Task {
-            await aiService.ask(question: curatedQuestion)
         }
     }
 

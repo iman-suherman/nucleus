@@ -122,6 +122,7 @@ struct DashboardIncomingMailOverlay: View {
                     }
                     .buttonStyle(.plain)
                     .help("Dismiss")
+                    .pointerCursor()
                 }
 
                 if let preview = prompt.previewMessages.first {
@@ -146,15 +147,17 @@ struct DashboardIncomingMailOverlay: View {
                 }
 
                 HStack(spacing: 10) {
-                    Button("Not now", action: onDismiss)
-                        .buttonStyle(.bordered)
-
                     Button(action: onOpenInbox) {
                         Label("Open inbox", systemImage: "envelope.open.fill")
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.borderedProminent)
                     .keyboardShortcut(.defaultAction)
+                    .pointerCursor()
+
+                    Button("Close", action: onDismiss)
+                        .buttonStyle(.bordered)
+                        .pointerCursor()
                 }
             }
             .padding(22)
@@ -165,6 +168,7 @@ struct DashboardIncomingMailOverlay: View {
                     .strokeBorder(Color.yellow.opacity(0.45), lineWidth: 1.5)
             }
             .shadow(color: .black.opacity(0.24), radius: 24, y: 12)
+            .pointerCursor()
         }
         .transition(.opacity.combined(with: .scale(scale: 0.98)))
         .zIndex(120)

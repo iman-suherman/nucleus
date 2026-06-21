@@ -1,0 +1,17 @@
+{
+  "version": "0.9.6",
+  "summary": "Stop automatic artist lookups in Nucleus AI and polish dashboard alert overlays.",
+  "releaseNotes": {
+    "introduced": [],
+    "changed": [
+      "Dashboard breaking news overlay puts Open story first and renames Not now to Close",
+      "Dashboard incoming mail overlay renames Not now to Close with clearer pointer cursors on buttons"
+    ],
+    "fixed": [],
+    "updated": [],
+    "removed": [
+      "Nucleus AI no longer auto-asks about the artist when Apple Music plays on the dashboard"
+    ],
+    "breaking": []
+  }
+}

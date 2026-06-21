@@ -87,6 +87,7 @@ struct DashboardBreakingNewsOverlay: View {
                     }
                     .buttonStyle(.plain)
                     .help("Dismiss")
+                    .pointerCursor()
                 }
 
                 Text(alert.displayTitle)
@@ -105,8 +106,15 @@ struct DashboardBreakingNewsOverlay: View {
                     .fixedSize(horizontal: false, vertical: true)
 
                 HStack(spacing: 10) {
-                    Button("Not now", action: onDismiss)
-                        .buttonStyle(.bordered)
+                    if alert.headline.link != nil {
+                        Button(action: onOpenLink) {
+                            Label("Open story", systemImage: "arrow.up.right.square")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .keyboardShortcut(.defaultAction)
+                        .pointerCursor()
+                    }
 
                     Button(action: toggleSpeech) {
                         Label(
@@ -116,15 +124,11 @@ struct DashboardBreakingNewsOverlay: View {
                         .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.bordered)
+                    .pointerCursor()
 
-                    if alert.headline.link != nil {
-                        Button(action: onOpenLink) {
-                            Label("Open story", systemImage: "arrow.up.right.square")
-                                .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .keyboardShortcut(.defaultAction)
-                    }
+                    Button("Close", action: onDismiss)
+                        .buttonStyle(.bordered)
+                        .pointerCursor()
                 }
             }
             .padding(26)
@@ -135,6 +139,7 @@ struct DashboardBreakingNewsOverlay: View {
                     .strokeBorder(accentColor.opacity(0.45), lineWidth: 1.5)
             }
             .shadow(color: .black.opacity(0.28), radius: 28, y: 14)
+            .pointerCursor()
         }
         .transition(.opacity.combined(with: .scale(scale: 0.98)))
         .zIndex(125)

@@ -101,7 +101,6 @@
 		D55AE78B777E319F67953F54 /* MacSharingServiceButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 588507DCB51F53ABD73D2EE2 /* MacSharingServiceButton.swift */; };
 		D7B410C80814DC1A3AE62D7E /* MediaWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9260391FB479E89BB561D1E0 /* MediaWorkspaceView.swift */; };
 		D867766C290D28A0DCB552EA /* DatabaseKit in Frameworks */ = {isa = PBXBuildFile; productRef = DAECE07451118013D6E717ED /* DatabaseKit */; };
-		D998B057F2EAA20BC08B0D7E /* DashboardMusicAIInsight.swift in Sources */ = {isa = PBXBuildFile; fileRef = BEEAEB69669F3D2AE127BD44 /* DashboardMusicAIInsight.swift */; };
 		DA24CFEA61CAC79C5A243DA0 /* SupportViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4CEADA0142869F8949F55DD /* SupportViews.swift */; };
 		DC31225F8CF5E258002AAF0A /* DashboardNewsFeedService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7070B325206A2DB90B1C3F2C /* DashboardNewsFeedService.swift */; };
 		DDA9D760632D2CDC4544A09A /* NotesKit in Frameworks */ = {isa = PBXBuildFile; productRef = 93B2C6D49EA5F6E3F446A3F3 /* NotesKit */; };
@@ -202,7 +201,6 @@
 		B42E9D0E0216144EA63B3A7F /* MenuBarNucleusIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarNucleusIcon.swift; sourceTree = "<group>"; };
 		B6238A17B183A8059CB7A2C0 /* SparkleUpdater.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SparkleUpdater.swift; sourceTree = "<group>"; };
 		B95AA6B0D2A2C4F3ACD4653E /* GoogleOAuthConfigurationLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoogleOAuthConfigurationLoader.swift; sourceTree = "<group>"; };
-		BEEAEB69669F3D2AE127BD44 /* DashboardMusicAIInsight.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardMusicAIInsight.swift; sourceTree = "<group>"; };
 		BF4B3460305D779B31B79D8C /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		C201B6D32546E035E9D04B57 /* MailInboxLoadingPhase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MailInboxLoadingPhase.swift; sourceTree = "<group>"; };
 		C2698972D63EAE12C5F050DE /* NucleusApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NucleusApp.swift; sourceTree = "<group>"; };
@@ -336,7 +334,6 @@
 				A5BDDEC8A6712481CBFAABBE /* DashboardAnalysisService.swift */,
 				329FF20CA7D961E315EAAC62 /* DashboardClipboardDayAnalysisService.swift */,
 				6F3E574A6A6CAA16B60DF4F8 /* DashboardLocationSubdivisionResolver.swift */,
-				BEEAEB69669F3D2AE127BD44 /* DashboardMusicAIInsight.swift */,
 				0A73239886ECAEB5F1DE3660 /* DashboardNewsAnalysisService.swift */,
 				7070B325206A2DB90B1C3F2C /* DashboardNewsFeedService.swift */,
 				8015330A043A8BED0ED7120D /* DashboardNewsSpeechService.swift */,
@@ -548,7 +545,6 @@
 				4F29C2E3364B7255A5262494 /* DashboardClipboardDayAnalysisService.swift in Sources */,
 				9EC8527F349AA5FE72F4ABE8 /* DashboardIncomingMailOverlay.swift in Sources */,
 				3CAE1AF1473C860F9A01DED6 /* DashboardLocationSubdivisionResolver.swift in Sources */,
-				D998B057F2EAA20BC08B0D7E /* DashboardMusicAIInsight.swift in Sources */,
 				51F5F59CEBB58934E8084747 /* DashboardNewsAnalysisService.swift in Sources */,
 				DC31225F8CF5E258002AAF0A /* DashboardNewsFeedService.swift in Sources */,
 				7B7990E1FA8E0FBBF86E5F49 /* DashboardNewsSpeechService.swift in Sources */,
