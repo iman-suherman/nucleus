@@ -1,17 +1,13 @@
 {
-  "version": "0.9.2",
-  "summary": "More confident Nucleus AI answers plus copy and speak on the dashboard.",
+  "version": "0.9.3",
+  "summary": "Nucleus AI copy includes question context, attribution, and download link.",
   "releaseNotes": {
-    "introduced": [
-      "Copy and Speak buttons on Nucleus AI dashboard answers"
-    ],
+    "introduced": [],
     "changed": [
-      "Nucleus AI reasoner uses Google Search grounding whenever retrieval is empty, not only for general-knowledge questions",
-      "Reasoner temperature raised to 0.55 for clearer, more confident answers"
+      "Nucleus AI Copy and Speak buttons sit above the answer",
+      "Copied answers include the question, Nucleus AI attribution, and a link to download from nucleus.suherman.net"
     ],
-    "fixed": [
-      "Nucleus AI no longer falls back to \"not enough retrieved evidence\" for factual questions when web search returns no results"
-    ],
+    "fixed": [],
     "updated": [],
     "removed": [],
     "breaking": []
