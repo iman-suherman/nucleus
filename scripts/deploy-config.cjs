@@ -21,6 +21,16 @@ const DEPLOY_TARGETS = [
     npmScript: "deploy:registry:direct",
   },
   {
+    repo: "nucleus-ai",
+    label: "nucleus-ai.suherman.net",
+    branch: DEFAULT_BRANCH,
+    npmScript: "deploy:ai-overview:direct",
+    details: [
+      "Requires Nucleus Cloud device token (Bearer nuc_…)",
+      "Configure domain from suherman-net-infra: npm run cloudflare:nucleus -- --skip-website --skip-sync --skip-registry --skip-download",
+    ],
+  },
+  {
     repo: "nucleus-app",
     label: "Nucleus macOS DMG",
     branch: DEFAULT_BRANCH,

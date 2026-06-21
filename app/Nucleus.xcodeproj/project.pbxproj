@@ -28,6 +28,8 @@
 		31C2FB18B651A30B5F381A6F /* MenuBarStatusItemController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3040B14FCE7F0866274EF0E /* MenuBarStatusItemController.swift */; };
 		321E25ED804AB6F0BA553ABC /* AirPlayRoutePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C6984DDA572BA7E3972F8ED /* AirPlayRoutePicker.swift */; };
 		369B622F3177919D55C55827 /* DashboardWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F695044507986F1B738A6465 /* DashboardWorkspaceView.swift */; };
+		7A4E2B1C9D8F3E5A6B0C1D2E /* DashboardActionPanels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B5F3C2D0E9A4F6B7C1D2E3F /* DashboardActionPanels.swift */; };
+		AD7E5F2B0C1D3E4F5A6B7C8D /* NucleusAIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C6D4E3F1A0B5C7D8E2F3A4B /* NucleusAIService.swift */; };
 		37A6CBA22087747F45F0F4F5 /* EmbeddedWebViewContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5971F41F5427FCE836471DA /* EmbeddedWebViewContainer.swift */; };
 		3CAE1AF1473C860F9A01DED6 /* DashboardLocationSubdivisionResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F3E574A6A6CAA16B60DF4F8 /* DashboardLocationSubdivisionResolver.swift */; };
 		3F48A8BA617C1BF575B71A17 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BF4B3460305D779B31B79D8C /* Assets.xcassets */; };
@@ -156,6 +158,8 @@
 		588507DCB51F53ABD73D2EE2 /* MacSharingServiceButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacSharingServiceButton.swift; sourceTree = "<group>"; };
 		5A55CAAB4D2D33098BEFB97A /* DashboardPublicHolidayExplanationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardPublicHolidayExplanationService.swift; sourceTree = "<group>"; };
 		6006FFDC6A45F10043EEBCF5 /* MediaController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaController.swift; sourceTree = "<group>"; };
+		8B5F3C2D0E9A4F6B7C1D2E3F /* DashboardActionPanels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardActionPanels.swift; sourceTree = "<group>"; };
+		9C6D4E3F1A0B5C7D8E2F3A4B /* NucleusAIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NucleusAIService.swift; sourceTree = "<group>"; };
 		622EA3088C0B8BBC591777A3 /* DashboardBreakingNewsOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardBreakingNewsOverlay.swift; sourceTree = "<group>"; };
 		68AD664CB4410FC8FBE21B1C /* HourlyBeepService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HourlyBeepService.swift; sourceTree = "<group>"; };
 		69A7BEC28EFE1D402738D081 /* AccountCenterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountCenterView.swift; sourceTree = "<group>"; };
@@ -258,6 +262,7 @@
 				2D130F5FD244D81A8B8DBE22 /* ClipboardPickerView.swift */,
 				C643F64124025FA6F196C435 /* ClipboardWorkspaceView.swift */,
 				622EA3088C0B8BBC591777A3 /* DashboardBreakingNewsOverlay.swift */,
+				8B5F3C2D0E9A4F6B7C1D2E3F /* DashboardActionPanels.swift */,
 				4E48A7B5023CD11F5F01726F /* DashboardIncomingMailOverlay.swift */,
 				75CD049259B1B6242B15B6DF /* DashboardNewsTickerView.swift */,
 				F695044507986F1B738A6465 /* DashboardWorkspaceView.swift */,
@@ -369,6 +374,7 @@
 				7A0BFA8EFB82901232FB9B24 /* NotificationUserInfo.swift */,
 				FE21FFF77FD2D44BA923CC18 /* NucleusLog.swift */,
 				584F84F9AF029CC4D8800A01 /* NucleusNotificationService.swift */,
+				9C6D4E3F1A0B5C7D8E2F3A4B /* NucleusAIService.swift */,
 				CDFFBFACBD2632D34A43FC55 /* RegistryReleaseNotesClient.swift */,
 				9987E7B42A89E15817F7CAD9 /* ReleaseNotesLoader.swift */,
 				18EF3BE5CDCDF196B18E0AAC /* SettingsSyncBridge.swift */,
@@ -534,6 +540,7 @@
 				194D73C14442409686DEF2AE /* ClipboardWorkspaceView.swift in Sources */,
 				F0D6500DCFA05119C86E72BE /* CloudKitStoreMigration.swift in Sources */,
 				54097C655AC0AD8DD2FCFDFC /* DashboardAnalysisService.swift in Sources */,
+				AD7E5F2B0C1D3E4F5A6B7C8D /* NucleusAIService.swift in Sources */,
 				23C9C5F3795363AD4BB207AD /* DashboardBreakingNewsOverlay.swift in Sources */,
 				4F29C2E3364B7255A5262494 /* DashboardClipboardDayAnalysisService.swift in Sources */,
 				9EC8527F349AA5FE72F4ABE8 /* DashboardIncomingMailOverlay.swift in Sources */,
@@ -552,6 +559,7 @@
 				4145571152831419B598BCD1 /* DashboardWeatherService.swift in Sources */,
 				9EF5B80A8FD01BADCAC44647 /* DashboardWeatherSpeechService.swift in Sources */,
 				369B622F3177919D55C55827 /* DashboardWorkspaceView.swift in Sources */,
+				7A4E2B1C9D8F3E5A6B0C1D2E /* DashboardActionPanels.swift in Sources */,
 				C442A46B050B3F01536FCC47 /* DockBadgeController.swift in Sources */,
 				37A6CBA22087747F45F0F4F5 /* EmbeddedWebViewContainer.swift in Sources */,
 				8AA22D21D12A34FDC718D87B /* EmbeddedWebViewRegistry.swift in Sources */,

@@ -215,12 +215,10 @@ struct DashboardWorkspaceView: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: 16) {
             greetingWithQuote
-            if dashboardPreferences.intelligentInsightEnabled {
-                intelligentInsightSection
+            if showsInsightsRow {
+                insightsSideBySideRow
             }
-            if dashboardPreferences.clipboardDayEnabled {
-                clipboardDayAnalysisSection
-            }
+            dashboardActionPanelsRow
             if showsWeatherResourceRow {
                 weatherResourceAndSidebarRow
                     .onPreferenceChange(ContextPanelsContentHeightKey.self) { height in
@@ -230,6 +228,33 @@ struct DashboardWorkspaceView: View {
             if dashboardPreferences.publicHolidayEnabled {
                 publicHolidayRow
             }
+        }
+    }
+
+    private var showsInsightsRow: Bool {
+        dashboardPreferences.intelligentInsightEnabled || dashboardPreferences.clipboardDayEnabled
+    }
+
+    @ViewBuilder
+    private var insightsSideBySideRow: some View {
+        HStack(alignment: .top, spacing: 16) {
+            if dashboardPreferences.intelligentInsightEnabled {
+                intelligentInsightBox
+                    .frame(maxWidth: .infinity, alignment: .topLeading)
+            }
+            if dashboardPreferences.clipboardDayEnabled {
+                clipboardInsightBox
+                    .frame(maxWidth: .infinity, alignment: .topLeading)
+            }
+        }
+    }
+
+    private var dashboardActionPanelsRow: some View {
+        HStack(alignment: .top, spacing: 16) {
+            DashboardNucleusAIPanel()
+                .frame(maxWidth: .infinity, alignment: .topLeading)
+            DashboardMusicPanel()
+                .frame(maxWidth: .infinity, alignment: .topLeading)
         }
     }
 
@@ -248,10 +273,14 @@ struct DashboardWorkspaceView: View {
 
     private var greetingWithQuote: some View {
         TimelineView(.periodic(from: .now, by: 60)) { context in
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 6) {
                 Text(greetingLine(asOf: context.date))
                     .font(.largeTitle.bold())
                     .fixedSize(horizontal: false, vertical: true)
+
+                Text(DashboardInsightFormatting.formattedDate(context.date))
+                    .font(.title3)
+                    .foregroundStyle(.secondary)
 
                 if dashboardPreferences.quoteEnabled, let quoteLine {
                     Text(quoteLine)
@@ -334,112 +363,151 @@ struct DashboardWorkspaceView: View {
             .trimmingCharacters(in: CharacterSet(charactersIn: "\""))
     }
 
-    private var clipboardDayAnalysisSection: some View {
-        TimelineView(.periodic(from: .now, by: 60)) { context in
-            Group {
-                if let analysis = viewModel.clipboardDayAnalysis {
-                    collapsibleDashboardSection(
-                        isExpanded: clipboardDayExpanded,
-                        title: clipboardDayTitle(asOf: context.date, analysis: analysis),
-                        systemImage: "doc.on.clipboard",
-                        titleColor: .primary
-                    ) {
-                        VStack(alignment: .leading, spacing: 12) {
-                            let breakdown = DashboardClipboardDayAnalysisEngine.todayCategoryBreakdown(
-                                from: viewModel.clipboardEntries
-                            )
-                            if !breakdown.isEmpty {
-                                Text(breakdown)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
+    private var intelligentInsightBox: some View {
+        let paragraphs = DashboardInsightFormatting.insightParagraphs(
+            from: snapshot,
+            asOf: Date(),
+            includeDatePreface: false
+        )
 
-                            Text(DashboardClipboardDayAnalysisEngine.sanitizeDisplayText(analysis.daySummary))
-                                .font(.body)
-                                .foregroundStyle(.primary)
-                                .fixedSize(horizontal: false, vertical: true)
-
-                            if let highlight = analysis.keyProductivityHighlight,
-                               !DashboardClipboardDayAnalysisEngine.sanitizeDisplayText(highlight).isEmpty {
-                                HStack(alignment: .top, spacing: 10) {
-                                    Image(systemName: "arrow.triangle.2.circlepath")
-                                        .font(.subheadline.weight(.semibold))
-                                        .foregroundStyle(.teal)
-                                        .frame(width: 20)
-
-                                    Text(DashboardClipboardDayAnalysisEngine.sanitizeDisplayText(highlight))
-                                        .font(.subheadline.weight(.semibold))
-                                        .foregroundStyle(.primary)
-                                        .fixedSize(horizontal: false, vertical: true)
-                                }
-                                .padding(12)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .background(Color.teal.opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
-                            }
-
-                            if !DashboardClipboardDayAnalysisEngine.nonEmptyDisplayLines(analysis.behaviorInsights).isEmpty {
-                                clipboardAnalysisBulletSection(
-                                    title: "Productivity insights",
-                                    items: analysis.behaviorInsights,
-                                    accent: .teal
-                                )
-                            }
-
-                            if !DashboardClipboardDayAnalysisEngine.nonEmptyDisplayLines(analysis.improvementSuggestions).isEmpty {
-                                clipboardAnalysisBulletSection(
-                                    title: "Suggestions to improve",
-                                    items: analysis.improvementSuggestions,
-                                    accent: .orange
-                                )
-                            }
-
-                        }
-                    }
-                    .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 14))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 14)
-                            .strokeBorder(Color.teal.opacity(0.25), lineWidth: 1)
-                    }
+        return collapsibleDashboardSection(
+            isExpanded: intelligentInsightExpanded,
+            title: "Intelligent insight",
+            systemImage: "sparkles",
+            titleUsesGradient: true
+        ) {
+            VStack(alignment: .leading, spacing: 8) {
+                ForEach(Array(paragraphs.prefix(2).enumerated()), id: \.offset) { index, paragraph in
+                    Text(compactDashboardCopy(paragraph, maxLength: index == 0 ? 220 : 180))
+                        .font(index == 0 ? .subheadline.weight(.semibold) : .caption)
+                        .foregroundStyle(index == 0 ? Color.primary : Color.secondary)
+                        .lineLimit(index == 0 ? 4 : 3)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
         }
-    }
-
-    private func clipboardDayTitle(asOf date: Date, analysis: DashboardClipboardDayAnalysis) -> String {
-        let dateLabel = DashboardInsightFormatting.formattedDate(date)
-        var parts = [dateLabel, "\(analysis.todayCaptureCount) clipboard capture\(analysis.todayCaptureCount == 1 ? "" : "s")"]
-
-        if !analysis.workGroups.isEmpty {
-            parts.append("\(analysis.workGroups.count) work area\(analysis.workGroups.count == 1 ? "" : "s")")
-            if let focus = analysis.workGroups.first {
-                parts.append("main focus: \(focus.workLabel.lowercased())")
-            }
-        } else {
-            parts.append("clipboard analysis")
+        .frame(minHeight: 168, alignment: .topLeading)
+        .background(
+            LinearGradient(
+                colors: [
+                    Color.orange.opacity(0.12),
+                    Color.purple.opacity(0.10),
+                    Color.pink.opacity(0.08),
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            ),
+            in: RoundedRectangle(cornerRadius: 14)
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: 14)
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [.orange.opacity(0.45), .pink.opacity(0.35), .purple.opacity(0.35)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1.5
+                )
         }
-
-        return parts.joined(separator: " · ")
     }
 
     @ViewBuilder
-    private func clipboardAnalysisBulletSection(title: String, items: [String], accent: Color) -> some View {
-        let visibleItems = DashboardClipboardDayAnalysisEngine.nonEmptyDisplayLines(items)
+    private var clipboardInsightBox: some View {
+        if let analysis = viewModel.clipboardDayAnalysis {
+            collapsibleDashboardSection(
+                isExpanded: clipboardDayExpanded,
+                title: clipboardInsightTitle(analysis: analysis),
+                systemImage: "doc.on.clipboard",
+                titleColor: .primary
+            ) {
+                VStack(alignment: .leading, spacing: 10) {
+                    if !DashboardClipboardDayAnalysisEngine.nonEmptyDisplayLines(analysis.behaviorInsights).isEmpty {
+                        compactClipboardBulletSection(
+                            title: "Productivity insights",
+                            items: analysis.behaviorInsights,
+                            accent: .teal,
+                            limit: 2,
+                            maxLength: 120
+                        )
+                    }
+
+                    if !DashboardClipboardDayAnalysisEngine.nonEmptyDisplayLines(analysis.improvementSuggestions).isEmpty {
+                        compactClipboardBulletSection(
+                            title: "Suggestions to improve",
+                            items: analysis.improvementSuggestions,
+                            accent: .orange,
+                            limit: 2,
+                            maxLength: 120
+                        )
+                    }
+                }
+            }
+            .frame(minHeight: 168, alignment: .topLeading)
+            .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 14))
+            .overlay {
+                RoundedRectangle(cornerRadius: 14)
+                    .strokeBorder(Color.teal.opacity(0.25), lineWidth: 1)
+            }
+        } else {
+            collapsibleDashboardSection(
+                isExpanded: clipboardDayExpanded,
+                title: "Clipboard insight",
+                systemImage: "doc.on.clipboard",
+                titleColor: .primary
+            ) {
+                Text("Copy something today to generate productivity insights.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(minHeight: 168, alignment: .topLeading)
+            .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 14))
+            .overlay {
+                RoundedRectangle(cornerRadius: 14)
+                    .strokeBorder(Color.teal.opacity(0.25), lineWidth: 1)
+            }
+        }
+    }
+
+    private func clipboardInsightTitle(analysis: DashboardClipboardDayAnalysis) -> String {
+        "Clipboard insight · \(analysis.todayCaptureCount) capture\(analysis.todayCaptureCount == 1 ? "" : "s")"
+    }
+
+    private func compactDashboardCopy(_ text: String, maxLength: Int) -> String {
+        let cleaned = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard cleaned.count > maxLength else { return cleaned }
+        return String(cleaned.prefix(maxLength - 1)) + "…"
+    }
+
+    @ViewBuilder
+    private func compactClipboardBulletSection(
+        title: String,
+        items: [String],
+        accent: Color,
+        limit: Int,
+        maxLength: Int
+    ) -> some View {
+        let visibleItems = Array(
+            DashboardClipboardDayAnalysisEngine.nonEmptyDisplayLines(items).prefix(limit)
+        )
         if !visibleItems.isEmpty {
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 6) {
                 Text(title)
-                    .font(.subheadline.weight(.semibold))
+                    .font(.caption.weight(.semibold))
                     .foregroundStyle(.secondary)
 
                 ForEach(Array(visibleItems.enumerated()), id: \.offset) { _, item in
-                    HStack(alignment: .top, spacing: 10) {
+                    HStack(alignment: .top, spacing: 8) {
                         Circle()
                             .fill(accent.opacity(0.85))
-                            .frame(width: 6, height: 6)
-                            .padding(.top, 6)
+                            .frame(width: 5, height: 5)
+                            .padding(.top, 5)
 
-                        Text(item)
-                            .font(.subheadline)
+                        Text(compactDashboardCopy(item, maxLength: maxLength))
+                            .font(.caption)
                             .foregroundStyle(.primary)
+                            .lineLimit(2)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
@@ -449,51 +517,6 @@ struct DashboardWorkspaceView: View {
 
     private var showsDashboardAnalysisStatus: Bool {
         dashboardPreferences.clipboardDayEnabled || dashboardPreferences.productivityChartEnabled
-    }
-
-    private var intelligentInsightSection: some View {
-        TimelineView(.periodic(from: .now, by: 60)) { context in
-            let paragraphs = DashboardInsightFormatting.insightParagraphs(from: snapshot, asOf: context.date)
-
-            collapsibleDashboardSection(
-                isExpanded: intelligentInsightExpanded,
-                title: "Intelligent insight · \(DashboardInsightFormatting.formattedDate(context.date))",
-                systemImage: "sparkles",
-                titleUsesGradient: true
-            ) {
-                VStack(alignment: .leading, spacing: 10) {
-                    ForEach(Array(paragraphs.enumerated()), id: \.offset) { index, paragraph in
-                        Text(paragraph)
-                            .font(index == 0 ? .body.weight(.semibold) : .body)
-                            .foregroundStyle(index == 0 ? Color.primary : Color.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                }
-            }
-            .background(
-                LinearGradient(
-                    colors: [
-                        Color.orange.opacity(0.12),
-                        Color.purple.opacity(0.10),
-                        Color.pink.opacity(0.08),
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                ),
-                in: RoundedRectangle(cornerRadius: 14)
-            )
-            .overlay {
-                RoundedRectangle(cornerRadius: 14)
-                    .strokeBorder(
-                        LinearGradient(
-                            colors: [.orange.opacity(0.45), .pink.opacity(0.35), .purple.opacity(0.35)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        lineWidth: 1.5
-                    )
-            }
-        }
     }
 
     private func collapsibleDashboardSection<Content: View, Trailing: View>(

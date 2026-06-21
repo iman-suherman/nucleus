@@ -131,10 +131,6 @@ struct NotesWorkspaceView: View {
             HStack(spacing: 8) {
                 Text("Notes and Passwords")
                     .font(.headline)
-                NoteFolderCountBadges(
-                    notesCount: viewModel.regularNotesCount,
-                    passwordsCount: viewModel.passwordNotesCount
-                )
                 Spacer()
                 Menu("New") {
                     Button {
@@ -306,16 +302,10 @@ struct NotesWorkspaceView: View {
     @ViewBuilder
     private func editorHeader(for note: NoteDocument) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 10) {
-            HStack(spacing: 6) {
-                Label(note.folder.rawValue, systemImage: note.folder.systemImage)
-                    .labelStyle(.titleAndIcon)
-                NoteFolderCountBadge(
-                    count: note.folder == .notes ? notesCount : passwordsCount,
-                    accent: note.folder == .notes ? .blue : .orange
-                )
-            }
-            .font(.subheadline.weight(.semibold))
-            .foregroundStyle(.secondary)
+            Label(note.folder.rawValue, systemImage: note.folder.systemImage)
+                .labelStyle(.titleAndIcon)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.secondary)
 
             if note.folder != .passwords {
                 TextField("Title", text: bindingTitle(for: note))

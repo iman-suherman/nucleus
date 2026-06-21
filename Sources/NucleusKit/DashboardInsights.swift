@@ -632,13 +632,22 @@ public enum DashboardInsightFormatting {
         return formatter.string(from: date)
     }
 
-    public static func insightParagraphs(from snapshot: DashboardSnapshot, asOf date: Date) -> [String] {
+    public static func insightParagraphs(
+        from snapshot: DashboardSnapshot,
+        asOf date: Date,
+        includeDatePreface: Bool = true
+    ) -> [String] {
         var paragraphs = snapshot.activitySummary
         guard !paragraphs.isEmpty else {
-            return ["As of \(formattedDate(date)) at \(formattedTime(date)), you have limited activity to report yet."]
+            if includeDatePreface {
+                return ["As of \(formattedDate(date)) at \(formattedTime(date)), you have limited activity to report yet."]
+            }
+            return ["You have limited activity to report yet."]
         }
 
-        paragraphs[0] = prefaceFirstParagraph(paragraphs[0], asOf: date)
+        if includeDatePreface {
+            paragraphs[0] = prefaceFirstParagraph(paragraphs[0], asOf: date)
+        }
         if !snapshot.productivitySummary.isEmpty {
             paragraphs.append(snapshot.productivitySummary)
         }

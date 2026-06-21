@@ -1,0 +1,19 @@
+{
+  "name": "nucleus-ai-overview-api",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Cloud Run API for Nucleus AI Overview pipeline (planner → search → RAG → reasoning → citations)",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@google-cloud/firestore": "^8.6.0",
+    "@google-cloud/vertexai": "^1.10.0",
+    "express": "^4.21.2"
+  }
+}
