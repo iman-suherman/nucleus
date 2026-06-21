@@ -77,7 +77,7 @@ struct DashboardNucleusAIPanel: View {
                 .disabled(question.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || aiService.isLoading)
             }
 
-            dashboardResultsScrollArea {
+            dashboardAISlowReadingScrollArea(scrollTrigger: aiService.lastAnswer) {
                 if aiService.isLoading {
                     HStack(spacing: 8) {
                         ProgressView()
@@ -465,6 +465,114 @@ struct DashboardMusicPanel: View {
         case .album: return "square.stack"
         case .artist: return "music.mic"
         case .playlist: return "music.note.list"
+        }
+    }
+}
+
+@ViewBuilder
+private func dashboardAISlowReadingScrollArea<Content: View>(
+    scrollTrigger: String?,
+    @ViewBuilder content: () -> Content
+) -> some View {
+    DashboardAISlowReadingScrollArea(scrollTrigger: scrollTrigger, content: content)
+}
+
+private struct DashboardScrollContentHeightKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
+
+private struct DashboardAISlowReadingScrollArea<Content: View>: View {
+    let scrollTrigger: String?
+    @ViewBuilder var content: () -> Content
+
+    @State private var contentHeight: CGFloat = 0
+    @State private var scrollTask: Task<Void, Never>?
+    @State private var pendingScrollAnswer: String?
+
+    var body: some View {
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    Color.clear.frame(height: 0).id("scroll-top")
+                    content()
+                    Color.clear.frame(height: 1).id("scroll-bottom")
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background {
+                    GeometryReader { geometry in
+                        Color.clear.preference(
+                            key: DashboardScrollContentHeightKey.self,
+                            value: geometry.size.height
+                        )
+                    }
+                }
+            }
+            .frame(height: DashboardActionPanelMetrics.resultsAreaHeight)
+            .onPreferenceChange(DashboardScrollContentHeightKey.self) { height in
+                contentHeight = height
+                scheduleSlowReadingScroll(proxy: proxy)
+            }
+            .onChange(of: scrollTrigger) { _, answer in
+                pendingScrollAnswer = answer
+                if answer == nil {
+                    scrollTask?.cancel()
+                    proxy.scrollTo("scroll-top", anchor: .top)
+                    pendingScrollAnswer = nil
+                    return
+                }
+                scheduleSlowReadingScroll(proxy: proxy)
+            }
+            .onDisappear {
+                scrollTask?.cancel()
+            }
+        }
+    }
+
+    private func scheduleSlowReadingScroll(proxy: ScrollViewProxy) {
+        guard let answer = pendingScrollAnswer else { return }
+        beginSlowReadingScroll(answer: answer, proxy: proxy)
+    }
+
+    private func beginSlowReadingScroll(answer: String, proxy: ScrollViewProxy) {
+        scrollTask?.cancel()
+
+        guard !answer.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            proxy.scrollTo("scroll-top", anchor: .top)
+            pendingScrollAnswer = nil
+            return
+        }
+
+        scrollTask = Task {
+            proxy.scrollTo("scroll-top", anchor: .top)
+            try? await Task.sleep(for: .milliseconds(350))
+
+            guard !Task.isCancelled else { return }
+
+            let overflow = contentHeight - DashboardActionPanelMetrics.resultsAreaHeight
+            pendingScrollAnswer = nil
+            guard overflow > 8 else { return }
+
+            try? await Task.sleep(for: .seconds(1.25))
+            guard !Task.isCancelled else { return }
+
+            let duration = min(24, max(8, Double(overflow) * 0.09))
+            withAnimation(.linear(duration: duration)) {
+                proxy.scrollTo("scroll-bottom", anchor: .bottom)
+            }
+
+            try? await Task.sleep(for: .seconds(duration + 0.5))
+            guard !Task.isCancelled else { return }
+
+            try? await Task.sleep(for: .seconds(1.5))
+            guard !Task.isCancelled else { return }
+
+            withAnimation(.linear(duration: duration)) {
+                proxy.scrollTo("scroll-top", anchor: .top)
+            }
         }
     }
 }

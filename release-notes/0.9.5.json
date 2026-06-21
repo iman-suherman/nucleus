@@ -1,0 +1,16 @@
+{
+  "version": "0.9.5",
+  "summary": "Simpler dashboard music AI questions and slow auto-scroll for long answers.",
+  "releaseNotes": {
+    "introduced": [
+      "Nucleus AI slowly auto-scrolls long dashboard answers so the full text is readable"
+    ],
+    "changed": [
+      "Dashboard music auto-ask now asks for the latest facts about the artist instead of a long song-specific prompt"
+    ],
+    "fixed": [],
+    "updated": [],
+    "removed": [],
+    "breaking": []
+  }
+}

@@ -29,16 +29,17 @@ enum DashboardMusicAIInsight {
     }
 
     static func curatedQuestion(for track: Track) -> String {
-        var songDescriptor = "\"\(track.title)\""
-        if !track.album.isEmpty {
-            songDescriptor += " from the album \"\(track.album)\""
+        let artist = track.artist.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !artist.isEmpty {
+            return "Tell me the latest facts about \(artist)"
         }
 
-        if track.artist.isEmpty {
-            return "Tell me about the song \(songDescriptor): its background, meaning, and why it stands out."
+        let title = track.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !title.isEmpty {
+            return "Tell me the latest facts about \"\(title)\""
         }
 
-        return "Tell me about \(songDescriptor) by \(track.artist). Cover the song's background and meaning, and what is notable about the artist."
+        return "Tell me the latest facts about this artist"
     }
 
     static func contextLabel(for track: Track) -> String {
