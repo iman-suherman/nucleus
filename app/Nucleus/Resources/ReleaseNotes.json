@@ -1,13 +1,17 @@
 {
-  "version": "0.9.3",
-  "summary": "Nucleus AI copy includes question context, attribution, and download link.",
+  "version": "0.9.4",
+  "summary": "Dashboard music insights in Nucleus AI and a smarter Apple Music queue player.",
   "releaseNotes": {
-    "introduced": [],
-    "changed": [
-      "Nucleus AI Copy and Speak buttons sit above the answer",
-      "Copied answers include the question, Nucleus AI attribution, and a link to download from nucleus.suherman.net"
+    "introduced": [
+      "Nucleus AI auto-asks about the song and artist when Apple Music plays on the dashboard"
     ],
-    "fixed": [],
+    "changed": [
+      "Dashboard Apple Music list keeps the now-playing track at the top and auto-scrolls as the queue advances",
+      "Search playback continues through remaining results until the queue is finished"
+    ],
+    "fixed": [
+      "Nucleus AI ignores stale answers when tracks change quickly during auto-ask"
+    ],
     "updated": [],
     "removed": [],
     "breaking": []
