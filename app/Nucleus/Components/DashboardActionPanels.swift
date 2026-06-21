@@ -2,20 +2,31 @@ import NucleusKit
 import SwiftUI
 import SyncKit
 
+private enum DashboardActionPanelMetrics {
+    static let resultsAreaHeight: CGFloat = 108
+    static let artworkSize: CGFloat = 36
+}
+
 struct DashboardNucleusAIPanel: View {
     @EnvironmentObject private var viewModel: AppViewModel
     @ObservedObject private var cloudSyncService = NucleusCloudSyncService.shared
     @ObservedObject private var aiService = NucleusAIService.shared
+    @Binding var isExpanded: Bool
 
     @State private var question = ""
     @State private var isConnecting = false
     @State private var connectMessage: String?
 
+    init(isExpanded: Binding<Bool>) {
+        _isExpanded = isExpanded
+    }
+
     var body: some View {
         dashboardActionBox(
             title: "Nucleus AI",
             systemImage: "sparkles",
-            titleUsesGradient: true
+            titleUsesGradient: true,
+            isExpanded: $isExpanded
         ) {
             if cloudSyncService.status.isConnected {
                 connectedContent
@@ -51,30 +62,31 @@ struct DashboardNucleusAIPanel: View {
                 .disabled(question.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || aiService.isLoading)
             }
 
-            if aiService.isLoading {
-                HStack(spacing: 8) {
-                    ProgressView()
-                        .controlSize(.small)
-                    Text("Thinking…")
+            dashboardResultsScrollArea {
+                if aiService.isLoading {
+                    HStack(spacing: 8) {
+                        ProgressView()
+                            .controlSize(.small)
+                        Text("Thinking…")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                } else if let answer = aiService.lastAnswer {
+                    Text(answer)
+                        .font(.caption)
+                        .foregroundStyle(.primary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                } else if let error = aiService.lastError {
+                    Text(error)
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                } else {
+                    Text("Ask about your day, priorities, or anything Nucleus can help research.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
-            } else if let answer = aiService.lastAnswer {
-                Text(answer)
-                    .font(.caption)
-                    .foregroundStyle(.primary)
-                    .lineLimit(6)
-                    .fixedSize(horizontal: false, vertical: true)
-            } else if let error = aiService.lastError {
-                Text(error)
-                    .font(.caption)
-                    .foregroundStyle(.red)
-                    .fixedSize(horizontal: false, vertical: true)
-            } else {
-                Text("Ask about your day, priorities, or anything Nucleus can help research.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
             }
         }
     }
@@ -117,11 +129,17 @@ struct DashboardNucleusAIPanel: View {
 
 struct DashboardMusicPanel: View {
     @ObservedObject private var controller = MediaController.shared
+    @Binding var isExpanded: Bool
+
+    init(isExpanded: Binding<Bool>) {
+        _isExpanded = isExpanded
+    }
 
     var body: some View {
         dashboardActionBox(
             title: "Apple Music",
-            systemImage: "music.note"
+            systemImage: "music.note",
+            isExpanded: $isExpanded
         ) {
             VStack(alignment: .leading, spacing: 10) {
                 if controller.playbackSource != .musicApp {
@@ -159,51 +177,34 @@ struct DashboardMusicPanel: View {
                     }
                 }
 
-                if controller.catalogService.isSearching {
-                    ProgressView()
-                        .controlSize(.small)
-                } else if !controller.searchResults.isEmpty {
-                    VStack(spacing: 0) {
-                        ForEach(Array(controller.searchResults.prefix(4).enumerated()), id: \.element.id) { index, result in
-                            Button {
-                                Task { await controller.playSearchResult(result) }
-                            } label: {
-                                HStack(spacing: 8) {
-                                    Image(systemName: result.kind == .song ? "music.note" : "music.mic")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                        .frame(width: 14)
-                                    VStack(alignment: .leading, spacing: 1) {
-                                        Text(result.title)
-                                            .font(.caption.weight(.medium))
-                                            .lineLimit(1)
-                                        if !result.subtitle.isEmpty {
-                                            Text(result.subtitle)
-                                                .font(.caption2)
-                                                .foregroundStyle(.secondary)
-                                                .lineLimit(1)
-                                        }
-                                    }
-                                    Spacer(minLength: 0)
-                                    if controller.activeSearchResultID == result.id, controller.nowPlaying.isPlaying {
-                                        Image(systemName: "speaker.wave.2.fill")
-                                            .font(.caption2)
-                                            .foregroundStyle(.teal)
-                                    }
+                dashboardResultsScrollArea {
+                    if controller.catalogService.isSearching {
+                        HStack(spacing: 8) {
+                            ProgressView()
+                                .controlSize(.small)
+                            Text("Searching…")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    } else if !controller.searchResults.isEmpty {
+                        LazyVStack(spacing: 0) {
+                            ForEach(controller.searchResults) { result in
+                                musicSearchResultRow(result)
+                                if result.id != controller.searchResults.last?.id {
+                                    Divider()
+                                        .padding(.leading, DashboardActionPanelMetrics.artworkSize + 8)
                                 }
-                                .padding(.vertical, 6)
-                                .contentShape(Rectangle())
-                            }
-                            .buttonStyle(.plain)
-
-                            if index < min(3, controller.searchResults.count - 1) {
-                                Divider()
                             }
                         }
+                    } else if controller.nowPlaying.hasContent {
+                        dashboardNowPlayingContent
+                    } else {
+                        Text("Search Apple Music to play songs from your dashboard.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
-
-                miniNowPlayingRow
             }
         }
         .overlay {
@@ -217,43 +218,139 @@ struct DashboardMusicPanel: View {
         }
     }
 
-    @ViewBuilder
-    private var miniNowPlayingRow: some View {
-        let info = controller.nowPlaying
-        if info.hasContent {
-            HStack(spacing: 10) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(info.title)
-                        .font(.caption.weight(.semibold))
+    private func musicSearchResultRow(_ result: MediaSearchResult) -> some View {
+        let isActive = controller.activeSearchResultID == result.id
+
+        return Button {
+            Task { await controller.playSearchResult(result) }
+        } label: {
+            HStack(spacing: 8) {
+                musicArtwork(
+                    urlString: result.artworkURL,
+                    systemImage: musicIcon(for: result.kind)
+                )
+                .frame(width: DashboardActionPanelMetrics.artworkSize, height: DashboardActionPanelMetrics.artworkSize)
+                .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(result.title)
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(.primary)
                         .lineLimit(1)
-                    Text(info.artist.isEmpty ? "Now playing" : info.artist)
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
+                    if !result.subtitle.isEmpty {
+                        Text(result.subtitle)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
                 }
 
                 Spacer(minLength: 0)
 
-                Button {
-                    controller.togglePlayPause()
-                } label: {
-                    Image(systemName: info.isPlaying ? "pause.fill" : "play.fill")
+                if isActive, controller.nowPlaying.isPlaying {
+                    Image(systemName: "speaker.wave.2.fill")
+                        .font(.caption2)
+                        .foregroundStyle(.teal)
                 }
-                .buttonStyle(.bordered)
-                .controlSize(.mini)
-
-                Button {
-                    controller.nextTrack()
-                } label: {
-                    Image(systemName: "forward.fill")
-                }
-                .buttonStyle(.bordered)
-                .controlSize(.mini)
             }
-            .padding(8)
-            .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 8))
+            .padding(.vertical, 6)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var dashboardNowPlayingContent: some View {
+        let info = controller.nowPlaying
+
+        return HStack(spacing: 10) {
+            musicArtwork(urlString: info.artworkURL, systemImage: "music.note")
+                .frame(width: DashboardActionPanelMetrics.artworkSize, height: DashboardActionPanelMetrics.artworkSize)
+                .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(info.title)
+                    .font(.caption.weight(.semibold))
+                    .lineLimit(1)
+                Text(info.artist.isEmpty ? "Now playing" : info.artist)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+
+            Spacer(minLength: 0)
+
+            Button {
+                controller.togglePlayPause()
+            } label: {
+                Image(systemName: info.isPlaying ? "pause.fill" : "play.fill")
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.mini)
+
+            Button {
+                controller.nextTrack()
+            } label: {
+                Image(systemName: "forward.fill")
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.mini)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    @ViewBuilder
+    private func musicArtwork(urlString: String?, systemImage: String) -> some View {
+        if let urlString, let url = URL(string: urlString) {
+            AsyncImage(url: url) { phase in
+                switch phase {
+                case .success(let image):
+                    image
+                        .resizable()
+                        .scaledToFill()
+                case .failure:
+                    musicArtworkPlaceholder(systemImage: systemImage)
+                default:
+                    ZStack {
+                        musicArtworkPlaceholder(systemImage: systemImage)
+                        ProgressView()
+                            .controlSize(.small)
+                    }
+                }
+            }
+        } else {
+            musicArtworkPlaceholder(systemImage: systemImage)
         }
     }
+
+    private func musicArtworkPlaceholder(systemImage: String) -> some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                .fill(.quaternary)
+            Image(systemName: systemImage)
+                .font(.system(size: 14))
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private func musicIcon(for kind: MediaSearchKind) -> String {
+        switch kind {
+        case .song: return "music.note"
+        case .album: return "square.stack"
+        case .artist: return "music.mic"
+        case .playlist: return "music.note.list"
+        }
+    }
+}
+
+@ViewBuilder
+private func dashboardResultsScrollArea<Content: View>(
+    @ViewBuilder content: () -> Content
+) -> some View {
+    ScrollView {
+        content()
+            .frame(maxWidth: .infinity, alignment: .leading)
+    }
+    .frame(height: DashboardActionPanelMetrics.resultsAreaHeight)
 }
 
 @ViewBuilder
@@ -261,39 +358,56 @@ private func dashboardActionBox<Content: View>(
     title: String,
     systemImage: String,
     titleUsesGradient: Bool = false,
+    isExpanded: Binding<Bool>,
     @ViewBuilder content: () -> Content
 ) -> some View {
     VStack(alignment: .leading, spacing: 0) {
-        HStack(spacing: 8) {
-            if titleUsesGradient {
-                Label {
-                    Text(title)
-                        .font(.headline)
-                        .foregroundStyle(
-                            LinearGradient(
-                                colors: [.orange, .pink, .purple],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-                } icon: {
-                    Image(systemName: systemImage)
-                        .symbolRenderingMode(.multicolor)
-                }
-            } else {
-                Label(title, systemImage: systemImage)
-                    .font(.headline)
-                    .foregroundStyle(.primary)
+        Button {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                isExpanded.wrappedValue.toggle()
             }
-            Spacer(minLength: 0)
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: isExpanded.wrappedValue ? "chevron.down" : "chevron.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 12)
+
+                if titleUsesGradient {
+                    Label {
+                        Text(title)
+                            .font(.headline)
+                            .foregroundStyle(
+                                LinearGradient(
+                                    colors: [.orange, .pink, .purple],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                    } icon: {
+                        Image(systemName: systemImage)
+                            .symbolRenderingMode(.multicolor)
+                    }
+                } else {
+                    Label(title, systemImage: systemImage)
+                        .font(.headline)
+                        .foregroundStyle(.primary)
+                }
+                Spacer(minLength: 0)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
 
-        content()
-            .padding(.horizontal, 16)
-            .padding(.bottom, 14)
+        if isExpanded.wrappedValue {
+            content()
+                .padding(.horizontal, 16)
+                .padding(.bottom, 14)
+        }
     }
-    .frame(maxWidth: .infinity, minHeight: 190, alignment: .topLeading)
+    .frame(maxWidth: .infinity, minHeight: isExpanded.wrappedValue ? 190 : nil, alignment: .topLeading)
     .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 14))
 }

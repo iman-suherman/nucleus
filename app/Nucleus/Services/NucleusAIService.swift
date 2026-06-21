@@ -3,6 +3,7 @@ import SyncKit
 
 enum NucleusAIServiceError: LocalizedError {
     case notConnected
+    case unreachable
     case invalidResponse
     case serverError(String)
 
@@ -10,6 +11,8 @@ enum NucleusAIServiceError: LocalizedError {
         switch self {
         case .notConnected:
             return "Connect Nucleus Cloud to use Nucleus AI."
+        case .unreachable:
+            return "Could not reach Nucleus AI. Check your network connection and try again."
         case .invalidResponse:
             return "Nucleus AI returned an unexpected response."
         case .serverError(let message):
@@ -23,6 +26,9 @@ final class NucleusAIService: ObservableObject {
     static let shared = NucleusAIService()
 
     static let productionBaseURL = URL(string: "https://nucleus-ai.suherman.net")!
+
+    /// Cloudflare anycast IPv4 for proxied `*.suherman.net` when local DNS only returns unreachable IPv6.
+    private static let cloudflareIPv4Fallbacks = ["104.21.18.184", "172.67.183.29"]
 
     @Published private(set) var isLoading = false
     @Published private(set) var lastAnswer: String?
@@ -50,7 +56,8 @@ final class NucleusAIService: ObservableObject {
             lastAnswer = answer
         } catch {
             lastAnswer = nil
-            lastError = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            lastError = Self.userFacingMessage(for: error)
+            NucleusLog.ai.error("ask failed: \(error.localizedDescription, privacy: .public)")
         }
     }
 
@@ -66,7 +73,7 @@ final class NucleusAIService: ObservableObject {
         request.setValue("Bearer \(apiToken)", forHTTPHeaderField: "Authorization")
         request.httpBody = try JSONEncoder().encode(["question": question])
 
-        let (data, response) = try await session.data(for: request)
+        let (data, response) = try await dataWithIPv4Fallback(for: request)
         guard let http = response as? HTTPURLResponse else {
             throw NucleusAIServiceError.invalidResponse
         }
@@ -113,6 +120,64 @@ final class NucleusAIService: ObservableObject {
         }
 
         return parts.joined(separator: "\n\n")
+    }
+
+    private func dataWithIPv4Fallback(for request: URLRequest) async throws -> (Data, URLResponse) {
+        do {
+            return try await session.data(for: request)
+        } catch let error as URLError where Self.isConnectivityError(error) {
+            guard let originalURL = request.url,
+                  let host = originalURL.host,
+                  !host.isEmpty else {
+                throw NucleusAIServiceError.unreachable
+            }
+
+            NucleusLog.ai.error(
+                "primary request failed host=\(host, privacy: .public) code=\(error.code.rawValue, privacy: .public); retrying via IPv4"
+            )
+
+            var lastError: Error = error
+            for ip in Self.cloudflareIPv4Fallbacks {
+                guard var components = URLComponents(url: originalURL, resolvingAgainstBaseURL: false) else { continue }
+                components.host = ip
+                guard let fallbackURL = components.url else { continue }
+
+                var retry = request
+                retry.url = fallbackURL
+                retry.setValue(host, forHTTPHeaderField: "Host")
+
+                do {
+                    let result = try await session.data(for: retry)
+                    NucleusLog.ai.info("IPv4 fallback succeeded host=\(host, privacy: .public) ip=\(ip, privacy: .public)")
+                    return result
+                } catch {
+                    lastError = error
+                }
+            }
+
+            throw lastError
+        }
+    }
+
+    private static func isConnectivityError(_ error: URLError) -> Bool {
+        switch error.code {
+        case .notConnectedToInternet, .networkConnectionLost, .cannotConnectToHost, .dnsLookupFailed, .timedOut:
+            return true
+        default:
+            return false
+        }
+    }
+
+    private static func userFacingMessage(for error: Error) -> String {
+        if let localized = error as? LocalizedError,
+           let description = localized.errorDescription,
+           !description.isEmpty {
+            return description
+        }
+        if let urlError = error as? URLError, isConnectivityError(urlError) {
+            return NucleusAIServiceError.unreachable.errorDescription ?? error.localizedDescription
+        }
+        return error.localizedDescription
     }
 }
 

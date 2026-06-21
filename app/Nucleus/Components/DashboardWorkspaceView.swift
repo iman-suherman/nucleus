@@ -218,7 +218,9 @@ struct DashboardWorkspaceView: View {
             if showsInsightsRow {
                 insightsSideBySideRow
             }
-            dashboardActionPanelsRow
+            if showsActionPanelsRow {
+                dashboardActionPanelsRow
+            }
             if showsWeatherResourceRow {
                 weatherResourceAndSidebarRow
                     .onPreferenceChange(ContextPanelsContentHeightKey.self) { height in
@@ -240,22 +242,33 @@ struct DashboardWorkspaceView: View {
         HStack(alignment: .top, spacing: 16) {
             if dashboardPreferences.intelligentInsightEnabled {
                 intelligentInsightBox
-                    .frame(maxWidth: .infinity, alignment: .topLeading)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             }
             if dashboardPreferences.clipboardDayEnabled {
                 clipboardInsightBox
-                    .frame(maxWidth: .infinity, alignment: .topLeading)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             }
         }
+        .fixedSize(horizontal: false, vertical: true)
     }
 
+    private var showsActionPanelsRow: Bool {
+        dashboardPreferences.nucleusAIEnabled || dashboardPreferences.appleMusicEnabled
+    }
+
+    @ViewBuilder
     private var dashboardActionPanelsRow: some View {
         HStack(alignment: .top, spacing: 16) {
-            DashboardNucleusAIPanel()
-                .frame(maxWidth: .infinity, alignment: .topLeading)
-            DashboardMusicPanel()
-                .frame(maxWidth: .infinity, alignment: .topLeading)
+            if dashboardPreferences.nucleusAIEnabled {
+                DashboardNucleusAIPanel(isExpanded: nucleusAIExpanded)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            }
+            if dashboardPreferences.appleMusicEnabled {
+                DashboardMusicPanel(isExpanded: appleMusicExpanded)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            }
         }
+        .fixedSize(horizontal: false, vertical: true)
     }
 
     private var showsWeatherResourceRow: Bool {
@@ -277,10 +290,6 @@ struct DashboardWorkspaceView: View {
                 Text(greetingLine(asOf: context.date))
                     .font(.largeTitle.bold())
                     .fixedSize(horizontal: false, vertical: true)
-
-                Text(DashboardInsightFormatting.formattedDate(context.date))
-                    .font(.title3)
-                    .foregroundStyle(.secondary)
 
                 if dashboardPreferences.quoteEnabled, let quoteLine {
                     Text(quoteLine)
@@ -330,6 +339,14 @@ struct DashboardWorkspaceView: View {
         dashboardPreferenceBinding(\.publicHolidayExpanded)
     }
 
+    private var nucleusAIExpanded: Binding<Bool> {
+        dashboardPreferenceBinding(\.nucleusAIExpanded)
+    }
+
+    private var appleMusicExpanded: Binding<Bool> {
+        dashboardPreferenceBinding(\.appleMusicExpanded)
+    }
+
     private func dashboardPreferenceBinding(_ keyPath: WritableKeyPath<DashboardPreferences, Bool>) -> Binding<Bool> {
         Binding(
             get: { settings.dashboardPreferences[keyPath: keyPath] },
@@ -343,7 +360,7 @@ struct DashboardWorkspaceView: View {
 
     private func greetingLine(asOf date: Date) -> String {
         let celebrateHoliday = dashboardPreferences.publicHolidayEnabled && holidayService.isPublicHoliday(on: date)
-        return DashboardGreeting.line(
+        return DashboardGreeting.lineWithDate(
             firstName: DashboardGreeting.firstName,
             now: date,
             isPublicHoliday: celebrateHoliday,
@@ -376,17 +393,17 @@ struct DashboardWorkspaceView: View {
             systemImage: "sparkles",
             titleUsesGradient: true
         ) {
-            VStack(alignment: .leading, spacing: 8) {
-                ForEach(Array(paragraphs.prefix(2).enumerated()), id: \.offset) { index, paragraph in
-                    Text(compactDashboardCopy(paragraph, maxLength: index == 0 ? 220 : 180))
+            VStack(alignment: .leading, spacing: 10) {
+                ForEach(Array(paragraphs.enumerated()), id: \.offset) { index, paragraph in
+                    Text(paragraph.trimmingCharacters(in: .whitespacesAndNewlines))
                         .font(index == 0 ? .subheadline.weight(.semibold) : .caption)
                         .foregroundStyle(index == 0 ? Color.primary : Color.secondary)
-                        .lineLimit(index == 0 ? 4 : 3)
+                        .lineLimit(index == 0 ? 6 : 4)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
         }
-        .frame(minHeight: 168, alignment: .topLeading)
+        .frame(maxWidth: .infinity, minHeight: 168, maxHeight: .infinity, alignment: .topLeading)
         .background(
             LinearGradient(
                 colors: [
@@ -443,7 +460,7 @@ struct DashboardWorkspaceView: View {
                     }
                 }
             }
-            .frame(minHeight: 168, alignment: .topLeading)
+            .frame(maxWidth: .infinity, minHeight: 168, maxHeight: .infinity, alignment: .topLeading)
             .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 14))
             .overlay {
                 RoundedRectangle(cornerRadius: 14)
@@ -461,7 +478,7 @@ struct DashboardWorkspaceView: View {
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            .frame(minHeight: 168, alignment: .topLeading)
+            .frame(maxWidth: .infinity, minHeight: 168, maxHeight: .infinity, alignment: .topLeading)
             .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 14))
             .overlay {
                 RoundedRectangle(cornerRadius: 14)

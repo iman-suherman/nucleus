@@ -690,6 +690,10 @@ struct DashboardPreferences: Codable, Equatable {
     var summaryExpanded: Bool
     var paymentPreparationExpanded: Bool
     var productivityExpanded: Bool
+    var nucleusAIEnabled: Bool
+    var appleMusicEnabled: Bool
+    var nucleusAIExpanded: Bool
+    var appleMusicExpanded: Bool
 
     init(
         quoteEnabled: Bool = true,
@@ -710,7 +714,11 @@ struct DashboardPreferences: Codable, Equatable {
         newsFeedExpanded: Bool = true,
         summaryExpanded: Bool = true,
         paymentPreparationExpanded: Bool = true,
-        productivityExpanded: Bool = true
+        productivityExpanded: Bool = true,
+        nucleusAIEnabled: Bool = true,
+        appleMusicEnabled: Bool = true,
+        nucleusAIExpanded: Bool = true,
+        appleMusicExpanded: Bool = true
     ) {
         self.quoteEnabled = quoteEnabled
         self.intelligentInsightEnabled = intelligentInsightEnabled
@@ -731,6 +739,10 @@ struct DashboardPreferences: Codable, Equatable {
         self.summaryExpanded = summaryExpanded
         self.paymentPreparationExpanded = paymentPreparationExpanded
         self.productivityExpanded = productivityExpanded
+        self.nucleusAIEnabled = nucleusAIEnabled
+        self.appleMusicEnabled = appleMusicEnabled
+        self.nucleusAIExpanded = nucleusAIExpanded
+        self.appleMusicExpanded = appleMusicExpanded
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -741,6 +753,7 @@ struct DashboardPreferences: Codable, Equatable {
         case intelligentInsightExpanded, clipboardDayExpanded
         case contextPanelsExpanded, newsFeedExpanded, summaryExpanded
         case paymentPreparationExpanded, productivityExpanded
+        case nucleusAIEnabled, appleMusicEnabled, nucleusAIExpanded, appleMusicExpanded
     }
 
     init(from decoder: Decoder) throws {
@@ -764,5 +777,9 @@ struct DashboardPreferences: Codable, Equatable {
         summaryExpanded = try container.decodeIfPresent(Bool.self, forKey: .summaryExpanded) ?? true
         paymentPreparationExpanded = try container.decodeIfPresent(Bool.self, forKey: .paymentPreparationExpanded) ?? true
         productivityExpanded = try container.decodeIfPresent(Bool.self, forKey: .productivityExpanded) ?? true
+        nucleusAIEnabled = try container.decodeIfPresent(Bool.self, forKey: .nucleusAIEnabled) ?? true
+        appleMusicEnabled = try container.decodeIfPresent(Bool.self, forKey: .appleMusicEnabled) ?? true
+        nucleusAIExpanded = try container.decodeIfPresent(Bool.self, forKey: .nucleusAIExpanded) ?? true
+        appleMusicExpanded = try container.decodeIfPresent(Bool.self, forKey: .appleMusicExpanded) ?? true
     }
 }

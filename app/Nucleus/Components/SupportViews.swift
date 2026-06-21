@@ -275,6 +275,11 @@ struct AppSettingsView: View {
                 Toggle("Your day (clipboard work analysis)", isOn: dashboardPreferenceBinding(\.clipboardDayEnabled))
             }
 
+            Section("Quick actions") {
+                Toggle("Nucleus AI", isOn: dashboardPreferenceBinding(\.nucleusAIEnabled))
+                Toggle("Apple Music", isOn: dashboardPreferenceBinding(\.appleMusicEnabled))
+            }
+
             Section("At a glance") {
                 Toggle("Summary metrics", isOn: dashboardPreferenceBinding(\.summaryMetricsEnabled))
                 Toggle("Payment preparation", isOn: dashboardPreferenceBinding(\.billPreparationEnabled))
@@ -312,6 +317,10 @@ struct AppSettingsView: View {
                     .disabled(!settings.dashboardPreferences.billPreparationEnabled)
                 Toggle("Start with Productivity expanded", isOn: dashboardPreferenceBinding(\.productivityExpanded))
                     .disabled(!settings.dashboardPreferences.productivityChartEnabled)
+                Toggle("Start with Nucleus AI expanded", isOn: dashboardPreferenceBinding(\.nucleusAIExpanded))
+                    .disabled(!settings.dashboardPreferences.nucleusAIEnabled)
+                Toggle("Start with Apple Music expanded", isOn: dashboardPreferenceBinding(\.appleMusicExpanded))
+                    .disabled(!settings.dashboardPreferences.appleMusicEnabled)
             }
 
             Section {

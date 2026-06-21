@@ -107,4 +107,29 @@ public enum DashboardGreeting {
 
         return "\(timeOfDay(now: now, calendar: calendar)), \(firstName)!"
     }
+
+    public static func naturalDatePhrase(now: Date = Date(), calendar: Calendar = .current) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = calendar.locale ?? Locale.current
+        formatter.setLocalizedDateFormatFromTemplate("EEEE, d MMMM")
+        return formatter.string(from: now)
+    }
+
+    public static func lineWithDate(
+        firstName: String,
+        now: Date = Date(),
+        calendar: Calendar = .current,
+        isPublicHoliday: Bool = false,
+        publicHolidayName: String? = nil
+    ) -> String {
+        let greeting = line(
+            firstName: firstName,
+            now: now,
+            calendar: calendar,
+            isPublicHoliday: isPublicHoliday,
+            publicHolidayName: publicHolidayName
+        )
+        let trimmed = greeting.hasSuffix("!") ? String(greeting.dropLast()) : greeting
+        return "\(trimmed). It's \(naturalDatePhrase(now: now, calendar: calendar))."
+    }
 }
