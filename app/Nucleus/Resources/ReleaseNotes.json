@@ -1,16 +1,17 @@
 {
-  "version": "0.9.5",
-  "summary": "Simpler dashboard music AI questions and slow auto-scroll for long answers.",
+  "version": "0.9.6",
+  "summary": "Stop automatic artist lookups in Nucleus AI and polish dashboard alert overlays.",
   "releaseNotes": {
-    "introduced": [
-      "Nucleus AI slowly auto-scrolls long dashboard answers so the full text is readable"
-    ],
+    "introduced": [],
     "changed": [
-      "Dashboard music auto-ask now asks for the latest facts about the artist instead of a long song-specific prompt"
+      "Dashboard breaking news overlay puts Open story first and renames Not now to Close",
+      "Dashboard incoming mail overlay renames Not now to Close with clearer pointer cursors on buttons"
     ],
     "fixed": [],
     "updated": [],
-    "removed": [],
+    "removed": [
+      "Nucleus AI no longer auto-asks about the artist when Apple Music plays on the dashboard"
+    ],
     "breaking": []
   }
 }
