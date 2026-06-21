@@ -487,7 +487,12 @@ private struct DashboardScrollContentHeightKey: PreferenceKey {
 
 private struct DashboardAISlowReadingScrollArea<Content: View>: View {
     let scrollTrigger: String?
-    @ViewBuilder var content: () -> Content
+    @ViewBuilder private let content: () -> Content
+
+    init(scrollTrigger: String?, @ViewBuilder content: @escaping () -> Content) {
+        self.scrollTrigger = scrollTrigger
+        self.content = content
+    }
 
     @State private var contentHeight: CGFloat = 0
     @State private var scrollTask: Task<Void, Never>?
