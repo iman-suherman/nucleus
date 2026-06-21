@@ -73,6 +73,12 @@ struct DashboardWorkspaceView: View {
         }
         .animation(.easeInOut(duration: 0.2), value: viewModel.dashboardIncomingMailPrompt?.id)
         .animation(.easeInOut(duration: 0.2), value: newsFeedService.breakingNewsAlert?.id)
+        .onAppear {
+            DashboardMusicAIInsight.setDashboardVisible(true)
+        }
+        .onDisappear {
+            DashboardMusicAIInsight.setDashboardVisible(false)
+        }
     }
 
     private var dashboardContent: some View {

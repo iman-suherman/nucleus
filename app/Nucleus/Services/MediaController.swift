@@ -106,6 +106,16 @@ final class MediaController: ObservableObject {
         activeSearchResultID = match.id
     }
 
+    /// Search results from the active track through the end of the queue (active track first).
+    var upcomingSearchResults: [MediaSearchResult] {
+        guard !searchResults.isEmpty else { return [] }
+        if let activeID = activeSearchResultID,
+           let index = searchResults.firstIndex(where: { $0.id == activeID }) {
+            return Array(searchResults[index...])
+        }
+        return searchResults
+    }
+
     var volume: Double {
         switch playbackSource {
         case .musicApp:

@@ -12,6 +12,7 @@ struct DashboardNucleusAIPanel: View {
     @EnvironmentObject private var viewModel: AppViewModel
     @ObservedObject private var cloudSyncService = NucleusCloudSyncService.shared
     @ObservedObject private var aiService = NucleusAIService.shared
+    @ObservedObject private var mediaController = MediaController.shared
     @ObservedObject private var speechService = DashboardNewsSpeechService.shared
     @Binding var isExpanded: Bool
 
@@ -19,6 +20,7 @@ struct DashboardNucleusAIPanel: View {
     @State private var isConnecting = false
     @State private var connectMessage: String?
     @State private var copyConfirmed = false
+    @State private var musicInsightContext: String?
 
     init(isExpanded: Binding<Bool>) {
         _isExpanded = isExpanded
@@ -48,6 +50,16 @@ struct DashboardNucleusAIPanel: View {
                     lineWidth: 1
                 )
         }
+        .onChange(of: mediaController.nowPlaying) { _, info in
+            handleNowPlayingChange(info)
+        }
+        .onChange(of: cloudSyncService.status.isConnected) { _, isConnected in
+            guard isConnected else { return }
+            handleNowPlayingChange(mediaController.nowPlaying)
+        }
+        .onAppear {
+            handleNowPlayingChange(mediaController.nowPlaying)
+        }
     }
 
     private var connectedContent: some View {
@@ -70,12 +82,20 @@ struct DashboardNucleusAIPanel: View {
                     HStack(spacing: 8) {
                         ProgressView()
                             .controlSize(.small)
-                        Text("Thinking…")
+                        Text(musicInsightContext ?? "Thinking…")
                             .font(.caption)
                             .foregroundStyle(.secondary)
+                            .lineLimit(2)
                     }
                 } else if let answer = aiService.lastAnswer {
                     VStack(alignment: .leading, spacing: 6) {
+                        if let musicInsightContext {
+                            Text(musicInsightContext)
+                                .font(.caption2.weight(.semibold))
+                                .foregroundStyle(.purple.opacity(0.85))
+                                .lineLimit(2)
+                        }
+
                         HStack(spacing: 8) {
                             Button {
                                 copyAnswer(answer, question: question)
@@ -152,8 +172,29 @@ struct DashboardNucleusAIPanel: View {
         guard !trimmed.isEmpty else { return }
         speechService.stop()
         copyConfirmed = false
+        musicInsightContext = nil
         Task {
             await aiService.ask(question: trimmed)
+        }
+    }
+
+    private func handleNowPlayingChange(_ info: MediaNowPlayingInfo) {
+        guard DashboardMusicAIInsight.isDashboardVisible else { return }
+        guard cloudSyncService.status.isConnected else { return }
+        guard mediaController.playbackSource == .musicApp else { return }
+        guard info.isPlaying, info.hasContent else { return }
+        guard let track = DashboardMusicAIInsight.track(from: info) else { return }
+        guard DashboardMusicAIInsight.shouldAutoAsk(for: track.key) else { return }
+
+        let curatedQuestion = DashboardMusicAIInsight.curatedQuestion(for: track)
+        DashboardMusicAIInsight.markAsked(track.key)
+        musicInsightContext = DashboardMusicAIInsight.contextLabel(for: track)
+        question = curatedQuestion
+        copyConfirmed = false
+        speechService.stop()
+
+        Task {
+            await aiService.ask(question: curatedQuestion)
         }
     }
 
@@ -236,7 +277,24 @@ struct DashboardMusicPanel: View {
                     }
                 }
 
-                dashboardResultsScrollArea {
+                dashboardMusicResultsScroll
+            }
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 14)
+                .strokeBorder(Color.teal.opacity(0.2), lineWidth: 1)
+        }
+        .onAppear {
+            controller.setPlaybackSource(.musicApp)
+            controller.refreshMusicAccess()
+            controller.refreshNowPlaying()
+        }
+    }
+
+    private var dashboardMusicResultsScroll: some View {
+        ScrollViewReader { proxy in
+            ScrollView {
+                Group {
                     if controller.catalogService.isSearching {
                         HStack(spacing: 8) {
                             ProgressView()
@@ -245,11 +303,12 @@ struct DashboardMusicPanel: View {
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
-                    } else if !controller.searchResults.isEmpty {
+                    } else if !controller.upcomingSearchResults.isEmpty {
                         LazyVStack(spacing: 0) {
-                            ForEach(controller.searchResults) { result in
+                            ForEach(controller.upcomingSearchResults) { result in
                                 musicSearchResultRow(result)
-                                if result.id != controller.searchResults.last?.id {
+                                    .id(result.id)
+                                if result.id != controller.upcomingSearchResults.last?.id {
                                     Divider()
                                         .padding(.leading, DashboardActionPanelMetrics.artworkSize + 8)
                                 }
@@ -264,16 +323,25 @@ struct DashboardMusicPanel: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .frame(height: DashboardActionPanelMetrics.resultsAreaHeight)
+            .onChange(of: controller.activeSearchResultID) { _, activeID in
+                scrollActiveTrackToTop(activeID, proxy: proxy)
+            }
+            .onChange(of: controller.upcomingSearchResults.map(\.id)) { _, _ in
+                scrollActiveTrackToTop(controller.activeSearchResultID, proxy: proxy)
+            }
+            .onAppear {
+                scrollActiveTrackToTop(controller.activeSearchResultID, proxy: proxy)
             }
         }
-        .overlay {
-            RoundedRectangle(cornerRadius: 14)
-                .strokeBorder(Color.teal.opacity(0.2), lineWidth: 1)
-        }
-        .onAppear {
-            controller.setPlaybackSource(.musicApp)
-            controller.refreshMusicAccess()
-            controller.refreshNowPlaying()
+    }
+
+    private func scrollActiveTrackToTop(_ activeID: String?, proxy: ScrollViewProxy) {
+        guard let activeID else { return }
+        withAnimation(.easeInOut(duration: 0.25)) {
+            proxy.scrollTo(activeID, anchor: .top)
         }
     }
 

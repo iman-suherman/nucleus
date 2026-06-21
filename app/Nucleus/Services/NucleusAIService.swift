@@ -33,9 +33,11 @@ final class NucleusAIService: ObservableObject {
     @Published private(set) var isLoading = false
     @Published private(set) var lastAnswer: String?
     @Published private(set) var lastError: String?
+    @Published private(set) var lastQuestion: String?
 
     private let baseURL: URL
     private let session: URLSession
+    private var activeAskID = UUID()
 
     init(baseURL: URL = productionBaseURL, session: URLSession = .shared) {
         self.baseURL = baseURL
@@ -46,15 +48,24 @@ final class NucleusAIService: ObservableObject {
         let trimmed = question.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
 
+        let askID = UUID()
+        activeAskID = askID
         isLoading = true
         lastError = nil
-        defer { isLoading = false }
+        lastQuestion = trimmed
+        defer {
+            if activeAskID == askID {
+                isLoading = false
+            }
+        }
 
         do {
             let credentials = try NucleusCloudTokenStore.shared.load()
             let answer = try await requestOverview(question: trimmed, apiToken: credentials.apiToken)
+            guard activeAskID == askID else { return }
             lastAnswer = answer
         } catch {
+            guard activeAskID == askID else { return }
             lastAnswer = nil
             lastError = Self.userFacingMessage(for: error)
             NucleusLog.ai.error("ask failed: \(error.localizedDescription, privacy: .public)")
@@ -64,6 +75,7 @@ final class NucleusAIService: ObservableObject {
     func clearLastResult() {
         lastAnswer = nil
         lastError = nil
+        lastQuestion = nil
     }
 
     private func requestOverview(question: String, apiToken: String) async throws -> String {
