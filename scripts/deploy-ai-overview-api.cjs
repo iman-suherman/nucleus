@@ -186,6 +186,7 @@ function main() {
   const contextModel = process.env.CONTEXT_MODEL?.trim() || plannerModel;
   const verifierModel = process.env.VERIFIER_MODEL?.trim() || plannerModel;
   const googleSearchGrounding = process.env.VERTEX_GOOGLE_SEARCH_GROUNDING?.trim() || "true";
+  const reasonerTemperature = process.env.REASONER_TEMPERATURE?.trim() || "0.55";
 
   if (llmProvider === "vertex") {
     console.log(`deploy:ai-overview: enabling Vertex AI (${vertexLocation})…`);
@@ -203,6 +204,7 @@ function main() {
     `PLANNER_MODEL=${plannerModel}`,
     `CONTEXT_MODEL=${contextModel}`,
     `REASONER_MODEL=${reasonerModel}`,
+    `REASONER_TEMPERATURE=${reasonerTemperature}`,
     `VERIFIER_MODEL=${verifierModel}`,
     `ENABLE_VERIFIER=true`,
   ];

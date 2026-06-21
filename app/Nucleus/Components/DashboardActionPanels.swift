@@ -1,3 +1,4 @@
+import AppKit
 import NucleusKit
 import SwiftUI
 import SyncKit
@@ -11,11 +12,13 @@ struct DashboardNucleusAIPanel: View {
     @EnvironmentObject private var viewModel: AppViewModel
     @ObservedObject private var cloudSyncService = NucleusCloudSyncService.shared
     @ObservedObject private var aiService = NucleusAIService.shared
+    @ObservedObject private var speechService = DashboardNewsSpeechService.shared
     @Binding var isExpanded: Bool
 
     @State private var question = ""
     @State private var isConnecting = false
     @State private var connectMessage: String?
+    @State private var copyConfirmed = false
 
     init(isExpanded: Binding<Bool>) {
         _isExpanded = isExpanded
@@ -72,10 +75,34 @@ struct DashboardNucleusAIPanel: View {
                             .foregroundStyle(.secondary)
                     }
                 } else if let answer = aiService.lastAnswer {
-                    Text(answer)
-                        .font(.caption)
-                        .foregroundStyle(.primary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(answer)
+                            .font(.caption)
+                            .foregroundStyle(.primary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .textSelection(.enabled)
+
+                        HStack(spacing: 8) {
+                            Button {
+                                copyAnswer(answer)
+                            } label: {
+                                Label(copyConfirmed ? "Copied" : "Copy", systemImage: copyConfirmed ? "checkmark" : "doc.on.doc")
+                            }
+                            .buttonStyle(.bordered)
+                            .controlSize(.mini)
+
+                            Button {
+                                toggleAnswerSpeech(answer)
+                            } label: {
+                                Label(
+                                    speechService.isSpeaking ? "Stop" : "Speak",
+                                    systemImage: speechService.isSpeaking ? "stop.fill" : "speaker.wave.2.fill"
+                                )
+                            }
+                            .buttonStyle(.bordered)
+                            .controlSize(.mini)
+                        }
+                    }
                 } else if let error = aiService.lastError {
                     Text(error)
                         .font(.caption)
@@ -121,9 +148,29 @@ struct DashboardNucleusAIPanel: View {
     private func submitQuestion() {
         let trimmed = question.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
+        speechService.stop()
+        copyConfirmed = false
         Task {
             await aiService.ask(question: trimmed)
         }
+    }
+
+    private func copyAnswer(_ text: String) {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(text, forType: .string)
+        copyConfirmed = true
+        Task {
+            try? await Task.sleep(for: .seconds(1.5))
+            copyConfirmed = false
+        }
+    }
+
+    private func toggleAnswerSpeech(_ text: String) {
+        if speechService.isSpeaking {
+            speechService.stop()
+            return
+        }
+        speechService.speak(text: text)
     }
 }
 

@@ -62,9 +62,9 @@ const config = {
     googleSearchGrounding: readBool(process.env.VERTEX_GOOGLE_SEARCH_GROUNDING, true),
     timeoutMs: Number(process.env.LLM_TIMEOUT_MS || 120_000),
     temperature: {
-      planner: Number(process.env.PLANNER_TEMPERATURE ?? 0.1),
-      context: Number(process.env.CONTEXT_TEMPERATURE ?? 0.2),
-      reasoner: Number(process.env.REASONER_TEMPERATURE ?? 0.3),
+      planner: Number(process.env.PLANNER_TEMPERATURE ?? 0.2),
+      context: Number(process.env.CONTEXT_TEMPERATURE ?? 0.25),
+      reasoner: Number(process.env.REASONER_TEMPERATURE ?? 0.55),
       verifier: Number(process.env.VERIFIER_TEMPERATURE ?? 0.1),
     },
   },
