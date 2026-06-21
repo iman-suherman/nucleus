@@ -90,6 +90,11 @@ final class MediaController: ObservableObject {
         playbackSource == .musicApp && catalogStreamPlaybackActive
     }
 
+    private var usesMusicKitPlayback: Bool {
+        playbackSource == .musicApp
+            && (catalogStreamPlaybackActive || MusicKitNowPlayingReader.isControllingPlayback)
+    }
+
     private func syncActiveSearchResult(with info: MediaNowPlayingInfo) {
         guard info.hasContent, !searchResults.isEmpty else { return }
         guard let match = searchResults.first(where: {
@@ -147,8 +152,12 @@ final class MediaController: ObservableObject {
     func togglePlayPause() {
         switch playbackSource {
         case .musicApp:
-            MusicAppScriptController.playPause()
-            musicMonitor.refresh()
+            if usesMusicKitPlayback {
+                MusicKitNowPlayingReader.togglePlayPause()
+            } else {
+                MusicAppScriptController.playPause()
+            }
+            refreshAfterPlaybackControl()
         case .localPlayer:
             localPlayer.togglePlayPause()
         }
@@ -157,8 +166,12 @@ final class MediaController: ObservableObject {
     func play() {
         switch playbackSource {
         case .musicApp:
-            MusicAppScriptController.play()
-            musicMonitor.refresh()
+            if usesMusicKitPlayback {
+                MusicKitNowPlayingReader.play()
+            } else {
+                MusicAppScriptController.play()
+            }
+            refreshAfterPlaybackControl()
         case .localPlayer:
             localPlayer.play()
         }
@@ -167,8 +180,12 @@ final class MediaController: ObservableObject {
     func pause() {
         switch playbackSource {
         case .musicApp:
-            MusicAppScriptController.pause()
-            musicMonitor.refresh()
+            if usesMusicKitPlayback {
+                MusicKitNowPlayingReader.pause()
+            } else {
+                MusicAppScriptController.pause()
+            }
+            refreshAfterPlaybackControl()
         case .localPlayer:
             localPlayer.pause()
         }
@@ -177,8 +194,12 @@ final class MediaController: ObservableObject {
     func nextTrack() {
         switch playbackSource {
         case .musicApp:
-            MusicAppScriptController.nextTrack()
-            musicMonitor.refresh()
+            if usesMusicKitPlayback {
+                MusicKitNowPlayingReader.skipToNext()
+            } else {
+                MusicAppScriptController.nextTrack()
+            }
+            refreshAfterPlaybackControl()
         case .localPlayer:
             localPlayer.nextInQueue()
         }
@@ -187,10 +208,22 @@ final class MediaController: ObservableObject {
     func previousTrack() {
         switch playbackSource {
         case .musicApp:
-            MusicAppScriptController.previousTrack()
-            musicMonitor.refresh()
+            if usesMusicKitPlayback {
+                MusicKitNowPlayingReader.skipToPrevious()
+            } else {
+                MusicAppScriptController.previousTrack()
+            }
+            refreshAfterPlaybackControl()
         case .localPlayer:
             localPlayer.previousInQueue()
+        }
+    }
+
+    private func refreshAfterPlaybackControl() {
+        musicMonitor.refresh()
+        Task {
+            try? await Task.sleep(nanoseconds: 150_000_000)
+            musicMonitor.refresh()
         }
     }
 

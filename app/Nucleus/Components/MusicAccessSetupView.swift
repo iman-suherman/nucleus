@@ -25,13 +25,21 @@ struct MusicAccessSetupView: View {
                 }
             }
 
-            Text("Nucleus needs two macOS permissions to search and play Apple Music.")
+            Text("Nucleus needs two macOS permissions to search, play, pause, and skip tracks from the mini player and Now Playing card.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
+            if access.isFullyReady {
+                Text("Music control is enabled. Catalog tracks use in-app controls; your library and AirPlay use Music.app.")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            } else {
+                setupInstructions
+            }
+
             permissionRow(
                 title: "Media & Apple Music",
-                detail: "Search the catalog and play tracks inside Nucleus.",
+                detail: "Search the Apple Music catalog and stream tracks inside Nucleus (play, pause, skip).",
                 isReady: access.isCatalogReady,
                 status: catalogStatusLabel
             ) {
@@ -44,7 +52,7 @@ struct MusicAccessSetupView: View {
 
             permissionRow(
                 title: "Control Music.app",
-                detail: "Play songs from your library and skip tracks via the Music app.",
+                detail: "Play your library, route AirPlay speakers, and control Music.app when catalog streaming is off.",
                 isReady: access.isAutomationReady,
                 status: automationStatusLabel
             ) {
@@ -90,6 +98,55 @@ struct MusicAccessSetupView: View {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .strokeBorder(Color.accentColor.opacity(access.isFullyReady ? 0 : 0.25), lineWidth: 1)
         )
+    }
+
+    private var setupInstructions: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("How to enable music control")
+                .font(.caption.weight(.semibold))
+
+            instructionStep(
+                1,
+                "Click **Set Up Access** below and allow the macOS prompts for Apple Music."
+            )
+            instructionStep(
+                2,
+                "Open **System Settings → Privacy & Security → Media & Apple Music** and turn on **Nucleus**."
+            )
+            instructionStep(
+                3,
+                "Open **System Settings → Privacy & Security → Automation**, expand **Nucleus**, and turn on **Music**."
+            )
+            instructionStep(
+                4,
+                "Return here and click **Recheck Access** until both rows show Allowed."
+            )
+            instructionStep(
+                5,
+                "Search a song, click a result, then use the header mini player or Now Playing controls to pause or skip."
+            )
+
+            Text("Apple Music catalog tracks play inside Nucleus. Your library and AirPlay speakers use Music.app — enable Automation for those.")
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+
+    @ViewBuilder
+    private func instructionStep(_ number: Int, _ text: LocalizedStringKey) -> some View {
+        HStack(alignment: .top, spacing: 8) {
+            Text("\(number).")
+                .font(.caption2.monospacedDigit().weight(.semibold))
+                .foregroundStyle(.secondary)
+                .frame(width: 14, alignment: .trailing)
+            Text(text)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 
     private var catalogStatusLabel: String {

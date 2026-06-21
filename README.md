@@ -125,6 +125,38 @@ npm run run:app          # launch Nucleus.app only
 
 Each account gets its own isolated web session for Gmail, Chat, and Calendar.
 
+## Music workspace
+
+Search Apple Music, play tracks from the catalog, view synced lyrics, and control playback from the header mini player or the Music workspace.
+
+### Enable music control
+
+Nucleus needs **two macOS permissions** before search, play, pause, and skip work reliably:
+
+| Permission | System Settings path | What it enables |
+|------------|----------------------|-----------------|
+| **Media & Apple Music** | Privacy & Security → Media & Apple Music → Nucleus | Apple Music catalog search and in-app streaming (MusicKit). Mini player and Now Playing pause/skip for catalog tracks. |
+| **Automation (Nucleus → Music)** | Privacy & Security → Automation → Nucleus → Music | Control Music.app for your library, AirPlay speaker routing, and fallback playback. |
+
+**Setup steps**
+
+1. Open **Music** in the Nucleus sidebar.
+2. Set the source picker to **Music App** (not Nucleus Player).
+3. In the **Music Access** card, click **Set Up Access** and allow the macOS prompts.
+4. If either permission stays denied, click **Open Settings** or **Fix** on the row that needs attention:
+   - **Media & Apple Music:** enable **Nucleus**
+   - **Automation:** expand **Nucleus** and enable **Music**
+5. Click **Recheck Access** until both rows show **Allowed**.
+6. Search for a song, click a result, then use the header mini player or **Now Playing** controls to pause or skip.
+
+**Playback modes**
+
+- **Apple Music catalog** (search results labeled “Apple Music catalog”) — streams inside Nucleus via MusicKit. Pause and skip use the in-app controls; AirPlay to HomePods requires **Play via Music.app for AirPlay** in the AirPlay menu.
+- **Your Music library** — plays through Music.app; requires the Automation permission above.
+- **Nucleus Player** — local audio files only; use **Open Files** in the Music workspace header.
+
+An active **Apple Music subscription** is required for catalog streaming. Install **Music.app** from the App Store if Automation reports it missing.
+
 ## Releases
 
 Download the latest build from the [Nucleus website](https://nucleus.suherman.net) or check **Nucleus → Check for Updates** in the app.

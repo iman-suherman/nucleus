@@ -50,6 +50,7 @@ const guides = [
   ['Development', `${DEV_COMMAND} → edit Sources/ · app/ → repeat`],
   ['Debug', 'npm run xcode → scheme Nucleus → ⌘R · breakpoints · Instruments'],
   ['Operate app', 'Add Google accounts → Inbox · Calendar · Clipboard · Notes'],
+  ['Music', 'Music sidebar → Set Up Access → Media & Apple Music + Automation (Nucleus → Music)'],
   ['Install', `${INSTALL_COMMAND} → open Nucleus.dmg → drag Nucleus.app to Applications`],
 ];
 

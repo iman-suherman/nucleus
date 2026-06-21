@@ -114,4 +114,48 @@ enum MusicKitNowPlayingReader {
             return nil
         }
     }
+
+    static func togglePlayPause() {
+        let player = ApplicationMusicPlayer.shared
+        switch player.state.playbackStatus {
+        case .playing:
+            player.pause()
+        case .paused, .interrupted, .stopped:
+            Task { @MainActor in
+                try? await player.play()
+            }
+        @unknown default:
+            break
+        }
+    }
+
+    static func play() {
+        Task { @MainActor in
+            try? await ApplicationMusicPlayer.shared.play()
+        }
+    }
+
+    static func pause() {
+        ApplicationMusicPlayer.shared.pause()
+    }
+
+    static func skipToNext() {
+        Task { @MainActor in
+            let player = ApplicationMusicPlayer.shared
+            try? await player.skipToNextEntry()
+            if player.state.playbackStatus != .playing {
+                try? await player.play()
+            }
+        }
+    }
+
+    static func skipToPrevious() {
+        Task { @MainActor in
+            let player = ApplicationMusicPlayer.shared
+            try? await player.skipToPreviousEntry()
+            if player.state.playbackStatus != .playing {
+                try? await player.play()
+            }
+        }
+    }
 }
