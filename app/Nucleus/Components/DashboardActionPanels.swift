@@ -75,16 +75,10 @@ struct DashboardNucleusAIPanel: View {
                             .foregroundStyle(.secondary)
                     }
                 } else if let answer = aiService.lastAnswer {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(answer)
-                            .font(.caption)
-                            .foregroundStyle(.primary)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .textSelection(.enabled)
-
+                    VStack(alignment: .leading, spacing: 6) {
                         HStack(spacing: 8) {
                             Button {
-                                copyAnswer(answer)
+                                copyAnswer(answer, question: question)
                             } label: {
                                 Label(copyConfirmed ? "Copied" : "Copy", systemImage: copyConfirmed ? "checkmark" : "doc.on.doc")
                             }
@@ -101,7 +95,15 @@ struct DashboardNucleusAIPanel: View {
                             }
                             .buttonStyle(.bordered)
                             .controlSize(.mini)
+
+                            Spacer(minLength: 0)
                         }
+
+                        Text(answer)
+                            .font(.caption)
+                            .foregroundStyle(.primary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .textSelection(.enabled)
                     }
                 } else if let error = aiService.lastError {
                     Text(error)
@@ -155,9 +157,19 @@ struct DashboardNucleusAIPanel: View {
         }
     }
 
-    private func copyAnswer(_ text: String) {
+    private func copyAnswer(_ text: String, question: String) {
+        let trimmedQuestion = question.trimmingCharacters(in: .whitespacesAndNewlines)
+        let downloadURL = AppSettings.marketingWebsiteURL.absoluteString
+        var payload = text.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if !trimmedQuestion.isEmpty {
+            payload = "Question: \(trimmedQuestion)\n\n\(payload)"
+        }
+
+        payload += "\n\n— Nucleus AI\n\nWant the same experience? Download Nucleus from \(downloadURL)"
+
         NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(text, forType: .string)
+        NSPasteboard.general.setString(payload, forType: .string)
         copyConfirmed = true
         Task {
             try? await Task.sleep(for: .seconds(1.5))

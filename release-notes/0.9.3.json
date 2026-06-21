@@ -1,0 +1,15 @@
+{
+  "version": "0.9.3",
+  "summary": "Nucleus AI copy includes question context, attribution, and download link.",
+  "releaseNotes": {
+    "introduced": [],
+    "changed": [
+      "Nucleus AI Copy and Speak buttons sit above the answer",
+      "Copied answers include the question, Nucleus AI attribution, and a link to download from nucleus.suherman.net"
+    ],
+    "fixed": [],
+    "updated": [],
+    "removed": [],
+    "breaking": []
+  }
+}
