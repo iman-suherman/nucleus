@@ -1,16 +1,16 @@
 {
-  "version": "0.9.1",
-  "summary": "Dashboard AI and music polish, natural greeting, and collapsible quick-action panels.",
+  "version": "0.9.2",
+  "summary": "More confident Nucleus AI answers plus copy and speak on the dashboard.",
   "releaseNotes": {
     "introduced": [
-      "Collapsible Nucleus AI and Apple Music panels with dashboard settings toggles"
+      "Copy and Speak buttons on Nucleus AI dashboard answers"
     ],
     "changed": [
-      "Dashboard greeting weaves the day and date into a natural sentence with the quote underneath",
-      "Apple Music search shows album artwork, scrolls through all results, and matches Nucleus AI panel height"
+      "Nucleus AI reasoner uses Google Search grounding whenever retrieval is empty, not only for general-knowledge questions",
+      "Reasoner temperature raised to 0.55 for clearer, more confident answers"
     ],
     "fixed": [
-      "Nucleus AI retries over IPv4 when local DNS only resolves unreachable IPv6 for nucleus-ai.suherman.net"
+      "Nucleus AI no longer falls back to \"not enough retrieved evidence\" for factual questions when web search returns no results"
     ],
     "updated": [],
     "removed": [],
