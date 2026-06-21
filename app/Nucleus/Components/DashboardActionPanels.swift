@@ -472,7 +472,7 @@ struct DashboardMusicPanel: View {
 @ViewBuilder
 private func dashboardAISlowReadingScrollArea<Content: View>(
     scrollTrigger: String?,
-    @ViewBuilder content: () -> Content
+    @ViewBuilder content: @escaping () -> Content
 ) -> some View {
     DashboardAISlowReadingScrollArea(scrollTrigger: scrollTrigger, content: content)
 }
