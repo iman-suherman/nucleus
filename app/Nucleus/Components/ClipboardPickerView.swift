@@ -3,6 +3,19 @@ import ClipboardKit
 import NucleusKit
 import SwiftUI
 
+@MainActor
+final class ClipboardPickerKeyboardBridge {
+    var isEnabled = true
+    var isSearchFocused = false
+    var focusSearch: (() -> Void)?
+    var appendToQuery: ((String) -> Void)?
+    var deleteFromQuery: (() -> Void)?
+    var moveUp: (() -> Void)?
+    var moveDown: (() -> Void)?
+    var submit: (() -> Void)?
+    var dismiss: (() -> Void)?
+}
+
 struct ClipboardPickerView: View {
     let entries: [ClipboardEntry]
     let onSelect: (ClipboardEntry) -> Void
@@ -12,9 +25,10 @@ struct ClipboardPickerView: View {
     @State private var highlightedID: UUID?
     @State private var confirmedSelectionID: UUID?
     @State private var isConfirmingSelection = false
+    @State private var keyboardBridge = ClipboardPickerKeyboardBridge()
     @FocusState private var searchFocused: Bool
 
-    private let selectionConfirmationDelay: Duration = .milliseconds(420)
+    private let selectionConfirmationDelay: Duration = .milliseconds(1000)
 
     private var filteredEntries: [ClipboardEntry] {
         ClipboardSearch.rank(entries, query: query)
@@ -35,17 +49,6 @@ struct ClipboardPickerView: View {
                 .textFieldStyle(.roundedBorder)
                 .focused($searchFocused)
                 .disabled(isConfirmingSelection)
-                .onKeyPress(.upArrow) {
-                    moveHighlight(by: -1)
-                    return .handled
-                }
-                .onKeyPress(.downArrow) {
-                    moveHighlight(by: 1)
-                    return .handled
-                }
-                .onSubmit {
-                    submitHighlightedSelection()
-                }
 
             if filteredEntries.isEmpty {
                 ContentUnavailableView(
@@ -77,6 +80,9 @@ struct ClipboardPickerView: View {
                     .onChange(of: highlightedID) { _, id in
                         scrollToHighlight(id, proxy: proxy)
                     }
+                    .onChange(of: filteredEntries.map(\.id)) { _, _ in
+                        scrollToHighlight(highlightedID, proxy: proxy)
+                    }
                     .onAppear {
                         scrollToHighlight(highlightedID, proxy: proxy)
                     }
@@ -89,13 +95,23 @@ struct ClipboardPickerView: View {
         }
         .padding(16)
         .frame(width: 520, height: 360)
+        .background {
+            ClipboardPickerKeyMonitor(bridge: keyboardBridge)
+        }
         .onAppear {
+            syncKeyboardBridge()
             highlightedID = filteredEntries.first?.id
             searchFocused = true
         }
         .onChange(of: query) { _, _ in
             guard !isConfirmingSelection else { return }
             highlightedID = filteredEntries.first?.id
+        }
+        .onChange(of: isConfirmingSelection) { _, _ in
+            syncKeyboardBridge()
+        }
+        .onChange(of: searchFocused) { _, _ in
+            syncKeyboardBridge()
         }
         .onExitCommand {
             guard !isConfirmingSelection else { return }
@@ -104,6 +120,33 @@ struct ClipboardPickerView: View {
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { _ in
             guard !isConfirmingSelection else { return }
             searchFocused = true
+        }
+    }
+
+    private func syncKeyboardBridge() {
+        keyboardBridge.isEnabled = !isConfirmingSelection
+        keyboardBridge.isSearchFocused = searchFocused
+        keyboardBridge.focusSearch = {
+            searchFocused = true
+        }
+        keyboardBridge.appendToQuery = { text in
+            query += text
+        }
+        keyboardBridge.deleteFromQuery = {
+            guard !query.isEmpty else { return }
+            query.removeLast()
+        }
+        keyboardBridge.moveUp = {
+            moveHighlight(by: -1)
+        }
+        keyboardBridge.moveDown = {
+            moveHighlight(by: 1)
+        }
+        keyboardBridge.submit = {
+            submitHighlightedSelection()
+        }
+        keyboardBridge.dismiss = {
+            onDismiss()
         }
     }
 
@@ -144,6 +187,127 @@ struct ClipboardPickerView: View {
             try? await Task.sleep(for: selectionConfirmationDelay)
             onSelect(entry)
         }
+    }
+}
+
+private struct ClipboardPickerKeyMonitor: NSViewRepresentable {
+    let bridge: ClipboardPickerKeyboardBridge
+
+    func makeNSView(context: Context) -> ClipboardPickerKeyMonitorView {
+        let view = ClipboardPickerKeyMonitorView()
+        view.bridge = bridge
+        return view
+    }
+
+    func updateNSView(_ nsView: ClipboardPickerKeyMonitorView, context: Context) {
+        nsView.bridge = bridge
+    }
+}
+
+private final class ClipboardPickerKeyMonitorView: NSView {
+    var bridge: ClipboardPickerKeyboardBridge?
+    private var keyMonitor: Any?
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        if window != nil {
+            installKeyMonitor()
+        } else {
+            removeKeyMonitor()
+        }
+    }
+
+    deinit {
+        removeKeyMonitor()
+    }
+
+    private func installKeyMonitor() {
+        guard keyMonitor == nil else { return }
+
+        keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard let self else { return event }
+            return self.handleKeyDown(event)
+        }
+    }
+
+    private func removeKeyMonitor() {
+        if let keyMonitor {
+            NSEvent.removeMonitor(keyMonitor)
+            self.keyMonitor = nil
+        }
+    }
+
+    private func handleKeyDown(_ event: NSEvent) -> NSEvent? {
+        guard let bridge, bridge.isEnabled else { return event }
+
+        switch event.keyCode {
+        case 53:
+            bridge.dismiss?()
+            return nil
+        case 126:
+            bridge.moveUp?()
+            return nil
+        case 125:
+            bridge.moveDown?()
+            return nil
+        case 36, 76:
+            bridge.submit?()
+            return nil
+        default:
+            break
+        }
+
+        guard shouldCaptureTyping(event) else { return event }
+
+        if bridge.isSearchFocused || Self.isSearchFieldFirstResponder(in: window) {
+            return event
+        }
+
+        if event.keyCode == 51 || event.keyCode == 117 {
+            bridge.focusSearch?()
+            bridge.deleteFromQuery?()
+            return nil
+        }
+
+        if let characters = event.characters, !characters.isEmpty {
+            bridge.focusSearch?()
+            bridge.appendToQuery?(characters)
+            return nil
+        }
+
+        return event
+    }
+
+    private func shouldCaptureTyping(_ event: NSEvent) -> Bool {
+        let flags = event.modifierFlags.intersection([.command, .control, .option])
+        if flags.contains(.command) || flags.contains(.control) {
+            return false
+        }
+
+        if event.keyCode == 51 || event.keyCode == 117 {
+            return true
+        }
+
+        guard let characters = event.characters, !characters.isEmpty else { return false }
+        return characters.unicodeScalars.allSatisfy { scalar in
+            if CharacterSet.alphanumerics.contains(scalar) { return true }
+            if CharacterSet.punctuationCharacters.contains(scalar) { return true }
+            if CharacterSet.whitespacesAndNewlines.contains(scalar) { return true }
+            if CharacterSet.symbols.contains(scalar) { return true }
+            return false
+        }
+    }
+
+    private static func isSearchFieldFirstResponder(in window: NSWindow?) -> Bool {
+        guard let responder = window?.firstResponder else { return false }
+        if responder is NSTextField || responder is NSTextView {
+            return true
+        }
+        if let view = responder as? NSView {
+            let name = String(describing: type(of: view))
+            return name.contains("TextField") || name.contains("TextEditor")
+        }
+        return false
     }
 }
 

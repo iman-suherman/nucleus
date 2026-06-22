@@ -9,6 +9,8 @@ final class ClipboardPasteController: NSObject {
     static let shared = ClipboardPasteController()
 
     private var panel: NSPanel?
+    private var feedbackPanel: NSPanel?
+    private var feedbackDismissTask: Task<Void, Never>?
     private var globalMonitor: Any?
     private var localMonitor: Any?
     private var outsideClickMonitor: Any?
@@ -113,16 +115,18 @@ final class ClipboardPasteController: NSObject {
 
     private func apply(_ entry: ClipboardEntry) {
         let targetApp = previousFrontmostApp ?? NSWorkspace.shared.frontmostApplication
+        let copiedContent = entry.content
         ClipboardPasteReuseStore.record(entry: entry)
         dismissPicker(reactivatePreviousApp: false)
 
-        ClipboardMonitorService.shared.preparePaste(entry.content)
+        ClipboardMonitorService.shared.preparePaste(copiedContent)
 
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
-        pasteboard.setString(entry.content, forType: .string)
+        pasteboard.setString(copiedContent, forType: .string)
         ClipboardMonitorService.shared.completePaste()
 
+        showPasteFeedback(content: copiedContent)
         targetApp?.activate(options: [.activateIgnoringOtherApps, .activateAllWindows])
     }
 
@@ -135,6 +139,77 @@ final class ClipboardPasteController: NSObject {
             previousFrontmostApp.activate(options: [.activateIgnoringOtherApps, .activateAllWindows])
         }
         previousFrontmostApp = nil
+    }
+
+    private func showPasteFeedback(content: String) {
+        feedbackDismissTask?.cancel()
+        dismissPasteFeedback()
+
+        let hosting = NSHostingController(rootView: ClipboardPasteFeedbackView(content: content))
+        hosting.view.layoutSubtreeIfNeeded()
+        let fittingSize = hosting.view.fittingSize
+        let panelSize = NSSize(
+            width: max(280, min(fittingSize.width, 520)),
+            height: max(72, fittingSize.height)
+        )
+
+        let panel = NSPanel(
+            contentRect: NSRect(origin: .zero, size: panelSize),
+            styleMask: [.borderless, .nonactivatingPanel],
+            backing: .buffered,
+            defer: false
+        )
+        panel.isOpaque = false
+        panel.backgroundColor = .clear
+        panel.hasShadow = false
+        panel.level = .floating
+        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient]
+        panel.hidesOnDeactivate = false
+        panel.isReleasedWhenClosed = false
+        panel.contentViewController = hosting
+        panel.contentView?.wantsLayer = true
+        panel.contentView?.layer?.backgroundColor = NSColor.clear.cgColor
+        panel.setFrame(panelFrame(for: panelSize), display: false)
+        panel.alphaValue = 0
+        panel.orderFrontRegardless()
+
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.16
+            panel.animator().alphaValue = 1
+        }
+
+        feedbackPanel = panel
+        feedbackDismissTask = Task {
+            try? await Task.sleep(for: .seconds(1))
+            guard !Task.isCancelled else { return }
+            dismissPasteFeedback()
+        }
+    }
+
+    private func dismissPasteFeedback() {
+        feedbackDismissTask?.cancel()
+        feedbackDismissTask = nil
+
+        guard let feedbackPanel else { return }
+        let panel = feedbackPanel
+        self.feedbackPanel = nil
+
+        NSAnimationContext.runAnimationGroup({ context in
+            context.duration = 0.18
+            panel.animator().alphaValue = 0
+        }, completionHandler: {
+            panel.orderOut(nil)
+        })
+    }
+
+    private func panelFrame(for size: NSSize) -> NSRect {
+        let screen = NSScreen.main ?? NSScreen.screens.first
+        let visible = screen?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1280, height: 800)
+        let origin = NSPoint(
+            x: visible.midX - (size.width / 2),
+            y: visible.midY - (size.height / 2)
+        )
+        return NSRect(origin: origin, size: size)
     }
 
     private func installFallbackKeyMonitors() {
