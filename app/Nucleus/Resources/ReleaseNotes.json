@@ -1,17 +1,18 @@
 {
-  "version": "0.9.6",
-  "summary": "Stop automatic artist lookups in Nucleus AI and polish dashboard alert overlays.",
+  "version": "0.9.7",
+  "summary": "Smoother ⇧⌘V clipboard picker navigation with a glass paste confirmation toast.",
   "releaseNotes": {
-    "introduced": [],
+    "introduced": [
+      "After selecting a clip, a brief glass-style toast shows what was copied to the clipboard"
+    ],
     "changed": [
-      "Dashboard breaking news overlay puts Open story first and renames Not now to Close",
-      "Dashboard incoming mail overlay renames Not now to Close with clearer pointer cursors on buttons"
+      "⇧⌘V picker uses ↑↓ to browse full history or search results with auto-scroll",
+      "Typing any character (except Esc) immediately filters clips in Search clips…",
+      "Return keeps the selected row highlighted for one second before closing"
     ],
     "fixed": [],
     "updated": [],
-    "removed": [
-      "Nucleus AI no longer auto-asks about the artist when Apple Music plays on the dashboard"
-    ],
+    "removed": [],
     "breaking": []
   }
 }
