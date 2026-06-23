@@ -1,16 +1,11 @@
 const { loadDotenv } = require("./load-dotenv.cjs");
-const { resolveAdcPath } = require("./gcp-lib-adc.cjs");
+const { buildGcpCliEnv } = require("./gcp-config.cjs");
 
 function applyGcpEnv(repoRoot) {
   loadDotenv(repoRoot);
-
-  const adcPath = resolveAdcPath(repoRoot);
-  if (adcPath) {
-    process.env.GOOGLE_APPLICATION_CREDENTIALS = adcPath;
-    return;
-  }
-
-  delete process.env.GOOGLE_APPLICATION_CREDENTIALS;
+  const env = buildGcpCliEnv(repoRoot);
+  Object.assign(process.env, env);
+  return env;
 }
 
 module.exports = { applyGcpEnv };

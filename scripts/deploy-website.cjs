@@ -6,8 +6,7 @@ const fs = require("fs");
 const os = require("os");
 const path = require("path");
 const { resolveGcpProjectId } = require("./gcp-config.cjs");
-const { getProjectAdcPath } = require("./gcp-lib-adc.cjs");
-const { loadDotenv } = require("./load-dotenv.cjs");
+const { applyGcpEnv } = require("./apply-gcp-env.cjs");
 const { secretExists } = require("./gcp-secrets.cjs");
 const { getDeployTarget } = require("./deploy-config.cjs");
 const { recordDirectDeployOutcome } = require("./deploy-record-direct.cjs");
@@ -42,12 +41,11 @@ const SYNC_SECRETS = ["AUTH_SECRET", "GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLI
 const REQUIRED_SYNC_SECRETS = ["AUTH_SECRET"];
 const OPTIONAL_SYNC_SECRETS = ["GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_SECRET"];
 
-function applyGcpEnv() {
-  loadDotenv(root);
-  const projectAdc = getProjectAdcPath(root);
-  if (fs.existsSync(projectAdc)) {
-    process.env.GOOGLE_APPLICATION_CREDENTIALS = projectAdc;
-  }
+let gcpEnv = process.env;
+
+function ensureGcpEnv() {
+  gcpEnv = applyGcpEnv(root);
+  return gcpEnv;
 }
 
 function run(command, args, options = {}) {
@@ -55,7 +53,7 @@ function run(command, args, options = {}) {
     stdio: "inherit",
     cwd: options.cwd || root,
     shell,
-    env: process.env,
+    env: gcpEnv,
   });
   if (r.error) throw r.error;
   if (r.status !== 0) {
@@ -132,7 +130,7 @@ function grantSecretAccessor(projectId, secretId) {
   const projectNumber = spawnSync(
     "gcloud",
     ["projects", "describe", projectId, "--format=value(projectNumber)"],
-    { encoding: "utf8", shell },
+    { encoding: "utf8", shell, env: gcpEnv },
   );
   if (projectNumber.status !== 0) return;
   const serviceAccount = `${projectNumber.stdout.trim()}-compute@developer.gserviceaccount.com`;
@@ -147,12 +145,12 @@ function grantSecretAccessor(projectId, secretId) {
       "--role=roles/secretmanager.secretAccessor",
       "--quiet",
     ],
-    { stdio: "ignore", shell },
+    { stdio: "ignore", shell, env: gcpEnv },
   );
 }
 
 function main() {
-  applyGcpEnv();
+  ensureGcpEnv();
 
   const projectId = resolveGcpProjectId(root);
   if (!projectId) fail("GCP_PROJECT_ID is not set. Run: npm run login");
