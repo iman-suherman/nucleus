@@ -74,7 +74,11 @@ public final class NotesMetadataService: ObservableObject {
 
     private static func statusMessage() -> String {
         if NucleusDatabase.usesCloudKitSync {
+            #if os(iOS)
+            return "Syncing notes via private cloud"
+            #else
             return "Syncing notes via iCloud CloudKit"
+            #endif
         }
         if let error = NucleusDatabase.lastCloudKitSetupError {
             return error

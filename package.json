@@ -4,7 +4,7 @@
   "displayName": "Nucleus",
   "publisher": "Iman Suherman",
   "private": true,
-  "description": "Personal Operating System for macOS. A native Swift workspace that unifies Gmail, notes, clipboard intelligence, bills, passwords, and notifications across multiple Google accounts.",
+  "description": "Personal Workspace for macOS. A native Swift workspace that unifies Gmail, notes, clipboard intelligence, bills, passwords, and notifications across multiple Google accounts.",
   "dependencies": {
     "@google-cloud/firestore": "^8.6.0"
   },
@@ -27,6 +27,7 @@
     "prepare:icon": "bash scripts/prepare-app-icon.sh && swift scripts/generate-app-icon.swift app/Nucleus/Assets.xcassets/AppIcon.appiconset app/Nucleus/Assets/AppIconSource.png",
     "prepare:ios-icon": "bash nucleus-apple/scripts/prepare-ios-app-icon.sh",
     "capture:ios-screenshots": "bash nucleus-apple/scripts/capture-app-store-screenshots.sh",
+    "validate:ios-app-store": "bash nucleus-apple/scripts/validate-ios-app-store.sh",
     "prepare:website": "swift scripts/prepare-website-assets.swift",
     "build:app:release": "bash scripts/build.sh release",
     "sign": "bash scripts/sign.sh",

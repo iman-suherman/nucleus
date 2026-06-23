@@ -1,6 +1,6 @@
 # Nucleus
 
-**Personal Operating System for macOS**
+**Personal Workspace for macOS**
 
 Nucleus is a native macOS workspace that centralises communication, scheduling, knowledge capture, and daily execution into a single app.
 

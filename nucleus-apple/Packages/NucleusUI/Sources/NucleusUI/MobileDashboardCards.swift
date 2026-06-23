@@ -253,7 +253,7 @@ public struct DashboardCloudSyncCard: View {
 
             VStack(spacing: 0) {
                 syncRow(
-                    title: "iCloud",
+                    title: "Cloud sync",
                     systemImage: "icloud.fill",
                     isConnected: syncService.isSyncAvailable && notesService.usesCloudKitSync,
                     statusLabel: statusLabel

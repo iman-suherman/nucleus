@@ -54,14 +54,14 @@ struct NucleusBrandMark: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
-                    Text("Personal Operating System")
+                    Text("Personal Workspace")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
             }
         }
         .accessibilityElement(children: showText ? .contain : .ignore)
-        .accessibilityLabel(showText ? "Nucleus version \(AppSettings.currentAppVersion), Personal Operating System" : "Open Nucleus website")
+        .accessibilityLabel(showText ? "Nucleus version \(AppSettings.currentAppVersion), Personal Workspace" : "Open Nucleus website")
     }
 }
 

@@ -8,7 +8,7 @@ import { VersionHistoryShowcase } from "@/components/VersionHistoryShowcase";
 import { OpenSourceSection } from "@/components/OpenSourceSection";
 import { SHARE_IMAGE, SITE_URL } from "@/lib/site";
 
-const homeTitle = "Nucleus — Personal Operating System for macOS";
+const homeTitle = "Nucleus — Personal Workspace";
 const homeDescription =
   "Unify Gmail, bills, clipboard intelligence, markdown notes, password vault, and Funky alerts across multiple Google accounts — with a Dashboard that analyses your day, surfaces productivity insights from clipboard activity, and summarizes what needs attention at a glance.";
 

@@ -32,7 +32,6 @@ final class AppStoreScreenshotTests: XCTestCase {
         }
 
         XCTAssertTrue(waitForMainInterface(app: app, timeout: 60))
-        dismissWeatherPromptIfNeeded(app: app)
         sleep(1)
         saveScreenshot(named: "01-dashboard", app: app)
 
@@ -52,7 +51,7 @@ final class AppStoreScreenshotTests: XCTestCase {
             let editor = app.textViews.firstMatch
             if editor.waitForExistence(timeout: 3) {
                 editor.tap()
-                editor.typeText("# Weekly plan\n\n- Review bills\n- Update passwords\n- Sync with Mac")
+                editor.typeText("# Weekly plan\n\n- Review bills\n- Update passwords\n- Sync with computer")
             }
             saveScreenshot(named: "03-notes-detail", app: app)
             goBack(app: app)
@@ -83,14 +82,6 @@ final class AppStoreScreenshotTests: XCTestCase {
             count: stringValue.count
         )
         element.typeText(deleteString)
-    }
-
-    private func dismissWeatherPromptIfNeeded(app: XCUIApplication) {
-        let notNow = app.buttons["Not Now"]
-        if notNow.waitForExistence(timeout: 3) {
-            notNow.tap()
-            sleep(1)
-        }
     }
 
     private func fillPasswordForm(app: XCUIApplication) {

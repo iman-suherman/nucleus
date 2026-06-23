@@ -71,7 +71,7 @@ struct StartupSplashOverlay: View {
                 VStack(spacing: 6) {
                     Text("Starting Nucleus")
                         .font(.title2.bold())
-                    Text("Personal Operating System · v\(version)")
+                    Text("Personal Workspace · v\(version)")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }

@@ -537,7 +537,7 @@ struct AppSettingsView: View {
     private var aboutSection: some View {
         Section("About") {
             LabeledContent("Version", value: AppSettings.currentAppVersion)
-            LabeledContent("Tagline", value: "Personal Operating System for macOS")
+            LabeledContent("Tagline", value: "Personal Workspace")
         }
     }
 

@@ -2,7 +2,7 @@ import Combine
 import Foundation
 import SyncKit
 
-/// Surfaces iCloud / CloudKit sync state for mobile UI.
+/// Surfaces cloud sync state for mobile UI.
 @MainActor
 public final class ICloudSyncDisplayService: ObservableObject {
     public static let shared = ICloudSyncDisplayService()
@@ -47,13 +47,36 @@ public final class ICloudSyncDisplayService: ObservableObject {
             return accountName
         }
         if isSignedIn {
+            #if os(iOS)
+            return "Signed in"
+            #else
             return "Signed in to iCloud"
+            #endif
         }
         return "Not signed in"
     }
 
     public var statusLabel: String {
-        syncStatus.label
+        #if os(iOS)
+        switch syncStatus {
+        case .checking:
+            return "Checking cloud sync…"
+        case .available:
+            return "Syncing via private cloud"
+        case .noAccount:
+            return "Sign in to cloud sync"
+        case .restricted:
+            return "Cloud sync access restricted"
+        case .temporarilyUnavailable:
+            return "Cloud sync temporarily unavailable"
+        case .unavailable:
+            return "Cloud sync is not configured for this build"
+        case .error(let message):
+            return message
+        }
+        #else
+        return syncStatus.label
+        #endif
     }
 
     public var isSyncAvailable: Bool {

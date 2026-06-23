@@ -24,7 +24,5 @@
 	<array>
 		<string>$(AppIdentifierPrefix)net.suherman.nucleus</string>
 	</array>
-	<key>com.apple.developer.weatherkit</key>
-	<true/>
 </dict>
 </plist>

@@ -56,7 +56,7 @@ const guides = [
 
 console.log('');
 console.log(paint.highlight(' Nucleus '));
-console.log(paint.guide('Personal Operating System for macOS'));
+console.log(paint.guide('Personal Workspace for macOS'));
 console.log('');
 
 console.log(paint.phase('Quick start'));

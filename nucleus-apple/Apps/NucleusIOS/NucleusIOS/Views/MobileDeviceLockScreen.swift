@@ -53,7 +53,7 @@ struct MobileDeviceLockScreen: View {
                     .disabled(isUnlocking)
                     .padding(.horizontal, 32)
                 } else {
-                    Text("Open Settings → Face ID & Passcode (or Touch ID & Passcode) to secure this device, then return to Nucleus.")
+                    Text("Open device Settings → Passcode & security to enable biometric unlock, then return to Nucleus.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)

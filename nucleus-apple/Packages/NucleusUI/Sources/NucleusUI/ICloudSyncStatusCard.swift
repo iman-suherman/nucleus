@@ -14,28 +14,28 @@ public struct ICloudAccountDetailsView: View {
         Group {
             if syncService.isSignedIn {
                 if let name = syncService.accountName {
-                    LabeledContent("Apple ID") {
+                    LabeledContent("Account") {
                         Text(name)
                             .foregroundStyle(.secondary)
                             .multilineTextAlignment(.trailing)
                     }
                 } else {
-                    LabeledContent("Apple ID") {
+                    LabeledContent("Account") {
                         Text("Signed in")
                             .foregroundStyle(.secondary)
                     }
                 }
-                Text("Notes sync through this Apple ID. Use the same account on your Mac.")
+                Text("Notes sync through this account. Use the same account on your computer.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             } else {
-                Text("Sign in to iCloud in Settings → Apple ID → iCloud on this device.")
+                Text("Sign in to cloud sync in device Settings to sync notes from your computer.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
 
             if let onRefresh {
-                Button("Refresh Apple ID", action: onRefresh)
+                Button("Refresh account", action: onRefresh)
             }
         }
     }
@@ -69,7 +69,7 @@ public struct ICloudSyncStatusCard: View {
             }
 
             if let name = syncService.accountName {
-                LabeledContent("Apple ID") {
+                LabeledContent("Account") {
                     Text(name)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.trailing)
@@ -77,7 +77,7 @@ public struct ICloudSyncStatusCard: View {
             }
 
             LabeledContent("Notes storage") {
-                Text(notesService.usesCloudKitSync ? "iCloud CloudKit" : "This device only")
+                Text(notesService.usesCloudKitSync ? "Private cloud sync" : "This device only")
                     .foregroundStyle(notesService.usesCloudKitSync ? Color.secondary : Color.orange)
                     .multilineTextAlignment(.trailing)
             }
@@ -103,14 +103,14 @@ public struct ICloudSyncStatusCard: View {
             }
 
             if let lastChange = syncService.lastRemoteChangeAt {
-                LabeledContent("Last iCloud update") {
+                LabeledContent("Last cloud update") {
                     Text(lastChange, style: .relative)
                         .foregroundStyle(.secondary)
                 }
             }
 
             if let onRefresh {
-                Button("Refresh notes from iCloud", action: onRefresh)
+                Button("Refresh notes from cloud", action: onRefresh)
                     .font(.caption)
             }
         }
@@ -135,7 +135,7 @@ public struct NotesSyncFooter: View {
             if notesService.usesCloudKitSync {
                 Text("\(notesService.notes.count) notes · \(syncService.accountDisplayName)")
             } else {
-                Text("\(notesService.notes.count) notes · not syncing from Mac")
+                Text("\(notesService.notes.count) notes · not syncing from computer")
             }
         }
         .font(.caption2)

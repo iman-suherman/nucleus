@@ -6,7 +6,6 @@ import SwiftUI
 
 struct DashboardWorkspaceScreen: View {
     @EnvironmentObject private var viewModel: MobileAppViewModel
-    @StateObject private var weatherService = MobileDashboardWeatherService.shared
     @StateObject private var processMetricsService = DashboardProcessMetricsService.shared
     @StateObject private var holidayService = DashboardPublicHolidayService.shared
 
@@ -20,7 +19,6 @@ struct DashboardWorkspaceScreen: View {
                 VStack(alignment: .leading, spacing: 20) {
                     greetingHeader
                     insightSection
-                    weatherSection
                     publicHolidaySection
                     resourceAndSyncRow
                     statsGrid
@@ -30,7 +28,6 @@ struct DashboardWorkspaceScreen: View {
             }
             .navigationTitle("Dashboard")
             .onAppear {
-                weatherService.beginWeatherAccessFlow()
                 processMetricsService.startSamplingIfNeeded()
                 viewModel.refreshDashboardQuoteForCurrentContext()
                 viewModel.refreshDashboardQuoteEmojis()
@@ -43,22 +40,11 @@ struct DashboardWorkspaceScreen: View {
                 await viewModel.refreshICloudSync()
                 viewModel.refreshDashboardQuoteForCurrentContext()
                 viewModel.refreshDashboardQuoteEmojis()
-                weatherService.refreshIfNeeded()
                 holidayService.refresh(countryCode: Locale.current.region?.identifier, force: true)
             }
             .onChange(of: holidayService.nextHoliday?.date) { _, _ in
                 viewModel.refreshDashboardQuoteForCurrentContext()
                 viewModel.refreshDashboardQuoteEmojis()
-            }
-            .alert("Show today's weather?", isPresented: $weatherService.showLocationPermissionPrompt) {
-                Button("Allow Location Access") {
-                    weatherService.confirmLocationPermissionRequest()
-                }
-                Button("Not Now", role: .cancel) {
-                    weatherService.declineLocationPermission()
-                }
-            } message: {
-                Text("Nucleus uses your location to show today's forecast on the Dashboard.")
             }
         }
     }
@@ -108,21 +94,6 @@ struct DashboardWorkspaceScreen: View {
         viewModel.dashboardQuote
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .trimmingCharacters(in: CharacterSet(charactersIn: "\""))
-    }
-
-    private var weatherSection: some View {
-        DashboardWeatherCard(
-            weather: weatherService.weather,
-            isLoading: weatherService.isLoading,
-            isAwaitingDeviceLocation: weatherService.isAwaitingDeviceLocation,
-            statusMessage: weatherService.statusMessage,
-            locationPrompt: weatherService.locationAccessPrompt,
-            showsManualLocationEntry: weatherService.showsManualLocationEntry,
-            manualLocationDraft: $weatherService.manualLocationDraft,
-            onLocationAction: weatherService.performLocationAccessAction,
-            onManualLocationSubmit: weatherService.submitManualLocation,
-            onRetry: weatherService.retryWeatherFetch
-        )
     }
 
     private var publicHolidaySection: some View {

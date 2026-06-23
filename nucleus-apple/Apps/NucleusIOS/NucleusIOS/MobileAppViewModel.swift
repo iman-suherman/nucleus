@@ -70,7 +70,7 @@ final class MobileAppViewModel: ObservableObject {
 
     func bootstrap() async {
         isBootstrapping = true
-        statusMessage = "Connecting to iCloud…"
+        statusMessage = "Connecting to cloud sync…"
 
         normalizeSelectedTab()
         settingsSync.start(modelContainer: modelContainer)

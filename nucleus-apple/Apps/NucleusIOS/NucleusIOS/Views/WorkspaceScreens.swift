@@ -22,7 +22,7 @@ struct NotesWorkspaceScreen: View {
                         Button("New note") {
                             createNote()
                         }
-                        Button("Refresh from iCloud") {
+                        Button("Refresh sync") {
                             Task { await viewModel.refreshICloudSync() }
                         }
                     }
@@ -87,13 +87,13 @@ struct NotesWorkspaceScreen: View {
             return Text(viewModel.notesService.syncStatusMessage)
         }
         if let name = viewModel.iCloudSync.accountName {
-            return Text("Notes sync from your Mac via iCloud as \(name). Pull down to refresh.")
+            return Text("Notes sync from your computer via cloud sync as \(name). Pull down to refresh.")
         }
         if viewModel.iCloudSync.isSignedIn {
-            return Text("Notes sync from your Mac via iCloud. Pull down to refresh — first import can take a minute.")
+            return Text("Notes sync from your computer via cloud sync. Pull down to refresh — first import can take a minute.")
         }
         return Text(
-            "Sign in to iCloud in Settings → Apple ID → iCloud to sync notes from your Mac."
+            "Sign in to cloud sync in device Settings to sync notes from your computer."
         )
     }
 }
@@ -118,7 +118,7 @@ struct PasswordsWorkspaceScreen: View {
                         Button("New password") {
                             createPassword()
                         }
-                        Button("Refresh from iCloud") {
+                        Button("Refresh sync") {
                             Task { await viewModel.refreshICloudSync() }
                         }
                     }
@@ -176,13 +176,13 @@ struct PasswordsWorkspaceScreen: View {
             return Text(viewModel.notesService.syncStatusMessage)
         }
         if let name = viewModel.iCloudSync.accountName {
-            return Text("Password entries sync from your Mac via iCloud as \(name). Pull down to refresh.")
+            return Text("Password entries sync from your computer via cloud sync as \(name). Pull down to refresh.")
         }
         if viewModel.iCloudSync.isSignedIn {
-            return Text("Password entries sync from your Mac via iCloud. Pull down to refresh.")
+            return Text("Password entries sync from your computer via cloud sync. Pull down to refresh.")
         }
         return Text(
-            "Sign in to iCloud in Settings → Apple ID → iCloud to sync passwords from your Mac."
+            "Sign in to cloud sync in device Settings to sync passwords from your computer."
         )
     }
 }
@@ -204,7 +204,7 @@ struct SettingsWorkspaceScreen: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("iCloud account for notes") {
+                Section("Cloud account for notes") {
                     ICloudAccountDetailsView(syncService: viewModel.iCloudSync) {
                         Task { await viewModel.refreshICloudSync() }
                     }
@@ -236,7 +236,7 @@ struct SettingsWorkspaceScreen: View {
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                     } else {
-                        Text("App lock is off. Turn on Face ID or device passcode to protect your notes and passwords.")
+                        Text("App lock is off. Turn on biometric unlock or device passcode to protect your notes and passwords.")
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                     }
@@ -276,19 +276,21 @@ struct SettingsWorkspaceScreen: View {
                     Toggle("On due date", isOn: $billNotifyOnDueDate)
                         .disabled(!billNotificationsEnabled)
 
-                    Text("Local notifications for active bills with an amount still due. Reminders reschedule automatically when bills change. Settings sync with your Mac via iCloud.")
+                    Text("Local notifications for active bills with an amount still due. Reminders reschedule automatically when bills change. Settings sync with your computer via cloud sync.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
 
                 Section("Notes sync") {
-                    Text("Note content syncs through iCloud CloudKit using the Apple ID on this device.")
+                    Text("Note content syncs through private cloud sync using the signed-in account on this device.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
 
                 Section("About") {
-                    Text("Nucleus for iPhone and iPad is your mobile companion — Dashboard, Notes, Passwords, and Bills stay in sync with your Mac via iCloud.")
+                    LabeledContent("Version", value: mobileAppVersion)
+                    LabeledContent("Tagline", value: "Personal Workspace")
+                    Text("Nucleus for phone and tablet is your mobile companion — Dashboard, Notes, Passwords, and Bills stay in sync with your computer via cloud sync.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
@@ -314,6 +316,10 @@ struct SettingsWorkspaceScreen: View {
             .onChange(of: billNotifyOneDayBefore) { _, _ in pushNotificationSettingsIfNeeded() }
             .onChange(of: billNotifyOnDueDate) { _, _ in pushNotificationSettingsIfNeeded() }
         }
+    }
+
+    private var mobileAppVersion: String {
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"
     }
 
     private func applySyncedSettings() {

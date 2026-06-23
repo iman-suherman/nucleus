@@ -19,7 +19,7 @@
 	<key>CFBundleShortVersionString</key>
 	<string>1.0.0</string>
 	<key>CFBundleVersion</key>
-	<string>1</string>
+	<string>2</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>LSRequiresIPhoneOS</key>
@@ -27,13 +27,11 @@
 	<key>NSHumanReadableCopyright</key>
 	<string>Copyright © 2026 Iman Suherman</string>
 	<key>NSAccountsUsageDescription</key>
-	<string>Nucleus shows which iCloud account is syncing your notes.</string>
+	<string>Nucleus shows which cloud account is syncing your notes.</string>
 	<key>NSDiscoverabilityUsageDescription</key>
-	<string>Nucleus shows your iCloud email so you can confirm notes sync with the same Apple ID as your Mac.</string>
+	<string>Nucleus shows your signed-in account email so you can confirm notes sync with the same account as your computer.</string>
 	<key>NSFaceIDUsageDescription</key>
-	<string>Nucleus uses Face ID to unlock your notes and passwords.</string>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Nucleus uses your location to show today's forecast on the Dashboard.</string>
+	<string>Nucleus uses device biometrics to unlock your notes and passwords.</string>
 	<key>UILaunchScreen</key>
 	<dict/>
 	<key>UISupportedInterfaceOrientations</key>

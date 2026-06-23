@@ -44,9 +44,17 @@ xcodegen generate
 xcodebuild -scheme NucleusIOS -destination 'platform=iOS Simulator,name=iPhone 16' build
 ```
 
+## App Store resubmission
+
+```bash
+npm run validate:ios-app-store
+```
+
+See [`app-store-connect/ios-metadata.md`](app-store-connect/ios-metadata.md) for the full 11-phase checklist, review notes, and reply template.
+
 ## Product positioning
 
-Nucleus for iPhone and iPad is the **mobile companion** to your personal operating system — not a feature-parity clone of macOS. Clipboard history and background polling remain macOS-only.
+Nucleus for iPhone and iPad is the **mobile companion** to your personal workspace — not a feature-parity clone of macOS. Clipboard history and background polling remain macOS-only.
 
 ## macOS app
 

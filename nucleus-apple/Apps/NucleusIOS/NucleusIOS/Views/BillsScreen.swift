@@ -36,13 +36,13 @@ struct BillsWorkspaceScreen: View {
                     ContentUnavailableView {
                         Label("No bills yet", systemImage: "dollarsign.circle")
                     } description: {
-                        Text("Track recurring bills here. They sync with your Mac via iCloud.")
+                        Text("Track recurring bills here. They sync with your computer via cloud sync.")
                     } actions: {
                         Button("Add bill") {
                             editorContext = .add
                         }
                         .accessibilityIdentifier("bills.add.empty")
-                        Button("Refresh from iCloud") {
+                        Button("Refresh sync") {
                             Task { await viewModel.refreshICloudSync() }
                         }
                     }

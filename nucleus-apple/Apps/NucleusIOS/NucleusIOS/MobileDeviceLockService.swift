@@ -39,30 +39,12 @@ final class MobileDeviceLockService: ObservableObject {
     }
 
     var biometricSettingLabel: String {
-        switch biometryType {
-        case .faceID:
-            return "Require Face ID"
-        case .touchID:
-            return "Require Touch ID"
-        case .opticID:
-            return "Require Optic ID"
-        default:
-            return "Require biometric unlock"
-        }
+        "Require biometric unlock"
     }
 
     var unlockMethodLabel: String {
-        if requireBiometrics {
-            switch biometryType {
-            case .faceID:
-                return "Face ID"
-            case .touchID:
-                return "Touch ID"
-            case .opticID:
-                return "Optic ID"
-            default:
-                break
-            }
+        if requireBiometrics, biometryType != .none {
+            return "Biometrics"
         }
         return "Device passcode"
     }
@@ -223,7 +205,7 @@ final class MobileDeviceLockService: ObservableObject {
         case .biometryNotAvailable:
             return "Device authentication is unavailable. Set a passcode in Settings to use Nucleus."
         case .biometryNotEnrolled:
-            return "Set up Face ID, Touch ID, or a device passcode in Settings to use Nucleus."
+            return "Set up biometric unlock or a device passcode in Settings to use Nucleus."
         default:
             return error.localizedDescription
         }
