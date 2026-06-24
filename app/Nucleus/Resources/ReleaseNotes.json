@@ -1,6 +1,6 @@
 {
   "version": "0.9.10",
-  "summary": "Compact sidebar and a dashboard that reflows on smaller windows.",
+  "summary": "Compact sidebar, responsive dashboard, and breaking news auto-dismiss.",
   "releaseNotes": {
     "introduced": [
       "Sidebar size setting with Regular and Compact modes — Compact shows icons only to save horizontal space"
@@ -8,9 +8,12 @@
     "changed": [
       "Minimum window size lowered to 920×680 so Nucleus fits better on smaller displays",
       "Dashboard panels stack vertically when the content area is narrow, with tighter padding and spacing",
-      "Greeting text scales down slightly in compact dashboard layout"
+      "Greeting text scales down slightly in compact dashboard layout",
+      "Breaking news overlay shows a 20-second countdown and auto-dismisses when no action is taken"
     ],
-    "fixed": [],
+    "fixed": [
+      "Compact sidebar rows compile correctly in Release builds"
+    ],
     "updated": [],
     "removed": [],
     "breaking": []
