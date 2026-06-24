@@ -137,6 +137,41 @@ enum ChatNotificationSound: String, CaseIterable, Identifiable {
     }
 }
 
+enum SidebarSize: String, CaseIterable, Identifiable, Codable {
+    case regular
+    case compact
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .regular: return "Regular"
+        case .compact: return "Compact"
+        }
+    }
+
+    var minWidth: CGFloat {
+        switch self {
+        case .regular: return 260
+        case .compact: return 68
+        }
+    }
+
+    var idealWidth: CGFloat {
+        switch self {
+        case .regular: return 280
+        case .compact: return 72
+        }
+    }
+
+    var maxWidth: CGFloat {
+        switch self {
+        case .regular: return 340
+        case .compact: return 80
+        }
+    }
+}
+
 @MainActor
 final class AppSettings: ObservableObject {
     static let shared = AppSettings()
@@ -170,6 +205,7 @@ final class AppSettings: ObservableObject {
         static let billNotifyOneDayBefore = "nucleus.settings.billNotifyOneDayBefore"
         static let billNotifyOnDueDate = "nucleus.settings.billNotifyOnDueDate"
         static let dashboardPreferences = "nucleus.settings.dashboardPreferences"
+        static let sidebarSize = "nucleus.settings.sidebarSize"
         static let publicHolidayCountryCodes = "nucleus.settings.publicHolidayCountryCodes"
         static let mediaFavoritePlaylists = "nucleus.settings.mediaFavoritePlaylists"
         static let mediaShortcuts = "nucleus.settings.mediaShortcuts"
@@ -326,6 +362,10 @@ final class AppSettings: ObservableObject {
         didSet { Self.persistDashboardPreferences(dashboardPreferences) }
     }
 
+    @Published var sidebarSize: SidebarSize {
+        didSet { UserDefaults.standard.set(sidebarSize.rawValue, forKey: Keys.sidebarSize) }
+    }
+
     @Published var publicHolidayCountryCodes: [String] {
         didSet {
             let normalized = DashboardPublicHolidayService.normalizedCountryCodes(publicHolidayCountryCodes)
@@ -379,7 +419,24 @@ final class AppSettings: ObservableObject {
     }
 
     var sidebarWidth: CGFloat {
-        CGFloat(windowLayout?.sidebarWidth ?? 280)
+        CGFloat(windowLayout?.sidebarWidth ?? Double(SidebarSize.regular.idealWidth))
+    }
+
+    var sidebarColumnMinWidth: CGFloat {
+        sidebarSize.minWidth
+    }
+
+    var sidebarColumnIdealWidth: CGFloat {
+        switch sidebarSize {
+        case .regular:
+            return sidebarWidth
+        case .compact:
+            return sidebarSize.idealWidth
+        }
+    }
+
+    var sidebarColumnMaxWidth: CGFloat {
+        sidebarSize.maxWidth
     }
 
     var notesListWidth: CGFloat {
@@ -566,6 +623,13 @@ final class AppSettings: ObservableObject {
         }
 
         dashboardPreferences = Self.loadDashboardPreferences()
+
+        if let raw = UserDefaults.standard.string(forKey: Keys.sidebarSize),
+           let size = SidebarSize(rawValue: raw) {
+            sidebarSize = size
+        } else {
+            sidebarSize = .regular
+        }
         publicHolidayCountryCodes = UserDefaults.standard.stringArray(forKey: Keys.publicHolidayCountryCodes) ?? []
         mediaFavoritePlaylists = Self.loadMediaFavoritePlaylists()
         mediaShortcuts = Self.loadMediaShortcuts()

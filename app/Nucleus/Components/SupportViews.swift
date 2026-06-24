@@ -269,6 +269,19 @@ struct AppSettingsView: View {
 
     private var dashboardPreferencesSection: some View {
         Group {
+            Section("Layout") {
+                Picker("Sidebar size", selection: $settings.sidebarSize) {
+                    ForEach(SidebarSize.allCases) { size in
+                        Text(size.label).tag(size)
+                    }
+                }
+                .pickerStyle(.segmented)
+
+                Text("Compact shows icons only to save horizontal space on smaller screens. The dashboard reflows automatically when the window is narrow.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
             Section("Insights") {
                 Toggle("Daily quote under greeting", isOn: dashboardPreferenceBinding(\.quoteEnabled))
                 Toggle("Intelligent insight", isOn: dashboardPreferenceBinding(\.intelligentInsightEnabled))

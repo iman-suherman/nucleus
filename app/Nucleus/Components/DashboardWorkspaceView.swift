@@ -23,6 +23,7 @@ struct DashboardWorkspaceView: View {
     @State private var holidayMetadataTask: Task<Void, Never>?
     @State private var companionCountryIndex = 0
     @State private var contextPanelsContentHeight: CGFloat = 0
+    @State private var dashboardContentWidth: CGFloat = 1200
 
     @State private var isConnectingNucleusCloud = false
     @State private var nucleusCloudMessage: String?
@@ -41,6 +42,22 @@ struct DashboardWorkspaceView: View {
             bills: viewModel.activeBills,
             payments: viewModel.billPayments
         )
+    }
+
+    private var usesCompactDashboardLayout: Bool {
+        dashboardContentWidth < 760
+    }
+
+    private var dashboardPadding: CGFloat {
+        usesCompactDashboardLayout ? 16 : 28
+    }
+
+    private var dashboardSectionSpacing: CGFloat {
+        usesCompactDashboardLayout ? 16 : 28
+    }
+
+    private var dashboardRowSpacing: CGFloat {
+        usesCompactDashboardLayout ? 12 : 16
     }
 
     var body: some View {
@@ -78,7 +95,7 @@ struct DashboardWorkspaceView: View {
     private var dashboardContent: some View {
         GeometryReader { geometry in
             ScrollView {
-                VStack(alignment: .leading, spacing: 28) {
+                VStack(alignment: .leading, spacing: dashboardSectionSpacing) {
                     header
                     metricsAndBillsRow
                     if dashboardPreferences.productivityChartEnabled {
@@ -88,8 +105,14 @@ struct DashboardWorkspaceView: View {
                         analysisStatusBar
                     }
                 }
-                .padding(28)
+                .padding(dashboardPadding)
                 .frame(width: geometry.size.width, alignment: .leading)
+            }
+            .onAppear {
+                dashboardContentWidth = geometry.size.width
+            }
+            .onChange(of: geometry.size.width) { _, width in
+                dashboardContentWidth = width
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -213,7 +236,7 @@ struct DashboardWorkspaceView: View {
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: usesCompactDashboardLayout ? 12 : 16) {
             greetingWithQuote
             if showsInsightsRow {
                 insightsSideBySideRow
@@ -239,14 +262,16 @@ struct DashboardWorkspaceView: View {
 
     @ViewBuilder
     private var insightsSideBySideRow: some View {
-        HStack(alignment: .top, spacing: 16) {
+        dashboardColumns(spacing: dashboardRowSpacing) {
             if dashboardPreferences.intelligentInsightEnabled {
-                intelligentInsightBox
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                flexDashboardColumn {
+                    intelligentInsightBox
+                }
             }
             if dashboardPreferences.clipboardDayEnabled {
-                clipboardInsightBox
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                flexDashboardColumn {
+                    clipboardInsightBox
+                }
             }
         }
         .fixedSize(horizontal: false, vertical: true)
@@ -258,14 +283,16 @@ struct DashboardWorkspaceView: View {
 
     @ViewBuilder
     private var dashboardActionPanelsRow: some View {
-        HStack(alignment: .top, spacing: 16) {
+        dashboardColumns(spacing: dashboardRowSpacing) {
             if dashboardPreferences.nucleusAIEnabled {
-                DashboardNucleusAIPanel(isExpanded: nucleusAIExpanded)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                flexDashboardColumn {
+                    DashboardNucleusAIPanel(isExpanded: nucleusAIExpanded)
+                }
             }
             if dashboardPreferences.appleMusicEnabled {
-                DashboardMusicPanel(isExpanded: appleMusicExpanded)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                flexDashboardColumn {
+                    DashboardMusicPanel(isExpanded: appleMusicExpanded)
+                }
             }
         }
         .fixedSize(horizontal: false, vertical: true)
@@ -288,7 +315,7 @@ struct DashboardWorkspaceView: View {
         TimelineView(.periodic(from: .now, by: 60)) { context in
             VStack(alignment: .leading, spacing: 6) {
                 Text(greetingLine(asOf: context.date))
-                    .font(.largeTitle.bold())
+                    .font(usesCompactDashboardLayout ? .title.bold() : .largeTitle.bold())
                     .fixedSize(horizontal: false, vertical: true)
 
                 if dashboardPreferences.quoteEnabled, let quoteLine {
@@ -611,42 +638,44 @@ struct DashboardWorkspaceView: View {
     }
 
     private var weatherResourceAndSidebarRow: some View {
-        HStack(alignment: .top, spacing: 16) {
+        dashboardColumns(spacing: dashboardRowSpacing) {
             if showsLeftContextPanels {
-                collapsibleDashboardSection(
-                    isExpanded: contextPanelsExpanded,
-                    title: contextPanelsTitle,
-                    systemImage: "cloud.sun.fill",
-                    trailing: {
-                        if dashboardPreferences.weatherEnabled {
-                            weatherHeaderActions
+                flexDashboardColumn {
+                    collapsibleDashboardSection(
+                        isExpanded: contextPanelsExpanded,
+                        title: contextPanelsTitle,
+                        systemImage: "cloud.sun.fill",
+                        trailing: {
+                            if dashboardPreferences.weatherEnabled {
+                                weatherHeaderActions
+                            }
                         }
+                    ) {
+                        contextPanelsContent
                     }
-                ) {
-                    contextPanelsContent
+                    .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 14))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 14)
+                            .strokeBorder(Color.teal.opacity(0.2), lineWidth: 1)
+                    }
                 }
-                .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 14))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 14)
-                        .strokeBorder(Color.teal.opacity(0.2), lineWidth: 1)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
             }
 
             if dashboardPreferences.newsFeedEnabled {
-                collapsibleDashboardSection(
-                    isExpanded: newsFeedExpanded,
-                    title: newsFeedTitle,
-                    systemImage: "newspaper.fill"
-                ) {
-                    newsFeedSection
+                flexDashboardColumn {
+                    collapsibleDashboardSection(
+                        isExpanded: newsFeedExpanded,
+                        title: newsFeedTitle,
+                        systemImage: "newspaper.fill"
+                    ) {
+                        newsFeedSection
+                    }
+                    .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 14))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 14)
+                            .strokeBorder(Color.teal.opacity(0.2), lineWidth: 1)
+                    }
                 }
-                .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 14))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 14)
-                        .strokeBorder(Color.teal.opacity(0.2), lineWidth: 1)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
     }
@@ -880,15 +909,17 @@ struct DashboardWorkspaceView: View {
     }
 
     private var resourceAndCloudSyncRow: some View {
-        HStack(alignment: .top, spacing: 16) {
+        dashboardColumns(spacing: dashboardRowSpacing) {
             if dashboardPreferences.resourceUsageEnabled {
-                ResourceUsageSummaryCard(metrics: processMetricsService.metrics)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                flexDashboardColumn {
+                    ResourceUsageSummaryCard(metrics: processMetricsService.metrics)
+                }
             }
 
             if dashboardPreferences.cloudSyncPanelEnabled {
-                headerCloudSyncPanel
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                flexDashboardColumn {
+                    headerCloudSyncPanel
+                }
             }
         }
     }
@@ -971,25 +1002,27 @@ struct DashboardWorkspaceView: View {
                     companionIndex: companionIndex
                 )
             } else {
-                HStack(alignment: .top, spacing: 16) {
-                    publicHolidayCountryColumn(location, subtitle: "Your location")
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                dashboardColumns(spacing: dashboardRowSpacing) {
+                    flexDashboardColumn {
+                        publicHolidayCountryColumn(location, subtitle: "Your location")
+                    }
 
-                    publicHolidayCountryColumn(
-                        activeCompanion,
-                        subtitle: companions.count > 1 ? "Selected country \(companionIndex + 1) of \(companions.count)" : "Selected country",
-                        showsCompanionControls: companions.count > 1,
-                        onPreviousCompanion: {
-                            guard companions.count > 1 else { return }
-                            companionCountryIndex = (companionIndex - 1 + companions.count) % companions.count
-                        },
-                        onNextCompanion: {
-                            guard companions.count > 1 else { return }
-                            companionCountryIndex = (companionIndex + 1) % companions.count
-                        }
-                    )
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .animation(.easeInOut(duration: 0.2), value: companionIndex)
+                    flexDashboardColumn {
+                        publicHolidayCountryColumn(
+                            activeCompanion,
+                            subtitle: companions.count > 1 ? "Selected country \(companionIndex + 1) of \(companions.count)" : "Selected country",
+                            showsCompanionControls: companions.count > 1,
+                            onPreviousCompanion: {
+                                guard companions.count > 1 else { return }
+                                companionCountryIndex = (companionIndex - 1 + companions.count) % companions.count
+                            },
+                            onNextCompanion: {
+                                guard companions.count > 1 else { return }
+                                companionCountryIndex = (companionIndex + 1) % companions.count
+                            }
+                        )
+                        .animation(.easeInOut(duration: 0.2), value: companionIndex)
+                    }
                 }
                 .onAppear { refreshHolidayMetadata() }
                 .onReceive(Timer.publish(every: 8, on: .main, in: .common).autoconnect()) { _ in
@@ -1051,38 +1084,44 @@ struct DashboardWorkspaceView: View {
         let rowCount = max(location.holidays.count, companion.holidays.count)
 
         return VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .top, spacing: 16) {
-                publicHolidayColumnHeader(location, subtitle: "Your location")
-                    .frame(maxWidth: .infinity, alignment: .leading)
+            dashboardColumns(spacing: dashboardRowSpacing) {
+                flexDashboardColumn {
+                    publicHolidayColumnHeader(location, subtitle: "Your location")
+                }
 
-                publicHolidayColumnHeader(
-                    companion,
-                    subtitle: companions.count > 1
-                        ? "Selected country \(companionIndex + 1) of \(companions.count)"
-                        : "Selected country",
-                    showsCompanionControls: companions.count > 1,
-                    onPreviousCompanion: {
-                        guard companions.count > 1 else { return }
-                        companionCountryIndex = (companionIndex - 1 + companions.count) % companions.count
-                    },
-                    onNextCompanion: {
-                        guard companions.count > 1 else { return }
-                        companionCountryIndex = (companionIndex + 1) % companions.count
-                    }
-                )
-                .frame(maxWidth: .infinity, alignment: .leading)
+                flexDashboardColumn {
+                    publicHolidayColumnHeader(
+                        companion,
+                        subtitle: companions.count > 1
+                            ? "Selected country \(companionIndex + 1) of \(companions.count)"
+                            : "Selected country",
+                        showsCompanionControls: companions.count > 1,
+                        onPreviousCompanion: {
+                            guard companions.count > 1 else { return }
+                            companionCountryIndex = (companionIndex - 1 + companions.count) % companions.count
+                        },
+                        onNextCompanion: {
+                            guard companions.count > 1 else { return }
+                            companionCountryIndex = (companionIndex + 1) % companions.count
+                        }
+                    )
+                }
             }
 
             ForEach(0..<rowCount, id: \.self) { index in
-                HStack(alignment: .top, spacing: 16) {
-                    publicHolidayCardSlot(
-                        holiday: index < location.holidays.count ? location.holidays[index] : nil,
-                        accentIndex: index
-                    )
-                    publicHolidayCardSlot(
-                        holiday: index < companion.holidays.count ? companion.holidays[index] : nil,
-                        accentIndex: index
-                    )
+                dashboardColumns(spacing: dashboardRowSpacing) {
+                    flexDashboardColumn {
+                        publicHolidayCardSlot(
+                            holiday: index < location.holidays.count ? location.holidays[index] : nil,
+                            accentIndex: index
+                        )
+                    }
+                    flexDashboardColumn {
+                        publicHolidayCardSlot(
+                            holiday: index < companion.holidays.count ? companion.holidays[index] : nil,
+                            accentIndex: index
+                        )
+                    }
                 }
             }
         }
@@ -1449,45 +1488,47 @@ struct DashboardWorkspaceView: View {
         let showBills = dashboardPreferences.billPreparationEnabled
 
         if showSummary || showBills {
-            HStack(alignment: .top, spacing: 20) {
+            dashboardColumns(spacing: usesCompactDashboardLayout ? 16 : 20) {
                 if showSummary {
-                    collapsibleDashboardSection(
-                        isExpanded: summaryExpanded,
-                        title: summaryTitle,
-                        systemImage: "square.grid.2x2.fill"
-                    ) {
-                        summaryAndResourceCards
+                    flexDashboardColumn {
+                        collapsibleDashboardSection(
+                            isExpanded: summaryExpanded,
+                            title: summaryTitle,
+                            systemImage: "square.grid.2x2.fill"
+                        ) {
+                            summaryAndResourceCards
+                        }
+                        .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 14))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 14)
+                                .strokeBorder(Color.teal.opacity(0.2), lineWidth: 1)
+                        }
                     }
-                    .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 14))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 14)
-                            .strokeBorder(Color.teal.opacity(0.2), lineWidth: 1)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
                 if showBills {
-                    collapsibleDashboardSection(
-                        isExpanded: paymentPreparationExpanded,
-                        title: paymentPreparationTitle,
-                        systemImage: "sparkles",
-                        titleUsesGradient: true
-                    ) {
-                        paymentPreparationContent
+                    flexDashboardColumn {
+                        collapsibleDashboardSection(
+                            isExpanded: paymentPreparationExpanded,
+                            title: paymentPreparationTitle,
+                            systemImage: "sparkles",
+                            titleUsesGradient: true
+                        ) {
+                            paymentPreparationContent
+                        }
+                        .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 14))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 14)
+                                .strokeBorder(
+                                    LinearGradient(
+                                        colors: [.purple.opacity(0.25), .orange.opacity(0.2)],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    ),
+                                    lineWidth: 1
+                                )
+                        }
                     }
-                    .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 14))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 14)
-                            .strokeBorder(
-                                LinearGradient(
-                                    colors: [.purple.opacity(0.25), .orange.opacity(0.2)],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                ),
-                                lineWidth: 1
-                            )
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
         }
@@ -1818,6 +1859,28 @@ struct DashboardWorkspaceView: View {
         }
 
         return "\(lastAnalysis), \(nextAnalysis)."
+    }
+
+    @ViewBuilder
+    private func dashboardColumns(
+        spacing: CGFloat? = nil,
+        @ViewBuilder content: () -> some View
+    ) -> some View {
+        let rowSpacing = spacing ?? dashboardRowSpacing
+        if usesCompactDashboardLayout {
+            VStack(alignment: .leading, spacing: rowSpacing) {
+                content()
+            }
+        } else {
+            HStack(alignment: .top, spacing: rowSpacing) {
+                content()
+            }
+        }
+    }
+
+    private func flexDashboardColumn<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        content()
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 }
 

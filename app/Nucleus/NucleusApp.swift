@@ -89,7 +89,7 @@ private struct AppRootView: View {
         ContentView()
             .environmentObject(viewModel)
             .environmentObject(appSettings)
-            .frame(minWidth: 1180, minHeight: 780)
+            .frame(minWidth: 920, minHeight: 680)
             .sheet(item: $viewModel.quickReplyContext) { context in
                 QuickReplySheet(context: context)
                     .environmentObject(viewModel)
@@ -140,7 +140,7 @@ struct ContentView: View {
                 mainWorkspace
             }
         }
-        .frame(minWidth: 1180, minHeight: 780)
+        .frame(minWidth: 920, minHeight: 680)
         .onAppear {
             viewModel.scheduleBootstrap(settings: appSettings)
         }
@@ -150,7 +150,11 @@ struct ContentView: View {
         ZStack {
             NavigationSplitView {
                 sidebar
-                    .navigationSplitViewColumnWidth(min: 260, ideal: appSettings.sidebarWidth, max: 340)
+                    .navigationSplitViewColumnWidth(
+                        min: appSettings.sidebarColumnMinWidth,
+                        ideal: appSettings.sidebarColumnIdealWidth,
+                        max: appSettings.sidebarColumnMaxWidth
+                    )
             } detail: {
                 detailContent
             }
@@ -253,27 +257,47 @@ struct ContentView: View {
         return nil
     }
 
+    private var isCompactSidebar: Bool {
+        appSettings.sidebarSize == .compact
+    }
+
     private var sidebar: some View {
         List {
             Section {
-                NucleusBrandMark(logoSize: 44, showText: true)
-                    .padding(.vertical, 4)
+                NucleusBrandMark(
+                    logoSize: isCompactSidebar ? 32 : 44,
+                    showText: !isCompactSidebar
+                )
+                .frame(maxWidth: .infinity, alignment: isCompactSidebar ? .center : .leading)
+                .padding(.vertical, isCompactSidebar ? 2 : 4)
             }
 
-            Section("Workspace") {
-                ForEach(WorkspacePane.primaryWorkspaces) { pane in
-                    sidebarSelectableRow(for: pane)
+            if isCompactSidebar {
+                Section {
+                    ForEach(WorkspacePane.primaryWorkspaces) { pane in
+                        sidebarSelectableRow(for: pane)
+                    }
+                    ForEach(WorkspacePane.utilityWorkspaces) { pane in
+                        sidebarSelectableRow(for: pane)
+                    }
                 }
-            }
+            } else {
+                Section("Workspace") {
+                    ForEach(WorkspacePane.primaryWorkspaces) { pane in
+                        sidebarSelectableRow(for: pane)
+                    }
+                }
 
-            Section("System") {
-                ForEach(WorkspacePane.utilityWorkspaces) { pane in
-                    sidebarSelectableRow(for: pane)
+                Section("System") {
+                    ForEach(WorkspacePane.utilityWorkspaces) { pane in
+                        sidebarSelectableRow(for: pane)
+                    }
                 }
             }
         }
         .listStyle(.sidebar)
-        .safeAreaPadding(.top, 28)
+        .safeAreaPadding(.top, isCompactSidebar ? 20 : 28)
+        .animation(.easeInOut(duration: 0.2), value: appSettings.sidebarSize)
     }
 
     private func sidebarSelectableRow(for pane: WorkspacePane) -> some View {
@@ -284,9 +308,9 @@ struct ContentView: View {
             viewModel.sidebarSelection = selection
         } label: {
             sidebarRow(for: pane)
-                .padding(.vertical, 3)
-                .padding(.horizontal, 8)
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.vertical, isCompactSidebar ? 6 : 3)
+                .padding(.horizontal, isCompactSidebar ? 4 : 8)
+                .frame(maxWidth: .infinity, alignment: isCompactSidebar ? .center : .leading)
                 .background(
                     isSelected ? Color.accentColor.opacity(0.18) : Color.clear,
                     in: RoundedRectangle(cornerRadius: 8, style: .continuous)
@@ -294,11 +318,27 @@ struct ContentView: View {
         }
         .buttonStyle(.plain)
         .pointerCursor()
-        .listRowInsets(EdgeInsets(top: 2, leading: 8, bottom: 2, trailing: 8))
+        .help(isCompactSidebar ? "\(pane.title) — \(pane.subtitle)" : "")
+        .listRowInsets(
+            EdgeInsets(
+                top: 2,
+                leading: isCompactSidebar ? 4 : 8,
+                bottom: 2,
+                trailing: isCompactSidebar ? 4 : 8
+            )
+        )
         .listRowBackground(Color.clear)
     }
 
     private func sidebarRow(for pane: WorkspacePane) -> some View {
+        if isCompactSidebar {
+            compactSidebarRow(for: pane)
+        } else {
+            regularSidebarRow(for: pane)
+        }
+    }
+
+    private func regularSidebarRow(for pane: WorkspacePane) -> some View {
         HStack(spacing: 10) {
             Image(systemName: pane.icon)
                 .frame(width: 20)
@@ -314,6 +354,56 @@ struct ContentView: View {
             badge(for: pane)
                 .allowsHitTesting(false)
         }
+    }
+
+    private func compactSidebarRow(for pane: WorkspacePane) -> some View {
+        ZStack(alignment: .topTrailing) {
+            Image(systemName: pane.icon)
+                .font(.system(size: 18, weight: .medium))
+                .frame(width: 28, height: 28)
+                .foregroundStyle(.secondary)
+
+            compactBadge(for: pane)
+                .offset(x: 8, y: -6)
+        }
+        .accessibilityLabel(pane.title)
+        .accessibilityHint(pane.subtitle)
+    }
+
+    @ViewBuilder
+    private func compactBadge(for pane: WorkspacePane) -> some View {
+        switch pane {
+        case .dashboard where viewModel.totalUnread + viewModel.billsDueDockBadgeCount > 0:
+            compactCountBadge(viewModel.totalUnread + viewModel.billsDueDockBadgeCount)
+        case .inbox where viewModel.totalUnread > 0:
+            compactCountBadge(viewModel.totalUnread, kind: .mail)
+        case .clipboard where !viewModel.clipboardEntries.isEmpty:
+            compactCountBadge(viewModel.clipboardEntries.count)
+        case .bills where !viewModel.activeBills.isEmpty:
+            compactCountBadge(viewModel.activeBills.count)
+        case .notes where viewModel.regularNotesCount + viewModel.passwordNotesCount > 0:
+            compactCountBadge(viewModel.regularNotesCount + viewModel.passwordNotesCount)
+        case .media where mediaController.nowPlaying.isPlaying:
+            Image(systemName: "waveform")
+                .font(.system(size: 8, weight: .bold))
+                .foregroundStyle(.green)
+                .padding(3)
+                .background(.green.opacity(0.15), in: Circle())
+        default:
+            EmptyView()
+        }
+    }
+
+    private func compactCountBadge(_ count: Int, kind: NucleusBadgeKind = .neutral) -> some View {
+        Text(count > 99 ? "99+" : "\(count)")
+            .font(.system(size: 9, weight: .bold))
+            .padding(.horizontal, 4)
+            .padding(.vertical, 1)
+            .foregroundStyle(kind == .neutral ? kind.foreground : .white)
+            .background(
+                kind == .mail ? Color.blue.opacity(0.85) : kind.background,
+                in: Capsule()
+            )
     }
 
     @ViewBuilder
