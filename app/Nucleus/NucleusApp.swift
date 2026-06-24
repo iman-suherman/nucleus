@@ -330,6 +330,7 @@ struct ContentView: View {
         .listRowBackground(Color.clear)
     }
 
+    @ViewBuilder
     private func sidebarRow(for pane: WorkspacePane) -> some View {
         if isCompactSidebar {
             compactSidebarRow(for: pane)
