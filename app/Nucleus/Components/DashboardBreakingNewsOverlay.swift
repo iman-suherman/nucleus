@@ -39,10 +39,15 @@ enum BreakingNewsPresentationStore {
 }
 
 struct DashboardBreakingNewsOverlay: View {
+    private static let autoDismissSeconds = 20
+
     let alert: DashboardBreakingNewsAlert
     @ObservedObject var speechService: DashboardNewsSpeechService
     let onOpenLink: () -> Void
     let onDismiss: () -> Void
+
+    @State private var secondsRemaining = autoDismissSeconds
+    @State private var autoDismissTask: Task<Void, Never>?
 
     private var accentColor: Color {
         Color(red: 0.84, green: 0.22, blue: 0.24)
@@ -56,7 +61,7 @@ struct DashboardBreakingNewsOverlay: View {
 
             Color.black.opacity(0.22)
                 .ignoresSafeArea()
-                .onTapGesture(perform: onDismiss)
+                .onTapGesture(perform: dismissFromUserAction)
 
             VStack(alignment: .leading, spacing: 20) {
                 HStack(alignment: .top, spacing: 14) {
@@ -79,7 +84,14 @@ struct DashboardBreakingNewsOverlay: View {
 
                     Spacer(minLength: 0)
 
-                    Button(action: onDismiss) {
+                    Text("\(secondsRemaining)")
+                        .font(.caption.weight(.semibold).monospacedDigit())
+                        .foregroundStyle(.secondary)
+                        .frame(width: 30, height: 30)
+                        .background(Color.secondary.opacity(0.14), in: Circle())
+                        .accessibilityLabel("Auto-closing in \(secondsRemaining) seconds")
+
+                    Button(action: dismissFromUserAction) {
                         Image(systemName: "xmark.circle.fill")
                             .font(.title2)
                             .symbolRenderingMode(.hierarchical)
@@ -107,7 +119,7 @@ struct DashboardBreakingNewsOverlay: View {
 
                 HStack(spacing: 10) {
                     if alert.headline.link != nil {
-                        Button(action: onOpenLink) {
+                        Button(action: openLinkFromUserAction) {
                             Label("Open story", systemImage: "arrow.up.right.square")
                                 .frame(maxWidth: .infinity)
                         }
@@ -126,7 +138,7 @@ struct DashboardBreakingNewsOverlay: View {
                     .buttonStyle(.bordered)
                     .pointerCursor()
 
-                    Button("Close", action: onDismiss)
+                    Button("Close", action: dismissFromUserAction)
                         .buttonStyle(.bordered)
                         .pointerCursor()
                 }
@@ -143,13 +155,48 @@ struct DashboardBreakingNewsOverlay: View {
         }
         .transition(.opacity.combined(with: .scale(scale: 0.98)))
         .zIndex(125)
+        .onAppear(perform: startAutoDismissCountdown)
+        .onChange(of: alert.id) { _, _ in
+            startAutoDismissCountdown()
+        }
+        .onDisappear(perform: cancelAutoDismissCountdown)
+    }
+
+    private func dismissFromUserAction() {
+        cancelAutoDismissCountdown()
+        onDismiss()
+    }
+
+    private func openLinkFromUserAction() {
+        cancelAutoDismissCountdown()
+        onOpenLink()
     }
 
     private func toggleSpeech() {
+        cancelAutoDismissCountdown()
         if speechService.isSpeaking {
             speechService.stop()
         } else {
             speechService.speak(alert: alert)
         }
+    }
+
+    private func startAutoDismissCountdown() {
+        cancelAutoDismissCountdown()
+        secondsRemaining = Self.autoDismissSeconds
+        autoDismissTask = Task { @MainActor in
+            while secondsRemaining > 0 {
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
+                guard !Task.isCancelled else { return }
+                secondsRemaining -= 1
+            }
+            guard !Task.isCancelled else { return }
+            onDismiss()
+        }
+    }
+
+    private func cancelAutoDismissCountdown() {
+        autoDismissTask?.cancel()
+        autoDismissTask = nil
     }
 }
