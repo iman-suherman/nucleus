@@ -5,10 +5,10 @@ import SwiftUI
 struct TmuxAttachTerminalView: NSViewRepresentable {
     let sessionName: String
     let tmuxPath: String
-    var onDetach: () -> Void
+    var onExit: (Int32?) -> Void
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(sessionName: sessionName, tmuxPath: tmuxPath, onDetach: onDetach)
+        Coordinator(sessionName: sessionName, tmuxPath: tmuxPath, onExit: onExit)
     }
 
     func makeNSView(context: Context) -> TerminalHostView {
@@ -29,41 +29,46 @@ struct TmuxAttachTerminalView: NSViewRepresentable {
     final class Coordinator: NSObject {
         let sessionName: String
         let tmuxPath: String
-        let onDetach: () -> Void
+        let onExit: (Int32?) -> Void
 
         weak var hostView: TerminalHostView?
         private var terminalView: LocalProcessTerminalView?
         private var hasStarted = false
-        private var didReportDetach = false
+        private var didReportExit = false
 
-        init(sessionName: String, tmuxPath: String, onDetach: @escaping () -> Void) {
+        init(sessionName: String, tmuxPath: String, onExit: @escaping (Int32?) -> Void) {
             self.sessionName = sessionName
             self.tmuxPath = tmuxPath
-            self.onDetach = onDetach
+            self.onExit = onExit
         }
 
         func scheduleStartIfNeeded() {
             guard let hostView else { return }
-            guard !hasStarted else { return }
+            guard !hasStarted else {
+                resizeTerminalIfNeeded(in: hostView)
+                return
+            }
             guard hostView.bounds.width > 20, hostView.bounds.height > 20 else { return }
 
             hasStarted = true
 
             let terminal = LocalProcessTerminalView(frame: hostView.bounds)
             terminal.autoresizingMask = [.width, .height]
+            terminal.wantsLayer = true
             terminal.font = NSFont.monospacedSystemFont(ofSize: 12, weight: .regular)
+            terminal.configureNativeColors()
+            terminal.nativeBackgroundColor = NSColor(calibratedRed: 0.08, green: 0.09, blue: 0.11, alpha: 1)
+            terminal.nativeForegroundColor = NSColor(calibratedRed: 0.86, green: 0.92, blue: 0.86, alpha: 1)
+            terminal.layer?.backgroundColor = terminal.nativeBackgroundColor.cgColor
+            try? terminal.setUseMetal(false)
             terminal.processDelegate = self
             hostView.addSubview(terminal)
             terminalView = terminal
 
-            var environment = ProcessInfo.processInfo.environment
-            environment["TERM"] = environment["TERM"] ?? "xterm-256color"
-            let environmentArray = environment.map { "\($0.key)=\($0.value)" }
-
             terminal.startProcess(
                 executable: tmuxPath,
-                args: ["attach", "-d", "-t", sessionName],
-                environment: environmentArray,
+                args: TmuxSessionService.attachArguments(sessionName: sessionName),
+                environment: TmuxSessionService.enrichedEnvironmentArray(),
                 execName: nil
             )
         }
@@ -72,13 +77,22 @@ struct TmuxAttachTerminalView: NSViewRepresentable {
             terminalView?.terminate()
             terminalView?.removeFromSuperview()
             terminalView = nil
+            hasStarted = false
         }
 
-        private func reportDetachIfNeeded() {
-            guard !didReportDetach else { return }
-            didReportDetach = true
+        private func resizeTerminalIfNeeded(in hostView: TerminalHostView) {
+            guard let terminalView else { return }
+            if terminalView.frame.size != hostView.bounds.size {
+                terminalView.frame = hostView.bounds
+                terminalView.needsLayout = true
+            }
+        }
+
+        private func reportExitIfNeeded(_ exitCode: Int32?) {
+            guard !didReportExit else { return }
+            didReportExit = true
             DispatchQueue.main.async {
-                self.onDetach()
+                self.onExit(exitCode)
             }
         }
     }
@@ -86,7 +100,7 @@ struct TmuxAttachTerminalView: NSViewRepresentable {
 
 extension TmuxAttachTerminalView.Coordinator: LocalProcessTerminalViewDelegate {
     func processTerminated(source: TerminalView, exitCode: Int32?) {
-        reportDetachIfNeeded()
+        reportExitIfNeeded(exitCode)
     }
 
     func sizeChanged(source: LocalProcessTerminalView, newCols: Int, newRows: Int) {}

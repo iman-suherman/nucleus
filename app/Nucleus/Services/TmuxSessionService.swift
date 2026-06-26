@@ -34,6 +34,21 @@ enum TmuxSessionService {
         return nil
     }
 
+    static func defaultSocketPath() -> String {
+        "/private/tmp/tmux-\(getuid())/default"
+    }
+
+    static func attachArguments(sessionName: String) -> [String] {
+        [
+            "-S", defaultSocketPath(),
+            "attach", "-d", "-t", sessionName,
+        ]
+    }
+
+    static func enrichedEnvironmentArray() -> [String] {
+        enrichedEnvironment().map { "\($0.key)=\($0.value)" }
+    }
+
     static func listSessions() async -> Result<[TmuxSession], TmuxSessionError> {
         guard let tmuxPath = resolveTmuxPath() else {
             return .failure(.message("tmux was not found. Install with Homebrew: brew install tmux"))
@@ -43,6 +58,7 @@ enum TmuxSessionService {
             let output = try await run(
                 executable: tmuxPath,
                 arguments: [
+                    "-S", defaultSocketPath(),
                     "list-sessions",
                     "-F",
                     "#{session_name}\t#{session_windows}\t#{session_attached}\t#{session_activity}",
@@ -96,7 +112,7 @@ enum TmuxSessionService {
     static func capturePane(tmuxPath: String, sessionName: String) async throws -> String {
         let output = try await run(
             executable: tmuxPath,
-            arguments: ["capture-pane", "-pt", sessionName, "-S", "-120"]
+            arguments: ["-S", defaultSocketPath(), "capture-pane", "-pt", sessionName, "-S", "-120"]
         )
         return trimPreview(output)
     }
@@ -173,6 +189,8 @@ enum TmuxSessionService {
             .joined(separator: ":")
         environment["PATH"] = merged
         environment["TERM"] = environment["TERM"] ?? "xterm-256color"
+        environment.removeValue(forKey: "TMUX")
+        environment.removeValue(forKey: "TMUX_PANE")
         return environment
     }
 }

@@ -5,6 +5,7 @@ struct TerminalWorkspaceView: View {
     @StateObject private var browser = TmuxSessionBrowser()
     @State private var attachedSession: TmuxSession?
     @State private var selectedSessionName: String?
+    @State private var attachErrorMessage: String?
 
     var body: some View {
         HStack(spacing: 0) {
@@ -49,7 +50,7 @@ struct TerminalWorkspaceView: View {
             .padding(.top, 20)
             .padding(.bottom, 12)
 
-            if let errorMessage = browser.errorMessage {
+            if let errorMessage = browser.errorMessage ?? attachErrorMessage {
                 Text(errorMessage)
                     .font(.caption)
                     .foregroundStyle(.red)
@@ -118,6 +119,7 @@ struct TerminalWorkspaceView: View {
                     Spacer()
                     Button("Detach") {
                         self.attachedSession = nil
+                        self.attachErrorMessage = nil
                     }
                     .buttonStyle(.bordered)
                 }
@@ -125,16 +127,36 @@ struct TerminalWorkspaceView: View {
                 .padding(.vertical, 10)
                 .background(.bar)
 
+                if let attachErrorMessage {
+                    Text(attachErrorMessage)
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .background(Color.red.opacity(0.08))
+                }
+
                 TmuxAttachTerminalView(
                     sessionName: attachedSession.name,
                     tmuxPath: tmuxPath,
-                    onDetach: {
-                        if self.attachedSession?.name == attachedSession.name {
-                            self.attachedSession = nil
+                    onExit: { exitCode in
+                        if exitCode != 0 {
+                            self.attachErrorMessage =
+                                "tmux attach exited (code \(exitCode ?? -1)). The session may still be running in Terminal."
+                        } else {
+                            self.attachErrorMessage = "tmux session ended."
                         }
+                        self.attachedSession = nil
                     }
                 )
                 .id(attachedSession.name)
+            }
+        } else if attachedSession != nil {
+            ContentUnavailableView {
+                Label("Could not start tmux attach", systemImage: "exclamationmark.triangle")
+            } description: {
+                Text("tmux path is unavailable. Click Refresh in the session list.")
             }
         } else if let selectedName = selectedSessionName,
                   let session = browser.sessions.first(where: { $0.name == selectedName }) {
@@ -189,6 +211,7 @@ struct TerminalWorkspaceView: View {
 
     private func attach(to session: TmuxSession) {
         selectedSessionName = session.name
+        attachErrorMessage = nil
         attachedSession = session
     }
 }
