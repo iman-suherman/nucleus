@@ -1,18 +1,16 @@
 {
-  "version": "0.9.10",
-  "summary": "Compact sidebar, responsive dashboard, and breaking news auto-dismiss.",
+  "version": "0.9.11",
+  "summary": "Fast clipboard search with semantic matching and instant picker close.",
   "releaseNotes": {
     "introduced": [
-      "Sidebar size setting with Regular and Compact modes — Compact shows icons only to save horizontal space"
+      "Semantic clipboard search indexes clips on-device so natural-language queries can find related content"
     ],
     "changed": [
-      "Minimum window size lowered to 920×680 so Nucleus fits better on smaller displays",
-      "Dashboard panels stack vertically when the content area is narrow, with tighter padding and spacing",
-      "Greeting text scales down slightly in compact dashboard layout",
-      "Breaking news overlay shows a 20-second countdown and auto-dismisses when no action is taken"
+      "Shift-Command-V picker searches as you type on a background index instead of blocking the UI",
+      "Selecting a clip closes the picker immediately while the copied-to-clipboard toast still shows briefly"
     ],
     "fixed": [
-      "Compact sidebar rows compile correctly in Release builds"
+      "Typing in the clipboard picker no longer hangs Nucleus on large histories"
     ],
     "updated": [],
     "removed": [],
