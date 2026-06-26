@@ -229,6 +229,8 @@ struct ContentView: View {
                     BillsWorkspaceView()
                 case .media:
                     MediaWorkspaceView()
+                case .terminal:
+                    TerminalWorkspaceView()
                 case .accounts:
                     AccountCenterView()
                 case .settings:
