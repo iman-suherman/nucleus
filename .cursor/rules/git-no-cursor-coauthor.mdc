@@ -1,0 +1,30 @@
+---
+description: Prevent Cursor co-author trailers in git commits across the suherman.net stack
+alwaysApply: true
+---
+
+# No Cursor Co-Author (stack-wide)
+
+Applies to all stack repositories (see `STACK_GIT_REPOS` in `suherman-net-infra/scripts/stack-config.cjs`).
+
+Cursor **automatically injects** `Co-authored-by: Cursor <cursoragent@cursor.com>` when the agent runs `git commit`, even if the command only uses `-m`. MDC rules alone do not disable this. **`prepare-commit-msg` and `pre-push` hooks enforce removal/blocking** — install with `npm run install-hooks` (this repo) or `npm run install-hooks:stack` from `suherman-net-infra`.
+
+## Required behavior
+
+- Never pass `--trailer`, `--co-authored-by`, or any `Co-authored-by:` line in commit commands or messages.
+- Use a **single-line** commit message only: `git commit -m "description"`.
+- Do not use multi-line HEREDOC bodies for commits (empty trailing lines can become a body where Cursor adds attribution).
+- **After every commit**, verify the result:
+  ```bash
+  git log -1 --format=%B
+  ```
+  If the output contains `Co-authored-by`, `cursoragent@cursor.com`, or `Cursor`, immediately fix it:
+  ```bash
+  GIT_COMMITTER_NAME="Iman Suherman" GIT_COMMITTER_EMAIL="iman.suherman@gmail.com" \
+    git commit --amend --author="Iman Suherman <iman.suherman@gmail.com>" -m "same description without co-author"
+  ```
+  Re-check until the co-author line is gone.
+
+If `git push` is rejected by `pre-push`, amend the flagged commits and push again.
+
+Also disable Cursor attribution in **Cursor Settings > Agent > Attribution** (off).

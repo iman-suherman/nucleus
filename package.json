@@ -55,6 +55,7 @@
     "deploy:retry": "node scripts/deploy-retry.cjs",
     "deploy:stop": "node scripts/deploy-stop.cjs",
     "ci": "node scripts/ci-deploy-status.cjs",
+    "install-hooks": "node scripts/install-git-hooks.cjs",
     "deploy:cloudkit-schema": "bash scripts/deploy-cloudkit-production-schema.sh",
     "republish:release-notes": "node scripts/republish-release-notes.cjs",
     "sparkle:setup-keys": "bash scripts/sparkle-setup-keys.sh",

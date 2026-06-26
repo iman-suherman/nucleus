@@ -1,0 +1,52 @@
+---
+description: Git commit author identity for suherman.net stack repositories
+alwaysApply: true
+---
+
+# Git Commit Author (stack-wide)
+
+All repositories under the suherman.net stack must commit as **Iman Suherman** with email **iman.suherman@gmail.com** — author **and** committer.
+
+Stack repos: `suherman-net-infra`, `urp-ct-mcp-studio`, `diskwise-macos`, `nucleus`, `iman-suherman`, `ops-shell-scripts`, `video-hub`, `macmini-fleet-manager` (paths in `suherman-net-infra/scripts/stack-config.cjs` → `STACK_GIT_REPOS`).
+
+- Pass `--author` on every commit. Do not rely on git config (global config may be `suherman@qantas.com.au`).
+- Format: `--author="Iman Suherman <iman.suherman@gmail.com>"`
+- If amending a commit, always include the same `--author` flag.
+
+```bash
+git commit --author="Iman Suherman <iman.suherman@gmail.com>" -m "Short description of the change."
+git log -1 --format="%an <%ae>"
+git log -1 --format="%cn <%ce>"
+```
+
+After committing, verify both author and committer are `Iman Suherman <iman.suherman@gmail.com>`. If wrong, amend immediately:
+
+```bash
+GIT_COMMITTER_NAME="Iman Suherman" GIT_COMMITTER_EMAIL="iman.suherman@gmail.com" \
+  git commit --amend --author="Iman Suherman <iman.suherman@gmail.com>" --no-edit
+```
+
+## Git hooks (enforce on commit and push)
+
+Hooks live in `suherman-net-infra/githooks/` and are installed into each repo's `.git/hooks/`:
+
+| Hook | When | Action |
+|------|------|--------|
+| `prepare-commit-msg` | commit | Strip `Co-authored-by: Cursor` trailers |
+| `post-commit` | commit | Auto-amend wrong author/committer or co-author lines |
+| `pre-push` | push | **Reject** push if any outgoing commit has wrong identity or Cursor co-author |
+
+Install for this repo:
+
+```bash
+npm run install-hooks
+```
+
+All stack repos:
+
+```bash
+cd ~/src/personal/suherman-net-infra
+npm run install-hooks:stack
+```
+
+Also disable Cursor attribution in **Cursor Settings > Agent > Attribution** (off).
