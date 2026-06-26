@@ -76,8 +76,13 @@ final class ClipboardPasteController: NSObject {
         }
         viewModel.clipboardSearchQuery = ""
 
+        let entries = viewModel.clipboardEntries
+        Task {
+            await ClipboardSearchEngine.shared.rebuild(from: entries)
+        }
+
         let pickerView = ClipboardPickerView(
-            entries: viewModel.filteredClipboardEntries(),
+            entries: entries,
             onSelect: { [weak self] entry in
                 self?.apply(entry)
             },

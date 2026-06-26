@@ -16,4 +16,13 @@ final class ClipboardTaggerTests: XCTestCase {
         let ranked = ClipboardSearch.rank(entries, query: "kubectl")
         XCTAssertEqual(ranked.first?.isPinned, true)
     }
+
+    func testSearchMatchesAllTokens() {
+        let entries = [
+            ClipboardEntry(content: "docker compose up postgres", sourceApplication: "Terminal"),
+            ClipboardEntry(content: "kubectl get pods", sourceApplication: "Terminal"),
+        ]
+        let ranked = ClipboardSearch.rank(entries, query: "docker postgres")
+        XCTAssertEqual(ranked.first?.content, "docker compose up postgres")
+    }
 }

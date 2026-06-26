@@ -922,6 +922,10 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         try? ClipboardRepository.prune(context: context)
         accounts = (try? AccountRepository.fetchAll(context: context)) ?? []
         clipboardEntries = (try? ClipboardRepository.fetchRecent(context: context)) ?? []
+        let indexedEntries = clipboardEntries
+        Task {
+            await ClipboardSearchEngine.shared.rebuild(from: indexedEntries)
+        }
         if clipboardDayAnalysis == nil,
            let cached = DashboardClipboardDayAnalysisService.cachedAnalysis() {
             clipboardDayAnalysis = cached

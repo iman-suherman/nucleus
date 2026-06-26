@@ -78,29 +78,61 @@ public enum ClipboardSearch {
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return entries }
 
+        let indexed = entries.map(SearchableClipboardEntry.init)
         let lowered = trimmed.lowercased()
-        return entries
-            .filter {
-                $0.content.lowercased().contains(lowered)
-                    || $0.sourceApplication.lowercased().contains(lowered)
-                    || $0.tags.contains { $0.contains(lowered) }
-            }
+        let tokens = lowered
+            .split(whereSeparator: \.isWhitespace)
+            .map(String.init)
+            .filter { !$0.isEmpty }
+
+        let scored = indexed.compactMap { item -> (ClipboardEntry, Int)? in
+            let score = lexicalScore(item, query: lowered, tokens: tokens)
+            return score > 0 ? (item.entry, score) : nil
+        }
+
+        guard !scored.isEmpty else { return [] }
+
+        return scored
             .sorted { lhs, rhs in
-                let lhsScore = score(lhs, query: lowered)
-                let rhsScore = score(rhs, query: lowered)
-                if lhsScore == rhsScore {
-                    return lhs.capturedAt > rhs.capturedAt
+                if lhs.1 == rhs.1 {
+                    return lhs.0.capturedAt > rhs.0.capturedAt
                 }
-                return lhsScore > rhsScore
+                return lhs.1 > rhs.1
             }
+            .map(\.0)
     }
 
-    private static func score(_ entry: ClipboardEntry, query: String) -> Int {
-        var value = 0
-        if entry.content.lowercased().contains(query) { value += 3 }
-        if entry.tags.contains(where: { $0.contains(query) }) { value += 2 }
-        if entry.sourceApplication.lowercased().contains(query) { value += 1 }
-        if entry.isPinned { value += 1 }
-        return value
+    private static func lexicalScore(
+        _ item: SearchableClipboardEntry,
+        query: String,
+        tokens: [String]
+    ) -> Int {
+        var score = 0
+
+        if item.normalizedContent.contains(query) {
+            score += 100
+        } else if !tokens.isEmpty, tokens.allSatisfy({ item.normalizedContent.contains($0) }) {
+            score += 80
+        } else if tokens.contains(where: { item.normalizedContent.contains($0) }) {
+            score += 40
+        }
+
+        if item.normalizedTags.contains(query) {
+            score += 50
+        } else if tokens.contains(where: { item.normalizedTags.contains($0) }) {
+            score += 25
+        }
+
+        if item.normalizedSource.contains(query) {
+            score += 25
+        } else if tokens.contains(where: { item.normalizedSource.contains($0) }) {
+            score += 15
+        }
+
+        if item.entry.isPinned {
+            score += 10
+        }
+
+        return score
     }
 }

@@ -1,0 +1,19 @@
+{
+  "version": "0.9.11",
+  "summary": "Fast clipboard search with semantic matching and instant picker close.",
+  "releaseNotes": {
+    "introduced": [
+      "Semantic clipboard search indexes clips on-device so natural-language queries can find related content"
+    ],
+    "changed": [
+      "Shift-Command-V picker searches as you type on a background index instead of blocking the UI",
+      "Selecting a clip closes the picker immediately while the copied-to-clipboard toast still shows briefly"
+    ],
+    "fixed": [
+      "Typing in the clipboard picker no longer hangs Nucleus on large histories"
+    ],
+    "updated": [],
+    "removed": [],
+    "breaking": []
+  }
+}

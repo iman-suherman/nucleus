@@ -22,16 +22,23 @@ struct ClipboardPickerView: View {
     let onDismiss: () -> Void
 
     @State private var query = ""
+    @State private var filteredResults: [ClipboardEntry]
     @State private var highlightedID: UUID?
-    @State private var confirmedSelectionID: UUID?
-    @State private var isConfirmingSelection = false
+    @State private var isSearching = false
+    @State private var isSubmittingSelection = false
     @State private var keyboardBridge = ClipboardPickerKeyboardBridge()
+    @State private var searchTask: Task<Void, Never>?
     @FocusState private var searchFocused: Bool
 
-    private let selectionConfirmationDelay: Duration = .milliseconds(1000)
-
-    private var filteredEntries: [ClipboardEntry] {
-        ClipboardSearch.rank(entries, query: query)
+    init(
+        entries: [ClipboardEntry],
+        onSelect: @escaping (ClipboardEntry) -> Void,
+        onDismiss: @escaping () -> Void
+    ) {
+        self.entries = entries
+        self.onSelect = onSelect
+        self.onDismiss = onDismiss
+        _filteredResults = State(initialValue: entries)
     }
 
     var body: some View {
@@ -40,6 +47,10 @@ struct ClipboardPickerView: View {
                 Text("Paste from Clipboard History")
                     .font(.headline)
                 Spacer()
+                if isSearching {
+                    ProgressView()
+                        .controlSize(.small)
+                }
                 Text("⇧⌘V")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.secondary)
@@ -48,9 +59,9 @@ struct ClipboardPickerView: View {
             TextField("Search clips…", text: $query)
                 .textFieldStyle(.roundedBorder)
                 .focused($searchFocused)
-                .disabled(isConfirmingSelection)
+                .disabled(isSubmittingSelection)
 
-            if filteredEntries.isEmpty {
+            if filteredResults.isEmpty {
                 ContentUnavailableView(
                     "No matching clips",
                     systemImage: "doc.on.clipboard",
@@ -60,17 +71,16 @@ struct ClipboardPickerView: View {
             } else {
                 ScrollViewReader { proxy in
                     List(selection: $highlightedID) {
-                        ForEach(filteredEntries) { entry in
+                        ForEach(filteredResults) { entry in
                             ClipboardPickerRow(
                                 entry: entry,
-                                isHighlighted: highlightedID == entry.id,
-                                isConfirmed: confirmedSelectionID == entry.id
+                                isHighlighted: highlightedID == entry.id
                             )
                             .id(entry.id)
                             .tag(entry.id)
                             .contentShape(Rectangle())
                             .onTapGesture {
-                                guard !isConfirmingSelection else { return }
+                                guard !isSubmittingSelection else { return }
                                 confirmSelection(entry)
                             }
                         }
@@ -80,7 +90,7 @@ struct ClipboardPickerView: View {
                     .onChange(of: highlightedID) { _, id in
                         scrollToHighlight(id, proxy: proxy)
                     }
-                    .onChange(of: filteredEntries.map(\.id)) { _, _ in
+                    .onChange(of: filteredResults.count) { _, _ in
                         scrollToHighlight(highlightedID, proxy: proxy)
                     }
                     .onAppear {
@@ -100,31 +110,61 @@ struct ClipboardPickerView: View {
         }
         .onAppear {
             syncKeyboardBridge()
-            highlightedID = filteredEntries.first?.id
+            highlightedID = filteredResults.first?.id
             searchFocused = true
+            Task {
+                await ClipboardSearchEngine.shared.rebuild(from: entries)
+                scheduleSearch(immediate: true)
+            }
+        }
+        .onDisappear {
+            searchTask?.cancel()
         }
         .onChange(of: query) { _, _ in
-            guard !isConfirmingSelection else { return }
-            highlightedID = filteredEntries.first?.id
+            guard !isSubmittingSelection else { return }
+            scheduleSearch()
         }
-        .onChange(of: isConfirmingSelection) { _, _ in
+        .onChange(of: isSubmittingSelection) { _, _ in
             syncKeyboardBridge()
         }
         .onChange(of: searchFocused) { _, _ in
             syncKeyboardBridge()
         }
         .onExitCommand {
-            guard !isConfirmingSelection else { return }
+            guard !isSubmittingSelection else { return }
             onDismiss()
         }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { _ in
-            guard !isConfirmingSelection else { return }
+            guard !isSubmittingSelection else { return }
             searchFocused = true
         }
     }
 
+    private func scheduleSearch(immediate: Bool = false) {
+        searchTask?.cancel()
+        let currentQuery = query
+
+        searchTask = Task {
+            if !immediate {
+                try? await Task.sleep(for: .milliseconds(100))
+            }
+            guard !Task.isCancelled else { return }
+
+            isSearching = true
+            let ranked = await ClipboardSearchEngine.shared.rank(query: currentQuery)
+            guard !Task.isCancelled else { return }
+
+            filteredResults = ranked
+            isSearching = false
+
+            if !isSubmittingSelection {
+                highlightedID = ranked.first?.id
+            }
+        }
+    }
+
     private func syncKeyboardBridge() {
-        keyboardBridge.isEnabled = !isConfirmingSelection
+        keyboardBridge.isEnabled = !isSubmittingSelection
         keyboardBridge.isSearchFocused = searchFocused
         keyboardBridge.focusSearch = {
             searchFocused = true
@@ -158,35 +198,30 @@ struct ClipboardPickerView: View {
     }
 
     private func moveHighlight(by offset: Int) {
-        guard !isConfirmingSelection, !filteredEntries.isEmpty else { return }
+        guard !isSubmittingSelection, !filteredResults.isEmpty else { return }
         guard let currentID = highlightedID,
-              let index = filteredEntries.firstIndex(where: { $0.id == currentID }) else {
-            highlightedID = filteredEntries.first?.id
+              let index = filteredResults.firstIndex(where: { $0.id == currentID }) else {
+            highlightedID = filteredResults.first?.id
             return
         }
-        let nextIndex = min(max(index + offset, 0), filteredEntries.count - 1)
-        highlightedID = filteredEntries[nextIndex].id
+        let nextIndex = min(max(index + offset, 0), filteredResults.count - 1)
+        highlightedID = filteredResults[nextIndex].id
     }
 
     private func submitHighlightedSelection() {
-        guard !isConfirmingSelection,
+        guard !isSubmittingSelection,
               let highlightedID,
-              let entry = filteredEntries.first(where: { $0.id == highlightedID }) else {
+              let entry = filteredResults.first(where: { $0.id == highlightedID }) else {
             return
         }
         confirmSelection(entry)
     }
 
     private func confirmSelection(_ entry: ClipboardEntry) {
-        guard !isConfirmingSelection else { return }
-        isConfirmingSelection = true
-        highlightedID = entry.id
-        confirmedSelectionID = entry.id
-
-        Task {
-            try? await Task.sleep(for: selectionConfirmationDelay)
-            onSelect(entry)
-        }
+        guard !isSubmittingSelection else { return }
+        isSubmittingSelection = true
+        searchTask?.cancel()
+        onSelect(entry)
     }
 }
 
@@ -314,7 +349,6 @@ private final class ClipboardPickerKeyMonitorView: NSView {
 private struct ClipboardPickerRow: View {
     let entry: ClipboardEntry
     var isHighlighted: Bool = false
-    var isConfirmed: Bool = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -323,14 +357,6 @@ private struct ClipboardPickerRow: View {
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.secondary)
                 Spacer()
-                if isConfirmed {
-                    Text("Selected")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 2)
-                        .background(Capsule().fill(Color.accentColor))
-                }
                 Text(NucleusFormatters.relativeDate.localizedString(for: entry.capturedAt, relativeTo: Date()))
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
@@ -348,9 +374,6 @@ private struct ClipboardPickerRow: View {
     }
 
     private var rowBackground: Color {
-        if isConfirmed {
-            return Color.accentColor.opacity(0.28)
-        }
         if isHighlighted {
             return Color.accentColor.opacity(0.12)
         }
