@@ -33,8 +33,8 @@ final class MenuBarStatusItemController: NSObject {
         button.image = icon
         button.imagePosition = .imageOnly
         button.target = self
-        button.action = #selector(statusItemClicked)
-        button.sendAction(on: [.leftMouseUp])
+        button.action = #selector(statusItemClicked(_:))
+        button.sendAction(on: [.leftMouseUp, .rightMouseUp])
 
         statusItem = item
     }
@@ -47,9 +47,40 @@ final class MenuBarStatusItemController: NSObject {
         statusItem = nil
     }
 
-    @objc private func statusItemClicked() {
-        guard let anchorView = statusItem?.button else { return }
-        togglePopover(anchoredTo: anchorView)
+    @objc private func statusItemClicked(_ sender: NSStatusBarButton) {
+        if shouldShowContextMenu(for: sender) {
+            showContextMenu(for: sender)
+            return
+        }
+        togglePopover(anchoredTo: sender)
+    }
+
+    private func shouldShowContextMenu(for button: NSStatusBarButton) -> Bool {
+        guard let event = NSApp.currentEvent else { return false }
+        if event.type == .rightMouseUp {
+            return true
+        }
+        if event.type == .leftMouseUp, event.modifierFlags.contains(.control) {
+            return true
+        }
+        return false
+    }
+
+    private func showContextMenu(for button: NSStatusBarButton) {
+        let menu = NSMenu()
+        let pasteItem = NSMenuItem(
+            title: "Paste from Clipboard History",
+            action: #selector(pasteFromClipboardHistory),
+            keyEquivalent: "V"
+        )
+        pasteItem.keyEquivalentModifierMask = [.command, .shift]
+        pasteItem.target = self
+        menu.addItem(pasteItem)
+        menu.popUp(positioning: nil, at: NSPoint(x: 0, y: button.bounds.height + 4), in: button)
+    }
+
+    @objc private func pasteFromClipboardHistory() {
+        ClipboardPasteController.shared.presentPicker()
     }
 
     private func togglePopover(anchoredTo anchorView: NSView) {

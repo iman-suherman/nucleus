@@ -177,7 +177,19 @@ enum TmuxSessionService {
         enrichedEnvironment().map { "\($0.key)=\($0.value)" }
     }
 
-    static func listSessions() async -> Result<[TmuxSession], TmuxSessionError> {
+    static func attachCommand(sessionName: String = "<name>") -> String {
+        "tmux -S \(defaultSocketPath()) attach -t \(sessionName)"
+    }
+
+    static func detachCommand() -> String {
+        "tmux -S \(defaultSocketPath()) detach-client"
+    }
+
+    static func newSessionCommand(sessionName: String = "<name>") -> String {
+        "tmux -S \(defaultSocketPath()) new-session -s \(sessionName)"
+    }
+
+    static func listSessions(includePreviews: Bool = false) async -> Result<[TmuxSession], TmuxSessionError> {
         guard let tmuxPath = resolveTmuxPath() else {
             return .failure(.message("tmux was not found. Install with Homebrew: brew install tmux"))
         }
@@ -205,7 +217,9 @@ enum TmuxSessionService {
                 let windowCount = Int(parts.dropFirst().first ?? "") ?? 0
                 let attachedFlag = parts.dropFirst(2).first ?? "0"
                 let activityEpoch = TimeInterval(parts.dropFirst(3).first ?? "") ?? 0
-                let preview = (try? await capturePane(tmuxPath: tmuxPath, sessionName: name)) ?? ""
+                let preview = includePreviews
+                    ? ((try? await capturePane(tmuxPath: tmuxPath, sessionName: name)) ?? "")
+                    : ""
 
                 sessions.append(
                     TmuxSession(
@@ -359,7 +373,7 @@ final class TmuxSessionBrowser: ObservableObject {
         defer { isRefreshing = false }
 
         tmuxPath = TmuxSessionService.resolveTmuxPath()
-        let result = await TmuxSessionService.listSessions()
+        let result = await TmuxSessionService.listSessions(includePreviews: false)
         switch result {
         case .success(let sessions):
             self.sessions = sessions

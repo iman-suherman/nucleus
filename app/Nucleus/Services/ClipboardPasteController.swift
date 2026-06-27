@@ -17,35 +17,31 @@ final class ClipboardPasteController: NSObject {
     private var eventTap: CFMachPort?
     private var eventTapRunLoopSource: CFRunLoopSource?
     private var previousFrontmostApp: NSRunningApplication?
+    private var lastHotkeyHandledAt: TimeInterval = 0
 
     private override init() {
         super.init()
     }
 
     func start() {
-        if eventTap != nil || globalMonitor != nil || localMonitor != nil {
-            refreshEventTapIfNeeded()
-            return
+        installLocalKeyMonitorIfNeeded()
+
+        if eventTap == nil {
+            _ = startEventTap()
         }
 
-        if startEventTap() {
-            return
-        }
+        installGlobalKeyMonitorIfNeeded()
 
-        installFallbackKeyMonitors()
+        if eventTap == nil, !AXIsProcessTrusted() {
+            promptForAccessibilityIfNeeded()
+        }
     }
 
     func refreshEventTapIfNeeded() {
-        guard eventTap == nil, AXIsProcessTrusted(), startEventTap() else { return }
-
-        if let globalMonitor {
-            NSEvent.removeMonitor(globalMonitor)
-            self.globalMonitor = nil
-        }
-        if let localMonitor {
-            NSEvent.removeMonitor(localMonitor)
-            self.localMonitor = nil
-        }
+        installLocalKeyMonitorIfNeeded()
+        stopEventTap()
+        _ = startEventTap()
+        installGlobalKeyMonitorIfNeeded()
     }
 
     func stop() {
@@ -217,19 +213,32 @@ final class ClipboardPasteController: NSObject {
         return NSRect(origin: origin, size: size)
     }
 
-    private func installFallbackKeyMonitors() {
+    private func installLocalKeyMonitorIfNeeded() {
+        guard localMonitor == nil else { return }
+
         localMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             guard let self, Self.matchesHotkey(event) else { return event }
-            self.presentPicker()
+            self.handleHotkey()
             return nil
         }
+    }
+
+    private func installGlobalKeyMonitorIfNeeded() {
+        guard globalMonitor == nil else { return }
 
         globalMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
             guard let self, Self.matchesHotkey(event) else { return }
             Task { @MainActor in
-                self.presentPicker()
+                self.handleHotkey()
             }
         }
+    }
+
+    private func handleHotkey() {
+        let now = ProcessInfo.processInfo.systemUptime
+        guard now - lastHotkeyHandledAt > 0.25 else { return }
+        lastHotkeyHandledAt = now
+        presentPicker()
     }
 
     @discardableResult
@@ -243,7 +252,7 @@ final class ClipboardPasteController: NSObject {
         let userInfo = Unmanaged.passUnretained(self).toOpaque()
 
         guard let tap = CGEvent.tapCreate(
-            tap: .cgSessionEventTap,
+            tap: Self.hidEventTapLocation,
             place: .headInsertEventTap,
             options: .defaultTap,
             eventsOfInterest: eventMask,
@@ -281,14 +290,14 @@ final class ClipboardPasteController: NSObject {
         AXIsProcessTrustedWithOptions(options)
     }
 
+    private static let hidEventTapLocation = CGEventTapLocation(rawValue: 0)! // kCGHIDEventTap
+
     private static let eventTapCallback: CGEventTapCallBack = { _, type, event, userInfo in
         if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
             if let userInfo {
                 let controller = Unmanaged<ClipboardPasteController>.fromOpaque(userInfo).takeUnretainedValue()
                 DispatchQueue.main.async {
-                    if let tap = controller.eventTap {
-                        CGEvent.tapEnable(tap: tap, enable: true)
-                    }
+                    controller.refreshEventTapIfNeeded()
                 }
             }
             return Unmanaged.passUnretained(event)
@@ -305,7 +314,7 @@ final class ClipboardPasteController: NSObject {
         let controller = Unmanaged<ClipboardPasteController>.fromOpaque(userInfo).takeUnretainedValue()
         DispatchQueue.main.async {
             Task { @MainActor in
-                controller.presentPicker()
+                controller.handleHotkey()
             }
         }
         return nil
@@ -331,18 +340,38 @@ final class ClipboardPasteController: NSObject {
     }
 
     private static func matchesHotkey(_ event: NSEvent) -> Bool {
-        event.modifierFlags.intersection([.command, .shift, .option, .control]) == [.command, .shift]
-            && event.charactersIgnoringModifiers?.lowercased() == "v"
+        guard hotkeyModifiersMatch(event.modifierFlags) else { return false }
+        return event.charactersIgnoringModifiers?.lowercased() == "v"
     }
 
     private static func matchesCGEvent(_ event: CGEvent) -> Bool {
-        guard event.getIntegerValueField(.keyboardEventKeycode) == 9 else { return false }
+        guard hotkeyModifiersMatch(event.flags) else { return false }
 
-        let flags = event.flags
-        return flags.contains(.maskCommand)
-            && flags.contains(.maskShift)
-            && !flags.contains(.maskAlternate)
-            && !flags.contains(.maskControl)
+        if event.getIntegerValueField(.keyboardEventKeycode) == 9 {
+            return true
+        }
+
+        return eventUnicodeCharacter(event)?.lowercased() == "v"
+    }
+
+    private static func hotkeyModifiersMatch(_ flags: NSEvent.ModifierFlags) -> Bool {
+        let mods = flags.intersection(.deviceIndependentFlagsMask)
+        guard mods.contains(.command), mods.contains(.shift) else { return false }
+        return !mods.contains(.option) && !mods.contains(.control)
+    }
+
+    private static func hotkeyModifiersMatch(_ flags: CGEventFlags) -> Bool {
+        let mods = flags.intersection([.maskCommand, .maskShift, .maskAlternate, .maskControl])
+        guard mods.contains(.maskCommand), mods.contains(.maskShift) else { return false }
+        return !mods.contains(.maskAlternate) && !mods.contains(.maskControl)
+    }
+
+    private static func eventUnicodeCharacter(_ event: CGEvent) -> String? {
+        var length = 0
+        var chars = [UniChar](repeating: 0, count: 4)
+        event.keyboardGetUnicodeString(maxStringLength: 4, actualStringLength: &length, unicodeString: &chars)
+        guard length > 0 else { return nil }
+        return String(utf16CodeUnits: chars, count: length)
     }
 }
 

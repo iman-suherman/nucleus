@@ -4,7 +4,6 @@ import SwiftUI
 
 struct TmuxAttachTerminalView: NSViewRepresentable {
     let activeSessionName: String?
-    let createNewSession: Bool
     let tmuxPath: String
     var onDetachHotkey: () -> Void
     var onExit: (Int32?) -> Void
@@ -21,11 +20,7 @@ struct TmuxAttachTerminalView: NSViewRepresentable {
     }
 
     func updateNSView(_ nsView: TerminalHostView, context: Context) {
-        context.coordinator.sync(
-            activeSessionName: activeSessionName,
-            createNewSession: createNewSession,
-            tmuxPath: tmuxPath
-        )
+        context.coordinator.sync(activeSessionName: activeSessionName, tmuxPath: tmuxPath)
     }
 
     static func dismantleNSView(_ nsView: TerminalHostView, coordinator: Coordinator) {
@@ -41,9 +36,7 @@ struct TmuxAttachTerminalView: NSViewRepresentable {
         private var terminalView: LocalProcessTerminalView?
         private var keyMonitor: Any?
         private var activeSessionName: String?
-        private var createNewSession = false
         private var didReportExit = false
-        private var suppressExitReport = false
 
         init(tmuxPath: String, onDetachHotkey: @escaping () -> Void, onExit: @escaping (Int32?) -> Void) {
             self.tmuxPath = tmuxPath
@@ -51,11 +44,10 @@ struct TmuxAttachTerminalView: NSViewRepresentable {
             self.onExit = onExit
         }
 
-        func sync(activeSessionName: String?, createNewSession: Bool, tmuxPath: String) {
+        func sync(activeSessionName: String?, tmuxPath: String) {
             self.tmuxPath = tmuxPath
 
-            let sameTarget = activeSessionName == self.activeSessionName && createNewSession == self.createNewSession
-            if sameTarget {
+            if activeSessionName == self.activeSessionName {
                 scheduleStartIfNeeded()
                 return
             }
@@ -63,7 +55,6 @@ struct TmuxAttachTerminalView: NSViewRepresentable {
             if activeSessionName == nil {
                 clearTerminalView(graceful: true)
                 self.activeSessionName = nil
-                self.createNewSession = false
                 return
             }
 
@@ -72,14 +63,8 @@ struct TmuxAttachTerminalView: NSViewRepresentable {
             }
 
             self.activeSessionName = activeSessionName
-            self.createNewSession = createNewSession
             didReportExit = false
-            suppressExitReport = false
             scheduleStartIfNeeded()
-        }
-
-        func prepareForExternalDetach() {
-            suppressExitReport = true
         }
 
         func scheduleStartIfNeeded() {
@@ -106,14 +91,9 @@ struct TmuxAttachTerminalView: NSViewRepresentable {
             hostView.addSubview(terminal)
             terminalView = terminal
 
-            let shouldCreateNew = createNewSession
-            let launch = shouldCreateNew
-                ? TmuxSessionService.newSessionLaunchPlan(sessionName: sessionName, tmuxPath: tmuxPath)
-                : TmuxSessionService.attachLaunchPlan(sessionName: sessionName, tmuxPath: tmuxPath)
+            let launch = TmuxSessionService.newSessionLaunchPlan(sessionName: sessionName, tmuxPath: tmuxPath)
             DispatchQueue.main.async {
-                guard self.activeSessionName == sessionName,
-                      self.createNewSession == shouldCreateNew,
-                      self.terminalView === terminal else { return }
+                guard self.activeSessionName == sessionName, self.terminalView === terminal else { return }
                 terminal.startProcess(
                     executable: launch.executable,
                     args: launch.args,
@@ -182,7 +162,6 @@ struct TmuxAttachTerminalView: NSViewRepresentable {
         private func reportExitIfNeeded(_ exitCode: Int32?) {
             guard !didReportExit else { return }
             didReportExit = true
-            guard !suppressExitReport else { return }
             let normalized = TmuxSessionService.normalizedExitCode(exitCode)
             DispatchQueue.main.async {
                 self.onExit(normalized)
