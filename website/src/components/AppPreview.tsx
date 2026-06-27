@@ -1,26 +1,4 @@
-import Image from "next/image";
 import { BRAND_NAME } from "@/lib/brand";
-
-const previews = [
-  {
-    image: "/app-screenshot-dashboard.png",
-    width: 1024,
-    height: 856,
-    alt: `${BRAND_NAME} Dashboard showing greeting, Your day clipboard analysis, intelligent insight, weather, resource usage, cloud sync, payment preparation, and productivity chart`,
-    title: "Dashboard",
-    headline: "Your workspace at a glance — and a read on how you work.",
-    description:
-      "Start with a personal greeting and daily quote. Your day analyses today's clipboard captures into productivity insights and improvement suggestions — category mix, source apps, context switching, and focused recommendations. Intelligent insight weaves unread mail, bills, and clipboard trends into plain-language status. Today's weather, live resource usage, Cloud sync, public holidays, and a news feed sit alongside summary metrics and payment preparation. A seven-day productivity chart shows where your clipboard attention goes across Development, Communication, Research, Notes & drafts, Admin & text, and Data & numbers.",
-    imageFirst: true,
-    large: true,
-  },
-] as const;
-
-function imageWrapperClass(large: boolean) {
-  return large
-    ? "relative mx-auto w-full max-w-3xl sm:max-w-4xl lg:mx-0 lg:max-w-none"
-    : "relative mx-auto w-full max-w-2xl lg:mx-0 lg:max-w-none";
-}
 
 export function AppPreview() {
   return (
@@ -36,54 +14,6 @@ export function AppPreview() {
           {BRAND_NAME} keeps mail, bills, clipboard, notes, passwords, music, and tmux in one SwiftUI
           workspace — with a Dashboard that analyses your day and tells you what needs attention first.
         </p>
-      </div>
-
-      <div className="mt-10 space-y-12 lg:space-y-20">
-        {previews.map((preview) => (
-          <article
-            key={preview.image}
-            className={`grid items-center gap-8 ${
-              preview.large ? "lg:grid-cols-[1.15fr_0.85fr] lg:gap-12" : "lg:grid-cols-2 lg:gap-10"
-            } ${preview.imageFirst ? "" : "lg:[&>div:first-child]:order-2 lg:[&>div:last-child]:order-1"}`}
-          >
-            <div className={imageWrapperClass(preview.large)}>
-              <div className="absolute -inset-6 rounded-full bg-gradient-to-br from-brand-blue/10 via-brand-purple/5 to-transparent blur-3xl" />
-              <div className="relative rounded-[1.35rem] sm:rounded-[1.5rem]">
-                <div className="relative overflow-hidden rounded-xl shadow-[0_4px_14px_rgba(0,0,0,0.55),0_20px_48px_rgba(0,0,0,0.5),0_40px_80px_rgba(0,0,0,0.4)] sm:rounded-2xl">
-                  <Image
-                    src={preview.image}
-                    alt={preview.alt}
-                    width={preview.width}
-                    height={preview.height}
-                    unoptimized
-                    sizes={preview.large ? "(max-width: 1024px) 100vw, 42rem" : "(max-width: 1024px) 90vw, 32rem"}
-                    className="relative block h-auto w-full object-contain"
-                  />
-                  <div
-                    aria-hidden
-                    className="pointer-events-none absolute inset-0 rounded-xl bg-[linear-gradient(to_bottom,rgba(0,0,0,0.18)_0%,transparent_28%,transparent_72%,rgba(0,0,0,0.32)_100%)] sm:rounded-2xl"
-                  />
-                  <div
-                    aria-hidden
-                    className="pointer-events-none absolute inset-0 rounded-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.07),inset_0_-20px_40px_rgba(0,0,0,0.22)] sm:rounded-2xl"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className={preview.imageFirst ? "lg:pl-2" : "lg:pr-2"}>
-              <p className="text-sm font-semibold uppercase tracking-wide text-brand-blue">
-                {preview.title}
-              </p>
-              <h3 className="mt-2 text-2xl font-bold text-slate-50 sm:mt-3 sm:text-3xl md:text-4xl">
-                {preview.headline}
-              </h3>
-              <p className="mt-4 max-w-xl text-sm leading-6 text-slate-400 sm:text-base sm:leading-7">
-                {preview.description}
-              </p>
-            </div>
-          </article>
-        ))}
       </div>
     </section>
   );
