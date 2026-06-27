@@ -47,13 +47,57 @@ enum TmuxSessionService {
 
     /// Isolated tmux attach via env -i so no GUI variables leak into the client.
     static func attachLaunchPlan(sessionName: String, tmuxPath: String) -> (executable: String, args: [String]) {
+        launchPlan(
+            tmuxPath: tmuxPath,
+            tmuxArguments: ["-S", defaultSocketPath(), "attach", "-d", "-t", sessionName]
+        )
+    }
+
+    static func newSessionLaunchPlan(sessionName: String, tmuxPath: String) -> (executable: String, args: [String]) {
+        launchPlan(
+            tmuxPath: tmuxPath,
+            tmuxArguments: ["-S", defaultSocketPath(), "new-session", "-s", sessionName]
+        )
+    }
+
+    private static func launchPlan(tmuxPath: String, tmuxArguments: [String]) -> (executable: String, args: [String]) {
         var args = ["-i"]
         for (key, value) in attachEnvironment().sorted(by: { $0.key < $1.key }) {
             args.append("\(key)=\(value)")
         }
         args.append(tmuxPath)
-        args.append(contentsOf: attachArguments(sessionName: sessionName))
+        args.append(contentsOf: tmuxArguments)
         return ("/usr/bin/env", args)
+    }
+
+    static func suggestNewSessionName(existingSessionNames: [String]) -> String {
+        let existing = Set(existingSessionNames)
+        let base = "nucleus"
+        if !existing.contains(base) {
+            return base
+        }
+        for index in 2...999 {
+            let candidate = "\(base)-\(index)"
+            if !existing.contains(candidate) {
+                return candidate
+            }
+        }
+        return "\(base)-\(Int(Date().timeIntervalSince1970))"
+    }
+
+    static func validateSessionName(_ name: String) -> String? {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty {
+            return "Session name is required."
+        }
+        if trimmed.count > 64 {
+            return "Session name must be 64 characters or fewer."
+        }
+        let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "._-"))
+        if trimmed.unicodeScalars.contains(where: { !allowed.contains($0) }) {
+            return "Use letters, numbers, dots, hyphens, or underscores only."
+        }
+        return nil
     }
 
     static func validateSessionExists(sessionName: String, tmuxPath: String) async -> String? {

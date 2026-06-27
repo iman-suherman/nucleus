@@ -1,0 +1,15 @@
+{
+  "version": "0.10.7",
+  "summary": "Start new tmux sessions from the Terminal workspace.",
+  "releaseNotes": {
+    "introduced": [
+      "New Session button creates a named tmux session inside Nucleus instead of only taking over existing ones",
+      "Suggested session names (nucleus, nucleus-2, …) with duplicate-name validation"
+    ],
+    "changed": [],
+    "fixed": [],
+    "updated": [],
+    "removed": [],
+    "breaking": []
+  }
+}
