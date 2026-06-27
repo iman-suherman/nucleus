@@ -1,0 +1,15 @@
+{
+  "version": "0.10.3",
+  "summary": "Force-detach tmux clients before Take Over attach.",
+  "releaseNotes": {
+    "introduced": [],
+    "changed": [],
+    "fixed": [
+      "Terminal Take Over now force-detaches other tmux clients (e.g. Terminal.app) before attaching inside Nucleus",
+      "Attach exit codes are normalized so failures show a clear message instead of code 256"
+    ],
+    "updated": [],
+    "removed": [],
+    "breaking": []
+  }
+}

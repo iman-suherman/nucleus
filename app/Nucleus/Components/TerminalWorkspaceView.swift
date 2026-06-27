@@ -141,9 +141,10 @@ struct TerminalWorkspaceView: View {
                     sessionName: attachedSession.name,
                     tmuxPath: tmuxPath,
                     onExit: { exitCode in
-                        if exitCode != 0 {
+                        let code = TmuxSessionService.normalizedExitCode(exitCode) ?? -1
+                        if code != 0 {
                             self.attachErrorMessage =
-                                "tmux attach exited (code \(exitCode ?? -1)). The session may still be running in Terminal."
+                                "tmux attach failed (exit \(code)). Try Take Over again or check tmux in Terminal."
                         } else {
                             self.attachErrorMessage = "tmux session ended."
                         }

@@ -38,11 +38,29 @@ enum TmuxSessionService {
         "/private/tmp/tmux-\(getuid())/default"
     }
 
-    static func attachArguments(sessionName: String) -> [String] {
-        [
-            "-S", defaultSocketPath(),
-            "attach", "-d", "-t", sessionName,
-        ]
+    /// Shell-quoted value for use inside single-quoted zsh strings.
+    static func shellSingleQuoted(_ value: String) -> String {
+        "'" + value.replacingOccurrences(of: "'", with: "'\\''") + "'"
+    }
+
+    /// Force-detach all clients on the session, then attach (login zsh for PATH/home).
+    static func attachLaunchPlan(sessionName: String, tmuxPath: String) -> (executable: String, args: [String]) {
+        let socket = shellSingleQuoted(defaultSocketPath())
+        let tmux = shellSingleQuoted(tmuxPath)
+        let session = shellSingleQuoted(sessionName)
+        let script = """
+        unset TMUX TMUX_PANE
+        \(tmux) -S \(socket) detach-client -s \(session) 2>/dev/null || true
+        exec \(tmux) -S \(socket) attach -d -t \(session)
+        """
+        return ("/bin/zsh", ["-l", "-c", script])
+    }
+
+    /// Normalize wait status (256 → 1) from SwiftTerm / Process termination.
+    static func normalizedExitCode(_ code: Int32?) -> Int32? {
+        guard let code else { return nil }
+        if code > 255 { return code >> 8 }
+        return code
     }
 
     static func enrichedEnvironmentArray() -> [String] {

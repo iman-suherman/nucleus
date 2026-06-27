@@ -65,9 +65,13 @@ struct TmuxAttachTerminalView: NSViewRepresentable {
             hostView.addSubview(terminal)
             terminalView = terminal
 
+            let launch = TmuxSessionService.attachLaunchPlan(
+                sessionName: sessionName,
+                tmuxPath: tmuxPath
+            )
             terminal.startProcess(
-                executable: tmuxPath,
-                args: TmuxSessionService.attachArguments(sessionName: sessionName),
+                executable: launch.executable,
+                args: launch.args,
                 environment: TmuxSessionService.enrichedEnvironmentArray(),
                 execName: nil
             )
@@ -91,8 +95,9 @@ struct TmuxAttachTerminalView: NSViewRepresentable {
         private func reportExitIfNeeded(_ exitCode: Int32?) {
             guard !didReportExit else { return }
             didReportExit = true
+            let normalized = TmuxSessionService.normalizedExitCode(exitCode)
             DispatchQueue.main.async {
-                self.onExit(exitCode)
+                self.onExit(normalized)
             }
         }
     }
