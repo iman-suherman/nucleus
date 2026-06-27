@@ -45,6 +45,29 @@ enum TmuxSessionService {
         ]
     }
 
+    /// Isolated tmux attach via env -i so no GUI variables leak into the client.
+    static func attachLaunchPlan(sessionName: String, tmuxPath: String) -> (executable: String, args: [String]) {
+        var args = ["-i"]
+        for (key, value) in attachEnvironment().sorted(by: { $0.key < $1.key }) {
+            args.append("\(key)=\(value)")
+        }
+        args.append(tmuxPath)
+        args.append(contentsOf: attachArguments(sessionName: sessionName))
+        return ("/usr/bin/env", args)
+    }
+
+    static func validateSessionExists(sessionName: String, tmuxPath: String) async -> String? {
+        do {
+            _ = try await run(
+                executable: tmuxPath,
+                arguments: ["-S", defaultSocketPath(), "has-session", "-t", sessionName]
+            )
+            return nil
+        } catch {
+            return "Session \"\(sessionName)\" was not found on the tmux server."
+        }
+    }
+
     /// Detach other tmux clients so Nucleus can attach to the session.
     static func prepareSessionForAttach(sessionName: String, tmuxPath: String) async {
         _ = try? await run(
@@ -72,33 +95,30 @@ enum TmuxSessionService {
     ]
 
     private static func attachEnvironment() -> [String: String] {
+        let passwd = getpwuid(getuid())
+        let home = passwd.map { String(cString: $0.pointee.pw_dir) } ?? NSHomeDirectory()
+        let user = passwd.map { String(cString: $0.pointee.pw_name) } ?? NSUserName()
         let source = ProcessInfo.processInfo.environment
-        var environment: [String: String] = [:]
+
+        var environment: [String: String] = [
+            "HOME": home,
+            "USER": user,
+            "LOGNAME": user,
+            "SHELL": source["SHELL"] ?? "/bin/zsh",
+            "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin",
+            "TERM": "xterm-256color",
+            "LANG": source["LANG"] ?? "en_US.UTF-8",
+        ]
+
         for key in attachEnvironmentKeys {
+            guard key != "HOME", key != "USER", key != "LOGNAME", key != "SHELL", key != "PATH", key != "TERM", key != "LANG" else {
+                continue
+            }
             if let value = source[key], !value.isEmpty {
                 environment[key] = value
             }
         }
 
-        let home = environment["HOME"] ?? NSHomeDirectory()
-        environment["HOME"] = home
-
-        let pathEntries = [
-            "/opt/homebrew/bin",
-            "/usr/local/bin",
-            "/usr/bin",
-            "/bin",
-            "/usr/sbin",
-            "/sbin",
-        ]
-        let existing = environment["PATH"] ?? source["PATH"] ?? ""
-        environment["PATH"] = (pathEntries + existing.split(separator: ":").map(String.init))
-            .uniqued()
-            .joined(separator: ":")
-
-        environment["TERM"] = "xterm-256color"
-        environment.removeValue(forKey: "TMUX")
-        environment.removeValue(forKey: "TMUX_PANE")
         return environment
     }
 

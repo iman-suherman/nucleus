@@ -3,18 +3,13 @@ import SwiftTerm
 import SwiftUI
 
 struct TmuxAttachTerminalView: NSViewRepresentable {
-    let sessionName: String
+    let activeSessionName: String?
     let tmuxPath: String
     var onDetachHotkey: () -> Void
     var onExit: (Int32?) -> Void
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(
-            sessionName: sessionName,
-            tmuxPath: tmuxPath,
-            onDetachHotkey: onDetachHotkey,
-            onExit: onExit
-        )
+        Coordinator(tmuxPath: tmuxPath, onDetachHotkey: onDetachHotkey, onExit: onExit)
     }
 
     func makeNSView(context: Context) -> TerminalHostView {
@@ -25,46 +20,68 @@ struct TmuxAttachTerminalView: NSViewRepresentable {
     }
 
     func updateNSView(_ nsView: TerminalHostView, context: Context) {
-        context.coordinator.scheduleStartIfNeeded()
+        context.coordinator.sync(activeSessionName: activeSessionName, tmuxPath: tmuxPath)
     }
 
     static func dismantleNSView(_ nsView: TerminalHostView, coordinator: Coordinator) {
-        coordinator.tearDown()
+        coordinator.finalTeardown()
     }
 
     final class Coordinator: NSObject {
-        let sessionName: String
-        let tmuxPath: String
+        private(set) var tmuxPath: String
         let onDetachHotkey: () -> Void
         let onExit: (Int32?) -> Void
 
         weak var hostView: TerminalHostView?
         private var terminalView: LocalProcessTerminalView?
         private var keyMonitor: Any?
-        private var hasStarted = false
+        private var activeSessionName: String?
         private var didReportExit = false
+        private var suppressExitReport = false
 
-        init(
-            sessionName: String,
-            tmuxPath: String,
-            onDetachHotkey: @escaping () -> Void,
-            onExit: @escaping (Int32?) -> Void
-        ) {
-            self.sessionName = sessionName
+        init(tmuxPath: String, onDetachHotkey: @escaping () -> Void, onExit: @escaping (Int32?) -> Void) {
             self.tmuxPath = tmuxPath
             self.onDetachHotkey = onDetachHotkey
             self.onExit = onExit
         }
 
+        func sync(activeSessionName: String?, tmuxPath: String) {
+            self.tmuxPath = tmuxPath
+
+            if activeSessionName == self.activeSessionName {
+                scheduleStartIfNeeded()
+                return
+            }
+
+            if activeSessionName == nil {
+                clearTerminalView(graceful: true)
+                self.activeSessionName = nil
+                return
+            }
+
+            if self.activeSessionName != nil {
+                clearTerminalView(graceful: true)
+            }
+
+            self.activeSessionName = activeSessionName
+            didReportExit = false
+            suppressExitReport = false
+            scheduleStartIfNeeded()
+        }
+
+        func prepareForExternalDetach() {
+            suppressExitReport = true
+        }
+
         func scheduleStartIfNeeded() {
             guard let hostView else { return }
-            guard !hasStarted else {
+            guard let sessionName = activeSessionName else { return }
+            guard terminalView == nil else {
                 resizeTerminalIfNeeded(in: hostView)
                 return
             }
             guard hostView.bounds.width > 20, hostView.bounds.height > 20 else { return }
 
-            hasStarted = true
             startKeyMonitor()
 
             let terminal = LocalProcessTerminalView(frame: hostView.bounds)
@@ -80,20 +97,36 @@ struct TmuxAttachTerminalView: NSViewRepresentable {
             hostView.addSubview(terminal)
             terminalView = terminal
 
-            terminal.startProcess(
-                executable: tmuxPath,
-                args: TmuxSessionService.attachArguments(sessionName: sessionName),
-                environment: TmuxSessionService.attachEnvironmentArray(),
-                execName: nil
-            )
+            let launch = TmuxSessionService.attachLaunchPlan(sessionName: sessionName, tmuxPath: tmuxPath)
+            DispatchQueue.main.async {
+                guard self.activeSessionName == sessionName, self.terminalView === terminal else { return }
+                terminal.startProcess(
+                    executable: launch.executable,
+                    args: launch.args,
+                    environment: TmuxSessionService.attachEnvironmentArray(),
+                    execName: nil
+                )
+            }
         }
 
-        func tearDown() {
+        func finalTeardown() {
             stopKeyMonitor()
-            terminalView?.terminate()
-            terminalView?.removeFromSuperview()
-            terminalView = nil
-            hasStarted = false
+            clearTerminalView(graceful: false)
+            activeSessionName = nil
+        }
+
+        private func clearTerminalView(graceful: Bool) {
+            stopKeyMonitor()
+            guard let terminalView else { return }
+
+            if graceful {
+                terminalView.processDelegate = nil
+            } else {
+                terminalView.terminate()
+            }
+
+            terminalView.removeFromSuperview()
+            self.terminalView = nil
         }
 
         private func startKeyMonitor() {
@@ -135,6 +168,7 @@ struct TmuxAttachTerminalView: NSViewRepresentable {
         private func reportExitIfNeeded(_ exitCode: Int32?) {
             guard !didReportExit else { return }
             didReportExit = true
+            guard !suppressExitReport else { return }
             let normalized = TmuxSessionService.normalizedExitCode(exitCode)
             DispatchQueue.main.async {
                 self.onExit(normalized)
@@ -145,6 +179,7 @@ struct TmuxAttachTerminalView: NSViewRepresentable {
 
 extension TmuxAttachTerminalView.Coordinator: LocalProcessTerminalViewDelegate {
     func processTerminated(source: TerminalView, exitCode: Int32?) {
+        clearTerminalView(graceful: true)
         reportExitIfNeeded(exitCode)
     }
 

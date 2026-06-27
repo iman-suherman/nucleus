@@ -23,6 +23,13 @@ struct TerminalWorkspaceView: View {
         .onAppear {
             browser.startAutoRefresh()
         }
+        .onChange(of: attachedSession?.name) { _, sessionName in
+            if sessionName == nil {
+                browser.startAutoRefresh()
+            } else {
+                browser.stopAutoRefresh()
+            }
+        }
         .onDisappear {
             browser.stopAutoRefresh()
             if let session = attachedSession {
@@ -120,23 +127,53 @@ struct TerminalWorkspaceView: View {
 
     @ViewBuilder
     private var terminalPane: some View {
-        if let attachedSession, let tmuxPath = browser.tmuxPath {
-            VStack(spacing: 0) {
+        ZStack {
+            if attachedSession == nil {
+                if let selectedName = selectedSessionName,
+                   let session = browser.sessions.first(where: { $0.name == selectedName }) {
+                    previewPane(for: session)
+                } else {
+                    ContentUnavailableView {
+                        Label("No session selected", systemImage: "arrow.left")
+                    } description: {
+                        Text("Choose a tmux session on the left, then click Take Over to attach interactively inside Nucleus.")
+                    }
+                }
+            }
+
+            if let tmuxPath = browser.tmuxPath {
+                attachedTerminalLayer(tmuxPath: tmuxPath)
+            } else if attachedSession != nil {
+                ContentUnavailableView {
+                    Label("Could not start tmux attach", systemImage: "exclamationmark.triangle")
+                } description: {
+                    Text("tmux path is unavailable. Click Refresh in the session list.")
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func attachedTerminalLayer(tmuxPath: String) -> some View {
+        VStack(spacing: 0) {
+            if attachedSession != nil {
                 HStack {
-                    Label(attachedSession.name, systemImage: "terminal.fill")
+                    Label(attachedSession?.name ?? "tmux", systemImage: "terminal.fill")
                         .font(.headline)
-                    if attachedSession.isAttached {
+                    if attachedSession?.isAttached == true {
                         Text("detached other clients")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
                     Spacer()
-                    Button("Detach") {
-                        detach(from: attachedSession)
+                    if let session = attachedSession {
+                        Button("Detach") {
+                            detach(from: session)
+                        }
+                        .buttonStyle(.bordered)
+                        .disabled(isDetaching)
+                        .keyboardShortcut("d", modifiers: [.command, .shift])
                     }
-                    .buttonStyle(.bordered)
-                    .disabled(isDetaching)
-                    .keyboardShortcut("d", modifiers: [.command, .shift])
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 10)
@@ -158,47 +195,39 @@ struct TerminalWorkspaceView: View {
                         .padding(.vertical, 8)
                         .background(Color.red.opacity(0.08))
                 }
+            }
 
-                TmuxAttachTerminalView(
-                    sessionName: attachedSession.name,
-                    tmuxPath: tmuxPath,
-                    onDetachHotkey: {
-                        detach(from: attachedSession)
-                    },
-                    onExit: { exitCode in
-                        if isDetaching {
-                            self.attachedSession = nil
-                            self.attachErrorMessage = nil
-                            return
-                        }
-                        let code = TmuxSessionService.normalizedExitCode(exitCode) ?? -1
-                        if code != 0 {
-                            self.attachErrorMessage =
-                                "tmux attach failed (exit \(code)). Try Take Over again or check tmux in Terminal."
-                        } else {
-                            self.attachErrorMessage = "tmux session ended."
-                        }
-                        self.attachedSession = nil
+            TmuxAttachTerminalView(
+                activeSessionName: attachedSession?.name,
+                tmuxPath: tmuxPath,
+                onDetachHotkey: {
+                    if let session = attachedSession {
+                        detach(from: session)
                     }
-                )
-                .id(attachedSession.name)
-            }
-        } else if attachedSession != nil {
-            ContentUnavailableView {
-                Label("Could not start tmux attach", systemImage: "exclamationmark.triangle")
-            } description: {
-                Text("tmux path is unavailable. Click Refresh in the session list.")
-            }
-        } else if let selectedName = selectedSessionName,
-                  let session = browser.sessions.first(where: { $0.name == selectedName }) {
-            previewPane(for: session)
-        } else {
-            ContentUnavailableView {
-                Label("No session selected", systemImage: "arrow.left")
-            } description: {
-                Text("Choose a tmux session on the left, then click Take Over to attach interactively inside Nucleus.")
-            }
+                },
+                onExit: { exitCode in
+                    if isDetaching {
+                        self.attachedSession = nil
+                        self.attachErrorMessage = nil
+                        return
+                    }
+                    let code = TmuxSessionService.normalizedExitCode(exitCode) ?? -1
+                    if code != 0 {
+                        self.attachErrorMessage =
+                            "tmux attach failed (exit \(code)). Try Take Over again or check tmux in Terminal."
+                    } else {
+                        self.attachErrorMessage = "tmux session ended."
+                    }
+                    self.attachedSession = nil
+                }
+            )
+            .frame(maxWidth: .infinity, maxHeight: attachedSession == nil ? 0 : .infinity)
+            .clipped()
+            .opacity(attachedSession == nil ? 0 : 1)
+            .allowsHitTesting(attachedSession != nil)
+            .accessibilityHidden(attachedSession == nil)
         }
+        .allowsHitTesting(attachedSession != nil)
     }
 
     private func previewPane(for session: TmuxSession) -> some View {
@@ -255,10 +284,10 @@ struct TerminalWorkspaceView: View {
             }
 
             await TmuxSessionService.detachSession(sessionName: session.name, tmuxPath: tmuxPath)
-            try? await Task.sleep(for: .milliseconds(150))
             attachErrorMessage = nil
             attachedSession = nil
             await browser.refresh()
+            browser.startAutoRefresh()
         }
     }
 
@@ -273,8 +302,17 @@ struct TerminalWorkspaceView: View {
                 attachErrorMessage = "tmux path is unavailable."
                 return
             }
+            if let validationError = await TmuxSessionService.validateSessionExists(
+                sessionName: session.name,
+                tmuxPath: tmuxPath
+            ) {
+                attachErrorMessage = validationError
+                return
+            }
             await TmuxSessionService.prepareSessionForAttach(sessionName: session.name, tmuxPath: tmuxPath)
+            attachErrorMessage = nil
             attachedSession = session
+            browser.stopAutoRefresh()
         }
     }
 }
