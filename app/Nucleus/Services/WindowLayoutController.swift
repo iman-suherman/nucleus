@@ -3,6 +3,13 @@ import Foundation
 import NucleusKit
 import SwiftUI
 
+enum WindowLayoutMetrics {
+    static let minWidth: CGFloat = 920
+    static let minHeight: CGFloat = 680
+    static let defaultWidth: CGFloat = 1320
+    static let defaultHeight: CGFloat = 880
+}
+
 @MainActor
 final class WindowLayoutController {
     static let shared = WindowLayoutController()
@@ -21,9 +28,12 @@ final class WindowLayoutController {
     }
 
     func attach(to window: NSWindow?) {
-        guard let window, trackedWindow !== window else { return }
+        guard let window else { return }
+        guard trackedWindow !== window else { return }
+
         detachObservers()
         trackedWindow = window
+        hasRestoredInitialFrame = false
         configureWindowChrome(window)
         resizeObserver = NotificationCenter.default.addObserver(
             forName: NSWindow.didResizeNotification,
@@ -42,32 +52,49 @@ final class WindowLayoutController {
         restoreSavedFrameOnce(from: AppSettings.shared.windowLayout)
     }
 
-    /// Restores saved frame once at launch. Frame is never re-applied after user interaction.
+    /// Restores saved frame once per window attachment. Frame is not re-applied after user interaction.
     func restoreSavedFrameOnce(from layout: WindowLayoutState?) {
         guard !hasRestoredInitialFrame else { return }
         guard let window = trackedWindow else { return }
         hasRestoredInitialFrame = true
 
         var target = window.frame
-        if let layout {
-            if layout.width > 0, layout.height > 0 {
-                target.size = NSSize(
-                    width: max(layout.width, 1180),
-                    height: max(layout.height, 780)
-                )
-            }
-            if let originX = layout.originX, let originY = layout.originY {
-                target.origin = NSPoint(x: originX, y: originY)
-            }
+        if let layout, layout.width > 0, layout.height > 0 {
+            target.size = NSSize(
+                width: max(layout.width, WindowLayoutMetrics.minWidth),
+                height: max(layout.height, WindowLayoutMetrics.minHeight)
+            )
         }
 
-        let constrained = frameConstrainedToVisibleScreen(target, on: window, centerIfNeeded: layout == nil)
+        let hasSavedOrigin = layout?.originX != nil && layout?.originY != nil
+        if hasSavedOrigin, let originX = layout?.originX, let originY = layout?.originY {
+            target.origin = NSPoint(x: originX, y: originY)
+        }
+
+        let constrained = frameConstrainedToVisibleScreen(
+            target,
+            on: window,
+            centerIfNeeded: layout == nil || !hasSavedOrigin
+        )
         guard !framesApproximatelyEqual(window.frame, constrained) else { return }
 
         isApplyingProgrammatically = true
         window.setFrame(constrained, display: true)
         isApplyingProgrammatically = false
         configureWindowChrome(window)
+    }
+
+    func persistLayoutNow() {
+        guard !isApplyingProgrammatically else { return }
+        guard let layout = captureCurrentLayout(sidebarWidth: nil, notesListWidth: nil) else { return }
+
+        var merged = AppSettings.shared.windowLayout ?? layout
+        merged.width = layout.width
+        merged.height = layout.height
+        merged.originX = layout.originX
+        merged.originY = layout.originY
+        AppSettings.shared.windowLayout = merged
+        onLayoutChange?(layout)
     }
 
     private func configureWindowChrome(_ window: NSWindow) {
@@ -87,8 +114,8 @@ final class WindowLayoutController {
         guard let visible = screen?.visibleFrame else { return frame }
 
         var result = frame
-        result.size.width = min(max(result.size.width, 1180), visible.width)
-        result.size.height = min(max(result.size.height, 780), visible.height)
+        result.size.width = min(max(result.size.width, WindowLayoutMetrics.minWidth), visible.width)
+        result.size.height = min(max(result.size.height, WindowLayoutMetrics.minHeight), visible.height)
 
         let intersectsVisible = visible.intersection(result)
         let isMostlyVisible = intersectsVisible.width > result.width * 0.5
@@ -158,6 +185,15 @@ final class WindowLayoutController {
     }
 }
 
+private final class WindowAttachmentView: NSView {
+    var onWindowChange: ((NSWindow?) -> Void)?
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        onWindowChange?(window)
+    }
+}
+
 struct WindowLayoutAccessor: NSViewRepresentable {
     let onWindowReady: (NSWindow) -> Void
 
@@ -166,16 +202,25 @@ struct WindowLayoutAccessor: NSViewRepresentable {
     }
 
     func makeNSView(context: Context) -> NSView {
-        let view = NSView(frame: .zero)
-        DispatchQueue.main.async {
-            context.coordinator.attachIfNeeded(to: view.window)
+        let view = WindowAttachmentView()
+        view.onWindowChange = { window in
+            guard let window else { return }
+            context.coordinator.attachIfNeeded(to: window)
+        }
+        if let window = view.window {
+            context.coordinator.attachIfNeeded(to: window)
         }
         return view
     }
 
     func updateNSView(_ nsView: NSView, context: Context) {
-        DispatchQueue.main.async {
-            context.coordinator.attachIfNeeded(to: nsView.window)
+        guard let view = nsView as? WindowAttachmentView else { return }
+        view.onWindowChange = { window in
+            guard let window else { return }
+            context.coordinator.attachIfNeeded(to: window)
+        }
+        if let window = view.window {
+            context.coordinator.attachIfNeeded(to: window)
         }
     }
 

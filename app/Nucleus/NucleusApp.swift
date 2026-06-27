@@ -13,6 +13,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             NSApp.applicationIconImage = image
         }
 
+        NotificationCenter.default.addObserver(
+            forName: NSApplication.willTerminateNotification,
+            object: nil,
+            queue: .main
+        ) { _ in
+            WindowLayoutController.shared.persistLayoutNow()
+        }
+
+        NotificationCenter.default.addObserver(
+            forName: NSApplication.didResignActiveNotification,
+            object: nil,
+            queue: .main
+        ) { _ in
+            WindowLayoutController.shared.persistLayoutNow()
+        }
+
         DispatchQueue.main.async {
             _ = SparkleUpdaterController.shared
             Self.kickBootstrap(attempt: 0)
@@ -46,11 +62,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 struct NucleusApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
+    private var launchWindowSize: (width: Double, height: Double) {
+        let layout = AppSettings.shared.windowLayout
+        let width = layout.flatMap { $0.width > 0 ? $0.width : nil } ?? WindowLayoutMetrics.defaultWidth
+        let height = layout.flatMap { $0.height > 0 ? $0.height : nil } ?? WindowLayoutMetrics.defaultHeight
+        return (
+            width: max(width, WindowLayoutMetrics.minWidth),
+            height: max(height, WindowLayoutMetrics.minHeight)
+        )
+    }
+
     var body: some Scene {
         WindowGroup {
             AppRootView()
         }
-        .defaultSize(width: 1320, height: 880)
+        .defaultSize(width: launchWindowSize.width, height: launchWindowSize.height)
         .windowStyle(.automatic)
         .windowToolbarStyle(.unified(showsTitle: false))
         .commands {
@@ -106,6 +132,11 @@ private struct AppRootView: View {
                 guard let url = notification.object as? URL else { return }
                 Task { await viewModel.handleIncomingURL(url) }
             }
+            .background(
+                WindowLayoutAccessor { window in
+                    WindowLayoutController.shared.attach(to: window)
+                }
+            )
     }
 }
 
@@ -129,6 +160,7 @@ struct ContentView: View {
     @ObservedObject private var newsSpeechService = DashboardNewsSpeechService.shared
     @ObservedObject private var weatherService = DashboardWeatherService.shared
     @ObservedObject private var holidayService = DashboardPublicHolidayService.shared
+    @ObservedObject private var tmuxSessionBrowser = TmuxSessionBrowser.shared
 
     var body: some View {
         Group {
@@ -214,11 +246,6 @@ struct ContentView: View {
                 .padding(.top, 10)
             }
         }
-        .background(
-            WindowLayoutAccessor { window in
-                WindowLayoutController.shared.attach(to: window)
-            }
-        )
         .onChange(of: appSettings.menuBarEnabled) { _, _ in
             viewModel.menuBarController.applySettings(appSettings)
         }
@@ -229,6 +256,7 @@ struct ContentView: View {
         .onAppear {
             EmbeddedWebViewRegistry.syncVisibility(activePane: activeWorkspacePane(from: viewModel.sidebarSelection))
             syncBreakingNewsFeed()
+            tmuxSessionBrowser.startAutoRefresh()
         }
         .onChange(of: appSettings.dashboardPreferences.newsFeedEnabled) { _, _ in
             syncBreakingNewsFeed()
@@ -313,7 +341,7 @@ struct ContentView: View {
     }
 
     private var sidebar: some View {
-        List {
+        List(selection: $viewModel.sidebarSelection) {
             Section {
                 NucleusBrandMark(
                     logoSize: isCompactSidebar ? 32 : 44,
@@ -325,23 +353,30 @@ struct ContentView: View {
 
             if isCompactSidebar {
                 Section {
-                    ForEach(WorkspacePane.primaryWorkspaces) { pane in
+                    ForEach(viewModel.orderedWorkspacePanes) { pane in
                         sidebarSelectableRow(for: pane)
+                            .tag(SidebarSelection.workspace(pane))
                     }
+                    .onMove(perform: viewModel.moveWorkspacePane)
+
                     ForEach(WorkspacePane.utilityWorkspaces) { pane in
                         sidebarSelectableRow(for: pane)
+                            .tag(SidebarSelection.workspace(pane))
                     }
                 }
             } else {
                 Section("Workspace") {
-                    ForEach(WorkspacePane.primaryWorkspaces) { pane in
+                    ForEach(viewModel.orderedWorkspacePanes) { pane in
                         sidebarSelectableRow(for: pane)
+                            .tag(SidebarSelection.workspace(pane))
                     }
+                    .onMove(perform: viewModel.moveWorkspacePane)
                 }
 
                 Section("System") {
                     ForEach(WorkspacePane.utilityWorkspaces) { pane in
                         sidebarSelectableRow(for: pane)
+                            .tag(SidebarSelection.workspace(pane))
                     }
                 }
             }
@@ -349,36 +384,25 @@ struct ContentView: View {
         .listStyle(.sidebar)
         .safeAreaPadding(.top, isCompactSidebar ? 20 : 28)
         .animation(.easeInOut(duration: 0.2), value: appSettings.sidebarSize)
+        .animation(.easeInOut(duration: 0.2), value: appSettings.workspacePaneOrder.map(\.rawValue))
     }
 
     private func sidebarSelectableRow(for pane: WorkspacePane) -> some View {
-        let selection = SidebarSelection.workspace(pane)
-        let isSelected = viewModel.sidebarSelection == selection
-
-        return Button {
-            viewModel.sidebarSelection = selection
-        } label: {
-            sidebarRow(for: pane)
-                .padding(.vertical, isCompactSidebar ? 6 : 3)
-                .padding(.horizontal, isCompactSidebar ? 4 : 8)
-                .frame(maxWidth: .infinity, alignment: isCompactSidebar ? .center : .leading)
-                .background(
-                    isSelected ? Color.accentColor.opacity(0.18) : Color.clear,
-                    in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+        sidebarRow(for: pane)
+            .padding(.vertical, isCompactSidebar ? 6 : 3)
+            .padding(.horizontal, isCompactSidebar ? 4 : 8)
+            .frame(maxWidth: .infinity, alignment: isCompactSidebar ? .center : .leading)
+            .pointerCursor()
+            .help(isCompactSidebar ? "\(pane.title) — \(pane.subtitle)" : "")
+            .listRowInsets(
+                EdgeInsets(
+                    top: 2,
+                    leading: isCompactSidebar ? 4 : 8,
+                    bottom: 2,
+                    trailing: isCompactSidebar ? 4 : 8
                 )
-        }
-        .buttonStyle(.plain)
-        .pointerCursor()
-        .help(isCompactSidebar ? "\(pane.title) — \(pane.subtitle)" : "")
-        .listRowInsets(
-            EdgeInsets(
-                top: 2,
-                leading: isCompactSidebar ? 4 : 8,
-                bottom: 2,
-                trailing: isCompactSidebar ? 4 : 8
             )
-        )
-        .listRowBackground(Color.clear)
+            .listRowBackground(Color.clear)
     }
 
     @ViewBuilder
@@ -435,6 +459,8 @@ struct ContentView: View {
             compactCountBadge(viewModel.activeBills.count)
         case .notes where viewModel.regularNotesCount + viewModel.passwordNotesCount > 0:
             compactCountBadge(viewModel.regularNotesCount + viewModel.passwordNotesCount)
+        case .terminal where tmuxSessionBrowser.activeSessionCount > 0:
+            compactCountBadge(tmuxSessionBrowser.activeSessionCount)
         case .media where mediaController.nowPlaying.isPlaying:
             Image(systemName: "waveform")
                 .font(.system(size: 8, weight: .bold))
@@ -476,6 +502,8 @@ struct ContentView: View {
                 notesCount: viewModel.regularNotesCount,
                 passwordsCount: viewModel.passwordNotesCount
             )
+        case .terminal where tmuxSessionBrowser.activeSessionCount > 0:
+            NucleusCountBadge(count: tmuxSessionBrowser.activeSessionCount)
         case .media where mediaController.nowPlaying.isPlaying:
             MusicPlayingSidebarIndicator()
         default:

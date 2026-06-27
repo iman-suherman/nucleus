@@ -93,7 +93,13 @@ public enum WorkspacePane: String, CaseIterable, Identifiable, Sendable {
     }
 
     public static let primaryWorkspaces: [WorkspacePane] = [.dashboard, .inbox, .clipboard, .notes, .bills, .media, .terminal]
+    public static let reorderableWorkspaces: [WorkspacePane] = primaryWorkspaces
+    public static let defaultWorkspacePaneOrder: [WorkspacePane] = reorderableWorkspaces
     public static let utilityWorkspaces: [WorkspacePane] = [.settings, .accounts]
+
+    public var isReorderableSidebarItem: Bool {
+        Self.reorderableWorkspaces.contains(self)
+    }
 }
 
 public enum ActivitySource: String, Codable, Sendable {

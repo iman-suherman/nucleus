@@ -411,12 +411,20 @@ private extension Array where Element: Hashable {
 
 @MainActor
 final class TmuxSessionBrowser: ObservableObject {
+    static let shared = TmuxSessionBrowser()
+
     @Published private(set) var sessions: [TmuxSession] = []
     @Published private(set) var errorMessage: String?
     @Published private(set) var isRefreshing = false
     @Published private(set) var tmuxPath: String?
 
+    var activeSessionCount: Int {
+        sessions.count
+    }
+
     private var refreshTask: Task<Void, Never>?
+
+    private init() {}
 
     func startAutoRefresh() {
         stopAutoRefresh()

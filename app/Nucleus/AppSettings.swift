@@ -206,6 +206,7 @@ final class AppSettings: ObservableObject {
         static let billNotifyOnDueDate = "nucleus.settings.billNotifyOnDueDate"
         static let dashboardPreferences = "nucleus.settings.dashboardPreferences"
         static let sidebarSize = "nucleus.settings.sidebarSize"
+        static let workspacePaneOrder = "nucleus.settings.workspacePaneOrder"
         static let publicHolidayCountryCodes = "nucleus.settings.publicHolidayCountryCodes"
         static let mediaFavoritePlaylists = "nucleus.settings.mediaFavoritePlaylists"
         static let mediaShortcuts = "nucleus.settings.mediaShortcuts"
@@ -364,6 +365,15 @@ final class AppSettings: ObservableObject {
 
     @Published var sidebarSize: SidebarSize {
         didSet { UserDefaults.standard.set(sidebarSize.rawValue, forKey: Keys.sidebarSize) }
+    }
+
+    @Published var workspacePaneOrder: [WorkspacePane] {
+        didSet {
+            UserDefaults.standard.set(
+                workspacePaneOrder.map(\.rawValue),
+                forKey: Keys.workspacePaneOrder
+            )
+        }
     }
 
     @Published var publicHolidayCountryCodes: [String] {
@@ -630,6 +640,9 @@ final class AppSettings: ObservableObject {
         } else {
             sidebarSize = .regular
         }
+        workspacePaneOrder = Self.resolvedWorkspacePaneOrder(
+            stored: UserDefaults.standard.stringArray(forKey: Keys.workspacePaneOrder)
+        )
         publicHolidayCountryCodes = UserDefaults.standard.stringArray(forKey: Keys.publicHolidayCountryCodes) ?? []
         mediaFavoritePlaylists = Self.loadMediaFavoritePlaylists()
         mediaShortcuts = Self.loadMediaShortcuts()
@@ -638,6 +651,21 @@ final class AppSettings: ObservableObject {
     func resetDashboardPreferences() {
         dashboardPreferences = DashboardPreferences()
         publicHolidayCountryCodes = []
+    }
+
+    static func resolvedWorkspacePaneOrder(stored: [String]?) -> [WorkspacePane] {
+        let validPanes = Set(WorkspacePane.reorderableWorkspaces)
+        guard let stored, !stored.isEmpty else {
+            return WorkspacePane.reorderableWorkspaces
+        }
+
+        var ordered = stored
+            .compactMap { WorkspacePane(rawValue: $0) }
+            .filter { $0.isReorderableSidebarItem && validPanes.contains($0) }
+        for pane in WorkspacePane.reorderableWorkspaces where !ordered.contains(pane) {
+            ordered.append(pane)
+        }
+        return ordered
     }
 
     private static func persistDashboardPreferences(_ preferences: DashboardPreferences) {

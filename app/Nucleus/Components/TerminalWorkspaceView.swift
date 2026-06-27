@@ -78,7 +78,7 @@ private enum NewTerminalKind: String, CaseIterable, Identifiable {
 
 struct TerminalWorkspaceView: View {
     @EnvironmentObject private var viewModel: AppViewModel
-    @StateObject private var browser = TmuxSessionBrowser()
+    @ObservedObject private var browser = TmuxSessionBrowser.shared
     @State private var activeTerminal: ActiveTerminal?
     @State private var terminalErrorMessage: String?
     @State private var isPreparingSession = false
@@ -143,7 +143,6 @@ struct TerminalWorkspaceView: View {
             viewModel.refreshDashboardIncomingMailAlertIfNeeded()
         }
         .onDisappear {
-            browser.stopAutoRefresh()
             if let terminal = activeTerminal,
                let sessionName = terminal.tmuxSessionName,
                !terminal.skipsDetachOnDisappear {

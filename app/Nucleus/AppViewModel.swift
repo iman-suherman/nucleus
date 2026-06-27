@@ -216,6 +216,16 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         revealQueuedDashboardIncomingMailIfNeeded()
     }
 
+    var orderedWorkspacePanes: [WorkspacePane] {
+        AppSettings.shared.workspacePaneOrder
+    }
+
+    func moveWorkspacePane(from source: IndexSet, to destination: Int) {
+        var order = AppSettings.shared.workspacePaneOrder
+        order.move(fromOffsets: source, toOffset: destination)
+        AppSettings.shared.workspacePaneOrder = order
+    }
+
     func dismissDashboardIncomingMail() {
         dashboardIncomingMailPrompt = nil
     }
@@ -439,18 +449,13 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
     private var layoutSaveTask: Task<Void, Never>?
 
     private func startWindowLayoutTracking() {
-        WindowLayoutController.shared.startTracking { [weak self] layout in
+        WindowLayoutController.shared.startTracking { [weak self] _ in
             guard let self else { return }
             self.layoutSaveTask?.cancel()
             self.layoutSaveTask = Task { @MainActor in
                 try? await Task.sleep(nanoseconds: 300_000_000)
                 guard !Task.isCancelled else { return }
-                var merged = AppSettings.shared.windowLayout ?? layout
-                merged.width = layout.width
-                merged.height = layout.height
-                merged.originX = layout.originX
-                merged.originY = layout.originY
-                AppSettings.shared.windowLayout = merged
+                WindowLayoutController.shared.persistLayoutNow()
             }
         }
     }

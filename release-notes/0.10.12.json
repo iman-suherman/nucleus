@@ -1,0 +1,18 @@
+{
+  "version": "0.10.12",
+  "summary": "Reorderable sidebar, tmux session badge, and window position restore.",
+  "releaseNotes": {
+    "introduced": [
+      "Terminal sidebar badge shows the count of active tmux sessions",
+      "Workspace sidebar items can be drag-reordered like DiskWise (Settings and Accounts stay fixed at the bottom)"
+    ],
+    "changed": [
+      "Nucleus remembers window size and screen position across relaunch",
+      "Window layout is saved when quitting or switching away from the app"
+    ],
+    "fixed": [],
+    "updated": [],
+    "removed": [],
+    "breaking": []
+  }
+}
