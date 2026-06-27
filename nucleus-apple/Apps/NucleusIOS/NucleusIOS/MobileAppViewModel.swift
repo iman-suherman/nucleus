@@ -96,6 +96,7 @@ final class MobileAppViewModel: ObservableObject {
         await notesService.reloadWaitingForCloudImport()
         refreshDashboardQuoteEmojis()
         await rescheduleBillReminders()
+        await syncAppIconBadge()
 
         statusMessage = "Ready"
         isBootstrapping = false
@@ -148,6 +149,7 @@ final class MobileAppViewModel: ObservableObject {
         let context = ModelContext(modelContainer)
         bills = (try? BillRepository.fetchAll(context: context)) ?? []
         billPayments = (try? BillRepository.fetchPayments(context: context)) ?? []
+        Task { await syncAppIconBadge() }
     }
 
     func payments(for billID: UUID) -> [BillPayment] {
@@ -375,5 +377,9 @@ final class MobileAppViewModel: ObservableObject {
     private func requestNotificationPermission() async {
         let center = UNUserNotificationCenter.current()
         _ = try? await center.requestAuthorization(options: [.alert, .badge, .sound])
+    }
+
+    private func syncAppIconBadge() async {
+        await MobileAppIconBadgeService.shared.syncBillDueCount(billsNearlyDueCount)
     }
 }
