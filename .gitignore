@@ -34,5 +34,6 @@ node_modules/
 .venv/
 website/node_modules/
 website/.next/
+website/.screenshots-raw/
 .sparkle-tools/
 releases/

@@ -625,6 +625,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
             hasFinishedBootstrap = true
             statusMessage = "Marketing screenshot"
             NSLog("Nucleus: marketing screenshot bootstrap for \(pane.rawValue)")
+            MarketingScreenshotCapture.scheduleIfNeeded()
             return
         }
 

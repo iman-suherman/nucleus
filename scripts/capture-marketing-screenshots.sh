@@ -3,6 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 APP_PATH="$ROOT_DIR/.build/DerivedData/Build/Products/Debug/Nucleus.app"
+APP_BIN="$APP_PATH/Contents/MacOS/Nucleus"
 RAW_DIR="$ROOT_DIR/website/.screenshots-raw"
 PUBLIC_DIR="$ROOT_DIR/website/public"
 
@@ -18,31 +19,42 @@ mkdir -p "$RAW_DIR" "$PUBLIC_DIR"
 echo "==> Quitting any running Nucleus instances"
 osascript -e 'tell application "Nucleus" to quit' >/dev/null 2>&1 || true
 pkill -x Nucleus >/dev/null 2>&1 || true
-sleep 0.5
+for _ in $(seq 1 20); do
+  pgrep -x Nucleus >/dev/null || break
+  sleep 0.25
+done
+sleep 1
 
-for pane in "${PANES[@]}"; do
-  output="$RAW_DIR/workspace-$pane.png"
+capture_pane() {
+  local pane="$1"
+  local output="$2"
   rm -f "$output"
 
   echo "==> Capturing $pane → $output"
-  open -n "$APP_PATH" --args \
-    -marketingScreenshotMode \
-    -marketingScreenshotPane "$pane" \
-    -marketingScreenshotExport "$output"
+  for attempt in 1 2; do
+    env \
+      NUCLEUS_MARKETING_SCREENSHOT=1 \
+      NUCLEUS_MARKETING_SCREENSHOT_PANE="$pane" \
+      NUCLEUS_MARKETING_SCREENSHOT_EXPORT="$output" \
+      open -n -W "$APP_PATH" || true
 
-  for _ in $(seq 1 60); do
     if [[ -f "$output" ]]; then
-      break
+      return 0
     fi
-    sleep 0.5
+
+    echo "warn: attempt $attempt failed for $pane; retrying…" >&2
+    pkill -x Nucleus >/dev/null 2>&1 || true
+    sleep 1
   done
 
-  if [[ ! -f "$output" ]]; then
-    echo "error: timed out waiting for $output" >&2
-    exit 1
-  fi
+  echo "error: missing screenshot at $output" >&2
+  return 1
+}
 
-  sleep 0.3
+for pane in "${PANES[@]}"; do
+  output="$RAW_DIR/workspace-$pane.png"
+  capture_pane "$pane" "$output" || exit 1
+  sleep 0.8
 done
 
 echo "==> Processing screenshots for website/public"

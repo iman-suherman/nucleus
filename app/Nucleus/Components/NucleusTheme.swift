@@ -50,9 +50,11 @@ struct NucleusBrandMark: View {
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
                         Text("Nucleus")
                             .font(.title2.bold())
-                        Text("(v.\(AppSettings.currentAppVersion))")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                        if !MarketingScreenshotMode.isActive {
+                            Text("(v.\(AppSettings.currentAppVersion))")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
                     }
                     Text("Personal Workspace")
                         .font(.caption)

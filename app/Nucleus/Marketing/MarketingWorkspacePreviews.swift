@@ -194,7 +194,7 @@ struct MarketingWorkspacePreview: View {
                     Spacer()
                     Image(systemName: "play.circle.fill")
                         .font(.title2)
-                        .foregroundStyle(.accentColor)
+                        .foregroundStyle(Color.accentColor)
                 }
             }
 
@@ -212,8 +212,40 @@ struct MarketingWorkspacePreview: View {
 
     private var terminalPreview: some View {
         VStack(alignment: .leading, spacing: 16) {
+            HStack(alignment: .top, spacing: 16) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Attach (Terminal.app)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text("Detach (Nucleus)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(spacing: 6) {
+                        Circle()
+                            .fill(.green)
+                            .frame(width: 8, height: 8)
+                        Text("Running in Nucleus")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.green)
+                    }
+                    Text("nucleus-dev")
+                        .font(.subheadline.monospaced().weight(.semibold))
+                }
+                .padding(12)
+                .frame(minWidth: 180, maxWidth: 220, alignment: .leading)
+                .background(Color.green.opacity(0.12), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(Color.green.opacity(0.55), lineWidth: 1.5)
+                }
+            }
+
             HStack {
-                Text("Active tmux sessions")
+                Text("List of available tmux sessions")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.secondary)
                 Spacer()
@@ -222,27 +254,38 @@ struct MarketingWorkspacePreview: View {
                     .foregroundStyle(.tertiary)
             }
 
-            ForEach(terminalSamples, id: \.name) { session in
-                marketingCard {
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            Image(systemName: "terminal.fill")
+            LazyVGrid(
+                columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)],
+                spacing: 12
+            ) {
+                ForEach(terminalSamples, id: \.name) { session in
+                    marketingCard {
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                Image(systemName: "terminal.fill")
+                                    .foregroundStyle(session.isLive ? .green : .secondary)
+                                Text(session.name)
+                                    .font(.subheadline.monospaced().weight(.semibold))
+                                Spacer()
+                                Text(session.meta)
+                                    .font(.caption2)
+                                    .foregroundStyle(session.isLive ? .green : .secondary)
+                            }
+                            Text("env -u TMUX tmux attach -t \(session.name)")
+                                .font(.caption2.monospaced())
                                 .foregroundStyle(.secondary)
-                            Text(session.name)
-                                .font(.subheadline.monospaced().weight(.semibold))
-                            Spacer()
-                            Text(session.meta)
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
+                            HStack(spacing: 8) {
+                                Label("Attach", systemImage: "arrow.right.circle")
+                                    .font(.caption)
+                                Label("Copy", systemImage: "doc.on.doc")
+                                    .font(.caption)
+                            }
                         }
-                        Text("env -u TMUX tmux attach -t \(session.name)")
-                            .font(.caption2.monospaced())
-                            .foregroundStyle(.secondary)
-                        HStack(spacing: 8) {
-                            Label("Attach", systemImage: "arrow.right.circle")
-                                .font(.caption)
-                            Label("Copy", systemImage: "doc.on.doc")
-                                .font(.caption)
+                    }
+                    .overlay {
+                        if session.isLive {
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .stroke(Color.green.opacity(0.55), lineWidth: 1.5)
                         }
                     }
                 }
@@ -341,10 +384,10 @@ struct MarketingWorkspacePreview: View {
         ]
     }
 
-    private var terminalSamples: [(name: String, meta: String)] {
+    private var terminalSamples: [(name: String, meta: String, isLive: Bool)] {
         [
-            ("nucleus-dev", "2w · attached"),
-            ("nucleus-ci", "1w"),
+            ("nucleus-dev", "2w · live here", true),
+            ("nucleus-ci", "1w", false),
         ]
     }
 }

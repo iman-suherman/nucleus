@@ -2,6 +2,7 @@ import AppKit
 import SwiftUI
 
 enum MarketingScreenshotCapture {
+    private static let targetContentSize = NSSize(width: 1280, height: 840)
     private static var didSchedule = false
 
     static func scheduleIfNeeded() {
@@ -15,6 +16,13 @@ enum MarketingScreenshotCapture {
         }
     }
 
+    static func applyMarketingFrame(to window: NSWindow) {
+        window.styleMask.remove(.fullSizeContentView)
+        let frame = window.frameRect(forContentRect: NSRect(origin: .zero, size: targetContentSize))
+        window.setFrame(frame, display: true)
+        window.center()
+    }
+
     private static func captureAndExit() {
         guard let exportPath = MarketingScreenshotMode.exportPath,
               let window = NSApp.windows.first(where: { $0.isVisible && $0.frame.width > 400 }) else {
@@ -22,6 +30,7 @@ enum MarketingScreenshotCapture {
             return
         }
 
+        applyMarketingFrame(to: window)
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
 
@@ -31,6 +40,7 @@ enum MarketingScreenshotCapture {
         }
 
         contentView.layoutSubtreeIfNeeded()
+        contentView.displayIfNeeded()
         let bounds = contentView.bounds
         guard let rep = contentView.bitmapImageRepForCachingDisplay(in: bounds) else {
             NSApp.terminate(nil)
@@ -59,8 +69,7 @@ struct MarketingScreenshotWindowConfigurator: NSViewRepresentable {
         DispatchQueue.main.async {
             guard MarketingScreenshotMode.isActive,
                   let window = view.window ?? NSApp.windows.first else { return }
-            window.setContentSize(NSSize(width: 1280, height: 840))
-            window.center()
+            MarketingScreenshotCapture.applyMarketingFrame(to: window)
         }
         return view
     }

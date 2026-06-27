@@ -2,26 +2,35 @@ import Foundation
 import NucleusKit
 
 enum MarketingScreenshotMode {
+    private static let env = ProcessInfo.processInfo.environment
+
     static var isActive: Bool {
-        ProcessInfo.processInfo.arguments.contains("-marketingScreenshotMode")
+        env["NUCLEUS_MARKETING_SCREENSHOT"] == "1"
+            || ProcessInfo.processInfo.arguments.contains("-marketingScreenshotMode")
     }
 
     static var pane: WorkspacePane? {
-        guard isActive,
-              let index = ProcessInfo.processInfo.arguments.firstIndex(of: "-marketingScreenshotPane"),
-              index + 1 < ProcessInfo.processInfo.arguments.count else {
-            return nil
+        guard isActive else { return nil }
+        if let raw = env["NUCLEUS_MARKETING_SCREENSHOT_PANE"] {
+            return WorkspacePane(rawValue: raw)
         }
-        return WorkspacePane(rawValue: ProcessInfo.processInfo.arguments[index + 1])
+        if let index = ProcessInfo.processInfo.arguments.firstIndex(of: "-marketingScreenshotPane"),
+           index + 1 < ProcessInfo.processInfo.arguments.count {
+            return WorkspacePane(rawValue: ProcessInfo.processInfo.arguments[index + 1])
+        }
+        return nil
     }
 
     static var exportPath: String? {
-        guard isActive,
-              let index = ProcessInfo.processInfo.arguments.firstIndex(of: "-marketingScreenshotExport"),
-              index + 1 < ProcessInfo.processInfo.arguments.count else {
-            return nil
+        guard isActive else { return nil }
+        if let path = env["NUCLEUS_MARKETING_SCREENSHOT_EXPORT"], !path.isEmpty {
+            return path
         }
-        return ProcessInfo.processInfo.arguments[index + 1]
+        if let index = ProcessInfo.processInfo.arguments.firstIndex(of: "-marketingScreenshotExport"),
+           index + 1 < ProcessInfo.processInfo.arguments.count {
+            return ProcessInfo.processInfo.arguments[index + 1]
+        }
+        return nil
     }
 
     static func demoBadgeCount(for pane: WorkspacePane) -> Int? {

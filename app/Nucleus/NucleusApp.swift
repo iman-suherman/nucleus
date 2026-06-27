@@ -133,14 +133,15 @@ private struct AppRootView: View {
                 Task { await viewModel.handleIncomingURL(url) }
             }
             .background(
-                WindowLayoutAccessor { window in
-                    WindowLayoutController.shared.attach(to: window)
+                Group {
+                    if !MarketingScreenshotMode.isActive {
+                        WindowLayoutAccessor { window in
+                            WindowLayoutController.shared.attach(to: window)
+                        }
+                    }
                 }
             )
             .background(MarketingScreenshotWindowConfigurator())
-            .onAppear {
-                MarketingScreenshotCapture.scheduleIfNeeded()
-            }
     }
 }
 
@@ -176,10 +177,13 @@ struct ContentView: View {
                     activeStep: viewModel.startupActiveStep,
                     progressFraction: viewModel.startupProgressFraction
                 )
+            } else if MarketingScreenshotMode.isActive, let pane = MarketingScreenshotMode.pane {
+                MarketingScreenshotLayout(pane: pane)
             } else {
                 mainWorkspace
             }
         }
+        .preferredColorScheme(MarketingScreenshotMode.isActive ? .dark : nil)
         .frame(minWidth: 920, minHeight: 680)
         .onAppear {
             viewModel.scheduleBootstrap(settings: appSettings)
@@ -199,24 +203,32 @@ struct ContentView: View {
                 detailContent
             }
             .toolbar {
-                ToolbarItem(placement: .principal) {
-                    WorkspaceStatusBadge(
-                        message: viewModel.statusMessage,
-                        mailUnreadCount: viewModel.totalUnread,
-                        mailAccounts: viewModel.unreadBreakdown(for: viewModel.unreadByAccount)
-                    )
-                }
-                ToolbarItem(placement: .automatic) {
-                    MediaMiniPlayer()
-                }
-                ToolbarItem(placement: .automatic) {
-                    Button {
-                        SparkleUpdaterController.shared.checkForUpdates()
-                    } label: {
-                        Label("Check for Updates…", systemImage: "arrow.down.circle")
-                            .labelStyle(.titleAndIcon)
+                if !MarketingScreenshotMode.isActive {
+                    ToolbarItem(placement: .principal) {
+                        WorkspaceStatusBadge(
+                            message: viewModel.statusMessage,
+                            mailUnreadCount: viewModel.totalUnread,
+                            mailAccounts: viewModel.unreadBreakdown(for: viewModel.unreadByAccount)
+                        )
                     }
-                    .buttonStyle(.bordered)
+                    ToolbarItem(placement: .automatic) {
+                        MediaMiniPlayer()
+                    }
+                    ToolbarItem(placement: .automatic) {
+                        Button {
+                            SparkleUpdaterController.shared.checkForUpdates()
+                        } label: {
+                            Label("Check for Updates…", systemImage: "arrow.down.circle")
+                                .labelStyle(.titleAndIcon)
+                        }
+                        .buttonStyle(.bordered)
+                    }
+                } else {
+                    ToolbarItem(placement: .principal) {
+                        Text("Ready")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
             .modifier(WindowToolbarChromeModifier())

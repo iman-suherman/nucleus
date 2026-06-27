@@ -207,19 +207,27 @@ struct TerminalWorkspaceView: View {
 
     private var terminalScrollContent: some View {
         VStack(alignment: .leading, spacing: 16) {
-            VStack(alignment: .leading, spacing: 8) {
-                commandLine(title: "Attach (Terminal.app)", command: TmuxSessionService.attachCommand())
-                commandLine(
-                    title: "Attach (in Nucleus)",
-                    command: TmuxSessionService.attachCommandFromEmbeddedTerminal(sessionName: "<name>")
-                )
-                commandLine(title: "Detach (Terminal.app)", command: TmuxSessionService.detachCommand())
-                commandLine(title: "Detach (Nucleus)", command: "F12  or  ⌘⇧D  or  Detach button")
+            HStack(alignment: .top, spacing: 16) {
+                VStack(alignment: .leading, spacing: 8) {
+                    commandLine(title: "Attach (Terminal.app)", command: TmuxSessionService.attachCommand())
+                    commandLine(
+                        title: "Attach (In Nucleus)",
+                        command: TmuxSessionService.attachCommandFromEmbeddedTerminal(sessionName: "<name>")
+                    )
+                    commandLine(title: "Detach (Terminal.app)", command: TmuxSessionService.detachCommand())
+                    commandLine(title: "Detach (Nucleus)", command: "F12  or  ⌘⇧D  or  Detach button")
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                if let activeTerminal {
+                    activeSessionBadge(activeTerminal)
+                        .frame(minWidth: 200, maxWidth: 260, alignment: .leading)
+                }
             }
 
             VStack(alignment: .leading, spacing: 10) {
                 HStack {
-                    Text("Active tmux sessions")
+                    Text("List of available tmux sessions")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.secondary)
                     Spacer()
@@ -234,7 +242,13 @@ struct TerminalWorkspaceView: View {
                         .foregroundStyle(.tertiary)
                         .padding(.vertical, 8)
                 } else {
-                    VStack(alignment: .leading, spacing: 12) {
+                    LazyVGrid(
+                        columns: [
+                            GridItem(.flexible(), spacing: 12),
+                            GridItem(.flexible(), spacing: 12),
+                        ],
+                        spacing: 12
+                    ) {
                         ForEach(browser.sessions) { session in
                             sessionCard(session)
                                 .draggable(session.name)
@@ -252,27 +266,81 @@ struct TerminalWorkspaceView: View {
                     }
                 }
             }
-
-            if let activeTerminal {
-                Text("Live in Nucleus: \(activeTerminal.statusLabel)")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.green)
-            }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
         .background(.bar)
     }
+
+    private func activeSessionBadge(_ terminal: ActiveTerminal) -> some View {
+        let accent = activeSessionAccent(for: terminal)
+        let subtitle = activeSessionSubtitle(for: terminal)
+
+        return VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(accent)
+                    .frame(width: 8, height: 8)
+                Text("Running in Nucleus")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(accent)
+            }
+
+            Text(terminal.statusLabel)
+                .font(.subheadline.monospaced().weight(.semibold))
+                .foregroundStyle(.primary)
+                .lineLimit(2)
+
+            Text(subtitle)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(accent.opacity(0.12), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(accent.opacity(0.55), lineWidth: 1.5)
+        }
+    }
+
+    private func activeSessionAccent(for terminal: ActiveTerminal) -> Color {
+        switch terminal {
+        case .shell:
+            return .blue
+        case .attaching:
+            return .orange
+        case .destroying:
+            return .red
+        case .tmux:
+            return .green
+        }
+    }
+
+    private func activeSessionSubtitle(for terminal: ActiveTerminal) -> String {
+        switch terminal {
+        case .shell:
+            return "Shell session. Attach to tmux with the commands on the left."
+        case .attaching:
+            return "Connecting to tmux. Detach with F12, ⌘⇧D, or the Detach button."
+        case .destroying:
+            return "Closing tmux session."
+        case .tmux:
+            return "Live tmux session. Detach with F12, ⌘⇧D, or the Detach button."
+        }
+    }
     private func sessionCard(_ session: TmuxSession) -> some View {
         let attachCommand = TmuxSessionService.attachCommandFromEmbeddedTerminal(sessionName: session.name)
         let isCopied = copiedAttachSessionName == session.name
-        let isLiveHere = activeTerminal?.tmuxSessionName == session.name
+        let cardState = sessionCardState(for: session)
+        let accent = cardState.accent
 
         return VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .top, spacing: 8) {
                 Image(systemName: "terminal.fill")
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(isLiveHere ? .green : .secondary)
+                    .foregroundStyle(accent ?? .secondary)
                     .frame(width: 16)
 
                 VStack(alignment: .leading, spacing: 4) {
@@ -281,9 +349,9 @@ struct TerminalWorkspaceView: View {
                         .foregroundStyle(.primary)
                         .lineLimit(1)
 
-                    Text(sessionSummary(for: session, isLiveHere: isLiveHere))
+                    Text(sessionSummary(for: session, cardState: cardState))
                         .font(.caption2)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(accent ?? .secondary)
                 }
 
                 Spacer(minLength: 0)
@@ -332,24 +400,65 @@ struct TerminalWorkspaceView: View {
             }
         }
         .padding(12)
-        .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            cardState.background,
+            in: RoundedRectangle(cornerRadius: 14, style: .continuous)
+        )
         .overlay {
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .stroke(
-                    isLiveHere ? Color.green.opacity(0.55) : Color.primary.opacity(0.08),
-                    lineWidth: isLiveHere ? 1.5 : 1
+                    cardState.border,
+                    lineWidth: cardState.borderWidth
                 )
         }
         .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 
-    private func sessionSummary(for session: TmuxSession, isLiveHere: Bool) -> String {
-        var parts = ["\(session.windowCount)w"]
-        if session.isAttached {
-            parts.append("attached")
+    private struct SessionCardState {
+        let accent: Color?
+        let background: Color
+        let border: Color
+        let borderWidth: CGFloat
+        let statusLabel: String?
+    }
+
+    private func sessionCardState(for session: TmuxSession) -> SessionCardState {
+        if activeTerminal?.tmuxSessionName == session.name {
+            return SessionCardState(
+                accent: .green,
+                background: Color.green.opacity(0.12),
+                border: Color.green.opacity(0.55),
+                borderWidth: 1.5,
+                statusLabel: "live here"
+            )
         }
-        if isLiveHere {
-            parts.append("live here")
+
+        if session.isAttached {
+            return SessionCardState(
+                accent: .orange,
+                background: Color.orange.opacity(0.10),
+                border: Color.orange.opacity(0.45),
+                borderWidth: 1.25,
+                statusLabel: "attached elsewhere"
+            )
+        }
+
+        return SessionCardState(
+            accent: nil,
+            background: Color.primary.opacity(0.04),
+            border: Color.primary.opacity(0.08),
+            borderWidth: 1,
+            statusLabel: nil
+        )
+    }
+
+    private func sessionSummary(for session: TmuxSession, cardState: SessionCardState) -> String {
+        var parts = ["\(session.windowCount)w"]
+        if let statusLabel = cardState.statusLabel {
+            parts.append(statusLabel)
+        } else if session.isAttached {
+            parts.append("attached")
         }
         return "(\(parts.joined(separator: ", ")))"
     }
