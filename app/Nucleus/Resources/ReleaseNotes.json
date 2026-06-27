@@ -1,13 +1,15 @@
 {
-  "version": "0.10.5",
-  "summary": "Detach tmux sessions from Nucleus without tmux prefix keys.",
+  "version": "0.10.6",
+  "summary": "Fix Terminal Take Over attach exiting immediately with code 1.",
   "releaseNotes": {
     "introduced": [],
     "changed": [
-      "Terminal Detach and Release run tmux detach-client so sessions stay running in the background",
-      "F12 and ⌘⇧D detach from an attached tmux session when the embedded terminal has focus"
+      "Terminal attach keeps the embedded view mounted and detaches via tmux detach-client instead of killing the client process"
     ],
-    "fixed": [],
+    "fixed": [
+      "Take Over no longer fails instantly with tmux attach exit 1 caused by SwiftUI tearing down the terminal view on attach",
+      "tmux attach now runs under a fully isolated env -i environment"
+    ],
     "updated": [],
     "removed": [],
     "breaking": []
