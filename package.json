@@ -1,6 +1,6 @@
 {
   "name": "nucleus",
-  "version": "0.10.15",
+  "version": "0.10.16",
   "displayName": "Nucleus",
   "publisher": "Iman Suherman",
   "private": true,
@@ -28,6 +28,7 @@
     "prepare:ios-icon": "bash nucleus-apple/scripts/prepare-ios-app-icon.sh",
     "capture:ios-screenshots": "bash nucleus-apple/scripts/capture-app-store-screenshots.sh",
     "validate:ios-app-store": "bash nucleus-apple/scripts/validate-ios-app-store.sh",
+    "clean:ios-build": "rm -rf nucleus-apple/Apps/NucleusIOS/build",
     "prepare:website": "swift scripts/prepare-website-assets.swift",
     "build:app:release": "bash scripts/build.sh release",
     "sign": "bash scripts/sign.sh",
