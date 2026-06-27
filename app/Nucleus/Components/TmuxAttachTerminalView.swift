@@ -40,6 +40,7 @@ struct TmuxAttachTerminalView: NSViewRepresentable {
 
         weak var hostView: TerminalHostView?
         private var terminalView: LocalProcessTerminalView?
+        private var scrollMonitor: Any?
         private var keyMonitor: Any?
         private var activeMode: EmbeddedTerminalMode?
         private var didReportExit = false
@@ -98,10 +99,13 @@ struct TmuxAttachTerminalView: NSViewRepresentable {
             terminal.nativeBackgroundColor = NSColor(calibratedRed: 0.08, green: 0.09, blue: 0.11, alpha: 1)
             terminal.nativeForegroundColor = NSColor(calibratedRed: 0.86, green: 0.92, blue: 0.86, alpha: 1)
             terminal.layer?.backgroundColor = terminal.nativeBackgroundColor.cgColor
+            terminal.changeScrollback(10_000)
             try? terminal.setUseMetal(false)
             terminal.processDelegate = self
             hostView.addSubview(terminal)
             terminalView = terminal
+            hostView.window?.makeFirstResponder(terminal)
+            startScrollMonitor(for: terminal)
 
             let launch: (executable: String, args: [String])
             switch activeMode {
@@ -127,12 +131,14 @@ struct TmuxAttachTerminalView: NSViewRepresentable {
 
         func finalTeardown() {
             stopKeyMonitor()
+            stopScrollMonitor()
             clearTerminalView(graceful: false)
             activeMode = nil
         }
 
         private func clearTerminalView(graceful: Bool) {
             stopKeyMonitor()
+            stopScrollMonitor()
             guard let terminalView else { return }
 
             if graceful {
@@ -161,6 +167,23 @@ struct TmuxAttachTerminalView: NSViewRepresentable {
             if let keyMonitor {
                 NSEvent.removeMonitor(keyMonitor)
                 self.keyMonitor = nil
+            }
+        }
+
+        private func startScrollMonitor(for terminal: LocalProcessTerminalView) {
+            stopScrollMonitor()
+            scrollMonitor = NSEvent.addLocalMonitorForEvents(matching: [.scrollWheel]) { [weak terminal] event in
+                guard let terminal else { return event }
+                guard event.window === terminal.window else { return event }
+                terminal.scrollWheel(with: event)
+                return nil
+            }
+        }
+
+        private func stopScrollMonitor() {
+            if let scrollMonitor {
+                NSEvent.removeMonitor(scrollMonitor)
+                self.scrollMonitor = nil
             }
         }
 
@@ -207,6 +230,10 @@ extension TmuxAttachTerminalView.Coordinator: LocalProcessTerminalViewDelegate {
 
 final class TerminalHostView: NSView {
     weak var coordinator: TmuxAttachTerminalView.Coordinator?
+
+    override var acceptsFirstResponder: Bool { true }
+
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 
     override func layout() {
         super.layout()

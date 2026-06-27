@@ -296,6 +296,13 @@ public struct WindowLayoutState: Codable, Hashable, Sendable {
     public var height: Double
     public var originX: Double?
     public var originY: Double?
+    /// NSScreen.frame.origin/size when saved — used to restore the same monitor.
+    public var screenOriginX: Double?
+    public var screenOriginY: Double?
+    public var screenWidth: Double?
+    public var screenHeight: Double?
+    /// CGDirectDisplayID for the monitor when saved.
+    public var displayID: UInt32?
     public var sidebarWidth: Double?
     public var notesListWidth: Double?
 
@@ -304,6 +311,11 @@ public struct WindowLayoutState: Codable, Hashable, Sendable {
         height: Double,
         originX: Double? = nil,
         originY: Double? = nil,
+        screenOriginX: Double? = nil,
+        screenOriginY: Double? = nil,
+        screenWidth: Double? = nil,
+        screenHeight: Double? = nil,
+        displayID: UInt32? = nil,
         sidebarWidth: Double? = nil,
         notesListWidth: Double? = nil
     ) {
@@ -311,6 +323,11 @@ public struct WindowLayoutState: Codable, Hashable, Sendable {
         self.height = height
         self.originX = originX
         self.originY = originY
+        self.screenOriginX = screenOriginX
+        self.screenOriginY = screenOriginY
+        self.screenWidth = screenWidth
+        self.screenHeight = screenHeight
+        self.displayID = displayID
         self.sidebarWidth = sidebarWidth
         self.notesListWidth = notesListWidth
     }

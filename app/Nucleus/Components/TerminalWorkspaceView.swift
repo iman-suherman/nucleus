@@ -56,22 +56,22 @@ private enum ActiveTerminal: Equatable {
 }
 
 private enum NewTerminalKind: String, CaseIterable, Identifiable {
-    case shell
     case tmux
+    case shell
 
     var id: String { rawValue }
 
     var title: String {
         switch self {
-        case .shell: return "Shell"
         case .tmux: return "tmux session"
+        case .shell: return "Shell"
         }
     }
 
     var subtitle: String {
         switch self {
+        case .tmux: return "New tmux session in Nucleus. Starts in ~/src when present, otherwise ~, with ls -l."
         case .shell: return "Normal terminal — attach to other sessions with the commands below."
-        case .tmux: return "New tmux session in Nucleus."
         }
     }
 }
@@ -85,13 +85,17 @@ struct TerminalWorkspaceView: View {
     @State private var isDetaching = false
     @State private var showNewSessionSheet = false
     @State private var newSessionName = ""
-    @State private var newTerminalKind: NewTerminalKind = .shell
+    @State private var newTerminalKind: NewTerminalKind = .tmux
     @State private var copiedAttachSessionName: String?
 
     var body: some View {
         ZStack {
             VStack(spacing: 0) {
-                terminalTopBar
+                ScrollView(.vertical, showsIndicators: true) {
+                    terminalTopBar
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .frame(maxHeight: 340)
                 Divider()
 
                 if let errorMessage = browser.errorMessage ?? terminalErrorMessage {
@@ -109,7 +113,7 @@ struct TerminalWorkspaceView: View {
                         ContentUnavailableView {
                             Label("No active terminal", systemImage: "terminal")
                         } description: {
-                            Text("Start a shell or tmux session. Copy an attach command below to join an existing tmux session from the terminal.")
+                            Text("Start a tmux session (default) or shell. Copy an attach command below to join an existing tmux session from the terminal.")
                         } actions: {
                             Button("New Session") {
                                 prepareNewSessionSheet()
@@ -426,7 +430,7 @@ struct TerminalWorkspaceView: View {
 
     private func prepareNewSessionSheet() {
         terminalErrorMessage = nil
-        newTerminalKind = .shell
+        newTerminalKind = .tmux
         newSessionName = TmuxSessionService.suggestNewSessionName(
             existingSessionNames: browser.sessions.map(\.name)
         )

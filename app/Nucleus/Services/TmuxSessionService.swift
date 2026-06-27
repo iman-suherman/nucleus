@@ -58,14 +58,29 @@ enum TmuxSessionService {
     }
 
     static func newSessionLaunchPlan(sessionName: String, tmuxPath: String) -> (executable: String, args: [String]) {
-        launchPlan(
+        let startDir = sessionStartupDirectory()
+        let shell = attachEnvironment()["SHELL"] ?? "/bin/zsh"
+        let startupCommand = "ls -l; exec \(shellQuote(shell)) -l"
+        return launchPlan(
             tmuxPath: tmuxPath,
             tmuxArguments: [
                 "-S", defaultSocketPath(),
                 "new-session", "-s", sessionName,
-                "-c", defaultHomeDirectory(),
+                "-c", startDir,
+                shell, "-lc", startupCommand,
             ]
         )
+    }
+
+    /// Working directory for new tmux sessions: ~/src when it exists, otherwise ~.
+    static func sessionStartupDirectory() -> String {
+        let home = defaultHomeDirectory()
+        let src = URL(fileURLWithPath: home).appendingPathComponent("src", isDirectory: true)
+        var isDirectory: ObjCBool = false
+        if FileManager.default.fileExists(atPath: src.path, isDirectory: &isDirectory), isDirectory.boolValue {
+            return src.path
+        }
+        return home
     }
 
     private static func launchPlan(tmuxPath: String, tmuxArguments: [String]) -> (executable: String, args: [String]) {
@@ -231,7 +246,8 @@ enum TmuxSessionService {
     }
 
     static func newSessionCommand(sessionName: String = "<name>") -> String {
-        "tmux -S \(defaultSocketPath()) new-session -s \(sessionName) -c ~"
+        let dir = sessionStartupDirectory()
+        return "tmux -S \(defaultSocketPath()) new-session -s \(sessionName) -c \(shellQuote(dir))"
     }
 
     static func shellLaunchPlan() -> (executable: String, args: [String]) {
