@@ -33,7 +33,14 @@ struct MobileRootView: View {
                 MobileDeviceLockScreen()
                     .transition(.opacity)
             }
+
+            if viewModel.showWhatsNew, let release = viewModel.whatsNewRelease {
+                WhatsNewOverlay(release: release) {
+                    viewModel.dismissWhatsNew()
+                }
+            }
         }
+        .animation(.easeInOut(duration: 0.22), value: viewModel.showWhatsNew)
         .animation(.easeInOut(duration: 0.2), value: deviceLock.isLocked)
         .onChange(of: scenePhase) { _, phase in
             guard deviceLock.isProtectionEnabled else { return }

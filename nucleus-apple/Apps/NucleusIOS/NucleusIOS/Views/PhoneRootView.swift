@@ -12,6 +12,7 @@ struct PhoneRootView: View {
                     .tabItem {
                         Label(tab.title, systemImage: tab.icon)
                     }
+                    .badge(viewModel.tabBadgeCount(for: tab))
                     .tag(tab)
             }
         }

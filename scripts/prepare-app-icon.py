@@ -204,6 +204,54 @@ def fit_to_dock_canvas(
     return canvas
 
 
+def fit_to_full_bleed_canvas(image: Image.Image, size: int = 1024) -> Image.Image:
+    """Scale artwork to cover the full square — iOS applies its own rounded mask."""
+    content = image.convert("RGBA")
+    scale = max(size / content.width, size / content.height)
+    new_width = max(1, round(content.width * scale))
+    new_height = max(1, round(content.height * scale))
+    resized = content.resize((new_width, new_height), Image.Resampling.LANCZOS)
+    left = (new_width - size) // 2
+    top = (new_height - size) // 2
+    return resized.crop((left, top, left + size, top + size))
+
+
+def background_color_for_flatten(image: Image.Image) -> tuple[int, int, int]:
+    """Pick a fill color from opaque edge pixels so anti-aliased corners stay seamless."""
+    rgba = image.convert("RGBA")
+    width, height = rgba.size
+    samples: list[tuple[int, int, int]] = []
+
+    for x in range(width):
+        for y in (0, height - 1):
+            red, green, blue, alpha = rgba.getpixel((x, y))
+            if alpha > 200:
+                samples.append((red, green, blue))
+    for y in range(1, height - 1):
+        for x in (0, width - 1):
+            red, green, blue, alpha = rgba.getpixel((x, y))
+            if alpha > 200:
+                samples.append((red, green, blue))
+
+    if not samples:
+        red, green, blue, _alpha = rgba.getpixel((width // 2, height // 2))
+        return (red, green, blue)
+
+    return (
+        sum(color[0] for color in samples) // len(samples),
+        sum(color[1] for color in samples) // len(samples),
+        sum(color[2] for color in samples) // len(samples),
+    )
+
+
+def flatten_for_app_store(image: Image.Image) -> Image.Image:
+    """Remove alpha using the icon's own background color (never white matte)."""
+    rgba = image.convert("RGBA")
+    background = Image.new("RGBA", rgba.size, (*background_color_for_flatten(rgba), 255))
+    background.paste(rgba, mask=rgba.split()[3])
+    return background.convert("RGB")
+
+
 def prepare_icon(
     source_path: Path,
     output_path: Path,
@@ -224,6 +272,28 @@ def prepare_icon(
         f"Prepared icon: {source_path.name} ({source.size[0]}x{source.size[1]}) "
         f"-> {output_path.name} ({prepared.size[0]}x{prepared.size[1]}, "
         f"padding={padding_ratio:.1%}, inner_trim={inner_trim}px)"
+    )
+
+
+def prepare_ios_icon(
+    source_path: Path,
+    output_path: Path,
+    *,
+    size: int = 1024,
+    threshold: int = 35,
+    inner_trim: int = DEFAULT_INNER_TRIM,
+) -> None:
+    source = Image.open(source_path)
+    cleaned = remove_matte_background(source, threshold=threshold)
+    trimmed = trim_transparent_bounds(cleaned, margin=0, inner_trim=inner_trim)
+    filled = fit_to_full_bleed_canvas(trimmed, size=size)
+    prepared = flatten_for_app_store(filled)
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    prepared.save(output_path, format="PNG", optimize=True)
+    print(
+        f"Prepared iOS icon: {source_path.name} ({source.size[0]}x{source.size[1]}) "
+        f"-> {output_path.name} ({prepared.size[0]}x{prepared.size[1]}, full bleed)"
     )
 
 
@@ -272,11 +342,41 @@ def main() -> None:
         default=DEFAULT_INNER_TRIM,
         help="Pixels to crop inside the outer matte bezel (default: 0)",
     )
+    parser.add_argument(
+        "--ios-output",
+        type=Path,
+        default=None,
+        help="Write a full-bleed App Store icon PNG (no dock inset, no white matte)",
+    )
+    parser.add_argument(
+        "--ios-logo-output",
+        type=Path,
+        default=None,
+        help="Optional second output for in-app logo artwork",
+    )
     args = parser.parse_args()
 
     source_path = resolve_source(assets_dir, args.source)
     if not source_path.exists():
         raise SystemExit(f"Source icon not found: {source_path}")
+
+    if args.ios_output:
+        prepare_ios_icon(
+            source_path,
+            args.ios_output,
+            size=args.size,
+            threshold=args.threshold,
+            inner_trim=args.inner_trim,
+        )
+        if args.ios_logo_output:
+            prepare_ios_icon(
+                source_path,
+                args.ios_logo_output,
+                size=args.size,
+                threshold=args.threshold,
+                inner_trim=args.inner_trim,
+            )
+        return
 
     prepare_icon(
         source_path,

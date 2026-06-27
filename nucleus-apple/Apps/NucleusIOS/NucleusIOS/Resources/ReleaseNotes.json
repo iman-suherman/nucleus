@@ -1,0 +1,17 @@
+{
+  "version": "1.0.0",
+  "summary": "Nucleus for phone and tablet — your personal workspace on the go.",
+  "releaseNotes": {
+    "introduced": [
+      "Dashboard with greeting, daily quote, intelligent insight, and bill prep",
+      "Notes and passwords with cloud sync from your computer",
+      "Bills tracking with local due-date reminders",
+      "Biometric app lock for notes and passwords"
+    ],
+    "changed": [],
+    "fixed": [],
+    "updated": [],
+    "removed": [],
+    "breaking": []
+  }
+}

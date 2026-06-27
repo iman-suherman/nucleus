@@ -2,24 +2,16 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
-SOURCE="$ROOT/app/Nucleus/Assets/AppIconSource.png"
 ICONSET="$ROOT/nucleus-apple/Apps/NucleusIOS/NucleusIOS/Assets.xcassets/AppIcon.appiconset"
-TMP_DIR="$(mktemp -d)"
-trap 'rm -rf "$TMP_DIR"' EXIT
+APP_LOGO_SET="$ROOT/nucleus-apple/Apps/NucleusIOS/NucleusIOS/Assets.xcassets/AppLogo.imageset"
+VENV="$ROOT/.venv"
 
-if [[ ! -f "$SOURCE" ]]; then
-  echo "error: missing source icon at $SOURCE"
+if [[ ! -f "$ROOT/app/Nucleus/Assets/AppIconSource.png" && ! -f "$ROOT/app/Nucleus/Assets/AppIconSource.raw.png" ]]; then
+  echo "error: missing source icon under app/Nucleus/Assets/"
   echo "Run: npm run prepare:icon"
   exit 1
 fi
 
-bash "$ROOT/scripts/prepare-app-icon.sh"
-swift "$ROOT/scripts/generate-app-icon.swift" "$TMP_DIR" "$SOURCE"
-
-mkdir -p "$ICONSET"
-cp "$TMP_DIR/icon_512x512@2x.png" "$ICONSET/AppIcon-1024.png"
-
-VENV="$ROOT/.venv"
 if [[ ! -x "$VENV/bin/python3" ]]; then
   python3 -m venv "$VENV"
   "$VENV/bin/pip" install -q -r "$ROOT/requirements.txt"
@@ -27,17 +19,13 @@ elif ! "$VENV/bin/python3" -c "import PIL" 2>/dev/null; then
   "$VENV/bin/pip" install -q -r "$ROOT/requirements.txt"
 fi
 
-ICON_PATH="$ICONSET/AppIcon-1024.png" "$VENV/bin/python3" - <<'PY'
-from pathlib import Path
-import os
-from PIL import Image
+# Refresh macOS dock-safe source, then render a separate full-bleed iOS icon.
+bash "$ROOT/scripts/prepare-app-icon.sh"
 
-path = Path(os.environ["ICON_PATH"])
-img = Image.open(path).convert("RGBA")
-bg = Image.new("RGBA", img.size, (255, 255, 255, 255))
-bg.paste(img, mask=img.split()[3])
-bg.convert("RGB").save(path)
-PY
+mkdir -p "$ICONSET" "$APP_LOGO_SET"
+"$VENV/bin/python3" "$ROOT/scripts/prepare-app-icon.py" \
+  --ios-output "$ICONSET/AppIcon-1024.png" \
+  --ios-logo-output "$APP_LOGO_SET/AppLogo.png"
 
 cat > "$ICONSET/Contents.json" <<'EOF'
 {
@@ -57,3 +45,4 @@ cat > "$ICONSET/Contents.json" <<'EOF'
 EOF
 
 echo "Prepared iOS app icon at $ICONSET/AppIcon-1024.png"
+echo "Prepared in-app logo at $APP_LOGO_SET/AppLogo.png"

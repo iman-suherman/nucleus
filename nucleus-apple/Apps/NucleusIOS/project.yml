@@ -21,6 +21,8 @@ targets:
       - path: NucleusIOS
         excludes:
           - entitlements.ios.plist
+    resources:
+      - path: NucleusIOS/Resources/ReleaseNotes.json
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: net.suherman.nucleus

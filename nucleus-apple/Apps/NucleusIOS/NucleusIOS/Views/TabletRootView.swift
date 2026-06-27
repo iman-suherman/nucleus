@@ -13,6 +13,7 @@ struct TabletRootView: View {
                 ForEach(MobileWorkspaceTab.iosTabs) { tab in
                     SidebarRow(
                         tab: tab,
+                        badgeCount: viewModel.tabBadgeCount(for: tab),
                         isSelected: selection == tab
                     ) {
                         selection = tab
@@ -56,13 +57,20 @@ struct TabletRootView: View {
 
 private struct SidebarRow: View {
     let tab: MobileWorkspaceTab
+    let badgeCount: Int
     let isSelected: Bool
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            Label(tab.title, systemImage: tab.icon)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            HStack {
+                Label(tab.title, systemImage: tab.icon)
+                Spacer(minLength: 0)
+                if badgeCount > 0 {
+                    MobileCountBadge(count: badgeCount, kind: .warning)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .buttonStyle(.plain)
         .listRowBackground(isSelected ? Color.accentColor.opacity(0.15) : nil)

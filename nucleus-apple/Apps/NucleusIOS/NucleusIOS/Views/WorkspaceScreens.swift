@@ -289,6 +289,9 @@ struct SettingsWorkspaceScreen: View {
 
                 Section("About") {
                     LabeledContent("Version", value: mobileAppVersion)
+                    Button("What's New in This Version") {
+                        Task { await viewModel.presentCurrentReleaseNotes() }
+                    }
                     LabeledContent("Tagline", value: "Personal Workspace")
                     Text("Nucleus for phone and tablet is your mobile companion — Dashboard, Notes, Passwords, and Bills stay in sync with your computer via cloud sync.")
                         .font(.footnote)

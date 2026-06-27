@@ -13,6 +13,8 @@ final class MobileAppViewModel: ObservableObject {
     @Published var isBootstrapping = true
     @Published var statusMessage = "Starting…"
     @Published var errorMessage: String?
+    @Published var showWhatsNew = false
+    @Published var whatsNewRelease: AppReleaseNotes?
 
     let modelContainer: ModelContainer
     let preferencesStore = MobilePreferencesStore.shared
@@ -97,6 +99,32 @@ final class MobileAppViewModel: ObservableObject {
 
         statusMessage = "Ready"
         isBootstrapping = false
+        await presentWhatsNewIfNeeded()
+    }
+
+    func dismissWhatsNew() {
+        ReleaseNotesLoader.markCurrentVersionSeen()
+        showWhatsNew = false
+        whatsNewRelease = nil
+    }
+
+    func presentCurrentReleaseNotes() async {
+        let release = await ReleaseNotesLoader.loadCurrentReleaseAsync()
+            ?? AppReleaseNotes(
+                version: NucleusAppVersion.current,
+                summary: "Nucleus \(NucleusAppVersion.current) is ready.",
+                releaseNotes: .init()
+            )
+        whatsNewRelease = release
+        showWhatsNew = true
+    }
+
+    private func presentWhatsNewIfNeeded() async {
+        guard !isScreenshotMode else { return }
+        guard ReleaseNotesLoader.shouldPresentWhatsNew() else { return }
+        guard let release = await ReleaseNotesLoader.loadCurrentReleaseAsync() else { return }
+        whatsNewRelease = release
+        showWhatsNew = true
     }
 
     var selectedTab: MobileWorkspaceTab {
@@ -148,6 +176,20 @@ final class MobileAppViewModel: ObservableObject {
             payments: billPayments,
             includeDueDates: false
         )
+    }
+
+    /// Active bills with a balance due within the next 14 days (includes overdue).
+    var billsNearlyDueCount: Int {
+        billMonthlySummary().dueSoonCount
+    }
+
+    func tabBadgeCount(for tab: MobileWorkspaceTab) -> Int {
+        switch tab {
+        case .dashboard, .bills:
+            return billsNearlyDueCount
+        default:
+            return 0
+        }
     }
 
     func logBillPayment(billID: UUID, amount: Double, note: String = "") {

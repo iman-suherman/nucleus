@@ -1,6 +1,7 @@
 import DatabaseKit
 import NucleusCore
 import NucleusKit
+import NucleusUI
 import SwiftUI
 
 private enum BillEditorContext: Identifiable {
@@ -174,9 +175,17 @@ private struct MobileBillRow: View {
             Spacer()
 
             VStack(alignment: .trailing, spacing: 4) {
-                Text(NucleusFormatters.currencyString(remainingAmount, currencyCode: bill.currencyCode))
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(status == .overdue ? .red : .primary)
+                HStack(spacing: 6) {
+                    if status == .dueSoon || status == .overdue {
+                        MobileCountBadge(
+                            count: max(1, abs(BillScheduleCalculator.daysUntilDue(for: bill.nextDueDate))),
+                            kind: status == .overdue ? .urgent : .warning
+                        )
+                    }
+                    Text(NucleusFormatters.currencyString(remainingAmount, currencyCode: bill.currencyCode))
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(status == .overdue ? .red : .primary)
+                }
                 Text(status.label)
                     .font(.caption2)
                     .foregroundStyle(.secondary)

@@ -147,6 +147,7 @@ struct DashboardWorkspaceScreen: View {
             StatCard(
                 title: "Bills due",
                 value: "\(snapshot.upcomingBills.count)",
+                badgeCount: viewModel.billsNearlyDueCount,
                 icon: "dollarsign.circle",
                 tint: .green
             ) {
@@ -229,6 +230,9 @@ struct DashboardWorkspaceScreen: View {
                             endPoint: .trailing
                         )
                     )
+                if viewModel.billsNearlyDueCount > 0 {
+                    MobileCountBadge(count: viewModel.billsNearlyDueCount, kind: .warning)
+                }
                 Spacer()
                 Button("Open Bills") {
                     viewModel.selectedTab = .bills
@@ -260,8 +264,13 @@ struct DashboardWorkspaceScreen: View {
 
                             Spacer()
 
-                            Text(NucleusFormatters.currencyString(group.totalAmount, currencyCode: group.currencyCode))
-                                .font(.subheadline.weight(.semibold).monospacedDigit())
+                            HStack(spacing: 8) {
+                                if group.billCount > 0 {
+                                    MobileCountBadge(count: group.billCount, kind: .warning)
+                                }
+                                Text(NucleusFormatters.currencyString(group.totalAmount, currencyCode: group.currencyCode))
+                                    .font(.subheadline.weight(.semibold).monospacedDigit())
+                            }
                         }
                         .padding(.horizontal, 16)
                         .padding(.vertical, 12)
@@ -308,6 +317,7 @@ struct DashboardWorkspaceScreen: View {
 private struct StatCard: View {
     let title: String
     let value: String
+    var badgeCount: Int = 0
     let icon: String
     let tint: Color
     let action: () -> Void
@@ -315,8 +325,14 @@ private struct StatCard: View {
     var body: some View {
         Button(action: action) {
             VStack(alignment: .leading, spacing: 8) {
-                Image(systemName: icon)
-                    .foregroundStyle(tint)
+                HStack {
+                    Image(systemName: icon)
+                        .foregroundStyle(tint)
+                    Spacer(minLength: 0)
+                    if badgeCount > 0 {
+                        MobileCountBadge(count: badgeCount, kind: .warning)
+                    }
+                }
                 Text(value)
                     .font(.title2.bold().monospacedDigit())
                 Text(title)

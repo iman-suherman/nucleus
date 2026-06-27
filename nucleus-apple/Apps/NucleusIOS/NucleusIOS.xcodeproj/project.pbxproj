@@ -18,6 +18,7 @@
 		8BD82BEA490EAE694B3C985A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D5CF62ADA8B73D867AA59582 /* Assets.xcassets */; };
 		9D77CD6F6518920313EAE8C4 /* NucleusIOSApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81DD1C5C00FFB3720FFE53A4 /* NucleusIOSApp.swift */; };
 		A7FC776FE5B29C9CEF8639F3 /* MobileDeviceLockScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EDD708A0AACBD1CAC9D42DE /* MobileDeviceLockScreen.swift */; };
+		DEF49DDB5A6D71DEB4C809B4 /* ReleaseNotes.json in Resources */ = {isa = PBXBuildFile; fileRef = E28F99D70036651C4397E5BE /* ReleaseNotes.json */; };
 		DF8F38694F218A3EC1FB55A2 /* MobileDeviceLockService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6646175307521CA4FB7197 /* MobileDeviceLockService.swift */; };
 		E6FFEB68ED5C8F1C806D61CA /* PhoneRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 582D4ABB589982477F4F9438 /* PhoneRootView.swift */; };
 		EE8B885912FCE650739554D7 /* MobileAppViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 410288DECCDA6B0F278D517A /* MobileAppViewModel.swift */; };
@@ -52,6 +53,7 @@
 		AB1164DBF72FEE31F022714C /* NucleusUI */ = {isa = PBXFileReference; lastKnownFileType = folder; name = NucleusUI; path = ../../Packages/NucleusUI; sourceTree = SOURCE_ROOT; };
 		C422A213738E75FF396833E5 /* NucleusCore */ = {isa = PBXFileReference; lastKnownFileType = folder; name = NucleusCore; path = ../../Packages/NucleusCore; sourceTree = SOURCE_ROOT; };
 		D5CF62ADA8B73D867AA59582 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		E28F99D70036651C4397E5BE /* ReleaseNotes.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = ReleaseNotes.json; sourceTree = "<group>"; };
 		FB8D424370D4A85FA42CBEB2 /* WorkspaceScreens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceScreens.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -91,6 +93,14 @@
 			path = Views;
 			sourceTree = "<group>";
 		};
+		85900F50C7623341D47F826D /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				E28F99D70036651C4397E5BE /* ReleaseNotes.json */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
 		87AC0E0EBF0626B21BF3AC9F /* Products */ = {
 			isa = PBXGroup;
 			children = (
@@ -109,6 +119,7 @@
 				7A6646175307521CA4FB7197 /* MobileDeviceLockService.swift */,
 				64AD094B689190356A982FEF /* MobileNotificationDelegate.swift */,
 				81DD1C5C00FFB3720FFE53A4 /* NucleusIOSApp.swift */,
+				85900F50C7623341D47F826D /* Resources */,
 				2C9423901469B4FB8AD518F6 /* Views */,
 			);
 			path = NucleusIOS;
@@ -223,6 +234,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				8BD82BEA490EAE694B3C985A /* Assets.xcassets in Resources */,
+				DEF49DDB5A6D71DEB4C809B4 /* ReleaseNotes.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
