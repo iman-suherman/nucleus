@@ -1,15 +1,13 @@
 {
-  "version": "0.10.6",
-  "summary": "Fix Terminal Take Over attach exiting immediately with code 1.",
+  "version": "0.10.7",
+  "summary": "Start new tmux sessions from the Terminal workspace.",
   "releaseNotes": {
-    "introduced": [],
-    "changed": [
-      "Terminal attach keeps the embedded view mounted and detaches via tmux detach-client instead of killing the client process"
+    "introduced": [
+      "New Session button creates a named tmux session inside Nucleus instead of only taking over existing ones",
+      "Suggested session names (nucleus, nucleus-2, …) with duplicate-name validation"
     ],
-    "fixed": [
-      "Take Over no longer fails instantly with tmux attach exit 1 caused by SwiftUI tearing down the terminal view on attach",
-      "tmux attach now runs under a fully isolated env -i environment"
-    ],
+    "changed": [],
+    "fixed": [],
     "updated": [],
     "removed": [],
     "breaking": []
