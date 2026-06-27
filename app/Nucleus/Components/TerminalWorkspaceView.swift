@@ -89,61 +89,65 @@ struct TerminalWorkspaceView: View {
     @State private var copiedAttachSessionName: String?
 
     var body: some View {
-        GeometryReader { geometry in
-            ZStack {
-                VStack(spacing: 0) {
-                    terminalToolbar
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 10)
-                        .background(.bar)
+        ZStack {
+            VStack(spacing: 0) {
+                terminalToolbar
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(.bar)
 
+                if let errorMessage = browser.errorMessage ?? terminalErrorMessage {
+                    Text(errorMessage)
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .background(Color.red.opacity(0.08))
+                }
+
+                if activeTerminal != nil {
                     ScrollView(.vertical, showsIndicators: true) {
                         terminalScrollContent
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    .frame(maxHeight: scrollableControlsMaxHeight(in: geometry.size.height))
+                    .frame(maxHeight: 340)
 
                     Divider()
 
-                    if let errorMessage = browser.errorMessage ?? terminalErrorMessage {
-                        Text(errorMessage)
-                            .font(.caption)
-                            .foregroundStyle(.red)
+                    terminalLayer
+                        .frame(maxWidth: .infinity, minHeight: 220, maxHeight: .infinity)
+                } else {
+                    ScrollView(.vertical, showsIndicators: true) {
+                        terminalScrollContent
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 8)
-                            .background(Color.red.opacity(0.08))
-                    }
-
-                    ZStack {
-                        if activeTerminal == nil {
-                            ContentUnavailableView {
-                                Label("No active terminal", systemImage: "terminal")
-                            } description: {
-                                Text("Start a tmux session (default) or shell. Copy an attach command below to join an existing tmux session from the terminal.")
-                            } actions: {
-                                Button("New Session") {
-                                    prepareNewSessionSheet()
-                                }
-                                .buttonStyle(.borderedProminent)
-                            }
-                        }
-
-                        if activeTerminal != nil {
-                            terminalLayer
-                        }
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .layoutPriority(1)
-                }
 
-                if let prompt = viewModel.dashboardIncomingMailPrompt {
-                    DashboardIncomingMailOverlay(
-                        prompt: prompt,
-                        onOpenInbox: viewModel.openDashboardIncomingMail,
-                        onDismiss: viewModel.dismissDashboardIncomingMail
-                    )
+                    if browser.sessions.isEmpty {
+                        Divider()
+
+                        ContentUnavailableView {
+                            Label("No active terminal", systemImage: "terminal")
+                        } description: {
+                            Text("Start a tmux session (default) or shell. Attach commands appear above once tmux sessions are running.")
+                        } actions: {
+                            Button("New Session") {
+                                prepareNewSessionSheet()
+                            }
+                            .buttonStyle(.borderedProminent)
+                        }
+                        .frame(maxHeight: 220)
+                    }
                 }
+            }
+
+            if let prompt = viewModel.dashboardIncomingMailPrompt {
+                DashboardIncomingMailOverlay(
+                    prompt: prompt,
+                    onOpenInbox: viewModel.openDashboardIncomingMail,
+                    onDismiss: viewModel.dismissDashboardIncomingMail
+                )
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -168,12 +172,6 @@ struct TerminalWorkspaceView: View {
             }
             activeTerminal = nil
         }
-    }
-
-    private func scrollableControlsMaxHeight(in totalHeight: CGFloat) -> CGFloat {
-        let reservedForTerminal: CGFloat = 260
-        let proportional = totalHeight * 0.48
-        return max(180, min(proportional, totalHeight - reservedForTerminal))
     }
 
     private var terminalToolbar: some View {
@@ -236,11 +234,7 @@ struct TerminalWorkspaceView: View {
                         .foregroundStyle(.tertiary)
                         .padding(.vertical, 8)
                 } else {
-                    LazyVGrid(
-                        columns: [GridItem(.adaptive(minimum: 280, maximum: 420), spacing: 12)],
-                        alignment: .leading,
-                        spacing: 12
-                    ) {
+                    VStack(alignment: .leading, spacing: 12) {
                         ForEach(browser.sessions) { session in
                             sessionCard(session)
                                 .draggable(session.name)
