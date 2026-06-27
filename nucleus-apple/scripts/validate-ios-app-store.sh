@@ -92,6 +92,7 @@ search_payload_weather() {
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
+DIM='\033[2m'
 NC='\033[0m'
 
 failures=0
@@ -107,8 +108,35 @@ warn() {
   warnings=$((warnings + 1))
 }
 
+note() {
+  echo -e "${DIM}$1${NC}" >&2
+}
+
 pass() {
   echo -e "${GREEN}OK${NC}: $1"
+}
+
+DEFAULT_APP_PATH="$IOS_APP/build/NucleusIOS.xcarchive/Products/Applications/NucleusIOS.app"
+
+resolve_app_bundle_path() {
+  local requested="${1:-}"
+  local -a candidates=()
+  local path
+
+  if [[ -n "$requested" ]]; then
+    candidates+=("$requested")
+  fi
+  if [[ -z "$requested" || "$requested" != "$DEFAULT_APP_PATH" ]]; then
+    candidates+=("$DEFAULT_APP_PATH")
+  fi
+
+  for path in "${candidates[@]}"; do
+    if [[ -d "$path" ]]; then
+      echo "$path"
+      return 0
+    fi
+  done
+  return 1
 }
 
 echo "=== Phase 1 — Project cleanliness ==="
@@ -188,26 +216,44 @@ else
 fi
 
 echo
-echo "=== Optional — signed binary / IPA inspection ==="
+echo "=== Signed binary / IPA inspection ==="
 echo
 
 APP_PATH="${1:-}"
 IPA_PATH="${2:-}"
 
+# Default npm run validate:ios-app-store includes the repo Archive .app path.
+if [[ -z "$APP_PATH" && -z "$IPA_PATH" ]]; then
+  APP_PATH="$DEFAULT_APP_PATH"
+fi
+
 inspect_app_entitlements() {
   local app="$1"
   local label="$2"
   if [[ ! -d "$app" ]]; then
-    warn "$label not found at $app — skip codesign check"
-    return
+    return 1
   fi
   echo "Inspecting entitlements: $app"
   local ents
   ents=$(codesign -d --entitlements :- "$app" 2>/dev/null || true)
+  local archived_build
+  archived_build=$(plutil -extract CFBundleVersion raw "$app/Info.plist" 2>/dev/null || echo "?")
   if text_matches_icase "$ents" 'weatherkit'; then
-    fail "Signed $label contains com.apple.developer.weatherkit"
+    if plutil -extract com.apple.developer.weatherkit raw "$ENTITLEMENTS" 2>/dev/null; then
+      fail "Signed $label contains com.apple.developer.weatherkit (matches source entitlements — remove capability)"
+    else
+      fail "Signed $label contains com.apple.developer.weatherkit but source entitlements.ios.plist does not"
+      echo "  → Stale archive (build $archived_build; project expects $build_plist). Re-Archive in Xcode." >&2
+      echo "  → Apple Developer → Identifiers → net.suherman.nucleus → disable WeatherKit if still enabled." >&2
+      echo "  → rm -rf nucleus-apple/Apps/NucleusIOS/build && Product → Archive → Validate → Upload" >&2
+    fi
   else
     pass "Signed $label has no weatherkit entitlement"
+  fi
+  if [[ "$archived_build" != "?" && "$archived_build" -lt "$build_plist" ]]; then
+    warn "Archived build number ($archived_build) is older than project ($build_plist) — re-Archive before upload"
+  elif [[ "$archived_build" == "$build_plist" ]]; then
+    pass "Signed $label build number = $archived_build"
   fi
   local bid
   bid=$(defaults read "$app/Info" CFBundleIdentifier 2>/dev/null || plutil -extract CFBundleIdentifier raw "$app/Info.plist" 2>/dev/null || echo "")
@@ -216,10 +262,17 @@ inspect_app_entitlements() {
   elif [[ -n "$bid" ]]; then
     fail "Signed $label bundle id is $bid (expected net.suherman.nucleus)"
   fi
+  return 0
 }
 
 if [[ -n "$APP_PATH" ]]; then
-  inspect_app_entitlements "$APP_PATH" "app"
+  resolved_app=$(resolve_app_bundle_path "$APP_PATH" || true)
+  if [[ -n "$resolved_app" ]]; then
+    inspect_app_entitlements "$resolved_app" "app"
+  else
+    note "No signed .app at repo archive path — source checks complete"
+    note "  Xcode → Product → Archive → then re-run: npm run validate:ios-app-store"
+  fi
 fi
 
 if [[ -n "$IPA_PATH" ]]; then
@@ -237,19 +290,17 @@ if [[ -n "$IPA_PATH" ]]; then
   fi
 fi
 
-if [[ -z "$APP_PATH" && -z "$IPA_PATH" ]]; then
-  echo "Tip: after Archive, re-run with signed app or IPA paths:"
-  echo "  $0 /path/to/Nucleus.app"
-  echo "  $0 '' /path/to/Nucleus.ipa"
-fi
-
 echo
 echo "=== Summary ==="
 if [[ "$failures" -gt 0 ]]; then
   echo -e "${RED}$failures check(s) failed${NC}, $warnings warning(s)"
   exit 1
 fi
-echo -e "${GREEN}All checks passed${NC} ($warnings warning(s))"
+if [[ "$warnings" -gt 0 ]]; then
+  echo -e "${GREEN}All checks passed${NC} ($warnings warning(s))"
+else
+  echo -e "${GREEN}All checks passed${NC}"
+fi
 echo
 echo "Manual steps before upload:"
 echo "  • rm -rf ~/Library/Developer/Xcode/DerivedData  (optional clean build)"

@@ -11,6 +11,7 @@
   "scripts": {
     "info": "node scripts/info.cjs",
     "init": "npm run info",
+    "list": "node scripts/npm-list.cjs",
     "generate-env": "node scripts/generate-env.cjs",
     "seed:secrets": "node scripts/seed-secrets.cjs",
     "build": "swift build",

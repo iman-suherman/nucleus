@@ -2,7 +2,7 @@
 
 Use when resubmitting Nucleus after Guideline 5.2.5 rejection.
 
-**Version:** 1.0.0 · **Build:** 2 (increment for each new upload)
+**Version:** 1.0.1 · **Build:** 3 (increment for each new upload)
 
 ## App information
 
@@ -58,10 +58,17 @@ codesign -d --entitlements :- /path/to/Nucleus.app
 
 Confirm: **no** `com.apple.developer.weatherkit`, bundle id `net.suherman.nucleus`.
 
-Or run:
+Or run (includes source checks + repo archive .app when present):
+
+```bash
+npm run validate:ios-app-store
+```
+
+Custom .app or IPA path:
 
 ```bash
 npm run validate:ios-app-store -- /path/to/Nucleus.app
+npm run validate:ios-app-store -- '' /path/to/Nucleus.ipa
 ```
 
 ---
@@ -123,7 +130,7 @@ Do **not** re-upload build 1 after rejection. Current repo build: **2**.
 
 ## Phase 9 — Upload
 
-Archive → Validate → Distribute → Upload. Wait for processing, then select **build 2** for review.
+Archive → Validate → Distribute → Upload. Wait for processing, then select **build 3** for review.
 
 ---
 
@@ -146,7 +153,7 @@ Hello App Review Team,
 
 Thank you for the review.
 
-We have submitted build 2 with the following changes:
+We have submitted build 3 with the following changes:
 - Removed all WeatherKit functionality, entitlements, and linked frameworks
 - Removed weather UI and location usage for forecasts
 - Updated the app subtitle to "Personal Workspace"
@@ -167,7 +174,7 @@ Thank you.
 - [ ] Archive entitlements: no WeatherKit
 - [ ] IPA inspection: no WeatherKit in Payload/
 - [ ] Subtitle = **Personal Workspace**
-- [ ] Build = **2** (or higher)
+- [ ] Build = **3** (or higher)
 - [ ] Screenshots regenerated and reviewed
 - [ ] Review notes pasted in App Store Connect
 - [ ] New build selected → **Resubmit to App Review**

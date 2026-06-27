@@ -42,6 +42,7 @@ const commands = [
   ['Release', 'npm run build:app:release', 'Release .app build only'],
   ['Help', 'npm run info', 'Show this guide'],
   ['Help', 'npm run init', 'Alias for info'],
+  ['Help', 'npm run list', 'Full command catalog (more on TTY)'],
 ];
 
 const guides = [

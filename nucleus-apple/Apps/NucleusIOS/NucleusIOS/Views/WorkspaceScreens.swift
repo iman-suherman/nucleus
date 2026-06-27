@@ -322,7 +322,7 @@ struct SettingsWorkspaceScreen: View {
     }
 
     private var mobileAppVersion: String {
-        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.1"
     }
 
     private func applySyncedSettings() {

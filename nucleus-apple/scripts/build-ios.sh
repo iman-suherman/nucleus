@@ -15,12 +15,28 @@ fi
 
 (cd "$IOS_APP" && xcodegen generate)
 
-if rg -q 'nucleus\.ios' "$IOS_APP"; then
+grep_bundle_check() {
+  if command -v rg >/dev/null 2>&1; then
+    rg -q "$1" "$2"
+  else
+    grep -qE "$1" "$2"
+  fi
+}
+
+grep_tree_check() {
+  if command -v rg >/dev/null 2>&1; then
+    rg -q "$1" "$2"
+  else
+    grep -RqE "$1" "$2"
+  fi
+}
+
+if grep_tree_check 'nucleus\.ios' "$IOS_APP"; then
   echo "error: forbidden bundle id net.suherman.nucleus.ios found under $IOS_APP"
   exit 1
 fi
 
-if ! rg -q 'PRODUCT_BUNDLE_IDENTIFIER: net\.suherman\.nucleus' "$IOS_APP/project.yml"; then
+if ! grep_bundle_check 'PRODUCT_BUNDLE_IDENTIFIER: net\.suherman\.nucleus' "$IOS_APP/project.yml"; then
   echo "error: iOS app must use PRODUCT_BUNDLE_IDENTIFIER net.suherman.nucleus"
   exit 1
 fi

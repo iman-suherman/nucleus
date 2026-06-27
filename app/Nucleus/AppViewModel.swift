@@ -617,6 +617,17 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
     func bootstrap(settings: AppSettings) async {
         guard !hasFinishedBootstrap else { return }
         guard !isBootstrapping else { return }
+
+        if MarketingScreenshotMode.isActive, let pane = MarketingScreenshotMode.pane {
+            sidebarSelection = .workspace(pane)
+            AppSettings.shared.selectedWorkspacePane = pane.rawValue
+            isStartingUp = false
+            hasFinishedBootstrap = true
+            statusMessage = "Marketing screenshot"
+            NSLog("Nucleus: marketing screenshot bootstrap for \(pane.rawValue)")
+            return
+        }
+
         isBootstrapping = true
         defer { isBootstrapping = false }
 

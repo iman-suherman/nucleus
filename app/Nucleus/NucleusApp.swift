@@ -137,6 +137,10 @@ private struct AppRootView: View {
                     WindowLayoutController.shared.attach(to: window)
                 }
             )
+            .background(MarketingScreenshotWindowConfigurator())
+            .onAppear {
+                MarketingScreenshotCapture.scheduleIfNeeded()
+            }
     }
 }
 
@@ -293,27 +297,31 @@ struct ContentView: View {
 
         ZStack {
             Group {
-                switch activePane {
-                case .dashboard:
-                    DashboardWorkspaceView()
-                case .inbox:
-                    MailWorkspaceView(isVisible: activePane == .inbox)
-                case .clipboard:
-                    ClipboardWorkspaceView()
-                case .notes:
-                    EmptyView()
-                case .bills:
-                    BillsWorkspaceView()
-                case .media:
-                    MediaWorkspaceView()
-                case .terminal:
-                    TerminalWorkspaceView()
-                case .accounts:
-                    AccountCenterView()
-                case .settings:
-                    SettingsWorkspaceView()
-                case .none:
-                    MailWorkspaceView(isVisible: activePane == .inbox)
+                if MarketingScreenshotMode.isActive, let activePane {
+                    MarketingWorkspacePreview(pane: activePane)
+                } else {
+                    switch activePane {
+                    case .dashboard:
+                        DashboardWorkspaceView()
+                    case .inbox:
+                        MailWorkspaceView(isVisible: activePane == .inbox)
+                    case .clipboard:
+                        ClipboardWorkspaceView()
+                    case .notes:
+                        EmptyView()
+                    case .bills:
+                        BillsWorkspaceView()
+                    case .media:
+                        MediaWorkspaceView()
+                    case .terminal:
+                        TerminalWorkspaceView()
+                    case .accounts:
+                        AccountCenterView()
+                    case .settings:
+                        SettingsWorkspaceView()
+                    case .none:
+                        MailWorkspaceView(isVisible: activePane == .inbox)
+                    }
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -323,9 +331,9 @@ struct ContentView: View {
 
             NotesWorkspaceView()
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .opacity(activePane == .notes ? 1 : 0)
-                .allowsHitTesting(activePane == .notes)
-                .accessibilityHidden(activePane != .notes)
+                .opacity(activePane == .notes && !MarketingScreenshotMode.isActive ? 1 : 0)
+                .allowsHitTesting(activePane == .notes && !MarketingScreenshotMode.isActive)
+                .accessibilityHidden(activePane != .notes || MarketingScreenshotMode.isActive)
         }
     }
 
@@ -448,26 +456,47 @@ struct ContentView: View {
 
     @ViewBuilder
     private func compactBadge(for pane: WorkspacePane) -> some View {
-        switch pane {
-        case .dashboard where viewModel.totalUnread + viewModel.billsDueDockBadgeCount > 0:
-            compactCountBadge(viewModel.totalUnread + viewModel.billsDueDockBadgeCount)
-        case .inbox where viewModel.totalUnread > 0:
-            compactCountBadge(viewModel.totalUnread, kind: .mail)
-        case .clipboard where !viewModel.clipboardEntries.isEmpty:
-            compactCountBadge(viewModel.clipboardEntries.count)
-        case .bills where !viewModel.activeBills.isEmpty:
-            compactCountBadge(viewModel.activeBills.count)
-        case .notes where viewModel.regularNotesCount + viewModel.passwordNotesCount > 0:
-            compactCountBadge(viewModel.regularNotesCount + viewModel.passwordNotesCount)
-        case .terminal where tmuxSessionBrowser.activeSessionCount > 0:
-            compactCountBadge(tmuxSessionBrowser.activeSessionCount)
-        case .media where mediaController.nowPlaying.isPlaying:
+        if MarketingScreenshotMode.isActive {
+            marketingCompactBadge(for: pane)
+        } else {
+            switch pane {
+            case .dashboard where viewModel.totalUnread + viewModel.billsDueDockBadgeCount > 0:
+                compactCountBadge(viewModel.totalUnread + viewModel.billsDueDockBadgeCount)
+            case .inbox where viewModel.totalUnread > 0:
+                compactCountBadge(viewModel.totalUnread, kind: .mail)
+            case .clipboard where !viewModel.clipboardEntries.isEmpty:
+                compactCountBadge(viewModel.clipboardEntries.count)
+            case .bills where !viewModel.activeBills.isEmpty:
+                compactCountBadge(viewModel.activeBills.count)
+            case .notes where viewModel.regularNotesCount + viewModel.passwordNotesCount > 0:
+                compactCountBadge(viewModel.regularNotesCount + viewModel.passwordNotesCount)
+            case .terminal where tmuxSessionBrowser.activeSessionCount > 0:
+                compactCountBadge(tmuxSessionBrowser.activeSessionCount)
+            case .media where mediaController.nowPlaying.isPlaying:
+                Image(systemName: "waveform")
+                    .font(.system(size: 8, weight: .bold))
+                    .foregroundStyle(.green)
+                    .padding(3)
+                    .background(.green.opacity(0.15), in: Circle())
+            default:
+                EmptyView()
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func marketingCompactBadge(for pane: WorkspacePane) -> some View {
+        if MarketingScreenshotMode.showsMusicPlayingBadge, pane == .media {
             Image(systemName: "waveform")
                 .font(.system(size: 8, weight: .bold))
                 .foregroundStyle(.green)
                 .padding(3)
                 .background(.green.opacity(0.15), in: Circle())
-        default:
+        } else if let count = MarketingScreenshotMode.demoBadgeCount(for: pane) {
+            compactCountBadge(count, kind: pane == .inbox ? .mail : .neutral)
+        } else if let badges = MarketingScreenshotMode.demoNoteBadges(for: pane) {
+            compactCountBadge(badges.notes + badges.passwords)
+        } else {
             EmptyView()
         }
     }
@@ -486,27 +515,47 @@ struct ContentView: View {
 
     @ViewBuilder
     private func badge(for pane: WorkspacePane) -> some View {
-        switch pane {
-        case .dashboard where viewModel.totalUnread + viewModel.billsDueDockBadgeCount > 0:
-            NucleusCountBadge(
-                count: viewModel.totalUnread + viewModel.billsDueDockBadgeCount
-            )
-        case .inbox where viewModel.totalUnread > 0:
-            NucleusCountBadge(count: viewModel.totalUnread, kind: .mail)
-        case .clipboard where !viewModel.clipboardEntries.isEmpty:
-            NucleusCountBadge(count: viewModel.clipboardEntries.count)
-        case .bills where !viewModel.activeBills.isEmpty:
-            NucleusCountBadge(count: viewModel.activeBills.count)
-        case .notes where viewModel.regularNotesCount > 0 || viewModel.passwordNotesCount > 0:
-            NoteFolderCountBadges(
-                notesCount: viewModel.regularNotesCount,
-                passwordsCount: viewModel.passwordNotesCount
-            )
-        case .terminal where tmuxSessionBrowser.activeSessionCount > 0:
-            NucleusCountBadge(count: tmuxSessionBrowser.activeSessionCount)
-        case .media where mediaController.nowPlaying.isPlaying:
+        if MarketingScreenshotMode.isActive {
+            marketingBadge(for: pane)
+        } else {
+            switch pane {
+            case .dashboard where viewModel.totalUnread + viewModel.billsDueDockBadgeCount > 0:
+                NucleusCountBadge(
+                    count: viewModel.totalUnread + viewModel.billsDueDockBadgeCount
+                )
+            case .inbox where viewModel.totalUnread > 0:
+                NucleusCountBadge(count: viewModel.totalUnread, kind: .mail)
+            case .clipboard where !viewModel.clipboardEntries.isEmpty:
+                NucleusCountBadge(count: viewModel.clipboardEntries.count)
+            case .bills where !viewModel.activeBills.isEmpty:
+                NucleusCountBadge(count: viewModel.activeBills.count)
+            case .notes where viewModel.regularNotesCount > 0 || viewModel.passwordNotesCount > 0:
+                NoteFolderCountBadges(
+                    notesCount: viewModel.regularNotesCount,
+                    passwordsCount: viewModel.passwordNotesCount
+                )
+            case .terminal where tmuxSessionBrowser.activeSessionCount > 0:
+                NucleusCountBadge(count: tmuxSessionBrowser.activeSessionCount)
+            case .media where mediaController.nowPlaying.isPlaying:
+                MusicPlayingSidebarIndicator()
+            default:
+                EmptyView()
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func marketingBadge(for pane: WorkspacePane) -> some View {
+        if MarketingScreenshotMode.showsMusicPlayingBadge, pane == .media {
             MusicPlayingSidebarIndicator()
-        default:
+        } else if let badges = MarketingScreenshotMode.demoNoteBadges(for: pane) {
+            NoteFolderCountBadges(
+                notesCount: badges.notes,
+                passwordsCount: badges.passwords
+            )
+        } else if let count = MarketingScreenshotMode.demoBadgeCount(for: pane) {
+            NucleusCountBadge(count: count, kind: pane == .inbox ? .mail : .neutral)
+        } else {
             EmptyView()
         }
     }
