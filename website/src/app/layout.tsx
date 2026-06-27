@@ -10,7 +10,7 @@ import { SHARE_IMAGE, SITE_URL } from "@/lib/site";
 
 const inter = Inter({ subsets: ["latin"] });
 
-const defaultDescription = `${BRAND_TAGLINE}. Unify Gmail, bills, notes, passwords, clipboard intelligence, and Funky alerts across multiple Google accounts — with a Dashboard that analyses your day, surfaces productivity insights, and summarizes your workspace at a glance.`;
+const defaultDescription = `${BRAND_TAGLINE}. Native macOS workspace for Gmail, bills, clipboard, notes, passwords, Apple Music, and tmux — with a Dashboard that analyses your day, breaking news alerts, Nucleus AI, and sync through Nucleus Cloud or iCloud.`;
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),

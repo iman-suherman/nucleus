@@ -52,16 +52,18 @@ struct DashboardWorkspaceScreen: View {
     private var greetingHeader: some View {
         TimelineView(.periodic(from: .now, by: 60)) { context in
             VStack(alignment: .leading, spacing: 8) {
-                Text(greetingLine(asOf: context.date))
-                    .font(.title3.weight(.semibold))
-                    .fixedSize(horizontal: false, vertical: true)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(greetingLine(asOf: context.date))
+                        .font(.title3.weight(.semibold))
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Text(DashboardGreeting.dateLine(now: context.date))
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
 
                 if let quoteLine {
-                    Text(quoteLine)
-                        .font(.title3)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.75)
-                        .truncationMode(.tail)
+                    DashboardAutoScrollingText(quoteLine, font: .title3)
                 }
             }
             .onChange(of: DashboardTimePeriod.current(now: context.date)) { _, _ in
@@ -73,7 +75,7 @@ struct DashboardWorkspaceScreen: View {
 
     private func greetingLine(asOf date: Date) -> String {
         let celebrateHoliday = holidayService.isPublicHoliday(on: date)
-        return DashboardGreeting.lineWithDate(
+        return DashboardGreeting.line(
             firstName: DashboardGreeting.firstName(from: viewModel.iCloudSync.accountName),
             now: date,
             isPublicHoliday: celebrateHoliday,

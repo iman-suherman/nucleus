@@ -11,8 +11,8 @@ export function CtaBanner() {
           </h2>
           <p className="mt-3 max-w-2xl text-slate-400">
             Download {BRAND_NAME} for macOS and open one Dashboard for Gmail, bills, clipboard,
-            notes, passwords, and alerts — with Your day productivity analysis, intelligent insight,
-            and sync through Nucleus Cloud or iCloud.
+            notes, passwords, Apple Music, tmux, and alerts — with Your day productivity analysis,
+            breaking news, Nucleus AI, and sync through Nucleus Cloud or iCloud.
           </p>
         </div>
         <Link href="/install" className="btn-primary shrink-0">

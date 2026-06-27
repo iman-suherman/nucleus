@@ -115,6 +115,10 @@ public enum DashboardGreeting {
         return formatter.string(from: now)
     }
 
+    public static func dateLine(now: Date = Date(), calendar: Calendar = .current) -> String {
+        "It's \(naturalDatePhrase(now: now, calendar: calendar))."
+    }
+
     public static func lineWithDate(
         firstName: String,
         now: Date = Date(),

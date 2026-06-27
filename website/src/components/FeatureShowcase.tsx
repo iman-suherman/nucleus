@@ -4,64 +4,34 @@ import { BRAND_NAME } from "@/lib/brand";
 
 const features = [
   {
-    title: "Your day",
+    title: "Nucleus Cloud & iCloud sync",
     description:
-      "Clipboard-powered productivity analysis refreshes every 30 minutes. See today's capture breakdown, behavioral insights — dominant categories, source apps, context switching — and concrete suggestions to consolidate drafts, batch commands, or reduce copy-paste fragmentation.",
-    icon: "📊",
-  },
-  {
-    title: "Dashboard",
-    description:
-      "A morning greeting with daily quote, intelligent insight, Your day analysis, today's weather, live resource usage, Cloud sync, public holidays, news feed, summary metrics, payment preparation, and a seven-day productivity chart — with toggles for every section in Settings.",
-    icon: "✨",
-  },
-  {
-    title: "Intelligent insight",
-    description:
-      "Rule-based analysis turns unread mail, passwords, bills, and clipboard captures into a dated workspace narrative. Collapsible on the Dashboard with manual Analyse Now and automatic refresh every 30 minutes.",
-    icon: "🧠",
-  },
-  {
-    title: "Monthly bills",
-    description:
-      "Track recurring bills in multiple currencies, log full or partial payments, import and export CSV, and get local reminders before due dates. Payment preparation on the Dashboard groups what's due soon by category.",
-    icon: "💳",
-  },
-  {
-    title: "Multi-account Gmail",
-    description:
-      "Category tabs for Personal, Work, and Client inboxes with isolated web sessions per account. Unread badges, per-message alerts, dock badge sync, and external links open in your browser.",
-    icon: "✉️",
-  },
-  {
-    title: "Clipboard memory",
-    description:
-      "Automatic clipboard history with search, pinning, and save-to-notes. Paste from history with ⌘⇧V. Intelligent clipboard detects password-like content and offers to save it to your vault — and feeds Your day productivity analysis on the Dashboard.",
-    icon: "📋",
-  },
-  {
-    title: "Notes & passwords",
-    description:
-      "Markdown notes with optional Google Drive upload, plus a structured password vault with username, email, URL, and password fields. Quick copy from the menu bar popover.",
-    icon: "🔐",
-  },
-  {
-    title: "Cloud sync",
-    description:
-      "Nucleus Cloud syncs notes, bills, dashboard analysis, and settings across devices. iCloud CloudKit keeps notes and bills on your Apple devices — with manual sync and status on the Dashboard.",
+      "Sync notes, bills, dashboard analysis, and settings through Nucleus Cloud. iCloud CloudKit keeps notes and bills on your Apple devices — with manual sync and status on the Dashboard.",
     icon: "☁️",
   },
   {
     title: "Smart notifications",
     description:
-      "Per-message email alerts with sender and subject, bill due reminders, and clipboard password prompts — with per-account Funky, Nucleus Mail, or system sounds.",
+      "Per-message email alerts with sender and subject, bill due reminders, breaking news banners, and clipboard password prompts — with per-account Funky, Nucleus Mail, or system sounds.",
     icon: "🔔",
   },
   {
-    title: "Menu bar companion",
+    title: "Breaking news alerts",
     description:
-      "Optional menu bar item for recent clips and passwords, password-save prompts, and clipboard access without bringing the main window forward.",
-    icon: "📎",
+      "Urgent headlines slide in as a macOS-style top banner from any workspace — with Open story, auto-dismiss, and mood-aware news cards on the Dashboard.",
+    icon: "🚨",
+  },
+  {
+    title: "Incoming mail overlays",
+    description:
+      "New mail while you are on Dashboard, Notes, Music, or Terminal shows the same modal overlay — preview the sender and jump to Inbox without losing your place.",
+    icon: "📬",
+  },
+  {
+    title: "Nucleus AI",
+    description:
+      "Optional Dashboard panel for AI-assisted answers — collapsible with settings toggles, slow auto-scroll for long responses, and IPv4 fallback when local DNS misbehaves.",
+    icon: "🤖",
   },
   {
     title: "News feed",
@@ -70,30 +40,57 @@ const features = [
     icon: "📰",
   },
   {
-    title: "Native macOS workspace",
+    title: "Menu bar companion",
     description:
-      "SwiftUI shell with web Gmail sign-in, Sparkle auto-updates, dock badges for mail and bills, hourly beep, and a refreshed Nucleus app icon.",
-    icon: "🖥️",
+      "Optional menu bar item for recent clips and passwords, password-save prompts, and clipboard access without bringing the main window forward.",
+    icon: "📎",
+  },
+  {
+    title: "Reorderable sidebar",
+    description:
+      "Drag workspace items to match your daily flow — like DiskWise. Compact sidebar mode saves horizontal space; badges show unread mail, bills, notes, tmux sessions, and now playing.",
+    icon: "↕️",
+  },
+  {
+    title: "Window layout memory",
+    description:
+      "Nucleus remembers window size, position, and which monitor you used — including external displays — across relaunch and app switches.",
+    icon: "🪟",
+  },
+  {
+    title: "Isolated Google sessions",
+    description:
+      "Each Gmail account gets its own WKWebView cookie jar on your Mac. Web sessions stay local; external links open in your default browser.",
+    icon: "🔒",
+  },
+  {
+    title: "Sparkle auto-updates",
+    description:
+      "Signed and notarized releases with in-app Check for Updates. What's New appears after each upgrade with highlights from the release notes.",
+    icon: "⬆️",
+  },
+  {
+    title: "Native macOS polish",
+    description:
+      "SwiftUI shell with dock badges, hourly beep, refreshed Nucleus app icon, five-minute idle return to Dashboard (except Notes, Music, and Terminal), and Accessibility-aware clipboard hotkeys.",
+    icon: "🍎",
   },
 ];
-
-const MAX_FEATURE_CARDS = 12;
 
 export function FeatureShowcase() {
   return (
     <section id="features" className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
       <div className="max-w-3xl">
         <h2 className="text-3xl font-bold tracking-tight text-slate-50 sm:text-4xl">
-          Everything in one workspace
+          Platform features across every workspace
         </h2>
         <p className="mt-4 text-lg text-slate-400">
-          {BRAND_NAME} started as a unified Gmail cockpit and has grown into a daily operating
-          system — mail, bills, clipboard, notes, passwords, cloud sync, and alerts in one native
-          macOS app.
+          Beyond the seven sidebar panes, {BRAND_NAME} layers sync, alerts, AI, news, and macOS-native
+          polish so the app stays useful whether you are in mail, music, or a tmux session.
         </p>
       </div>
-      <div className="mt-10 grid gap-6 md:grid-cols-2">
-        {features.slice(0, MAX_FEATURE_CARDS).map((feature) => (
+      <div className="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {features.map((feature) => (
           <article key={feature.title} className="card p-6">
             <div className="text-2xl">{feature.icon}</div>
             <h3 className="mt-4 text-xl font-semibold text-slate-100">{feature.title}</h3>

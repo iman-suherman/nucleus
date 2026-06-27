@@ -41,10 +41,11 @@ const dashboardModules = [
     title: "Everything else on one screen",
     eyebrow: "Context without clutter",
     description:
-      "Weather, live CPU and memory for Nucleus, Nucleus Cloud and iCloud sync status, the next public holiday, a scrolling news feed, summary metrics, and payment preparation — all configurable from Settings → Dashboard.",
+      "Weather, live CPU and memory for Nucleus, Nucleus Cloud and iCloud sync status, the next public holiday, a scrolling news feed, breaking news banners, optional Nucleus AI and Apple Music panels, summary metrics, and payment preparation — all configurable from Settings → Dashboard.",
     bullets: [
       "Jump straight into mail, passwords, or bills from summary tiles",
       "Payment preparation groups bills due in the next two weeks by category and currency",
+      "Incoming mail overlay and breaking news alerts appear without leaving your current workspace",
       "Toggle any section on or off to match how you start your day",
     ],
     accent: "from-brand-blue/15 to-brand-purple/10",

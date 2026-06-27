@@ -89,52 +89,61 @@ struct TerminalWorkspaceView: View {
     @State private var copiedAttachSessionName: String?
 
     var body: some View {
-        ZStack {
-            VStack(spacing: 0) {
-                ScrollView(.vertical, showsIndicators: true) {
-                    terminalTopBar
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .frame(maxHeight: 340)
-                Divider()
-
-                if let errorMessage = browser.errorMessage ?? terminalErrorMessage {
-                    Text(errorMessage)
-                        .font(.caption)
-                        .foregroundStyle(.red)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+        GeometryReader { geometry in
+            ZStack {
+                VStack(spacing: 0) {
+                    terminalToolbar
                         .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
-                        .background(Color.red.opacity(0.08))
-                }
+                        .padding(.vertical, 10)
+                        .background(.bar)
 
-                ZStack {
-                    if activeTerminal == nil {
-                        ContentUnavailableView {
-                            Label("No active terminal", systemImage: "terminal")
-                        } description: {
-                            Text("Start a tmux session (default) or shell. Copy an attach command below to join an existing tmux session from the terminal.")
-                        } actions: {
-                            Button("New Session") {
-                                prepareNewSessionSheet()
+                    ScrollView(.vertical, showsIndicators: true) {
+                        terminalScrollContent
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .frame(maxHeight: scrollableControlsMaxHeight(in: geometry.size.height))
+
+                    Divider()
+
+                    if let errorMessage = browser.errorMessage ?? terminalErrorMessage {
+                        Text(errorMessage)
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
+                            .background(Color.red.opacity(0.08))
+                    }
+
+                    ZStack {
+                        if activeTerminal == nil {
+                            ContentUnavailableView {
+                                Label("No active terminal", systemImage: "terminal")
+                            } description: {
+                                Text("Start a tmux session (default) or shell. Copy an attach command below to join an existing tmux session from the terminal.")
+                            } actions: {
+                                Button("New Session") {
+                                    prepareNewSessionSheet()
+                                }
+                                .buttonStyle(.borderedProminent)
                             }
-                            .buttonStyle(.borderedProminent)
+                        }
+
+                        if activeTerminal != nil {
+                            terminalLayer
                         }
                     }
-
-                    if activeTerminal != nil {
-                        terminalLayer
-                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .layoutPriority(1)
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
 
-            if let prompt = viewModel.dashboardIncomingMailPrompt {
-                DashboardIncomingMailOverlay(
-                    prompt: prompt,
-                    onOpenInbox: viewModel.openDashboardIncomingMail,
-                    onDismiss: viewModel.dismissDashboardIncomingMail
-                )
+                if let prompt = viewModel.dashboardIncomingMailPrompt {
+                    DashboardIncomingMailOverlay(
+                        prompt: prompt,
+                        onOpenInbox: viewModel.openDashboardIncomingMail,
+                        onDismiss: viewModel.dismissDashboardIncomingMail
+                    )
+                }
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -161,61 +170,91 @@ struct TerminalWorkspaceView: View {
         }
     }
 
-    private var terminalTopBar: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 8) {
-                    commandLine(title: "Attach (Terminal.app)", command: TmuxSessionService.attachCommand())
-                    commandLine(
-                        title: "Attach (in Nucleus)",
-                        command: TmuxSessionService.attachCommandFromEmbeddedTerminal(sessionName: "<name>")
-                    )
-                    commandLine(title: "Detach (Terminal.app)", command: TmuxSessionService.detachCommand())
-                    commandLine(title: "Detach (Nucleus)", command: "F12  or  ⌘⇧D  or  Detach button")
+    private func scrollableControlsMaxHeight(in totalHeight: CGFloat) -> CGFloat {
+        let reservedForTerminal: CGFloat = 260
+        let proportional = totalHeight * 0.48
+        return max(180, min(proportional, totalHeight - reservedForTerminal))
+    }
+
+    private var terminalToolbar: some View {
+        HStack(spacing: 8) {
+            Button {
+                prepareNewSessionSheet()
+            } label: {
+                Label("New Session", systemImage: "plus")
+            }
+            .buttonStyle(.borderedProminent)
+            .disabled(isPreparingSession || activeTerminal != nil)
+
+            if activeTerminal != nil {
+                Button("Detach") {
+                    detachActiveTerminal()
                 }
-
-                Spacer()
-
-                HStack(spacing: 8) {
-                    Button {
-                        prepareNewSessionSheet()
-                    } label: {
-                        Label("New Session", systemImage: "plus")
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(isPreparingSession || activeTerminal != nil)
-
-                    if activeTerminal != nil {
-                        Button("Detach") {
-                            detachActiveTerminal()
-                        }
-                        .buttonStyle(.bordered)
-                        .disabled(isDetaching)
-                        .keyboardShortcut("d", modifiers: [.command, .shift])
-                    }
-
-                    Button {
-                        Task { await browser.refresh() }
-                    } label: {
-                        Label("Refresh", systemImage: "arrow.clockwise")
-                    }
-                    .buttonStyle(.borderless)
-                    .disabled(browser.isRefreshing)
-                }
+                .buttonStyle(.bordered)
+                .disabled(isDetaching)
+                .keyboardShortcut("d", modifiers: [.command, .shift])
             }
 
+            Spacer()
+
+            Button {
+                Task { await browser.refresh() }
+            } label: {
+                Label("Refresh", systemImage: "arrow.clockwise")
+            }
+            .buttonStyle(.borderless)
+            .disabled(browser.isRefreshing)
+        }
+    }
+
+    private var terminalScrollContent: some View {
+        VStack(alignment: .leading, spacing: 16) {
             VStack(alignment: .leading, spacing: 8) {
-                Text("Active tmux sessions")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
+                commandLine(title: "Attach (Terminal.app)", command: TmuxSessionService.attachCommand())
+                commandLine(
+                    title: "Attach (in Nucleus)",
+                    command: TmuxSessionService.attachCommandFromEmbeddedTerminal(sessionName: "<name>")
+                )
+                commandLine(title: "Detach (Terminal.app)", command: TmuxSessionService.detachCommand())
+                commandLine(title: "Detach (Nucleus)", command: "F12  or  ⌘⇧D  or  Detach button")
+            }
+
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Text("Active tmux sessions")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Text("Drag cards to reorder")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                }
 
                 if browser.sessions.isEmpty {
                     Text("none")
                         .font(.caption.monospaced())
                         .foregroundStyle(.tertiary)
+                        .padding(.vertical, 8)
                 } else {
-                    ForEach(browser.sessions) { session in
-                        sessionAttachRow(session)
+                    LazyVGrid(
+                        columns: [GridItem(.adaptive(minimum: 280, maximum: 420), spacing: 12)],
+                        alignment: .leading,
+                        spacing: 12
+                    ) {
+                        ForEach(browser.sessions) { session in
+                            sessionCard(session)
+                                .draggable(session.name)
+                                .dropDestination(for: String.self) { items, _ in
+                                    guard let draggedName = items.first else { return false }
+                                    browser.moveSession(draggedName, before: session.name)
+                                    return true
+                                }
+                        }
+                    }
+                    .dropDestination(for: String.self) { items, _ in
+                        guard let draggedName = items.first else { return false }
+                        browser.moveSessionToEnd(draggedName)
+                        return true
                     }
                 }
             }
@@ -230,37 +269,52 @@ struct TerminalWorkspaceView: View {
         .padding(.vertical, 12)
         .background(.bar)
     }
-
-    private func sessionAttachRow(_ session: TmuxSession) -> some View {
+    private func sessionCard(_ session: TmuxSession) -> some View {
         let attachCommand = TmuxSessionService.attachCommandFromEmbeddedTerminal(sessionName: session.name)
         let isCopied = copiedAttachSessionName == session.name
         let isLiveHere = activeTerminal?.tmuxSessionName == session.name
 
-        return VStack(alignment: .leading, spacing: 4) {
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Text(session.displayName)
-                    .font(.caption.monospaced().weight(.semibold))
-                    .foregroundStyle(.primary)
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .top, spacing: 8) {
+                Image(systemName: "terminal.fill")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(isLiveHere ? .green : .secondary)
+                    .frame(width: 16)
 
-                Text(sessionSummary(for: session, isLiveHere: isLiveHere))
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(session.displayName)
+                        .font(.subheadline.monospaced().weight(.semibold))
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+
+                    Text(sessionSummary(for: session, isLiveHere: isLiveHere))
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer(minLength: 0)
+
+                Image(systemName: "line.3.horizontal")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.tertiary)
+                    .help("Drag to reorder")
             }
 
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Text(attachCommand)
-                    .font(.caption.monospaced())
-                    .textSelection(.enabled)
-                    .foregroundStyle(.primary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+            Text(attachCommand)
+                .font(.caption2.monospaced())
+                .textSelection(.enabled)
+                .foregroundStyle(.secondary)
+                .lineLimit(2)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
+            HStack(spacing: 8) {
                 Button {
                     attachToSession(session)
                 } label: {
                     Label("Attach", systemImage: "arrow.right.circle")
                 }
                 .buttonStyle(.borderedProminent)
-                .controlSize(.mini)
+                .controlSize(.small)
                 .disabled(isPreparingSession)
 
                 Button {
@@ -269,7 +323,7 @@ struct TerminalWorkspaceView: View {
                     Label(isCopied ? "Copied" : "Copy", systemImage: isCopied ? "checkmark" : "doc.on.doc")
                 }
                 .buttonStyle(.bordered)
-                .controlSize(.mini)
+                .controlSize(.small)
 
                 Button {
                     destroySession(session)
@@ -277,13 +331,22 @@ struct TerminalWorkspaceView: View {
                     Label("Destroy", systemImage: "trash")
                 }
                 .buttonStyle(.bordered)
-                .controlSize(.mini)
+                .controlSize(.small)
                 .tint(.red)
                 .disabled(isPreparingSession || activeTerminal != nil)
                 .help("Attach, send exit, and close this tmux session")
             }
         }
-        .padding(.vertical, 4)
+        .padding(12)
+        .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(
+                    isLiveHere ? Color.green.opacity(0.55) : Color.primary.opacity(0.08),
+                    lineWidth: isLiveHere ? 1.5 : 1
+                )
+        }
+        .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 
     private func sessionSummary(for session: TmuxSession, isLiveHere: Bool) -> String {

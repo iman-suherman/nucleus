@@ -442,6 +442,50 @@ final class TmuxSessionBrowser: ObservableObject {
 
     private init() {}
 
+    static func applyDisplayOrder(sessions: [TmuxSession], savedOrder: [String]) -> [TmuxSession] {
+        let byName = Dictionary(uniqueKeysWithValues: sessions.map { ($0.name, $0) })
+        var ordered: [TmuxSession] = []
+        var seen = Set<String>()
+
+        for name in savedOrder {
+            guard let session = byName[name] else { continue }
+            ordered.append(session)
+            seen.insert(name)
+        }
+
+        let newcomers = sessions
+            .filter { !seen.contains($0.name) }
+            .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+        ordered.append(contentsOf: newcomers)
+        return ordered
+    }
+
+    func moveSession(_ draggedName: String, before targetName: String) {
+        guard draggedName != targetName else { return }
+
+        var order = sessions.map(\.name)
+        guard order.contains(draggedName), order.contains(targetName) else { return }
+
+        order.removeAll { $0 == draggedName }
+        guard let targetIndex = order.firstIndex(of: targetName) else { return }
+        order.insert(draggedName, at: targetIndex)
+        applySessionOrder(order)
+    }
+
+    func moveSessionToEnd(_ draggedName: String) {
+        var order = sessions.map(\.name)
+        guard order.contains(draggedName) else { return }
+        order.removeAll { $0 == draggedName }
+        order.append(draggedName)
+        applySessionOrder(order)
+    }
+
+    private func applySessionOrder(_ order: [String]) {
+        let byName = Dictionary(uniqueKeysWithValues: sessions.map { ($0.name, $0) })
+        sessions = order.compactMap { byName[$0] }
+        AppSettings.shared.tmuxSessionOrder = sessions.map(\.name)
+    }
+
     func startAutoRefresh() {
         stopAutoRefresh()
         refreshTask = Task { [weak self] in
@@ -465,7 +509,12 @@ final class TmuxSessionBrowser: ObservableObject {
         let result = await TmuxSessionService.listSessions(includePreviews: false)
         switch result {
         case .success(let sessions):
-            self.sessions = sessions
+            let ordered = Self.applyDisplayOrder(
+                sessions: sessions,
+                savedOrder: AppSettings.shared.tmuxSessionOrder
+            )
+            self.sessions = ordered
+            AppSettings.shared.tmuxSessionOrder = ordered.map(\.name)
             self.errorMessage = nil
         case .failure(let error):
             self.sessions = []

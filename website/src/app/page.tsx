@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Hero } from "@/components/Hero";
 import { AppPreview } from "@/components/AppPreview";
+import { WorkspacesShowcase } from "@/components/WorkspacesShowcase";
 import { DashboardShowcase } from "@/components/DashboardShowcase";
 import { FeatureShowcase } from "@/components/FeatureShowcase";
 import { CtaBanner } from "@/components/CtaBanner";
@@ -10,7 +11,7 @@ import { SHARE_IMAGE, SITE_URL } from "@/lib/site";
 
 const homeTitle = "Nucleus — Personal Workspace";
 const homeDescription =
-  "Unify Gmail, bills, clipboard intelligence, markdown notes, password vault, and Funky alerts across multiple Google accounts — with a Dashboard that analyses your day, surfaces productivity insights from clipboard activity, and summarizes what needs attention at a glance.";
+  "Native macOS workspace for Gmail, bills, clipboard, notes, passwords, Apple Music, and embedded tmux — with a Dashboard that analyses your day, breaking news alerts, Nucleus AI, and sync through Nucleus Cloud or iCloud.";
 
 export const metadata: Metadata = {
   title: homeTitle,
@@ -40,6 +41,7 @@ export default function HomePage() {
     <>
       <Hero />
       <AppPreview />
+      <WorkspacesShowcase />
       <DashboardShowcase />
       <FeatureShowcase />
       <VersionHistoryShowcase />

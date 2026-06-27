@@ -23,12 +23,13 @@ export function Hero() {
           </span>
           <h1 className="mt-4 max-w-4xl text-balance text-3xl font-bold leading-[1.15] tracking-tight text-slate-50 sm:mt-6 sm:text-4xl md:text-5xl lg:text-[3.25rem] xl:text-6xl">
             Your daily workspace for{" "}
-            <span className="gradient-text">mail, bills, clipboard, and notes.</span>
+            <span className="gradient-text">mail, bills, music, and tmux.</span>
           </h1>
           <p className="mt-4 max-w-3xl text-base leading-7 text-slate-400 sm:mt-6 sm:text-lg sm:leading-8 md:text-xl md:leading-9">
             Nucleus unifies Gmail, clipboard intelligence, markdown notes, password vault, monthly
-            bills, and Funky alerts across multiple Google accounts — with a Dashboard that greets
-            you, analyses your clipboard day, and summarizes what needs attention before you dive in.
+            bills, Apple Music, embedded tmux, and Funky alerts across multiple Google accounts —
+            with a Dashboard that greets you, analyses your clipboard day, surfaces breaking news,
+            and summarizes what needs attention before you dive in.
           </p>
 
           <div id="download" className="mt-6 flex flex-col gap-3 sm:mt-8">
@@ -57,9 +58,9 @@ export function Hero() {
           </div>
 
           <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm text-slate-500 sm:mt-8 sm:gap-x-8 sm:text-base">
-            <span>Your day analysis</span>
-            <span>Dashboard</span>
-            <span>Multi-account Gmail</span>
+            <span>Seven workspaces</span>
+            <span>Dashboard intelligence</span>
+            <span>Apple Music & tmux</span>
             <span>Bills & passwords</span>
             <span>Cloud sync</span>
           </div>

@@ -33,8 +33,8 @@ export function AppPreview() {
           Open one cockpit every morning.
         </h2>
         <p className="mt-3 text-base leading-7 text-slate-400">
-          {BRAND_NAME} keeps mail, bills, clipboard, notes, and passwords in one SwiftUI workspace
-          — with a Dashboard that analyses your day and tells you what needs attention first.
+          {BRAND_NAME} keeps mail, bills, clipboard, notes, passwords, music, and tmux in one SwiftUI
+          workspace — with a Dashboard that analyses your day and tells you what needs attention first.
         </p>
       </div>
 

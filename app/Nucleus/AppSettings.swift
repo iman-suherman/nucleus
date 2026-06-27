@@ -207,6 +207,7 @@ final class AppSettings: ObservableObject {
         static let dashboardPreferences = "nucleus.settings.dashboardPreferences"
         static let sidebarSize = "nucleus.settings.sidebarSize"
         static let workspacePaneOrder = "nucleus.settings.workspacePaneOrder"
+        static let tmuxSessionOrder = "nucleus.settings.tmuxSessionOrder"
         static let publicHolidayCountryCodes = "nucleus.settings.publicHolidayCountryCodes"
         static let mediaFavoritePlaylists = "nucleus.settings.mediaFavoritePlaylists"
         static let mediaShortcuts = "nucleus.settings.mediaShortcuts"
@@ -373,6 +374,12 @@ final class AppSettings: ObservableObject {
                 workspacePaneOrder.map(\.rawValue),
                 forKey: Keys.workspacePaneOrder
             )
+        }
+    }
+
+    @Published var tmuxSessionOrder: [String] {
+        didSet {
+            UserDefaults.standard.set(tmuxSessionOrder, forKey: Keys.tmuxSessionOrder)
         }
     }
 
@@ -643,6 +650,7 @@ final class AppSettings: ObservableObject {
         workspacePaneOrder = Self.resolvedWorkspacePaneOrder(
             stored: UserDefaults.standard.stringArray(forKey: Keys.workspacePaneOrder)
         )
+        tmuxSessionOrder = UserDefaults.standard.stringArray(forKey: Keys.tmuxSessionOrder) ?? []
         publicHolidayCountryCodes = UserDefaults.standard.stringArray(forKey: Keys.publicHolidayCountryCodes) ?? []
         mediaFavoritePlaylists = Self.loadMediaFavoritePlaylists()
         mediaShortcuts = Self.loadMediaShortcuts()
