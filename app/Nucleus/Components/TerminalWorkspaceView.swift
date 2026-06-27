@@ -1,66 +1,120 @@
+import AppKit
 import NucleusKit
 import SwiftUI
 
+private enum ActiveTerminal: Equatable {
+    case shell
+    case tmux(TmuxSession)
+
+    var embeddedMode: EmbeddedTerminalMode {
+        switch self {
+        case .shell:
+            return .shell
+        case .tmux(let session):
+            return .tmuxSession(name: session.name)
+        }
+    }
+
+    var statusLabel: String {
+        switch self {
+        case .shell:
+            return "shell"
+        case .tmux(let session):
+            return session.name
+        }
+    }
+}
+
+private enum NewTerminalKind: String, CaseIterable, Identifiable {
+    case shell
+    case tmux
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .shell: return "Shell"
+        case .tmux: return "tmux session"
+        }
+    }
+
+    var subtitle: String {
+        switch self {
+        case .shell: return "Normal terminal — attach to other sessions with the commands below."
+        case .tmux: return "New tmux session in Nucleus."
+        }
+    }
+}
+
 struct TerminalWorkspaceView: View {
+    @EnvironmentObject private var viewModel: AppViewModel
     @StateObject private var browser = TmuxSessionBrowser()
-    @State private var activeSession: TmuxSession?
+    @State private var activeTerminal: ActiveTerminal?
     @State private var terminalErrorMessage: String?
     @State private var isPreparingSession = false
     @State private var isDetaching = false
     @State private var showNewSessionSheet = false
     @State private var newSessionName = ""
+    @State private var newTerminalKind: NewTerminalKind = .shell
+    @State private var copiedAttachSessionName: String?
 
     var body: some View {
-        VStack(spacing: 0) {
-            terminalTopBar
-            Divider()
+        ZStack {
+            VStack(spacing: 0) {
+                terminalTopBar
+                Divider()
 
-            if let errorMessage = browser.errorMessage ?? terminalErrorMessage {
-                Text(errorMessage)
-                    .font(.caption)
-                    .foregroundStyle(.red)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                    .background(Color.red.opacity(0.08))
-            }
+                if let errorMessage = browser.errorMessage ?? terminalErrorMessage {
+                    Text(errorMessage)
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .background(Color.red.opacity(0.08))
+                }
 
-            ZStack {
-                if activeSession == nil {
-                    ContentUnavailableView {
-                        Label("No active terminal", systemImage: "terminal")
-                    } description: {
-                        Text("Start a new tmux session here. Use Terminal.app to attach to existing sessions listed above.")
-                    } actions: {
-                        Button("New Session") {
-                            prepareNewSessionSheet()
+                ZStack {
+                    if activeTerminal == nil {
+                        ContentUnavailableView {
+                            Label("No active terminal", systemImage: "terminal")
+                        } description: {
+                            Text("Start a shell or tmux session. Copy an attach command below to join an existing tmux session from the terminal.")
+                        } actions: {
+                            Button("New Session") {
+                                prepareNewSessionSheet()
+                            }
+                            .buttonStyle(.borderedProminent)
                         }
-                        .buttonStyle(.borderedProminent)
                     }
-                }
 
-                if let tmuxPath = browser.tmuxPath {
-                    terminalLayer(tmuxPath: tmuxPath)
-                } else if activeSession != nil {
-                    ContentUnavailableView {
-                        Label("tmux unavailable", systemImage: "exclamationmark.triangle")
-                    } description: {
-                        Text("Install tmux with Homebrew: brew install tmux")
+                    if activeTerminal != nil {
+                        terminalLayer
                     }
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            if let prompt = viewModel.dashboardIncomingMailPrompt {
+                DashboardIncomingMailOverlay(
+                    prompt: prompt,
+                    onOpenInbox: viewModel.openDashboardIncomingMail,
+                    onDismiss: viewModel.dismissDashboardIncomingMail
+                )
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .animation(.easeInOut(duration: 0.2), value: viewModel.dashboardIncomingMailPrompt?.id)
         .sheet(isPresented: $showNewSessionSheet) {
             newSessionSheet
         }
         .onAppear {
             browser.startAutoRefresh()
+            viewModel.refreshDashboardIncomingMailAlertIfNeeded()
         }
         .onDisappear {
             browser.stopAutoRefresh()
-            if let session = activeSession {
+            if case .tmux(let session) = activeTerminal {
                 let tmuxPath = browser.tmuxPath ?? TmuxSessionService.resolveTmuxPath()
                 if let tmuxPath {
                     Task {
@@ -68,19 +122,19 @@ struct TerminalWorkspaceView: View {
                     }
                 }
             }
-            activeSession = nil
+            activeTerminal = nil
         }
-    }
-
-    private var commandExampleName: String {
-        activeSession?.name ?? "<name>"
     }
 
     private var terminalTopBar: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 8) {
-                    commandLine(title: "Attach (Terminal.app)", command: TmuxSessionService.attachCommand(sessionName: commandExampleName))
+                    commandLine(title: "Attach (Terminal.app)", command: TmuxSessionService.attachCommand())
+                    commandLine(
+                        title: "Attach (in Nucleus)",
+                        command: TmuxSessionService.attachCommandFromEmbeddedTerminal(sessionName: "<name>")
+                    )
                     commandLine(title: "Detach (Terminal.app)", command: TmuxSessionService.detachCommand())
                     commandLine(title: "Detach (Nucleus)", command: "F12  or  ⌘⇧D  or  Detach button")
                 }
@@ -94,11 +148,11 @@ struct TerminalWorkspaceView: View {
                         Label("New Session", systemImage: "plus")
                     }
                     .buttonStyle(.borderedProminent)
-                    .disabled(isPreparingSession || activeSession != nil)
+                    .disabled(isPreparingSession || activeTerminal != nil)
 
-                    if activeSession != nil {
+                    if activeTerminal != nil {
                         Button("Detach") {
-                            detachActiveSession()
+                            detachActiveTerminal()
                         }
                         .buttonStyle(.bordered)
                         .disabled(isDetaching)
@@ -115,7 +169,7 @@ struct TerminalWorkspaceView: View {
                 }
             }
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 8) {
                 Text("Active tmux sessions")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.secondary)
@@ -125,16 +179,14 @@ struct TerminalWorkspaceView: View {
                         .font(.caption.monospaced())
                         .foregroundStyle(.tertiary)
                 } else {
-                    Text(activeSessionSummaries)
-                        .font(.caption.monospaced())
-                        .foregroundStyle(.secondary)
-                        .textSelection(.enabled)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                    ForEach(browser.sessions) { session in
+                        sessionAttachRow(session)
+                    }
                 }
             }
 
-            if let activeSession {
-                Text("Live in Nucleus: \(activeSession.name)")
+            if let activeTerminal {
+                Text("Live in Nucleus: \(activeTerminal.statusLabel)")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.green)
             }
@@ -144,20 +196,49 @@ struct TerminalWorkspaceView: View {
         .background(.bar)
     }
 
-    private var activeSessionSummaries: String {
-        browser.sessions
-            .map { session in
-                var label = "\(session.name) (\(session.windowCount)w"
-                if session.isAttached {
-                    label += ", attached"
-                }
-                if activeSession?.name == session.name {
-                    label += ", live here"
-                }
-                label += ")"
-                return label
+    private func sessionAttachRow(_ session: TmuxSession) -> some View {
+        let attachCommand = TmuxSessionService.attachCommandFromEmbeddedTerminal(sessionName: session.name)
+        let isCopied = copiedAttachSessionName == session.name
+
+        return VStack(alignment: .leading, spacing: 4) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(session.name)
+                    .font(.caption.monospaced().weight(.semibold))
+                    .foregroundStyle(.primary)
+
+                Text(sessionSummary(for: session))
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
             }
-            .joined(separator: "  ·  ")
+
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(attachCommand)
+                    .font(.caption.monospaced())
+                    .textSelection(.enabled)
+                    .foregroundStyle(.primary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                Button {
+                    copyAttachCommand(attachCommand, sessionName: session.name)
+                } label: {
+                    Label(isCopied ? "Copied" : "Copy", systemImage: isCopied ? "checkmark" : "doc.on.doc")
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.mini)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
+    private func sessionSummary(for session: TmuxSession) -> String {
+        var parts = ["\(session.windowCount)w"]
+        if session.isAttached {
+            parts.append("attached")
+        }
+        if case .tmux(let activeSession) = activeTerminal, activeSession.name == session.name {
+            parts.append("live here")
+        }
+        return "(\(parts.joined(separator: ", ")))"
     }
 
     private func commandLine(title: String, command: String) -> some View {
@@ -175,15 +256,24 @@ struct TerminalWorkspaceView: View {
 
     private var newSessionSheet: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("New tmux session")
+            Text("New terminal session")
                 .font(.title3.bold())
 
-            Text("Opens a fresh session in Nucleus. Existing sessions can be attached from Terminal.app using the command above.")
+            Picker("Session type", selection: $newTerminalKind) {
+                ForEach(NewTerminalKind.allCases) { kind in
+                    Text(kind.title).tag(kind)
+                }
+            }
+            .pickerStyle(.segmented)
+
+            Text(newTerminalKind.subtitle)
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
-            TextField("Session name", text: $newSessionName)
-                .textFieldStyle(.roundedBorder)
+            if newTerminalKind == .tmux {
+                TextField("Session name", text: $newSessionName)
+                    .textFieldStyle(.roundedBorder)
+            }
 
             if let terminalErrorMessage {
                 Text(terminalErrorMessage)
@@ -200,7 +290,7 @@ struct TerminalWorkspaceView: View {
                 Spacer()
 
                 Button("Start Session") {
-                    startNewSession(named: newSessionName)
+                    startNewSession()
                 }
                 .buttonStyle(.borderedProminent)
                 .keyboardShortcut(.defaultAction)
@@ -208,77 +298,95 @@ struct TerminalWorkspaceView: View {
             }
         }
         .padding(24)
-        .frame(minWidth: 380)
+        .frame(minWidth: 420)
     }
 
     @ViewBuilder
-    private func terminalLayer(tmuxPath: String) -> some View {
+    private var terminalLayer: some View {
+        let tmuxPath = browser.tmuxPath ?? TmuxSessionService.resolveTmuxPath() ?? "/opt/homebrew/bin/tmux"
+
         VStack(spacing: 0) {
             TmuxAttachTerminalView(
-                activeSessionName: activeSession?.name,
+                activeMode: activeTerminal?.embeddedMode,
                 tmuxPath: tmuxPath,
                 onDetachHotkey: {
-                    detachActiveSession()
+                    detachActiveTerminal()
                 },
                 onExit: { exitCode in
                     if isDetaching {
-                        self.activeSession = nil
+                        self.activeTerminal = nil
                         self.terminalErrorMessage = nil
                         return
                     }
-                    let code = TmuxSessionService.normalizedExitCode(exitCode) ?? -1
-                    if code != 0 {
-                        self.terminalErrorMessage =
-                            "tmux session failed (exit \(code)). Try a different session name."
+                    if case .tmux = activeTerminal {
+                        let code = TmuxSessionService.normalizedExitCode(exitCode) ?? -1
+                        if code != 0 {
+                            self.terminalErrorMessage =
+                                "tmux session failed (exit \(code)). Try a different session name."
+                        }
                     }
-                    self.activeSession = nil
+                    self.activeTerminal = nil
                     Task { await browser.refresh() }
                 }
             )
-            .frame(maxWidth: .infinity, maxHeight: activeSession == nil ? 0 : .infinity)
+            .frame(maxWidth: .infinity, maxHeight: activeTerminal == nil ? 0 : .infinity)
             .clipped()
-            .opacity(activeSession == nil ? 0 : 1)
-            .allowsHitTesting(activeSession != nil)
-            .accessibilityHidden(activeSession == nil)
+            .opacity(activeTerminal == nil ? 0 : 1)
+            .allowsHitTesting(activeTerminal != nil)
+            .accessibilityHidden(activeTerminal == nil)
         }
-        .allowsHitTesting(activeSession != nil)
+        .allowsHitTesting(activeTerminal != nil)
     }
 
-    private func detachActiveSession() {
-        detach(from: activeSession)
-    }
-
-    private func detach(from session: TmuxSession?) {
-        guard let session, !isDetaching else { return }
+    private func detachActiveTerminal() {
+        guard let terminal = activeTerminal, !isDetaching else { return }
 
         Task {
             isDetaching = true
             defer { isDetaching = false }
 
-            guard let tmuxPath = browser.tmuxPath ?? TmuxSessionService.resolveTmuxPath() else {
-                terminalErrorMessage = "tmux path is unavailable."
-                activeSession = nil
-                return
-            }
+            switch terminal {
+            case .shell:
+                terminalErrorMessage = nil
+                self.activeTerminal = nil
+            case .tmux(let session):
+                guard let tmuxPath = browser.tmuxPath ?? TmuxSessionService.resolveTmuxPath() else {
+                    terminalErrorMessage = "tmux path is unavailable."
+                    self.activeTerminal = nil
+                    return
+                }
 
-            await TmuxSessionService.detachSession(sessionName: session.name, tmuxPath: tmuxPath)
-            terminalErrorMessage = nil
-            activeSession = nil
-            await browser.refresh()
+                await TmuxSessionService.detachSession(sessionName: session.name, tmuxPath: tmuxPath)
+                terminalErrorMessage = nil
+                self.activeTerminal = nil
+                await browser.refresh()
+            }
         }
     }
 
     private func prepareNewSessionSheet() {
         terminalErrorMessage = nil
+        newTerminalKind = .shell
         newSessionName = TmuxSessionService.suggestNewSessionName(
             existingSessionNames: browser.sessions.map(\.name)
         )
         showNewSessionSheet = true
     }
 
-    private func startNewSession(named rawName: String) {
-        let name = rawName.trimmingCharacters(in: .whitespacesAndNewlines)
+    private func startNewSession() {
         terminalErrorMessage = nil
+
+        switch newTerminalKind {
+        case .shell:
+            showNewSessionSheet = false
+            activeTerminal = .shell
+        case .tmux:
+            startNewTmuxSession(named: newSessionName)
+        }
+    }
+
+    private func startNewTmuxSession(named rawName: String) {
+        let name = rawName.trimmingCharacters(in: .whitespacesAndNewlines)
 
         if let validationError = TmuxSessionService.validateSessionName(name) {
             terminalErrorMessage = validationError
@@ -298,13 +406,27 @@ struct TerminalWorkspaceView: View {
             }
 
             showNewSessionSheet = false
-            activeSession = TmuxSession(
-                name: name,
-                windowCount: 1,
-                isAttached: false,
-                lastActivity: Date(),
-                preview: ""
+            activeTerminal = .tmux(
+                TmuxSession(
+                    name: name,
+                    windowCount: 1,
+                    isAttached: false,
+                    lastActivity: Date(),
+                    preview: ""
+                )
             )
+        }
+    }
+
+    private func copyAttachCommand(_ command: String, sessionName: String) {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(command, forType: .string)
+        copiedAttachSessionName = sessionName
+        Task {
+            try? await Task.sleep(for: .seconds(1.5))
+            if copiedAttachSessionName == sessionName {
+                copiedAttachSessionName = nil
+            }
         }
     }
 }

@@ -1,0 +1,21 @@
+{
+  "version": "0.10.9",
+  "summary": "Terminal attach commands, shell sessions, mail alerts in Terminal, and more reliable clipboard hotkey.",
+  "releaseNotes": {
+    "introduced": [
+      "Terminal workspace lists each active tmux session with a copy-paste attach command that unsets TMUX to avoid nested-session warnings",
+      "New Session can start a normal shell or a new tmux session"
+    ],
+    "changed": [
+      "Incoming mail alerts appear as the same modal overlay while you stay in Terminal instead of switching back to Dashboard",
+      "Terminal workspace no longer auto-returns to Dashboard after idle time"
+    ],
+    "fixed": [
+      "Global Shift-Command-V clipboard picker registers a Carbon hotkey so it works from Cursor and other apps",
+      "Menu bar Paste from Clipboard History context menu shortcut uses the correct lowercase key equivalent"
+    ],
+    "updated": [],
+    "removed": [],
+    "breaking": []
+  }
+}

@@ -2,8 +2,13 @@ import AppKit
 import SwiftTerm
 import SwiftUI
 
+enum EmbeddedTerminalMode: Equatable {
+    case shell
+    case tmuxSession(name: String)
+}
+
 struct TmuxAttachTerminalView: NSViewRepresentable {
-    let activeSessionName: String?
+    let activeMode: EmbeddedTerminalMode?
     let tmuxPath: String
     var onDetachHotkey: () -> Void
     var onExit: (Int32?) -> Void
@@ -20,7 +25,7 @@ struct TmuxAttachTerminalView: NSViewRepresentable {
     }
 
     func updateNSView(_ nsView: TerminalHostView, context: Context) {
-        context.coordinator.sync(activeSessionName: activeSessionName, tmuxPath: tmuxPath)
+        context.coordinator.sync(activeMode: activeMode, tmuxPath: tmuxPath)
     }
 
     static func dismantleNSView(_ nsView: TerminalHostView, coordinator: Coordinator) {
@@ -35,7 +40,7 @@ struct TmuxAttachTerminalView: NSViewRepresentable {
         weak var hostView: TerminalHostView?
         private var terminalView: LocalProcessTerminalView?
         private var keyMonitor: Any?
-        private var activeSessionName: String?
+        private var activeMode: EmbeddedTerminalMode?
         private var didReportExit = false
 
         init(tmuxPath: String, onDetachHotkey: @escaping () -> Void, onExit: @escaping (Int32?) -> Void) {
@@ -44,32 +49,33 @@ struct TmuxAttachTerminalView: NSViewRepresentable {
             self.onExit = onExit
         }
 
-        func sync(activeSessionName: String?, tmuxPath: String) {
+        func sync(activeMode: EmbeddedTerminalMode?, tmuxPath: String) {
             self.tmuxPath = tmuxPath
 
-            if activeSessionName == self.activeSessionName {
+            if activeMode == self.activeMode {
                 scheduleStartIfNeeded()
                 return
             }
 
-            if activeSessionName == nil {
-                clearTerminalView(graceful: true)
-                self.activeSessionName = nil
+            if activeMode == nil {
+                let terminateProcess = self.activeMode == .shell
+                clearTerminalView(graceful: !terminateProcess)
+                self.activeMode = nil
                 return
             }
 
-            if self.activeSessionName != nil {
+            if self.activeMode != nil {
                 clearTerminalView(graceful: true)
             }
 
-            self.activeSessionName = activeSessionName
+            self.activeMode = activeMode
             didReportExit = false
             scheduleStartIfNeeded()
         }
 
         func scheduleStartIfNeeded() {
             guard let hostView else { return }
-            guard let sessionName = activeSessionName else { return }
+            guard let activeMode else { return }
             guard terminalView == nil else {
                 resizeTerminalIfNeeded(in: hostView)
                 return
@@ -91,9 +97,16 @@ struct TmuxAttachTerminalView: NSViewRepresentable {
             hostView.addSubview(terminal)
             terminalView = terminal
 
-            let launch = TmuxSessionService.newSessionLaunchPlan(sessionName: sessionName, tmuxPath: tmuxPath)
+            let launch: (executable: String, args: [String])
+            switch activeMode {
+            case .shell:
+                launch = TmuxSessionService.shellLaunchPlan()
+            case .tmuxSession(let sessionName):
+                launch = TmuxSessionService.newSessionLaunchPlan(sessionName: sessionName, tmuxPath: tmuxPath)
+            }
+
             DispatchQueue.main.async {
-                guard self.activeSessionName == sessionName, self.terminalView === terminal else { return }
+                guard self.activeMode == activeMode, self.terminalView === terminal else { return }
                 terminal.startProcess(
                     executable: launch.executable,
                     args: launch.args,
@@ -106,7 +119,7 @@ struct TmuxAttachTerminalView: NSViewRepresentable {
         func finalTeardown() {
             stopKeyMonitor()
             clearTerminalView(graceful: false)
-            activeSessionName = nil
+            activeMode = nil
         }
 
         private func clearTerminalView(graceful: Bool) {

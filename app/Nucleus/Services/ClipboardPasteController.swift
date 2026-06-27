@@ -1,5 +1,6 @@
 import AppKit
 import ApplicationServices
+import Carbon.HIToolbox
 import ClipboardKit
 import NucleusKit
 import SwiftUI
@@ -16,8 +17,13 @@ final class ClipboardPasteController: NSObject {
     private var outsideClickMonitor: Any?
     private var eventTap: CFMachPort?
     private var eventTapRunLoopSource: CFRunLoopSource?
+    private var carbonHotKeyRef: EventHotKeyRef?
+    private var carbonEventHandlerRef: EventHandlerRef?
     private var previousFrontmostApp: NSRunningApplication?
     private var lastHotkeyHandledAt: TimeInterval = 0
+
+    private static let carbonHotKeySignature: UInt32 = 0x4E756350 // 'NucP'
+    private static let carbonHotKeyID: UInt32 = 1
 
     private override init() {
         super.init()
@@ -25,6 +31,7 @@ final class ClipboardPasteController: NSObject {
 
     func start() {
         installLocalKeyMonitorIfNeeded()
+        registerCarbonHotKeyIfNeeded()
 
         if eventTap == nil {
             _ = startEventTap()
@@ -39,12 +46,14 @@ final class ClipboardPasteController: NSObject {
 
     func refreshEventTapIfNeeded() {
         installLocalKeyMonitorIfNeeded()
+        registerCarbonHotKeyIfNeeded()
         stopEventTap()
         _ = startEventTap()
         installGlobalKeyMonitorIfNeeded()
     }
 
     func stop() {
+        unregisterCarbonHotKey()
         stopEventTap()
 
         if let globalMonitor {
@@ -64,7 +73,10 @@ final class ClipboardPasteController: NSObject {
             return
         }
 
-        guard let viewModel = AppViewModel.current else { return }
+        guard let viewModel = AppViewModel.current else {
+            NSLog("Nucleus: clipboard picker unavailable — AppViewModel not ready")
+            return
+        }
 
         previousFrontmostApp = NSWorkspace.shared.frontmostApplication
         if previousFrontmostApp?.bundleIdentifier == Bundle.main.bundleIdentifier {
@@ -239,6 +251,85 @@ final class ClipboardPasteController: NSObject {
         guard now - lastHotkeyHandledAt > 0.25 else { return }
         lastHotkeyHandledAt = now
         presentPicker()
+    }
+
+    private func registerCarbonHotKeyIfNeeded() {
+        guard carbonHotKeyRef == nil else { return }
+
+        var eventSpec = EventTypeSpec(
+            eventClass: UInt32(kEventClassKeyboard),
+            eventKind: UInt32(kEventHotKeyPressed)
+        )
+        let userInfo = Unmanaged.passUnretained(self).toOpaque()
+
+        let installStatus = InstallEventHandler(
+            GetApplicationEventTarget(),
+            Self.carbonHotKeyHandler,
+            1,
+            &eventSpec,
+            userInfo,
+            &carbonEventHandlerRef
+        )
+        guard installStatus == noErr else {
+            NSLog("Nucleus: failed to install clipboard hotkey handler (%d)", installStatus)
+            return
+        }
+
+        let hotKeyID = EventHotKeyID(
+            signature: OSType(Self.carbonHotKeySignature),
+            id: Self.carbonHotKeyID
+        )
+        let registerStatus = RegisterEventHotKey(
+            UInt32(kVK_ANSI_V),
+            UInt32(cmdKey | shiftKey),
+            hotKeyID,
+            GetApplicationEventTarget(),
+            0,
+            &carbonHotKeyRef
+        )
+        guard registerStatus == noErr else {
+            NSLog("Nucleus: failed to register clipboard hotkey (%d)", registerStatus)
+            unregisterCarbonHotKey()
+            return
+        }
+    }
+
+    private func unregisterCarbonHotKey() {
+        if let carbonHotKeyRef {
+            UnregisterEventHotKey(carbonHotKeyRef)
+            self.carbonHotKeyRef = nil
+        }
+        if let carbonEventHandlerRef {
+            RemoveEventHandler(carbonEventHandlerRef)
+            self.carbonEventHandlerRef = nil
+        }
+    }
+
+    private static let carbonHotKeyHandler: EventHandlerUPP = { _, event, userInfo -> OSStatus in
+        guard let event, let userInfo else { return OSStatus(eventNotHandledErr) }
+
+        var hotKeyID = EventHotKeyID()
+        let status = GetEventParameter(
+            event,
+            EventParamName(kEventParamDirectObject),
+            EventParamType(typeEventHotKeyID),
+            nil,
+            MemoryLayout<EventHotKeyID>.size,
+            nil,
+            &hotKeyID
+        )
+        guard status == noErr else { return status }
+        guard hotKeyID.signature == OSType(carbonHotKeySignature), hotKeyID.id == carbonHotKeyID else {
+            return noErr
+        }
+
+        let controller = Unmanaged<ClipboardPasteController>.fromOpaque(userInfo).takeUnretainedValue()
+        DispatchQueue.main.async {
+            Task { @MainActor in
+                controller.handleHotkey()
+            }
+        }
+        return noErr
     }
 
     @discardableResult

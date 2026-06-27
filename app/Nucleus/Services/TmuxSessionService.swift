@@ -181,12 +181,28 @@ enum TmuxSessionService {
         "tmux -S \(defaultSocketPath()) attach -t \(sessionName)"
     }
 
+    /// Use from an embedded Nucleus terminal (already inside tmux) to avoid nested-session warnings.
+    static func attachCommandFromEmbeddedTerminal(sessionName: String) -> String {
+        "env -u TMUX -u TMUX_PANE tmux -S \(defaultSocketPath()) attach -t \(sessionName)"
+    }
+
     static func detachCommand() -> String {
         "tmux -S \(defaultSocketPath()) detach-client"
     }
 
     static func newSessionCommand(sessionName: String = "<name>") -> String {
         "tmux -S \(defaultSocketPath()) new-session -s \(sessionName)"
+    }
+
+    static func shellLaunchPlan() -> (executable: String, args: [String]) {
+        let shell = attachEnvironment()["SHELL"] ?? "/bin/zsh"
+        var args = ["-i"]
+        for (key, value) in attachEnvironment().sorted(by: { $0.key < $1.key }) {
+            args.append("\(key)=\(value)")
+        }
+        args.append(shell)
+        args.append("-l")
+        return ("/usr/bin/env", args)
     }
 
     static func listSessions(includePreviews: Bool = false) async -> Result<[TmuxSession], TmuxSessionError> {

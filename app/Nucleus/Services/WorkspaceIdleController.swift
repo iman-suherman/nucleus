@@ -48,7 +48,8 @@ final class WorkspaceIdleController {
         guard let viewModel, !viewModel.isStartingUp else { return }
         guard case .workspace(let pane) = viewModel.sidebarSelection,
               pane != .dashboard,
-              pane != .notes else { return }
+              pane != .notes,
+              pane != .terminal else { return }
 
         if pane == .media, MediaController.shared.nowPlaying.isPlaying {
             scheduleIdleReturn()

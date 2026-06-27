@@ -6,6 +6,7 @@ final class MenuBarStatusItemController: NSObject {
     static let shared = MenuBarStatusItemController()
 
     private var statusItem: NSStatusItem?
+    private lazy var contextMenu: NSMenu = makeContextMenu()
     private let popoverSession = MenuBarPopoverSession()
     private weak var controller: MenuBarController?
 
@@ -66,21 +67,27 @@ final class MenuBarStatusItemController: NSObject {
         return false
     }
 
-    private func showContextMenu(for button: NSStatusBarButton) {
+    private func makeContextMenu() -> NSMenu {
         let menu = NSMenu()
         let pasteItem = NSMenuItem(
             title: "Paste from Clipboard History",
             action: #selector(pasteFromClipboardHistory),
-            keyEquivalent: "V"
+            keyEquivalent: "v"
         )
         pasteItem.keyEquivalentModifierMask = [.command, .shift]
         pasteItem.target = self
         menu.addItem(pasteItem)
-        menu.popUp(positioning: nil, at: NSPoint(x: 0, y: button.bounds.height + 4), in: button)
+        return menu
+    }
+
+    private func showContextMenu(for button: NSStatusBarButton) {
+        contextMenu.popUp(positioning: nil, at: NSPoint(x: 0, y: button.bounds.height + 4), in: button)
     }
 
     @objc private func pasteFromClipboardHistory() {
-        ClipboardPasteController.shared.presentPicker()
+        Task { @MainActor in
+            ClipboardPasteController.shared.presentPicker()
+        }
     }
 
     private func togglePopover(anchoredTo anchorView: NSView) {
