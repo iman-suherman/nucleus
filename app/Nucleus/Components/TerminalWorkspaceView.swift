@@ -4,12 +4,17 @@ import SwiftUI
 
 private enum ActiveTerminal: Equatable {
     case shell
+    case attaching(TmuxSession)
     case tmux(TmuxSession)
 
     var embeddedMode: EmbeddedTerminalMode {
         switch self {
         case .shell:
             return .shell
+        case .attaching(let session):
+            return .shellRunCommand(
+                TmuxSessionService.attachCommandFromEmbeddedTerminal(sessionName: session.name)
+            )
         case .tmux(let session):
             return .tmuxSession(name: session.name)
         }
@@ -19,7 +24,16 @@ private enum ActiveTerminal: Equatable {
         switch self {
         case .shell:
             return "shell"
-        case .tmux(let session):
+        case .attaching(let session), .tmux(let session):
+            return session.displayName
+        }
+    }
+
+    var tmuxSessionName: String? {
+        switch self {
+        case .shell:
+            return nil
+        case .attaching(let session), .tmux(let session):
             return session.name
         }
     }
@@ -114,11 +128,11 @@ struct TerminalWorkspaceView: View {
         }
         .onDisappear {
             browser.stopAutoRefresh()
-            if case .tmux(let session) = activeTerminal {
+            if let sessionName = activeTerminal?.tmuxSessionName {
                 let tmuxPath = browser.tmuxPath ?? TmuxSessionService.resolveTmuxPath()
                 if let tmuxPath {
                     Task {
-                        await TmuxSessionService.detachSession(sessionName: session.name, tmuxPath: tmuxPath)
+                        await TmuxSessionService.detachSession(sessionName: sessionName, tmuxPath: tmuxPath)
                     }
                 }
             }
@@ -199,14 +213,15 @@ struct TerminalWorkspaceView: View {
     private func sessionAttachRow(_ session: TmuxSession) -> some View {
         let attachCommand = TmuxSessionService.attachCommandFromEmbeddedTerminal(sessionName: session.name)
         let isCopied = copiedAttachSessionName == session.name
+        let isLiveHere = activeTerminal?.tmuxSessionName == session.name
 
         return VStack(alignment: .leading, spacing: 4) {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Text(session.name)
+                Text(session.displayName)
                     .font(.caption.monospaced().weight(.semibold))
                     .foregroundStyle(.primary)
 
-                Text(sessionSummary(for: session))
+                Text(sessionSummary(for: session, isLiveHere: isLiveHere))
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
@@ -217,6 +232,15 @@ struct TerminalWorkspaceView: View {
                     .textSelection(.enabled)
                     .foregroundStyle(.primary)
                     .frame(maxWidth: .infinity, alignment: .leading)
+
+                Button {
+                    attachToSession(session)
+                } label: {
+                    Label("Attach", systemImage: "arrow.right.circle")
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.mini)
+                .disabled(isPreparingSession)
 
                 Button {
                     copyAttachCommand(attachCommand, sessionName: session.name)
@@ -230,12 +254,12 @@ struct TerminalWorkspaceView: View {
         .padding(.vertical, 4)
     }
 
-    private func sessionSummary(for session: TmuxSession) -> String {
+    private func sessionSummary(for session: TmuxSession, isLiveHere: Bool) -> String {
         var parts = ["\(session.windowCount)w"]
         if session.isAttached {
             parts.append("attached")
         }
-        if case .tmux(let activeSession) = activeTerminal, activeSession.name == session.name {
+        if isLiveHere {
             parts.append("live here")
         }
         return "(\(parts.joined(separator: ", ")))"
@@ -324,6 +348,12 @@ struct TerminalWorkspaceView: View {
                             self.terminalErrorMessage =
                                 "tmux session failed (exit \(code)). Try a different session name."
                         }
+                    } else if case .attaching = activeTerminal {
+                        let code = TmuxSessionService.normalizedExitCode(exitCode) ?? -1
+                        if code != 0 {
+                            self.terminalErrorMessage =
+                                "tmux attach failed (exit \(code)). Check that the session is still running."
+                        }
                     }
                     self.activeTerminal = nil
                     Task { await browser.refresh() }
@@ -346,7 +376,7 @@ struct TerminalWorkspaceView: View {
             defer { isDetaching = false }
 
             switch terminal {
-            case .shell:
+            case .shell, .attaching:
                 terminalErrorMessage = nil
                 self.activeTerminal = nil
             case .tmux(let session):
@@ -416,6 +446,11 @@ struct TerminalWorkspaceView: View {
                 )
             )
         }
+    }
+
+    private func attachToSession(_ session: TmuxSession) {
+        terminalErrorMessage = nil
+        activeTerminal = .attaching(session)
     }
 
     private func copyAttachCommand(_ command: String, sessionName: String) {

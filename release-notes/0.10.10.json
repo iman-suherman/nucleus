@@ -1,0 +1,17 @@
+{
+  "version": "0.10.10",
+  "summary": "Terminal session labels, one-click attach, and home-directory startup.",
+  "releaseNotes": {
+    "introduced": [
+      "Attach button on each tmux session row opens a shell and runs the nested-safe attach command immediately"
+    ],
+    "changed": [
+      "Active tmux sessions show short project names (for example hugeshop-ci) instead of full timestamped session IDs",
+      "Shell and new tmux sessions always start in the user home directory"
+    ],
+    "fixed": [],
+    "updated": [],
+    "removed": [],
+    "breaking": []
+  }
+}

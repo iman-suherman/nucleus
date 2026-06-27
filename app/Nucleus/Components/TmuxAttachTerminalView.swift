@@ -4,6 +4,7 @@ import SwiftUI
 
 enum EmbeddedTerminalMode: Equatable {
     case shell
+    case shellRunCommand(String)
     case tmuxSession(name: String)
 }
 
@@ -58,7 +59,12 @@ struct TmuxAttachTerminalView: NSViewRepresentable {
             }
 
             if activeMode == nil {
-                let terminateProcess = self.activeMode == .shell
+                let terminateProcess: Bool = switch self.activeMode {
+                case .shell, .shellRunCommand:
+                    true
+                case .tmuxSession, nil:
+                    false
+                }
                 clearTerminalView(graceful: !terminateProcess)
                 self.activeMode = nil
                 return
@@ -101,6 +107,8 @@ struct TmuxAttachTerminalView: NSViewRepresentable {
             switch activeMode {
             case .shell:
                 launch = TmuxSessionService.shellLaunchPlan()
+            case .shellRunCommand(let command):
+                launch = TmuxSessionService.shellCommandLaunchPlan(command)
             case .tmuxSession(let sessionName):
                 launch = TmuxSessionService.newSessionLaunchPlan(sessionName: sessionName, tmuxPath: tmuxPath)
             }
@@ -111,7 +119,8 @@ struct TmuxAttachTerminalView: NSViewRepresentable {
                     executable: launch.executable,
                     args: launch.args,
                     environment: TmuxSessionService.attachEnvironmentArray(),
-                    execName: nil
+                    execName: nil,
+                    currentDirectory: TmuxSessionService.defaultHomeDirectory()
                 )
             }
         }

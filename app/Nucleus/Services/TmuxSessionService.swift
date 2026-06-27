@@ -8,6 +8,10 @@ struct TmuxSession: Identifiable, Hashable, Sendable {
     var preview: String
 
     var id: String { name }
+
+    var displayName: String {
+        TmuxSessionService.displayName(for: name)
+    }
 }
 
 enum TmuxSessionError: LocalizedError {
@@ -56,7 +60,11 @@ enum TmuxSessionService {
     static func newSessionLaunchPlan(sessionName: String, tmuxPath: String) -> (executable: String, args: [String]) {
         launchPlan(
             tmuxPath: tmuxPath,
-            tmuxArguments: ["-S", defaultSocketPath(), "new-session", "-s", sessionName]
+            tmuxArguments: [
+                "-S", defaultSocketPath(),
+                "new-session", "-s", sessionName,
+                "-c", defaultHomeDirectory(),
+            ]
         )
     }
 
@@ -133,6 +141,10 @@ enum TmuxSessionService {
         attachEnvironment().map { "\($0.key)=\($0.value)" }
     }
 
+    static func defaultHomeDirectory() -> String {
+        attachEnvironment()["HOME"] ?? NSHomeDirectory()
+    }
+
     private static let attachEnvironmentKeys = [
         "HOME", "USER", "LOGNAME", "SHELL", "PATH", "TERM", "LANG", "LC_ALL", "LC_CTYPE",
         "TMPDIR", "SSH_AUTH_SOCK", "XDG_RUNTIME_DIR",
@@ -186,22 +198,39 @@ enum TmuxSessionService {
         "env -u TMUX -u TMUX_PANE tmux -S \(defaultSocketPath()) attach -t \(sessionName)"
     }
 
+    /// Short label for tmux sessions named `{project}_{major}_{minor}_{timestamp}`.
+    static func displayName(for sessionName: String) -> String {
+        if let range = sessionName.range(of: #"_\d+_\d+_\d+$"#, options: .regularExpression) {
+            return String(sessionName[..<range.lowerBound])
+        }
+        return sessionName
+    }
+
     static func detachCommand() -> String {
         "tmux -S \(defaultSocketPath()) detach-client"
     }
 
     static func newSessionCommand(sessionName: String = "<name>") -> String {
-        "tmux -S \(defaultSocketPath()) new-session -s \(sessionName)"
+        "tmux -S \(defaultSocketPath()) new-session -s \(sessionName) -c ~"
     }
 
     static func shellLaunchPlan() -> (executable: String, args: [String]) {
+        shellCommandLaunchPlan(nil)
+    }
+
+    static func shellCommandLaunchPlan(_ command: String?) -> (executable: String, args: [String]) {
         let shell = attachEnvironment()["SHELL"] ?? "/bin/zsh"
         var args = ["-i"]
         for (key, value) in attachEnvironment().sorted(by: { $0.key < $1.key }) {
             args.append("\(key)=\(value)")
         }
         args.append(shell)
-        args.append("-l")
+        if let command, !command.isEmpty {
+            args.append("-lc")
+            args.append(command)
+        } else {
+            args.append("-l")
+        }
         return ("/usr/bin/env", args)
     }
 
