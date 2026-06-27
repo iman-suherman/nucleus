@@ -1,13 +1,15 @@
 {
-  "version": "0.10.10",
-  "summary": "Terminal session labels, one-click attach, and home-directory startup.",
+  "version": "0.10.11",
+  "summary": "Breaking news top banner, tmux attach short names, and session destroy.",
   "releaseNotes": {
     "introduced": [
-      "Attach button on each tmux session row opens a shell and runs the nested-safe attach command immediately"
+      "Destroy button on each tmux session row attaches, sends exit, and closes the session",
+      "Breaking news alerts appear as a macOS-style top banner in every workspace section"
     ],
     "changed": [
-      "Active tmux sessions show short project names (for example hugeshop-ci) instead of full timestamped session IDs",
-      "Shell and new tmux sessions always start in the user home directory"
+      "Breaking news no longer blocks the full screen — slides in from the top and auto-dismisses after 20 seconds",
+      "tmux attach and copy commands use the short session title (for example hugeshop-ci) instead of the full timestamped name",
+      "News feed keeps running outside Dashboard so breaking news can appear from any workspace"
     ],
     "fixed": [],
     "updated": [],
