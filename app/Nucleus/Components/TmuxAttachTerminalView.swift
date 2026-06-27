@@ -5,10 +5,16 @@ import SwiftUI
 struct TmuxAttachTerminalView: NSViewRepresentable {
     let sessionName: String
     let tmuxPath: String
+    var onDetachHotkey: () -> Void
     var onExit: (Int32?) -> Void
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(sessionName: sessionName, tmuxPath: tmuxPath, onExit: onExit)
+        Coordinator(
+            sessionName: sessionName,
+            tmuxPath: tmuxPath,
+            onDetachHotkey: onDetachHotkey,
+            onExit: onExit
+        )
     }
 
     func makeNSView(context: Context) -> TerminalHostView {
@@ -23,22 +29,30 @@ struct TmuxAttachTerminalView: NSViewRepresentable {
     }
 
     static func dismantleNSView(_ nsView: TerminalHostView, coordinator: Coordinator) {
-        coordinator.terminate()
+        coordinator.tearDown()
     }
 
     final class Coordinator: NSObject {
         let sessionName: String
         let tmuxPath: String
+        let onDetachHotkey: () -> Void
         let onExit: (Int32?) -> Void
 
         weak var hostView: TerminalHostView?
         private var terminalView: LocalProcessTerminalView?
+        private var keyMonitor: Any?
         private var hasStarted = false
         private var didReportExit = false
 
-        init(sessionName: String, tmuxPath: String, onExit: @escaping (Int32?) -> Void) {
+        init(
+            sessionName: String,
+            tmuxPath: String,
+            onDetachHotkey: @escaping () -> Void,
+            onExit: @escaping (Int32?) -> Void
+        ) {
             self.sessionName = sessionName
             self.tmuxPath = tmuxPath
+            self.onDetachHotkey = onDetachHotkey
             self.onExit = onExit
         }
 
@@ -51,6 +65,7 @@ struct TmuxAttachTerminalView: NSViewRepresentable {
             guard hostView.bounds.width > 20, hostView.bounds.height > 20 else { return }
 
             hasStarted = true
+            startKeyMonitor()
 
             let terminal = LocalProcessTerminalView(frame: hostView.bounds)
             terminal.autoresizingMask = [.width, .height]
@@ -73,11 +88,40 @@ struct TmuxAttachTerminalView: NSViewRepresentable {
             )
         }
 
-        func terminate() {
+        func tearDown() {
+            stopKeyMonitor()
             terminalView?.terminate()
             terminalView?.removeFromSuperview()
             terminalView = nil
             hasStarted = false
+        }
+
+        private func startKeyMonitor() {
+            guard keyMonitor == nil else { return }
+            keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+                guard let self else { return event }
+                if Self.matchesDetachHotkey(event) {
+                    self.onDetachHotkey()
+                    return nil
+                }
+                return event
+            }
+        }
+
+        private func stopKeyMonitor() {
+            if let keyMonitor {
+                NSEvent.removeMonitor(keyMonitor)
+                self.keyMonitor = nil
+            }
+        }
+
+        private static func matchesDetachHotkey(_ event: NSEvent) -> Bool {
+            if event.keyCode == 111 {
+                return true
+            }
+            let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+            guard flags.contains(.command), flags.contains(.shift) else { return false }
+            return event.charactersIgnoringModifiers?.lowercased() == "d"
         }
 
         private func resizeTerminalIfNeeded(in hostView: TerminalHostView) {

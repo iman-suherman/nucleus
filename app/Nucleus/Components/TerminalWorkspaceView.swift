@@ -7,6 +7,7 @@ struct TerminalWorkspaceView: View {
     @State private var selectedSessionName: String?
     @State private var attachErrorMessage: String?
     @State private var isPreparingAttach = false
+    @State private var isDetaching = false
 
     var body: some View {
         HStack(spacing: 0) {
@@ -24,6 +25,14 @@ struct TerminalWorkspaceView: View {
         }
         .onDisappear {
             browser.stopAutoRefresh()
+            if let session = attachedSession {
+                let tmuxPath = browser.tmuxPath ?? TmuxSessionService.resolveTmuxPath()
+                if let tmuxPath {
+                    Task {
+                        await TmuxSessionService.detachSession(sessionName: session.name, tmuxPath: tmuxPath)
+                    }
+                }
+            }
             attachedSession = nil
         }
     }
@@ -37,6 +46,9 @@ struct TerminalWorkspaceView: View {
                     Text("Select a session to preview, then take over its display.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                    Text("Detach with the button, F12, or ⌘⇧D — tmux prefix (Ctrl+B) may not work here.")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
                 }
                 Spacer()
                 Button {
@@ -93,9 +105,10 @@ struct TerminalWorkspaceView: View {
 
                     if attachedSession?.name == selected.name {
                         Button("Release") {
-                            attachedSession = nil
+                            detach(from: selected)
                         }
                         .buttonStyle(.bordered)
+                        .disabled(isDetaching)
                     }
                 }
                 .padding(.horizontal, 20)
@@ -119,14 +132,22 @@ struct TerminalWorkspaceView: View {
                     }
                     Spacer()
                     Button("Detach") {
-                        self.attachedSession = nil
-                        self.attachErrorMessage = nil
+                        detach(from: attachedSession)
                     }
                     .buttonStyle(.bordered)
+                    .disabled(isDetaching)
+                    .keyboardShortcut("d", modifiers: [.command, .shift])
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 10)
                 .background(.bar)
+
+                Text("Use Detach, F12, or ⌘⇧D instead of tmux prefix + d.")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 6)
 
                 if let attachErrorMessage {
                     Text(attachErrorMessage)
@@ -141,7 +162,15 @@ struct TerminalWorkspaceView: View {
                 TmuxAttachTerminalView(
                     sessionName: attachedSession.name,
                     tmuxPath: tmuxPath,
+                    onDetachHotkey: {
+                        detach(from: attachedSession)
+                    },
                     onExit: { exitCode in
+                        if isDetaching {
+                            self.attachedSession = nil
+                            self.attachErrorMessage = nil
+                            return
+                        }
                         let code = TmuxSessionService.normalizedExitCode(exitCode) ?? -1
                         if code != 0 {
                             self.attachErrorMessage =
@@ -210,6 +239,27 @@ struct TerminalWorkspaceView: View {
             }
         }
         .padding(20)
+    }
+
+    private func detach(from session: TmuxSession?) {
+        guard let session, !isDetaching else { return }
+
+        Task {
+            isDetaching = true
+            defer { isDetaching = false }
+
+            guard let tmuxPath = browser.tmuxPath ?? TmuxSessionService.resolveTmuxPath() else {
+                attachErrorMessage = "tmux path is unavailable."
+                attachedSession = nil
+                return
+            }
+
+            await TmuxSessionService.detachSession(sessionName: session.name, tmuxPath: tmuxPath)
+            try? await Task.sleep(for: .milliseconds(150))
+            attachErrorMessage = nil
+            attachedSession = nil
+            await browser.refresh()
+        }
     }
 
     private func attach(to session: TmuxSession) {

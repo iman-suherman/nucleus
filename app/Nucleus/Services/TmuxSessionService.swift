@@ -53,6 +53,14 @@ enum TmuxSessionService {
         )
     }
 
+    /// Detach Nucleus from a session without relying on tmux prefix keys (Ctrl+B often fails in embedded terminals).
+    static func detachSession(sessionName: String, tmuxPath: String) async {
+        _ = try? await run(
+            executable: tmuxPath,
+            arguments: ["-S", defaultSocketPath(), "detach-client", "-s", sessionName]
+        )
+    }
+
     /// Environment for embedded terminal attach — full GUI env breaks tmux attach (exit 1).
     static func attachEnvironmentArray() -> [String] {
         attachEnvironment().map { "\($0.key)=\($0.value)" }

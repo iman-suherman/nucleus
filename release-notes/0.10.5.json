@@ -1,0 +1,15 @@
+{
+  "version": "0.10.5",
+  "summary": "Detach tmux sessions from Nucleus without tmux prefix keys.",
+  "releaseNotes": {
+    "introduced": [],
+    "changed": [
+      "Terminal Detach and Release run tmux detach-client so sessions stay running in the background",
+      "F12 and ⌘⇧D detach from an attached tmux session when the embedded terminal has focus"
+    ],
+    "fixed": [],
+    "updated": [],
+    "removed": [],
+    "breaking": []
+  }
+}
