@@ -10,6 +10,85 @@ INFO_PLIST="$IOS_SRC/Info.plist"
 PBXPROJ="$IOS_APP/NucleusIOS.xcodeproj/project.pbxproj"
 PROJECT_YML="$IOS_APP/project.yml"
 
+HAS_RG=0
+if command -v rg >/dev/null 2>&1; then
+  HAS_RG=1
+fi
+
+file_contains() {
+  local pattern="$1"
+  local file="$2"
+  if [[ "$HAS_RG" -eq 1 ]]; then
+    rg -q "$pattern" "$file"
+  else
+    grep -qE "$pattern" "$file"
+  fi
+}
+
+text_matches_icase() {
+  local text="$1"
+  local pattern="$2"
+  if [[ "$HAS_RG" -eq 1 ]]; then
+    echo "$text" | rg -qi "$pattern"
+  else
+    echo "$text" | grep -Eiq "$pattern"
+  fi
+}
+
+search_weather_hits() {
+  local pattern='WeatherKit|Apple Weather|com\.apple\.developer\.weatherkit|WeatherService'
+  if [[ "$HAS_RG" -eq 1 ]]; then
+    rg -i "$pattern" \
+      "$IOS_APP" "$ROOT/nucleus-apple/Packages" \
+      --glob '!{.build,DerivedData,node_modules,build}/**' \
+      --glob '!**/dSYMs/**' \
+      --glob '!app-store-connect/**' 2>/dev/null || true
+  else
+    grep -RInE "$pattern" \
+      "$IOS_APP" "$ROOT/nucleus-apple/Packages" \
+      --exclude-dir=.build --exclude-dir=DerivedData --exclude-dir=node_modules \
+      --exclude-dir=build --exclude-dir=dSYMs --exclude-dir=app-store-connect 2>/dev/null || true
+  fi
+}
+
+search_trademark_hits() {
+  local pattern='Apple ID|Apple Weather|WeatherKit|\biCloud\b|\bmacOS\b|\biOS\b|iPadOS|\bMac\b|\biPhone\b|\biPad\b|Siri|Apple Intelligence'
+  local exclude='iCloudSync|refreshICloud|ICloudSync|ICloudAccount|CloudKit|import |#if|ForEach|normalizedForIOS|iCloudKeychain|UIImage|UIApplication|UIColor|UISupported|UIInterface|WKWeb|systemName: "icloud|checkmark\.icloud|icloud\.fill|icloud\.slash|Label\("Cloud sync"'
+  if [[ "$HAS_RG" -eq 1 ]]; then
+    rg -i "$pattern" \
+      "$IOS_SRC" "$ROOT/nucleus-apple/Packages/NucleusUI/Sources" \
+      --glob '*.swift' \
+      --glob '!*Tests*' 2>/dev/null \
+      | rg -v "$exclude" \
+      || true
+  else
+    grep -RInE "$pattern" \
+      "$IOS_SRC" "$ROOT/nucleus-apple/Packages/NucleusUI/Sources" \
+      --include='*.swift' \
+      --exclude='*Tests*' 2>/dev/null \
+      | grep -Ev "$exclude" \
+      || true
+  fi
+}
+
+read_project_version() {
+  if [[ "$HAS_RG" -eq 1 ]]; then
+    rg 'CURRENT_PROJECT_VERSION:' "$PROJECT_YML" | head -1 | awk '{print $2}'
+  else
+    grep 'CURRENT_PROJECT_VERSION:' "$PROJECT_YML" | head -1 | awk '{print $2}'
+  fi
+}
+
+search_payload_weather() {
+  local dir="$1"
+  local pattern='WeatherKit|com\.apple\.developer\.weatherkit|WeatherService'
+  if [[ "$HAS_RG" -eq 1 ]]; then
+    rg -ri "$pattern" "$dir" 2>/dev/null
+  else
+    grep -RInE "$pattern" "$dir" 2>/dev/null
+  fi
+}
+
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -36,10 +115,7 @@ echo "=== Phase 1 — Project cleanliness ==="
 echo
 
 echo "1. WeatherKit / Apple Weather references (Swift + plists + Xcode project)"
-weather_hits=$(rg -i "WeatherKit|Apple Weather|com\.apple\.developer\.weatherkit|WeatherService" \
-  "$IOS_APP" "$ROOT/nucleus-apple/Packages" \
-  --glob '!{.build,DerivedData,node_modules}/**' \
-  --glob '!app-store-connect/**' 2>/dev/null || true)
+weather_hits=$(search_weather_hits)
 if [[ -n "$weather_hits" ]]; then
   echo "$weather_hits"
   fail "WeatherKit-related references remain in iOS source tree"
@@ -51,7 +127,7 @@ echo
 echo "2. Info.plist location usage"
 if plutil -extract NSLocationWhenInUseUsageDescription raw "$INFO_PLIST" 2>/dev/null; then
   loc_msg=$(plutil -extract NSLocationWhenInUseUsageDescription raw "$INFO_PLIST" 2>/dev/null)
-  if echo "$loc_msg" | rg -qi 'weather|forecast'; then
+  if text_matches_icase "$loc_msg" 'weather|forecast'; then
     fail "NSLocationWhenInUseUsageDescription still mentions weather: $loc_msg"
   else
     warn "NSLocationWhenInUseUsageDescription is present — confirm another feature needs location"
@@ -70,7 +146,7 @@ fi
 
 echo
 echo "4. Xcode project — linked frameworks"
-if rg -q 'WeatherKit\.framework' "$PBXPROJ" 2>/dev/null; then
+if file_contains 'WeatherKit\.framework' "$PBXPROJ"; then
   fail "WeatherKit.framework still linked in project.pbxproj"
 else
   pass "No WeatherKit.framework in Link Binary With Libraries"
@@ -79,7 +155,7 @@ fi
 echo
 echo "5. Build number (must be > 1 for resubmission)"
 build_plist=$(plutil -extract CFBundleVersion raw "$INFO_PLIST" 2>/dev/null || echo "0")
-build_yml=$(rg 'CURRENT_PROJECT_VERSION:' "$PROJECT_YML" | head -1 | awk '{print $2}')
+build_yml=$(read_project_version)
 if [[ "$build_plist" -lt 2 ]]; then
   fail "CFBundleVersion is $build_plist — increment to 2+ before upload"
 else
@@ -93,7 +169,7 @@ fi
 
 echo
 echo "6. Bundle identifier"
-if rg -q 'PRODUCT_BUNDLE_IDENTIFIER: net\.suherman\.nucleus' "$PROJECT_YML"; then
+if file_contains 'PRODUCT_BUNDLE_IDENTIFIER: net\.suherman\.nucleus' "$PROJECT_YML"; then
   pass "Bundle ID net.suherman.nucleus"
 else
   fail "Unexpected bundle identifier in project.yml"
@@ -103,13 +179,7 @@ echo
 echo "=== Phase 4/5 — User-visible trademark terms (screenshot OCR risk) ==="
 echo
 
-trademark_pattern='Apple ID|Apple Weather|WeatherKit|\biCloud\b|\bmacOS\b|\biOS\b|iPadOS|\bMac\b|\biPhone\b|\biPad\b|Siri|Apple Intelligence'
-trademark_hits=$(rg -i "$trademark_pattern" \
-  "$IOS_SRC" "$ROOT/nucleus-apple/Packages/NucleusUI/Sources" \
-  --glob '*.swift' \
-  --glob '!*Tests*' 2>/dev/null \
-  | rg -v 'iCloudSync|refreshICloud|ICloudSync|ICloudAccount|CloudKit|import |#if|ForEach|normalizedForIOS|iCloudKeychain|UIImage|UIApplication|UIColor|UISupported|UIInterface|WKWeb|systemName: "icloud|checkmark\.icloud|icloud\.fill|icloud\.slash|Label\("Cloud sync"' \
-  || true)
+trademark_hits=$(search_trademark_hits)
 if [[ -n "$trademark_hits" ]]; then
   echo "$trademark_hits"
   fail "Trademark terms in user-visible Swift strings (regenerate screenshots after fixing)"
@@ -134,7 +204,7 @@ inspect_app_entitlements() {
   echo "Inspecting entitlements: $app"
   local ents
   ents=$(codesign -d --entitlements :- "$app" 2>/dev/null || true)
-  if echo "$ents" | rg -qi 'weatherkit'; then
+  if text_matches_icase "$ents" 'weatherkit'; then
     fail "Signed $label contains com.apple.developer.weatherkit"
   else
     pass "Signed $label has no weatherkit entitlement"
@@ -156,7 +226,7 @@ if [[ -n "$IPA_PATH" ]]; then
   tmp_ipa=$(mktemp -d)
   trap 'rm -rf "$tmp_ipa"' EXIT
   unzip -q "$IPA_PATH" -d "$tmp_ipa"
-  if rg -ri "WeatherKit|com\.apple\.developer\.weatherkit|WeatherService" "$tmp_ipa/Payload" 2>/dev/null; then
+  if search_payload_weather "$tmp_ipa/Payload"; then
     fail "WeatherKit references found inside IPA Payload/"
   else
     pass "No WeatherKit references in IPA Payload/"

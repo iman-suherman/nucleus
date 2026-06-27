@@ -41,6 +41,16 @@ const DEPLOY_TARGETS = [
     ],
   },
   {
+    repo: "nucleus-ios-app",
+    label: "Nucleus iOS App",
+    trackGit: true,
+    note: "manual",
+    details: [
+      "Manual: Xcode archive → App Store Connect",
+      "Validate: npm run validate:ios-app-store",
+    ],
+  },
+  {
     repo: "nucleus-download",
     label: "nucleus-download.suherman.net",
     infraDeploy: true,

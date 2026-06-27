@@ -185,7 +185,7 @@ final class MobileAppViewModel: ObservableObject {
 
     func tabBadgeCount(for tab: MobileWorkspaceTab) -> Int {
         switch tab {
-        case .dashboard, .bills:
+        case .bills:
             return billsNearlyDueCount
         default:
             return 0
