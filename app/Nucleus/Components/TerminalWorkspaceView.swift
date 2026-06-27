@@ -5,6 +5,7 @@ import SwiftUI
 private enum ActiveTerminal: Equatable {
     case shell
     case attaching(TmuxSession)
+    case destroying(TmuxSession)
     case tmux(TmuxSession)
 
     var embeddedMode: EmbeddedTerminalMode {
@@ -14,6 +15,10 @@ private enum ActiveTerminal: Equatable {
         case .attaching(let session):
             return .shellRunCommand(
                 TmuxSessionService.attachCommandFromEmbeddedTerminal(sessionName: session.name)
+            )
+        case .destroying(let session):
+            return .shellRunCommand(
+                TmuxSessionService.destroyCommandFromEmbeddedTerminal(sessionName: session.name)
             )
         case .tmux(let session):
             return .tmuxSession(name: session.name)
@@ -26,6 +31,8 @@ private enum ActiveTerminal: Equatable {
             return "shell"
         case .attaching(let session), .tmux(let session):
             return session.displayName
+        case .destroying(let session):
+            return "destroying \(session.displayName)"
         }
     }
 
@@ -33,8 +40,17 @@ private enum ActiveTerminal: Equatable {
         switch self {
         case .shell:
             return nil
-        case .attaching(let session), .tmux(let session):
+        case .attaching(let session), .destroying(let session), .tmux(let session):
             return session.name
+        }
+    }
+
+    var skipsDetachOnDisappear: Bool {
+        switch self {
+        case .destroying:
+            return true
+        default:
+            return false
         }
     }
 }
@@ -128,7 +144,9 @@ struct TerminalWorkspaceView: View {
         }
         .onDisappear {
             browser.stopAutoRefresh()
-            if let sessionName = activeTerminal?.tmuxSessionName {
+            if let terminal = activeTerminal,
+               let sessionName = terminal.tmuxSessionName,
+               !terminal.skipsDetachOnDisappear {
                 let tmuxPath = browser.tmuxPath ?? TmuxSessionService.resolveTmuxPath()
                 if let tmuxPath {
                     Task {
@@ -249,6 +267,17 @@ struct TerminalWorkspaceView: View {
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.mini)
+
+                Button {
+                    destroySession(session)
+                } label: {
+                    Label("Destroy", systemImage: "trash")
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.mini)
+                .tint(.red)
+                .disabled(isPreparingSession || activeTerminal != nil)
+                .help("Attach, send exit, and close this tmux session")
             }
         }
         .padding(.vertical, 4)
@@ -354,6 +383,8 @@ struct TerminalWorkspaceView: View {
                             self.terminalErrorMessage =
                                 "tmux attach failed (exit \(code)). Check that the session is still running."
                         }
+                    } else if case .destroying = activeTerminal {
+                        self.terminalErrorMessage = nil
                     }
                     self.activeTerminal = nil
                     Task { await browser.refresh() }
@@ -376,7 +407,7 @@ struct TerminalWorkspaceView: View {
             defer { isDetaching = false }
 
             switch terminal {
-            case .shell, .attaching:
+            case .shell, .attaching, .destroying:
                 terminalErrorMessage = nil
                 self.activeTerminal = nil
             case .tmux(let session):
@@ -451,6 +482,11 @@ struct TerminalWorkspaceView: View {
     private func attachToSession(_ session: TmuxSession) {
         terminalErrorMessage = nil
         activeTerminal = .attaching(session)
+    }
+
+    private func destroySession(_ session: TmuxSession) {
+        terminalErrorMessage = nil
+        activeTerminal = .destroying(session)
     }
 
     private func copyAttachCommand(_ command: String, sessionName: String) {

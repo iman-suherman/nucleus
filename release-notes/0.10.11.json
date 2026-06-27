@@ -1,0 +1,19 @@
+{
+  "version": "0.10.11",
+  "summary": "Breaking news top banner, tmux attach short names, and session destroy.",
+  "releaseNotes": {
+    "introduced": [
+      "Destroy button on each tmux session row attaches, sends exit, and closes the session",
+      "Breaking news alerts appear as a macOS-style top banner in every workspace section"
+    ],
+    "changed": [
+      "Breaking news no longer blocks the full screen — slides in from the top and auto-dismisses after 20 seconds",
+      "tmux attach and copy commands use the short session title (for example hugeshop-ci) instead of the full timestamped name",
+      "News feed keeps running outside Dashboard so breaking news can appear from any workspace"
+    ],
+    "fixed": [],
+    "updated": [],
+    "removed": [],
+    "breaking": []
+  }
+}

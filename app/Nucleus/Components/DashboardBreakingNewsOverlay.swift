@@ -46,6 +46,7 @@ struct DashboardBreakingNewsOverlay: View {
     let onOpenLink: () -> Void
     let onDismiss: () -> Void
 
+    @State private var isVisible = false
     @State private var secondsRemaining = autoDismissSeconds
     @State private var autoDismissTask: Task<Void, Never>?
 
@@ -54,25 +55,35 @@ struct DashboardBreakingNewsOverlay: View {
     }
 
     var body: some View {
-        ZStack {
-            Rectangle()
-                .fill(.ultraThickMaterial)
-                .ignoresSafeArea()
+        Group {
+            if isVisible {
+                banner
+                    .transition(.move(edge: .top).combined(with: .opacity))
+            }
+        }
+        .onAppear(perform: presentBanner)
+        .onChange(of: alert.id) { _, _ in
+            presentBanner()
+        }
+        .onDisappear(perform: cancelAutoDismissCountdown)
+    }
 
-            Color.black.opacity(0.22)
-                .ignoresSafeArea()
-                .onTapGesture(perform: dismissFromUserAction)
-
-            VStack(alignment: .leading, spacing: 20) {
-                HStack(alignment: .top, spacing: 14) {
+    private var banner: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .top, spacing: 12) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(accentColor.opacity(0.16))
+                        .frame(width: 42, height: 42)
                     Image(systemName: "bolt.fill")
-                        .font(.system(size: 30))
+                        .font(.system(size: 20, weight: .semibold))
                         .foregroundStyle(accentColor)
-                        .symbolRenderingMode(.hierarchical)
+                }
 
-                    VStack(alignment: .leading, spacing: 6) {
-                        Label("Breaking news", systemImage: "newspaper.fill")
-                            .font(.headline.weight(.semibold))
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 8) {
+                        Text("Breaking news")
+                            .font(.subheadline.weight(.semibold))
                             .foregroundStyle(accentColor)
 
                         if !alert.headline.countryCode.isEmpty {
@@ -82,94 +93,112 @@ struct DashboardBreakingNewsOverlay: View {
                         }
                     }
 
-                    Spacer(minLength: 0)
+                    Text(alert.displayTitle)
+                        .font(.title3.bold())
+                        .foregroundStyle(.primary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .lineLimit(3)
+                }
 
-                    Text("\(secondsRemaining)")
-                        .font(.caption.weight(.semibold).monospacedDigit())
+                Spacer(minLength: 0)
+
+                Text("\(secondsRemaining)")
+                    .font(.caption.weight(.semibold).monospacedDigit())
+                    .foregroundStyle(.secondary)
+                    .frame(width: 28, height: 28)
+                    .background(Color.secondary.opacity(0.12), in: Circle())
+                    .accessibilityLabel("Auto-closing in \(secondsRemaining) seconds")
+
+                Button(action: dismissFromUserAction) {
+                    Image(systemName: "xmark")
+                        .font(.caption.weight(.bold))
                         .foregroundStyle(.secondary)
-                        .frame(width: 30, height: 30)
-                        .background(Color.secondary.opacity(0.14), in: Circle())
-                        .accessibilityLabel("Auto-closing in \(secondsRemaining) seconds")
+                        .frame(width: 24, height: 24)
+                        .background(Color.secondary.opacity(0.12), in: Circle())
+                }
+                .buttonStyle(.plain)
+                .help("Close")
+                .pointerCursor()
+            }
 
-                    Button(action: dismissFromUserAction) {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.title2)
-                            .symbolRenderingMode(.hierarchical)
-                            .foregroundStyle(.secondary)
+            Text(alert.enrichment.readerSummary)
+                .font(.body)
+                .foregroundStyle(.primary.opacity(0.92))
+                .fixedSize(horizontal: false, vertical: true)
+                .lineLimit(4)
+
+            Text(alert.enrichment.moodExplanation)
+                .font(.subheadline)
+                .foregroundStyle(accentColor.opacity(0.92))
+                .fixedSize(horizontal: false, vertical: true)
+                .lineLimit(2)
+
+            HStack(spacing: 10) {
+                if alert.headline.link != nil {
+                    Button(action: openLinkFromUserAction) {
+                        Label("Open story", systemImage: "arrow.up.right.square")
                     }
-                    .buttonStyle(.plain)
-                    .help("Dismiss")
+                    .buttonStyle(.borderedProminent)
                     .pointerCursor()
                 }
 
-                Text(alert.displayTitle)
-                    .font(.title.bold())
-                    .foregroundStyle(.primary)
-                    .fixedSize(horizontal: false, vertical: true)
+                Button(action: toggleSpeech) {
+                    Label(
+                        speechService.isSpeaking ? "Stop" : "Speak",
+                        systemImage: speechService.isSpeaking ? "stop.fill" : "speaker.wave.2.fill"
+                    )
+                }
+                .buttonStyle(.bordered)
+                .pointerCursor()
 
-                Text(alert.enrichment.readerSummary)
-                    .font(.title3)
-                    .foregroundStyle(.primary.opacity(0.92))
-                    .fixedSize(horizontal: false, vertical: true)
-
-                Text(alert.enrichment.moodExplanation)
-                    .font(.subheadline)
-                    .foregroundStyle(accentColor.opacity(0.92))
-                    .fixedSize(horizontal: false, vertical: true)
-
-                HStack(spacing: 10) {
-                    if alert.headline.link != nil {
-                        Button(action: openLinkFromUserAction) {
-                            Label("Open story", systemImage: "arrow.up.right.square")
-                                .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .keyboardShortcut(.defaultAction)
-                        .pointerCursor()
-                    }
-
-                    Button(action: toggleSpeech) {
-                        Label(
-                            speechService.isSpeaking ? "Stop" : "Speak",
-                            systemImage: speechService.isSpeaking ? "stop.fill" : "speaker.wave.2.fill"
-                        )
-                        .frame(maxWidth: .infinity)
-                    }
+                Button("Close", action: dismissFromUserAction)
                     .buttonStyle(.bordered)
                     .pointerCursor()
 
-                    Button("Close", action: dismissFromUserAction)
-                        .buttonStyle(.bordered)
-                        .pointerCursor()
+                Spacer(minLength: 0)
+            }
+        }
+        .padding(18)
+        .frame(maxWidth: 760, alignment: .leading)
+        .background {
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(.regularMaterial)
+                .overlay {
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .strokeBorder(
+                            LinearGradient(
+                                colors: [
+                                    Color.white.opacity(0.45),
+                                    Color.white.opacity(0.14),
+                                    accentColor.opacity(0.28),
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 1
+                        )
                 }
-            }
-            .padding(26)
-            .frame(width: 560)
-            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .strokeBorder(accentColor.opacity(0.45), lineWidth: 1.5)
-            }
-            .shadow(color: .black.opacity(0.28), radius: 28, y: 14)
-            .pointerCursor()
+                .shadow(color: .black.opacity(0.18), radius: 18, y: 10)
         }
-        .transition(.opacity.combined(with: .scale(scale: 0.98)))
-        .zIndex(125)
-        .onAppear(perform: startAutoDismissCountdown)
-        .onChange(of: alert.id) { _, _ in
-            startAutoDismissCountdown()
+    }
+
+    private func presentBanner() {
+        cancelAutoDismissCountdown()
+        secondsRemaining = Self.autoDismissSeconds
+        withAnimation(.spring(response: 0.48, dampingFraction: 0.86)) {
+            isVisible = true
         }
-        .onDisappear(perform: cancelAutoDismissCountdown)
+        startAutoDismissCountdown()
     }
 
     private func dismissFromUserAction() {
         cancelAutoDismissCountdown()
-        onDismiss()
+        dismissAnimated(then: onDismiss)
     }
 
     private func openLinkFromUserAction() {
         cancelAutoDismissCountdown()
-        onOpenLink()
+        dismissAnimated(then: onOpenLink)
     }
 
     private func toggleSpeech() {
@@ -181,9 +210,17 @@ struct DashboardBreakingNewsOverlay: View {
         }
     }
 
+    private func dismissAnimated(then action: @escaping () -> Void) {
+        withAnimation(.spring(response: 0.42, dampingFraction: 0.9)) {
+            isVisible = false
+        }
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 420_000_000)
+            action()
+        }
+    }
+
     private func startAutoDismissCountdown() {
-        cancelAutoDismissCountdown()
-        secondsRemaining = Self.autoDismissSeconds
         autoDismissTask = Task { @MainActor in
             while secondsRemaining > 0 {
                 try? await Task.sleep(nanoseconds: 1_000_000_000)
@@ -191,7 +228,7 @@ struct DashboardBreakingNewsOverlay: View {
                 secondsRemaining -= 1
             }
             guard !Task.isCancelled else { return }
-            onDismiss()
+            dismissAnimated(then: onDismiss)
         }
     }
 

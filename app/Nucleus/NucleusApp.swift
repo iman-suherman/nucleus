@@ -125,6 +125,10 @@ struct ContentView: View {
     @EnvironmentObject private var viewModel: AppViewModel
     @EnvironmentObject private var appSettings: AppSettings
     @ObservedObject private var mediaController = MediaController.shared
+    @ObservedObject private var newsFeedService = DashboardNewsFeedService.shared
+    @ObservedObject private var newsSpeechService = DashboardNewsSpeechService.shared
+    @ObservedObject private var weatherService = DashboardWeatherService.shared
+    @ObservedObject private var holidayService = DashboardPublicHolidayService.shared
 
     var body: some View {
         Group {
@@ -191,6 +195,25 @@ struct ContentView: View {
                 GmailUnreadPoller(accountID: account.id, accountEmail: account.email)
             }
         }
+        .overlay(alignment: .top) {
+            if appSettings.dashboardPreferences.newsFeedEnabled,
+               let alert = newsFeedService.breakingNewsAlert {
+                DashboardBreakingNewsOverlay(
+                    alert: alert,
+                    speechService: newsSpeechService,
+                    onOpenLink: {
+                        newsSpeechService.stop()
+                        newsFeedService.openBreakingNewsAlertLink()
+                    },
+                    onDismiss: {
+                        newsSpeechService.stop()
+                        newsFeedService.dismissBreakingNewsAlert()
+                    }
+                )
+                .padding(.horizontal, 16)
+                .padding(.top, 10)
+            }
+        }
         .background(
             WindowLayoutAccessor { window in
                 WindowLayoutController.shared.attach(to: window)
@@ -205,9 +228,35 @@ struct ContentView: View {
         }
         .onAppear {
             EmbeddedWebViewRegistry.syncVisibility(activePane: activeWorkspacePane(from: viewModel.sidebarSelection))
+            syncBreakingNewsFeed()
+        }
+        .onChange(of: appSettings.dashboardPreferences.newsFeedEnabled) { _, _ in
+            syncBreakingNewsFeed()
+        }
+        .onChange(of: appSettings.publicHolidayCountryCodes) { _, _ in
+            syncBreakingNewsFeed()
+        }
+        .onChange(of: weatherService.locationSnapshot?.countryCode) { _, _ in
+            syncBreakingNewsFeed()
+        }
+        .onChange(of: holidayService.nextHoliday?.countryCode) { _, _ in
+            syncBreakingNewsFeed()
         }
         .modelContainer(viewModel.modelContainer)
         .animation(.easeInOut(duration: 0.22), value: viewModel.showWhatsNew)
+        .animation(.spring(response: 0.48, dampingFraction: 0.86), value: newsFeedService.breakingNewsAlert?.id)
+    }
+
+    private func syncBreakingNewsFeed() {
+        let countryCodes = DashboardNewsFeedService.preferredCountryCodes(
+            settings: appSettings,
+            weatherCountryCode: weatherService.locationSnapshot?.countryCode,
+            nextHolidayCountryCode: holidayService.nextHoliday?.countryCode
+        )
+        newsFeedService.syncAutoRefreshIfNeeded(
+            enabled: appSettings.dashboardPreferences.newsFeedEnabled,
+            countryCodes: countryCodes
+        )
     }
 
     @ViewBuilder

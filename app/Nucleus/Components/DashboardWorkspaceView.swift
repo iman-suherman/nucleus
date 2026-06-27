@@ -71,25 +71,8 @@ struct DashboardWorkspaceView: View {
                     onDismiss: viewModel.dismissDashboardIncomingMail
                 )
             }
-
-            if dashboardPreferences.newsFeedEnabled,
-               let alert = newsFeedService.breakingNewsAlert {
-                DashboardBreakingNewsOverlay(
-                    alert: alert,
-                    speechService: newsSpeechService,
-                    onOpenLink: {
-                        newsSpeechService.stop()
-                        newsFeedService.openBreakingNewsAlertLink()
-                    },
-                    onDismiss: {
-                        newsSpeechService.stop()
-                        newsFeedService.dismissBreakingNewsAlert()
-                    }
-                )
-            }
         }
         .animation(.easeInOut(duration: 0.2), value: viewModel.dashboardIncomingMailPrompt?.id)
-        .animation(.easeInOut(duration: 0.2), value: newsFeedService.breakingNewsAlert?.id)
     }
 
     private var dashboardContent: some View {
@@ -129,7 +112,6 @@ struct DashboardWorkspaceView: View {
         }
         .onDisappear {
             processMetricsService.stopSampling()
-            newsFeedService.stopAutoRefresh()
             weatherSpeechService.stop()
             newsSpeechService.stop()
             holidayMetadataTask?.cancel()
@@ -196,27 +178,11 @@ struct DashboardWorkspaceView: View {
     }
 
     private func preferredNewsCountryCodes() -> [String] {
-        var codes: [String] = []
-        var seen = Set<String>()
-
-        func append(_ code: String?) {
-            guard let code else { return }
-            let normalized = code.uppercased()
-            guard normalized.count == 2, seen.insert(normalized).inserted else { return }
-            codes.append(normalized)
-        }
-
-        append(weatherService.locationSnapshot?.countryCode)
-        for code in settings.publicHolidayCountryCodes {
-            append(code)
-        }
-
-        if codes.isEmpty {
-            append(holidayService.nextHoliday?.countryCode)
-            append(Locale.current.region?.identifier)
-        }
-
-        return codes
+        DashboardNewsFeedService.preferredCountryCodes(
+            settings: settings,
+            weatherCountryCode: weatherService.locationSnapshot?.countryCode,
+            nextHolidayCountryCode: holidayService.nextHoliday?.countryCode
+        )
     }
 
     private func refreshPublicHolidays(force: Bool) {

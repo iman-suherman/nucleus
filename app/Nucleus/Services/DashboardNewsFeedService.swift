@@ -242,6 +242,47 @@ final class DashboardNewsFeedService: ObservableObject {
 
     private init() {}
 
+    static func preferredCountryCodes(
+        settings: AppSettings,
+        weatherCountryCode: String?,
+        nextHolidayCountryCode: String?
+    ) -> [String] {
+        var codes: [String] = []
+        var seen = Set<String>()
+
+        func append(_ code: String?) {
+            guard let code else { return }
+            let normalized = code.uppercased()
+            guard normalized.count == 2, seen.insert(normalized).inserted else { return }
+            codes.append(normalized)
+        }
+
+        append(weatherCountryCode)
+        for code in settings.publicHolidayCountryCodes {
+            append(code)
+        }
+
+        if codes.isEmpty {
+            append(nextHolidayCountryCode)
+            append(Locale.current.region?.identifier)
+        }
+
+        return codes
+    }
+
+    func syncAutoRefreshIfNeeded(
+        enabled: Bool,
+        countryCodes: [String]
+    ) {
+        if enabled {
+            startAutoRefresh(countryCodes: countryCodes)
+            refreshBreakingNewsAlertIfNeeded()
+        } else {
+            stopAutoRefresh()
+            clearBreakingNewsPresentation()
+        }
+    }
+
     func startAutoRefresh(countryCode: String?) {
         startAutoRefresh(countryCodes: countryCode.map { [$0] } ?? [])
     }

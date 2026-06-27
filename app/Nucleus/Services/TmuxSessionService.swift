@@ -45,7 +45,7 @@ enum TmuxSessionService {
     static func attachArguments(sessionName: String) -> [String] {
         [
             "-S", defaultSocketPath(),
-            "attach", "-d", "-t", sessionName,
+            "attach", "-d", "-t", attachTarget(for: sessionName),
         ]
     }
 
@@ -53,7 +53,7 @@ enum TmuxSessionService {
     static func attachLaunchPlan(sessionName: String, tmuxPath: String) -> (executable: String, args: [String]) {
         launchPlan(
             tmuxPath: tmuxPath,
-            tmuxArguments: ["-S", defaultSocketPath(), "attach", "-d", "-t", sessionName]
+            tmuxArguments: ["-S", defaultSocketPath(), "attach", "-d", "-t", attachTarget(for: sessionName)]
         )
     }
 
@@ -109,30 +109,33 @@ enum TmuxSessionService {
     }
 
     static func validateSessionExists(sessionName: String, tmuxPath: String) async -> String? {
+        let target = attachTarget(for: sessionName)
         do {
             _ = try await run(
                 executable: tmuxPath,
-                arguments: ["-S", defaultSocketPath(), "has-session", "-t", sessionName]
+                arguments: ["-S", defaultSocketPath(), "has-session", "-t", target]
             )
             return nil
         } catch {
-            return "Session \"\(sessionName)\" was not found on the tmux server."
+            return "Session \"\(target)\" was not found on the tmux server."
         }
     }
 
     /// Detach other tmux clients so Nucleus can attach to the session.
     static func prepareSessionForAttach(sessionName: String, tmuxPath: String) async {
+        let target = attachTarget(for: sessionName)
         _ = try? await run(
             executable: tmuxPath,
-            arguments: ["-S", defaultSocketPath(), "detach-client", "-s", sessionName]
+            arguments: ["-S", defaultSocketPath(), "detach-client", "-s", target]
         )
     }
 
     /// Detach Nucleus from a session without relying on tmux prefix keys (Ctrl+B often fails in embedded terminals).
     static func detachSession(sessionName: String, tmuxPath: String) async {
+        let target = attachTarget(for: sessionName)
         _ = try? await run(
             executable: tmuxPath,
-            arguments: ["-S", defaultSocketPath(), "detach-client", "-s", sessionName]
+            arguments: ["-S", defaultSocketPath(), "detach-client", "-s", target]
         )
     }
 
@@ -190,12 +193,12 @@ enum TmuxSessionService {
     }
 
     static func attachCommand(sessionName: String = "<name>") -> String {
-        "tmux -S \(defaultSocketPath()) attach -t \(sessionName)"
+        "tmux -S \(defaultSocketPath()) attach -t \(attachTarget(for: sessionName))"
     }
 
     /// Use from an embedded Nucleus terminal (already inside tmux) to avoid nested-session warnings.
     static func attachCommandFromEmbeddedTerminal(sessionName: String) -> String {
-        "env -u TMUX -u TMUX_PANE tmux -S \(defaultSocketPath()) attach -t \(sessionName)"
+        "env -u TMUX -u TMUX_PANE tmux -S \(defaultSocketPath()) attach -t \(attachTarget(for: sessionName))"
     }
 
     /// Short label for tmux sessions named `{project}_{major}_{minor}_{timestamp}`.
@@ -204,6 +207,23 @@ enum TmuxSessionService {
             return String(sessionName[..<range.lowerBound])
         }
         return sessionName
+    }
+
+    /// Target for `tmux attach -t` — matches the session list title when names include a version suffix.
+    static func attachTarget(for sessionName: String) -> String {
+        displayName(for: sessionName)
+    }
+
+    /// Attach in an embedded terminal, send `exit`, then ensure the session is gone.
+    static func destroyCommandFromEmbeddedTerminal(sessionName: String) -> String {
+        let target = attachTarget(for: sessionName)
+        let socket = shellQuote(defaultSocketPath())
+        let quotedTarget = shellQuote(target)
+        return "env -u TMUX -u TMUX_PANE sh -c '(sleep 0.5; tmux -S \(socket) send-keys -t \(quotedTarget) exit C-m) & exec env -u TMUX -u TMUX_PANE tmux -S \(socket) attach -t \(quotedTarget); tmux -S \(socket) kill-session -t \(quotedTarget) 2>/dev/null || true'"
+    }
+
+    private static func shellQuote(_ value: String) -> String {
+        "'" + value.replacingOccurrences(of: "'", with: "'\\''") + "'"
     }
 
     static func detachCommand() -> String {
@@ -299,7 +319,7 @@ enum TmuxSessionService {
     static func capturePane(tmuxPath: String, sessionName: String) async throws -> String {
         let output = try await run(
             executable: tmuxPath,
-            arguments: ["-S", defaultSocketPath(), "capture-pane", "-pt", sessionName, "-S", "-120"]
+            arguments: ["-S", defaultSocketPath(), "capture-pane", "-pt", attachTarget(for: sessionName), "-S", "-120"]
         )
         return trimPreview(output)
     }
