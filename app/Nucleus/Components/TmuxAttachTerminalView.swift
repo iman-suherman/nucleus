@@ -65,14 +65,10 @@ struct TmuxAttachTerminalView: NSViewRepresentable {
             hostView.addSubview(terminal)
             terminalView = terminal
 
-            let launch = TmuxSessionService.attachLaunchPlan(
-                sessionName: sessionName,
-                tmuxPath: tmuxPath
-            )
             terminal.startProcess(
-                executable: launch.executable,
-                args: launch.args,
-                environment: TmuxSessionService.enrichedEnvironmentArray(),
+                executable: tmuxPath,
+                args: TmuxSessionService.attachArguments(sessionName: sessionName),
+                environment: TmuxSessionService.attachEnvironmentArray(),
                 execName: nil
             )
         }

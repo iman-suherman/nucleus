@@ -6,6 +6,7 @@ struct TerminalWorkspaceView: View {
     @State private var attachedSession: TmuxSession?
     @State private var selectedSessionName: String?
     @State private var attachErrorMessage: String?
+    @State private var isPreparingAttach = false
 
     var body: some View {
         HStack(spacing: 0) {
@@ -88,7 +89,7 @@ struct TerminalWorkspaceView: View {
                         attach(to: selected)
                     }
                     .buttonStyle(.borderedProminent)
-                    .disabled(attachedSession?.name == selected.name)
+                    .disabled(attachedSession?.name == selected.name || isPreparingAttach)
 
                     if attachedSession?.name == selected.name {
                         Button("Release") {
@@ -195,6 +196,7 @@ struct TerminalWorkspaceView: View {
                     attach(to: session)
                 }
                 .buttonStyle(.borderedProminent)
+                .disabled(isPreparingAttach)
             }
 
             ScrollView {
@@ -213,7 +215,17 @@ struct TerminalWorkspaceView: View {
     private func attach(to session: TmuxSession) {
         selectedSessionName = session.name
         attachErrorMessage = nil
-        attachedSession = session
+        isPreparingAttach = true
+
+        Task {
+            defer { isPreparingAttach = false }
+            guard let tmuxPath = browser.tmuxPath ?? TmuxSessionService.resolveTmuxPath() else {
+                attachErrorMessage = "tmux path is unavailable."
+                return
+            }
+            await TmuxSessionService.prepareSessionForAttach(sessionName: session.name, tmuxPath: tmuxPath)
+            attachedSession = session
+        }
     }
 }
 

@@ -38,22 +38,60 @@ enum TmuxSessionService {
         "/private/tmp/tmux-\(getuid())/default"
     }
 
-    /// Shell-quoted value for use inside single-quoted zsh strings.
-    static func shellSingleQuoted(_ value: String) -> String {
-        "'" + value.replacingOccurrences(of: "'", with: "'\\''") + "'"
+    static func attachArguments(sessionName: String) -> [String] {
+        [
+            "-S", defaultSocketPath(),
+            "attach", "-d", "-t", sessionName,
+        ]
     }
 
-    /// Force-detach all clients on the session, then attach (login zsh for PATH/home).
-    static func attachLaunchPlan(sessionName: String, tmuxPath: String) -> (executable: String, args: [String]) {
-        let socket = shellSingleQuoted(defaultSocketPath())
-        let tmux = shellSingleQuoted(tmuxPath)
-        let session = shellSingleQuoted(sessionName)
-        let script = """
-        unset TMUX TMUX_PANE
-        \(tmux) -S \(socket) detach-client -s \(session) 2>/dev/null || true
-        exec \(tmux) -S \(socket) attach -d -t \(session)
-        """
-        return ("/bin/zsh", ["-l", "-c", script])
+    /// Detach other tmux clients so Nucleus can attach to the session.
+    static func prepareSessionForAttach(sessionName: String, tmuxPath: String) async {
+        _ = try? await run(
+            executable: tmuxPath,
+            arguments: ["-S", defaultSocketPath(), "detach-client", "-s", sessionName]
+        )
+    }
+
+    /// Environment for embedded terminal attach — full GUI env breaks tmux attach (exit 1).
+    static func attachEnvironmentArray() -> [String] {
+        attachEnvironment().map { "\($0.key)=\($0.value)" }
+    }
+
+    private static let attachEnvironmentKeys = [
+        "HOME", "USER", "LOGNAME", "SHELL", "PATH", "TERM", "LANG", "LC_ALL", "LC_CTYPE",
+        "TMPDIR", "SSH_AUTH_SOCK", "XDG_RUNTIME_DIR",
+    ]
+
+    private static func attachEnvironment() -> [String: String] {
+        let source = ProcessInfo.processInfo.environment
+        var environment: [String: String] = [:]
+        for key in attachEnvironmentKeys {
+            if let value = source[key], !value.isEmpty {
+                environment[key] = value
+            }
+        }
+
+        let home = environment["HOME"] ?? NSHomeDirectory()
+        environment["HOME"] = home
+
+        let pathEntries = [
+            "/opt/homebrew/bin",
+            "/usr/local/bin",
+            "/usr/bin",
+            "/bin",
+            "/usr/sbin",
+            "/sbin",
+        ]
+        let existing = environment["PATH"] ?? source["PATH"] ?? ""
+        environment["PATH"] = (pathEntries + existing.split(separator: ":").map(String.init))
+            .uniqued()
+            .joined(separator: ":")
+
+        environment["TERM"] = "xterm-256color"
+        environment.removeValue(forKey: "TMUX")
+        environment.removeValue(forKey: "TMUX_PANE")
+        return environment
     }
 
     /// Normalize wait status (256 → 1) from SwiftTerm / Process termination.

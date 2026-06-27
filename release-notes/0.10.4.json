@@ -1,0 +1,15 @@
+{
+  "version": "0.10.4",
+  "summary": "Fix Terminal Take Over tmux attach failing with exit 1.",
+  "releaseNotes": {
+    "introduced": [],
+    "changed": [],
+    "fixed": [
+      "Terminal Take Over no longer passes the full GUI environment to tmux, which caused attach to fail immediately with exit 1",
+      "Other tmux clients are detached before attach so sessions attached in Terminal.app can be taken over reliably"
+    ],
+    "updated": [],
+    "removed": [],
+    "breaking": []
+  }
+}
