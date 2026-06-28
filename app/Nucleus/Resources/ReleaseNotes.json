@@ -1,20 +1,14 @@
 {
-  "version": "0.10.17",
-  "summary": "Terminal tmux session layout, colored active-session badge, and refreshed marketing screenshots.",
+  "version": "0.10.18",
+  "summary": "Clipboard history capped at 100 items and quieter one-shot email alerts until you open the inbox.",
   "releaseNotes": {
-    "introduced": [
-      "Terminal workspace shows a colored active-session badge beside attach and detach commands",
-      "Marketing screenshot capture uses env vars and a flat sidebar layout for reliable workspace PNGs"
-    ],
+    "introduced": [],
     "changed": [
-      "tmux session list renamed to List of available tmux sessions and shown in a two-column draggable grid",
-      "Session cards use green, orange, and neutral styling for live, attached elsewhere, and available states",
-      "Marketing website workspace screenshots regenerated for all seven sidebar panes"
+      "Clipboard history keeps at most 100 items and automatically purges older unpinned captures",
+      "Email notifications send one generic alert per unread batch until you open the inbox, without unread counts"
     ],
     "fixed": [],
-    "updated": [
-      "npm run capture:marketing-screenshots captures each workspace pane into website/public"
-    ],
+    "updated": [],
     "removed": [],
     "breaking": []
   }
