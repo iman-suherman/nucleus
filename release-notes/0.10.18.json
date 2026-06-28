@@ -1,0 +1,15 @@
+{
+  "version": "0.10.18",
+  "summary": "Clipboard history capped at 100 items and quieter one-shot email alerts until you open the inbox.",
+  "releaseNotes": {
+    "introduced": [],
+    "changed": [
+      "Clipboard history keeps at most 100 items and automatically purges older unpinned captures",
+      "Email notifications send one generic alert per unread batch until you open the inbox, without unread counts"
+    ],
+    "fixed": [],
+    "updated": [],
+    "removed": [],
+    "breaking": []
+  }
+}

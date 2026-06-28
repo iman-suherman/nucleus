@@ -455,6 +455,7 @@ public enum SyncedSettingsRepository {
 
 public enum ClipboardRepository {
     public static let retentionDays = 7
+    public static let maxItems = 100
 
     public static func retentionCutoff(from now: Date = Date(), calendar: Calendar = .current) -> Date {
         calendar.date(byAdding: .day, value: -retentionDays, to: calendar.startOfDay(for: now)) ?? now
@@ -462,7 +463,7 @@ public enum ClipboardRepository {
 
     public static func fetchRecent(
         context: ModelContext,
-        limit: Int? = nil,
+        limit: Int? = maxItems,
         now: Date = Date(),
         calendar: Calendar = .current
     ) throws -> [ClipboardEntry] {
@@ -528,20 +529,41 @@ public enum ClipboardRepository {
         try context.save()
     }
 
-    /// Removes clipboard captures older than `retentionDays`. Pinned items are kept.
+    /// Removes clipboard captures older than `retentionDays` and enforces `maxItems`.
+    /// Pinned items are kept until the total count exceeds `maxItems`.
     public static func prune(
         context: ModelContext,
         now: Date = Date(),
         calendar: Calendar = .current
     ) throws {
         let cutoff = retentionCutoff(from: now, calendar: calendar)
-        let descriptor = FetchDescriptor<ClipboardItemRecord>(
+        let expiredDescriptor = FetchDescriptor<ClipboardItemRecord>(
             predicate: #Predicate { $0.capturedAt < cutoff }
         )
-        let expired = try context.fetch(descriptor)
-        guard !expired.isEmpty else { return }
-
+        let expired = try context.fetch(expiredDescriptor)
         for record in expired where !record.isPinned {
+            context.delete(record)
+        }
+
+        let allDescriptor = FetchDescriptor<ClipboardItemRecord>(
+            sortBy: [SortDescriptor(\.capturedAt, order: .reverse)]
+        )
+        let all = try context.fetch(allDescriptor)
+        guard all.count > maxItems else {
+            if !expired.isEmpty {
+                try context.save()
+            }
+            return
+        }
+
+        let pinned = all.filter(\.isPinned).sorted { $0.capturedAt > $1.capturedAt }
+        let unpinned = all.filter { !$0.isPinned }.sorted { $0.capturedAt > $1.capturedAt }
+        let unpinnedKeepCount = max(0, maxItems - pinned.count)
+        let keepIDs = Set(
+            pinned.map(\.id) + unpinned.prefix(unpinnedKeepCount).map(\.id)
+        )
+
+        for record in all where !keepIDs.contains(record.id) {
             context.delete(record)
         }
         try context.save()

@@ -74,6 +74,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
     private var pendingMailNotificationDeltas: [UUID: Int] = [:]
     private var queuedDashboardIncomingMail: DashboardIncomingMailPrompt?
     private var mailUnreadSyncBaselineEstablished = Set<UUID>()
+    private var mailInboxNotificationDeliveredForAccount = Set<UUID>()
     private var dashboardMailAlertSnoozed = false
     private var dashboardMailAlertRecheckMessageIDs = Set<String>()
     private var dashboardMailAlertRecheckAccountID: UUID?
@@ -208,6 +209,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         WorkspaceIdleController.shared.recordActivity()
 
         if pane == .inbox {
+            resetMailInboxNotificationSuppressionForInboxVisit()
             InboxIdleRecheckController.shared.resumeIfActive()
         } else {
             InboxIdleRecheckController.shared.pause()
@@ -310,6 +312,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         queuedDashboardIncomingMail = nil
         dashboardMailAlertSnoozed = true
         dashboardMailAlertRecheckAccountID = accountID
+        resetMailInboxNotificationSuppressionForInboxVisit(accountID: accountID)
 
         if let prompt {
             var ids = Set(prompt.previewMessages.map(\.id))
@@ -505,6 +508,10 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         statusMessage = statusMessageForCurrentState()
         unreadBaselineEstablished.insert(accountID)
 
+        if count == 0 {
+            mailInboxNotificationDeliveredForAccount.remove(accountID)
+        }
+
         if hadBaseline, count > previous {
             pendingMailNotificationDeltas[accountID, default: 0] += count - previous
             flushPendingMailNotifications()
@@ -512,20 +519,31 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         }
     }
 
-    @discardableResult
-    private func deliverMailNotifications(
+    private var isShowingInbox: Bool {
+        if case .workspace(.inbox) = sidebarSelection {
+            return true
+        }
+        return false
+    }
+
+    private func resetMailInboxNotificationSuppressionForInboxVisit(accountID: UUID? = nil) {
+        if let accountID {
+            mailInboxNotificationDeliveredForAccount.remove(accountID)
+        } else if let selectedID = AppSettings.shared.selectedMailAccountID {
+            mailInboxNotificationDeliveredForAccount.remove(selectedID)
+        } else {
+            mailInboxNotificationDeliveredForAccount.removeAll()
+        }
+    }
+
+    private func registerIncomingMailMessages(
         accountID: UUID,
         preferredMessages: [MailMessageSummary] = [],
         limit: Int
-    ) -> Int {
-        guard limit > 0 else { return 0 }
+    ) -> [MailMessageSummary] {
+        guard limit > 0 else { return [] }
 
-        var delivered = 0
         var seen = Set<String>()
-        let accountName = accounts.first(where: { $0.id == accountID })?.displayName
-            ?? accounts.first(where: { $0.id == accountID })?.email
-            ?? "Inbox"
-
         let orderedCandidates = (preferredMessages + mailMessages)
             .filter { message in
                 message.accountID == accountID
@@ -535,21 +553,52 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
             }
             .sorted { $0.receivedAt > $1.receivedAt }
 
-        for message in orderedCandidates.prefix(limit) {
-            NucleusNotificationService.shared.notifyNewMail(message, accountName: accountName)
+        let registered = Array(orderedCandidates.prefix(limit))
+        for message in registered {
             notifiedMessageIDs.insert(message.id)
-            delivered += 1
+        }
+        return registered
+    }
+
+    @discardableResult
+    private func deliverMailNotificationIfNeeded(accountID: UUID) -> Bool {
+        guard AppSettings.shared.emailNotificationsEnabled else { return false }
+        guard (unreadByAccount[accountID] ?? 0) > 0 else { return false }
+        guard !mailInboxNotificationDeliveredForAccount.contains(accountID) else { return false }
+
+        if isShowingInbox {
+            mailInboxNotificationDeliveredForAccount.insert(accountID)
+            return false
         }
 
-        if delivered > 0 {
-            presentDashboardIncomingMail(
-                accountID: accountID,
-                delta: delivered,
-                messages: Array(orderedCandidates.prefix(delivered))
-            )
-        }
+        NucleusNotificationService.shared.notifyUnreadInboxMail(
+            accountName: accountDisplayName(for: accountID),
+            accountID: accountID
+        )
+        mailInboxNotificationDeliveredForAccount.insert(accountID)
+        return true
+    }
 
-        return delivered
+    @discardableResult
+    private func deliverMailNotifications(
+        accountID: UUID,
+        preferredMessages: [MailMessageSummary] = [],
+        limit: Int
+    ) -> Int {
+        let registered = registerIncomingMailMessages(
+            accountID: accountID,
+            preferredMessages: preferredMessages,
+            limit: limit
+        )
+        guard !registered.isEmpty else { return 0 }
+
+        _ = deliverMailNotificationIfNeeded(accountID: accountID)
+        presentDashboardIncomingMail(
+            accountID: accountID,
+            delta: registered.count,
+            messages: registered
+        )
+        return registered.count
     }
 
     private func accumulateMailUnreadDeltas(from mergedUnread: [UUID: Int]) {
@@ -571,13 +620,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
             guard let delta = pendingMailNotificationDeltas[account.id], delta > 0 else { continue }
             let delivered = deliverMailNotifications(accountID: account.id, limit: delta)
             if delivered == 0 {
-                let accountName = account.displayName.isEmpty ? account.email : account.displayName
-                NucleusNotificationService.shared.notifyIncomingMail(
-                    unreadCount: unreadByAccount[account.id] ?? delta,
-                    delta: delta,
-                    accountName: accountName,
-                    accountID: account.id
-                )
+                _ = deliverMailNotificationIfNeeded(accountID: account.id)
                 presentDashboardIncomingMail(accountID: account.id, delta: delta)
             }
             pendingMailNotificationDeltas.removeValue(forKey: account.id)
@@ -1366,6 +1409,9 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
 
         unreadByAccount = mergedUnread
         totalUnread = mergedUnread.values.reduce(0, +)
+        for account in accounts where (mergedUnread[account.id] ?? 0) == 0 {
+            mailInboxNotificationDeliveredForAccount.remove(account.id)
+        }
         mailMessages = mergedMessages.sorted { $0.receivedAt > $1.receivedAt }
         knownMessageIDs.formUnion(mergedMessages.map(\.id))
 

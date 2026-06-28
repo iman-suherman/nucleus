@@ -74,4 +74,25 @@ final class DatabaseKitTests: XCTestCase {
         XCTAssertEqual(afterPrune.map(\.content).sorted(), ["pinned old clip", "recent clip"])
         XCTAssertFalse(afterPrune.contains(where: { $0.content == "expired clip" }))
     }
+
+    func testClipboardRepositoryPurgesItemsBeyondMaxCount() throws {
+        let container = try NucleusDatabase.makeContainer(inMemory: true)
+        let context = ModelContext(container)
+        let calendar = Calendar(identifier: .gregorian)
+        let now = calendar.date(from: DateComponents(year: 2026, month: 6, day: 19, hour: 12))!
+
+        for index in 0..<105 {
+            let entry = ClipboardEntry(
+                content: "clip \(index)",
+                capturedAt: calendar.date(byAdding: .minute, value: -index, to: now)!
+            )
+            try ClipboardRepository.insert(entry, context: context, now: now, calendar: calendar)
+        }
+
+        let entries = try ClipboardRepository.fetchRecent(context: context, now: now, calendar: calendar)
+        XCTAssertEqual(entries.count, ClipboardRepository.maxItems)
+        XCTAssertEqual(entries.first?.content, "clip 0")
+        XCTAssertEqual(entries.last?.content, "clip 99")
+        XCTAssertFalse(entries.contains(where: { $0.content == "clip 100" }))
+    }
 }

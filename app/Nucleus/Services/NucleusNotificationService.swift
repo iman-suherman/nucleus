@@ -71,17 +71,17 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
         }
     }
 
-    func notifyIncomingMail(unreadCount: Int, delta: Int, accountName: String, accountID: UUID) {
+    func notifyUnreadInboxMail(accountName: String, accountID: UUID) {
         guard AppSettings.shared.emailNotificationsEnabled else { return }
         let content = UNMutableNotificationContent()
-        content.title = delta == 1 ? "New Email" : "\(delta) New Emails"
+        content.title = "New Email"
         content.subtitle = accountName
-        content.body = unreadCount == 1 ? "1 unread message in your inbox" : "\(unreadCount) unread messages in your inbox"
+        content.body = "There's an unread message in your inbox."
         content.categoryIdentifier = "NUCLEUS_MAIL"
         content.userInfo = ["accountID": accountID.uuidString]
 
         postMailNotification(
-            identifier: "mail-unread-\(UUID().uuidString)",
+            identifier: "mail-unread-\(accountID.uuidString)",
             content: content,
             accountID: accountID
         )
