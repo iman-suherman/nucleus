@@ -325,7 +325,7 @@ enum TmuxSessionService {
             return .success(sessions)
         } catch {
             let message = error.localizedDescription
-            if message.localizedCaseInsensitiveContains("no server running") {
+            if isAbsentTmuxServerError(message) {
                 return .success([])
             }
             return .failure(.message(message))
@@ -338,6 +338,13 @@ enum TmuxSessionService {
             arguments: ["-S", defaultSocketPath(), "capture-pane", "-pt", attachTarget(for: sessionName), "-S", "-120"]
         )
         return trimPreview(output)
+    }
+
+    /// tmux returns different messages when the server was never started vs idle with no sessions.
+    private static func isAbsentTmuxServerError(_ message: String) -> Bool {
+        let lower = message.localizedLowercase
+        return lower.contains("no server running")
+            || lower.contains("no such file or directory")
     }
 
     private static func trimPreview(_ text: String) -> String {

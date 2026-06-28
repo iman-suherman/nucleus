@@ -71,13 +71,11 @@ struct DashboardIncomingMailPrompt: Identifiable, Equatable {
     }
 
     var headline: String {
-        newCount == 1 ? "1 new email" : "\(newCount) new emails"
+        "New email"
     }
 
     var unreadSummary: String {
-        totalUnreadCount == 1
-            ? "1 unread message in your inbox"
-            : "\(totalUnreadCount) unread messages in your inbox"
+        "There's an unread message in your inbox."
     }
 }
 

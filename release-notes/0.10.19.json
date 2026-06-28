@@ -1,0 +1,15 @@
+{
+  "version": "0.10.19",
+  "summary": "Quieter in-app email alerts and clearer Terminal tmux session list when no server is running.",
+  "releaseNotes": {
+    "introduced": [],
+    "changed": [],
+    "fixed": [
+      "In-app email alert overlay no longer shows unread counts, matching the quieter notification style",
+      "Terminal tmux session list no longer shows a socket error when no tmux server has started yet"
+    ],
+    "updated": [],
+    "removed": [],
+    "breaking": []
+  }
+}
