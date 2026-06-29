@@ -1,0 +1,15 @@
+{
+  "version": "0.10.23",
+  "summary": "Reliable tmux attach and destroy from the Terminal workspace.",
+  "releaseNotes": {
+    "introduced": [],
+    "changed": [],
+    "fixed": [
+      "tmux attach uses the exact session name and -d so sessions attached elsewhere open in Nucleus",
+      "tmux destroy kills sessions directly instead of failing when attach could not start"
+    ],
+    "updated": [],
+    "removed": [],
+    "breaking": []
+  }
+}
