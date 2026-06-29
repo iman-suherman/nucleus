@@ -1,13 +1,12 @@
 {
-  "version": "0.10.22",
-  "summary": "Clipboard password alerts only appear for likely secrets.",
+  "version": "0.10.23",
+  "summary": "Reliable tmux attach and destroy from the Terminal workspace.",
   "releaseNotes": {
     "introduced": [],
-    "changed": [
-      "Clipboard password detection requires stronger secret patterns before showing a save notification"
-    ],
+    "changed": [],
     "fixed": [
-      "Copying normal text, code identifiers, git hashes, or multi-line notes no longer triggers password alerts"
+      "tmux attach uses the exact session name and -d so sessions attached elsewhere open in Nucleus",
+      "tmux destroy kills sessions directly instead of failing when attach could not start"
     ],
     "updated": [],
     "removed": [],
