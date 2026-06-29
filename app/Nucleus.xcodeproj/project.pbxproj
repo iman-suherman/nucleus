@@ -11,6 +11,7 @@
 		06E33DD4ED6CCAE1245318FB /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 0E4DA79CEF8E748BA3E23EAA /* Sparkle */; };
 		0AC06494C1C76476946760E9 /* TmuxSessionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85468FEB38AFD3921127A060 /* TmuxSessionService.swift */; };
 		0BB860B254C7F78CEEC21A5B /* ClipboardPasswordSuggestionOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 536C10D58B577BC3DF9EE13E /* ClipboardPasswordSuggestionOverlay.swift */; };
+		0C55DCF62C6C3D445818C25C /* GmailWebSyncScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5035C1897BA3BBDD9E619BF6 /* GmailWebSyncScheduler.swift */; };
 		0DF76E6C3FFC27AFE1D7BCFC /* CalendarKit in Frameworks */ = {isa = PBXBuildFile; productRef = 0663CFC119484D7BD11FB843 /* CalendarKit */; };
 		0DF8DBEBA58E40936F22C450 /* AccountCenterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69A7BEC28EFE1D402738D081 /* AccountCenterView.swift */; };
 		1009C3EAC35EB16973A02E97 /* DatabaseKit in Frameworks */ = {isa = PBXBuildFile; productRef = DAECE07451118013D6E717ED /* DatabaseKit */; };
@@ -29,7 +30,6 @@
 		2B8811DCCB2E638B2C0D6E57 /* DashboardQuoteEmojiService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB5ECBBA5D7B3B965303F247 /* DashboardQuoteEmojiService.swift */; };
 		2D9BBC35081BBFC740FBA05F /* MenuBarPopoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2ADEB9B8C248DDB0410D9749 /* MenuBarPopoverView.swift */; };
 		2E92D4BDB66A47E6E813E56B /* BackgroundSyncServices.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50537B36D31255DB7C3030C9 /* BackgroundSyncServices.swift */; };
-		A1B2C3D4E5F60718293A4B5C /* GmailWebSyncScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C3D4E5F60718293A4B5C6D /* GmailWebSyncScheduler.swift */; };
 		31C2FB18B651A30B5F381A6F /* MenuBarStatusItemController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3040B14FCE7F0866274EF0E /* MenuBarStatusItemController.swift */; };
 		321E25ED804AB6F0BA553ABC /* AirPlayRoutePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C6984DDA572BA7E3972F8ED /* AirPlayRoutePicker.swift */; };
 		369B622F3177919D55C55827 /* DashboardWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F695044507986F1B738A6465 /* DashboardWorkspaceView.swift */; };
@@ -162,8 +162,8 @@
 		4E48A7B5023CD11F5F01726F /* DashboardIncomingMailOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardIncomingMailOverlay.swift; sourceTree = "<group>"; };
 		4FE025998DE849CA2FCBCC91 /* NucleusTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NucleusTheme.swift; sourceTree = "<group>"; };
 		500EAAED9E0A3F359D797709 /* Funky.caf */ = {isa = PBXFileReference; path = Funky.caf; sourceTree = "<group>"; };
+		5035C1897BA3BBDD9E619BF6 /* GmailWebSyncScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GmailWebSyncScheduler.swift; sourceTree = "<group>"; };
 		50537B36D31255DB7C3030C9 /* BackgroundSyncServices.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundSyncServices.swift; sourceTree = "<group>"; };
-		B2C3D4E5F60718293A4B5C6D /* GmailWebSyncScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GmailWebSyncScheduler.swift; sourceTree = "<group>"; };
 		536C10D58B577BC3DF9EE13E /* ClipboardPasswordSuggestionOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardPasswordSuggestionOverlay.swift; sourceTree = "<group>"; };
 		57198357174E7DA48A1866B3 /* MusicPlaybackMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicPlaybackMonitor.swift; sourceTree = "<group>"; };
 		584F84F9AF029CC4D8800A01 /* NucleusNotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NucleusNotificationService.swift; sourceTree = "<group>"; };
@@ -353,7 +353,6 @@
 				4C6984DDA572BA7E3972F8ED /* AirPlayRoutePicker.swift */,
 				964EE9A5CC0993B6B53D3120 /* AuthStateMigration.swift */,
 				50537B36D31255DB7C3030C9 /* BackgroundSyncServices.swift */,
-				B2C3D4E5F60718293A4B5C6D /* GmailWebSyncScheduler.swift */,
 				F73321C16D7956F50F538A6E /* ClipboardPasteController.swift */,
 				EBE67C288974FF5B2F8524E6 /* CloudKitStoreMigration.swift */,
 				A5BDDEC8A6712481CBFAABBE /* DashboardAnalysisService.swift */,
@@ -375,6 +374,7 @@
 				E5971F41F5427FCE836471DA /* EmbeddedWebViewContainer.swift */,
 				8D37475DD0560D594BCD02DC /* EmbeddedWebViewRegistry.swift */,
 				7C19EFA3DE919CAF339A8D6E /* GmailWebSessionStore.swift */,
+				5035C1897BA3BBDD9E619BF6 /* GmailWebSyncScheduler.swift */,
 				B95AA6B0D2A2C4F3ACD4653E /* GoogleOAuthConfigurationLoader.swift */,
 				91C3018A0AFE8668C0B1FC5D /* GoogleWebSignInURL.swift */,
 				046B650FCA89CA8C322D0A3B /* HourlyBeep.swift */,
@@ -572,7 +572,6 @@
 				B9E2844DD110DC0608825A91 /* AppViewModel.swift in Sources */,
 				C8B7DC0B032F4FA042820B5B /* AuthStateMigration.swift in Sources */,
 				2E92D4BDB66A47E6E813E56B /* BackgroundSyncServices.swift in Sources */,
-				A1B2C3D4E5F60718293A4B5C /* GmailWebSyncScheduler.swift in Sources */,
 				4573D9B3E1B2E7E5C1A01E2A /* BillsWorkspaceView.swift in Sources */,
 				0BB860B254C7F78CEEC21A5B /* ClipboardPasswordSuggestionOverlay.swift in Sources */,
 				92F3296DC4AFB5C4A78EF11D /* ClipboardPasteController.swift in Sources */,
@@ -604,6 +603,7 @@
 				37A6CBA22087747F45F0F4F5 /* EmbeddedWebViewContainer.swift in Sources */,
 				8AA22D21D12A34FDC718D87B /* EmbeddedWebViewRegistry.swift in Sources */,
 				9DD421879CE8E2380986DE94 /* GmailWebSessionStore.swift in Sources */,
+				0C55DCF62C6C3D445818C25C /* GmailWebSyncScheduler.swift in Sources */,
 				1DDFDCAF38135EC627A0E7A8 /* GoogleOAuthConfigurationLoader.swift in Sources */,
 				8893C084748D7E66C6211F57 /* GoogleWebSignInURL.swift in Sources */,
 				98D83C9FEF7CEB8DF54441FE /* HourlyBeep.swift in Sources */,
@@ -793,7 +793,7 @@
 				CODE_SIGN_ENTITLEMENTS = Nucleus/entitlements.mac.plist;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 10019;
+				CURRENT_PROJECT_VERSION = 10020;
 				DEVELOPMENT_TEAM = Q3TXW887NM;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = Nucleus/Info.plist;
@@ -801,7 +801,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.10.19;
+				MARKETING_VERSION = 0.10.20;
 				OTHER_LDFLAGS = "$(inherited) -weak_framework FoundationModels";
 				PRODUCT_BUNDLE_IDENTIFIER = net.suherman.nucleus;
 				SDKROOT = macosx;
@@ -817,7 +817,7 @@
 				CODE_SIGN_ENTITLEMENTS = Nucleus/entitlements.mac.plist;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 10019;
+				CURRENT_PROJECT_VERSION = 10020;
 				DEVELOPMENT_TEAM = Q3TXW887NM;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = Nucleus/Info.plist;
@@ -825,7 +825,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.10.19;
+				MARKETING_VERSION = 0.10.20;
 				OTHER_LDFLAGS = "$(inherited) -weak_framework FoundationModels";
 				PRODUCT_BUNDLE_IDENTIFIER = net.suherman.nucleus;
 				SDKROOT = macosx;

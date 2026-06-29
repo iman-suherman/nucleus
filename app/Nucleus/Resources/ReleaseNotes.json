@@ -1,12 +1,15 @@
 {
-  "version": "0.10.19",
-  "summary": "Quieter in-app email alerts and clearer Terminal tmux session list when no server is running.",
+  "version": "0.10.20",
+  "summary": "Lower background CPU and memory use during long sessions.",
   "releaseNotes": {
     "introduced": [],
-    "changed": [],
+    "changed": [
+      "Gmail web-session unread sync runs at most once per minute when Inbox is not open",
+      "tmux session list refreshes only while the Terminal workspace is active",
+      "Music playback polling pauses when nothing is playing and the Media workspace is hidden"
+    ],
     "fixed": [
-      "In-app email alert overlay no longer shows unread counts, matching the quieter notification style",
-      "Terminal tmux session list no longer shows a socket error when no tmux server has started yet"
+      "In-memory mail tracking no longer grows without bound over months of use"
     ],
     "updated": [],
     "removed": [],
