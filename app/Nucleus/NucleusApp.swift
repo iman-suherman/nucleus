@@ -165,7 +165,7 @@ struct ContentView: View {
     @ObservedObject private var newsSpeechService = DashboardNewsSpeechService.shared
     @ObservedObject private var weatherService = DashboardWeatherService.shared
     @ObservedObject private var holidayService = DashboardPublicHolidayService.shared
-    @ObservedObject private var tmuxSessionBrowser = TmuxSessionBrowser.shared
+    @State private var tmuxSessionCount = TmuxSessionBrowser.shared.badgeSessionCount
 
     var body: some View {
         Group {
@@ -257,6 +257,12 @@ struct ContentView: View {
                 .padding(.horizontal, 16)
                 .padding(.top, 10)
             }
+        }
+        .onAppear {
+            tmuxSessionCount = TmuxSessionBrowser.shared.badgeSessionCount
+        }
+        .onReceive(TmuxSessionBrowser.shared.$badgeSessionCount) { count in
+            tmuxSessionCount = count
         }
         .onChange(of: appSettings.menuBarEnabled) { _, _ in
             viewModel.menuBarController.applySettings(appSettings)
@@ -477,8 +483,8 @@ struct ContentView: View {
                 compactCountBadge(viewModel.activeBills.count)
             case .notes where viewModel.regularNotesCount + viewModel.passwordNotesCount > 0:
                 compactCountBadge(viewModel.regularNotesCount + viewModel.passwordNotesCount)
-            case .terminal where tmuxSessionBrowser.activeSessionCount > 0:
-                compactCountBadge(tmuxSessionBrowser.activeSessionCount)
+            case .terminal where tmuxSessionCount > 0:
+                compactCountBadge(tmuxSessionCount)
             case .media where mediaController.nowPlaying.isPlaying:
                 Image(systemName: "waveform")
                     .font(.system(size: 8, weight: .bold))
@@ -541,8 +547,8 @@ struct ContentView: View {
                     notesCount: viewModel.regularNotesCount,
                     passwordsCount: viewModel.passwordNotesCount
                 )
-            case .terminal where tmuxSessionBrowser.activeSessionCount > 0:
-                NucleusCountBadge(count: tmuxSessionBrowser.activeSessionCount)
+            case .terminal where tmuxSessionCount > 0:
+                NucleusCountBadge(count: tmuxSessionCount)
             case .media where mediaController.nowPlaying.isPlaying:
                 MusicPlayingSidebarIndicator()
             default:

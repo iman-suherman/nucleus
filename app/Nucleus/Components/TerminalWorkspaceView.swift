@@ -157,7 +157,11 @@ struct TerminalWorkspaceView: View {
         }
         .onAppear {
             browser.startAutoRefresh()
+            browser.setAutoRefreshSuspended(activeTerminal != nil)
             viewModel.refreshDashboardIncomingMailAlertIfNeeded()
+        }
+        .onChange(of: activeTerminal != nil) { _, isEmbeddedTerminalActive in
+            browser.setAutoRefreshSuspended(isEmbeddedTerminalActive)
         }
         .onDisappear {
             browser.stopAutoRefresh()
@@ -197,7 +201,7 @@ struct TerminalWorkspaceView: View {
             Spacer()
 
             Button {
-                Task { await browser.refresh() }
+                Task { await browser.refresh(manual: true) }
             } label: {
                 Label("Refresh", systemImage: "arrow.clockwise")
             }
@@ -642,7 +646,6 @@ struct TerminalWorkspaceView: View {
                     name: name,
                     windowCount: 1,
                     isAttached: false,
-                    lastActivity: Date(),
                     preview: ""
                 )
             )

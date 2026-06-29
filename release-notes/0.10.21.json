@@ -1,0 +1,18 @@
+{
+  "version": "0.10.21",
+  "summary": "Much lighter tmux session monitoring in Terminal.",
+  "releaseNotes": {
+    "introduced": [],
+    "changed": [
+      "tmux session list auto-refreshes every 15 seconds instead of every 2 seconds",
+      "tmux polling pauses while an embedded terminal session is active",
+      "Terminal sidebar badge no longer triggers full-window redraws on attach-status churn"
+    ],
+    "fixed": [
+      "Terminal tmux monitoring no longer re-renders and writes settings when the session list is unchanged"
+    ],
+    "updated": [],
+    "removed": [],
+    "breaking": []
+  }
+}

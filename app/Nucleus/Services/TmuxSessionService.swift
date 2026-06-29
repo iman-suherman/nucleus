@@ -4,7 +4,6 @@ struct TmuxSession: Identifiable, Hashable, Sendable {
     let name: String
     let windowCount: Int
     let isAttached: Bool
-    let lastActivity: Date?
     var preview: String
 
     var id: String { name }
@@ -282,7 +281,7 @@ enum TmuxSessionService {
                     "-S", defaultSocketPath(),
                     "list-sessions",
                     "-F",
-                    "#{session_name}\t#{session_windows}\t#{session_attached}\t#{session_activity}",
+                    "#{session_name}\t#{session_windows}\t#{session_attached}",
                 ]
             )
 
@@ -297,7 +296,6 @@ enum TmuxSessionService {
 
                 let windowCount = Int(parts.dropFirst().first ?? "") ?? 0
                 let attachedFlag = parts.dropFirst(2).first ?? "0"
-                let activityEpoch = TimeInterval(parts.dropFirst(3).first ?? "") ?? 0
                 let preview = includePreviews
                     ? ((try? await capturePane(tmuxPath: tmuxPath, sessionName: name)) ?? "")
                     : ""
@@ -307,19 +305,13 @@ enum TmuxSessionService {
                         name: name,
                         windowCount: windowCount,
                         isAttached: attachedFlag == "1",
-                        lastActivity: activityEpoch > 0 ? Date(timeIntervalSince1970: activityEpoch) : nil,
                         preview: preview
                     )
                 )
             }
 
-            sessions.sort { lhs, rhs in
-                let lhsActivity = lhs.lastActivity ?? .distantPast
-                let rhsActivity = rhs.lastActivity ?? .distantPast
-                if lhsActivity != rhsActivity {
-                    return lhsActivity > rhsActivity
-                }
-                return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+            sessions.sort {
+                $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
             }
 
             return .success(sessions)
@@ -436,16 +428,22 @@ private extension Array where Element: Hashable {
 final class TmuxSessionBrowser: ObservableObject {
     static let shared = TmuxSessionBrowser()
 
+    private static let autoRefreshInterval: Duration = .seconds(15)
+
     @Published private(set) var sessions: [TmuxSession] = []
     @Published private(set) var errorMessage: String?
     @Published private(set) var isRefreshing = false
     @Published private(set) var tmuxPath: String?
+    /// Sidebar badge only — updated when session count changes, not on attach/window churn.
+    @Published private(set) var badgeSessionCount: Int = 0
 
     var activeSessionCount: Int {
-        sessions.count
+        badgeSessionCount
     }
 
     private var refreshTask: Task<Void, Never>?
+    private var isRefreshInFlight = false
+    private var autoRefreshSuspended = false
 
     private init() {}
 
@@ -497,8 +495,10 @@ final class TmuxSessionBrowser: ObservableObject {
         stopAutoRefresh()
         refreshTask = Task { [weak self] in
             while !Task.isCancelled {
-                await self?.refresh()
-                try? await Task.sleep(for: .seconds(2))
+                if self?.autoRefreshSuspended != true {
+                    await self?.refresh()
+                }
+                try? await Task.sleep(for: Self.autoRefreshInterval)
             }
         }
     }
@@ -506,13 +506,31 @@ final class TmuxSessionBrowser: ObservableObject {
     func stopAutoRefresh() {
         refreshTask?.cancel()
         refreshTask = nil
+        autoRefreshSuspended = false
     }
 
-    func refresh() async {
-        isRefreshing = true
-        defer { isRefreshing = false }
+    func setAutoRefreshSuspended(_ suspended: Bool) {
+        autoRefreshSuspended = suspended
+    }
 
-        tmuxPath = TmuxSessionService.resolveTmuxPath()
+    func refresh(manual: Bool = false) async {
+        guard !isRefreshInFlight else { return }
+        isRefreshInFlight = true
+        if manual {
+            isRefreshing = true
+        }
+        defer {
+            isRefreshInFlight = false
+            if manual {
+                isRefreshing = false
+            }
+        }
+
+        let resolvedPath = TmuxSessionService.resolveTmuxPath()
+        if tmuxPath != resolvedPath {
+            tmuxPath = resolvedPath
+        }
+
         let result = await TmuxSessionService.listSessions(includePreviews: false)
         switch result {
         case .success(let sessions):
@@ -520,12 +538,44 @@ final class TmuxSessionBrowser: ObservableObject {
                 sessions: sessions,
                 savedOrder: AppSettings.shared.tmuxSessionOrder
             )
+            let orderNames = ordered.map(\.name)
+
+            if Self.listContentEqual(ordered, self.sessions), errorMessage == nil {
+                return
+            }
+
             self.sessions = ordered
-            AppSettings.shared.tmuxSessionOrder = ordered.map(\.name)
-            self.errorMessage = nil
+            if badgeSessionCount != ordered.count {
+                badgeSessionCount = ordered.count
+            }
+            if AppSettings.shared.tmuxSessionOrder != orderNames {
+                AppSettings.shared.tmuxSessionOrder = orderNames
+            }
+            if errorMessage != nil {
+                errorMessage = nil
+            }
         case .failure(let error):
+            let message = error.localizedDescription
+            if sessions.isEmpty, errorMessage == message {
+                return
+            }
             self.sessions = []
-            self.errorMessage = error.localizedDescription
+            self.errorMessage = message
+            if badgeSessionCount != 0 {
+                badgeSessionCount = 0
+            }
         }
+    }
+
+    private static func listContentEqual(_ lhs: [TmuxSession], _ rhs: [TmuxSession]) -> Bool {
+        guard lhs.count == rhs.count else { return false }
+        for (left, right) in zip(lhs, rhs) {
+            if left.name != right.name
+                || left.windowCount != right.windowCount
+                || left.isAttached != right.isAttached {
+                return false
+            }
+        }
+        return true
     }
 }
