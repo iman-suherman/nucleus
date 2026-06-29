@@ -160,6 +160,7 @@ struct TerminalWorkspaceView: View {
             viewModel.refreshDashboardIncomingMailAlertIfNeeded()
         }
         .onDisappear {
+            browser.stopAutoRefresh()
             if let terminal = activeTerminal,
                let sessionName = terminal.tmuxSessionName,
                !terminal.skipsDetachOnDisappear {

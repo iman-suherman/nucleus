@@ -34,9 +34,13 @@ struct MediaWorkspaceView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .animation(.easeInOut(duration: 0.2), value: viewModel.dashboardIncomingMailPrompt?.id)
         .onAppear {
+            controller.setMediaWorkspaceVisible(true)
             controller.refreshNowPlaying()
             controller.refreshMusicAccess()
             viewModel.refreshDashboardIncomingMailAlertIfNeeded()
+        }
+        .onDisappear {
+            controller.setMediaWorkspaceVisible(false)
         }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             controller.refreshMusicAccess()

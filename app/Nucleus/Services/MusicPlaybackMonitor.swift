@@ -10,14 +10,21 @@ final class MusicPlaybackMonitor: ObservableObject {
 
     private var refreshTimer: Timer?
     private var pollInterval: TimeInterval = 1.0
+    private var isMediaWorkspaceVisible = false
+    private var isPollingActive = false
 
     init() {
         refresh()
-        startPolling()
+        updatePollingState()
     }
 
     deinit {
         refreshTimer?.invalidate()
+    }
+
+    func setMediaWorkspaceVisible(_ visible: Bool) {
+        isMediaWorkspaceVisible = visible
+        updatePollingState()
     }
 
     func applyOptimisticNowPlaying(from result: MediaSearchResult) {
@@ -30,6 +37,7 @@ final class MusicPlaybackMonitor: ObservableObject {
             artworkURL: result.artworkURL
         )
         setPollInterval(0.5)
+        updatePollingState()
     }
 
     func refresh() {
@@ -55,24 +63,44 @@ final class MusicPlaybackMonitor: ObservableObject {
         }
 
         setPollInterval(nowPlaying.playerState == .playing ? 0.5 : 1.0)
+        updatePollingState()
     }
 
-    private func startPolling() {
-        scheduleTimer()
+    private var shouldPoll: Bool {
+        isMediaWorkspaceVisible || nowPlaying.playerState == .playing
+    }
+
+    private func updatePollingState() {
+        if shouldPoll {
+            guard !isPollingActive else { return }
+            isPollingActive = true
+            scheduleTimer()
+        } else {
+            guard isPollingActive else { return }
+            isPollingActive = false
+            refreshTimer?.invalidate()
+            refreshTimer = nil
+        }
     }
 
     private func setPollInterval(_ interval: TimeInterval) {
         guard interval != pollInterval else { return }
         pollInterval = interval
-        scheduleTimer()
+        if isPollingActive {
+            scheduleTimer()
+        }
     }
 
     private func scheduleTimer() {
+        guard isPollingActive else { return }
         refreshTimer?.invalidate()
         refreshTimer = Timer.scheduledTimer(withTimeInterval: pollInterval, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 self?.refresh()
             }
+        }
+        if let refreshTimer {
+            RunLoop.main.add(refreshTimer, forMode: .common)
         }
     }
 }

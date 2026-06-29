@@ -1,0 +1,18 @@
+{
+  "version": "0.10.20",
+  "summary": "Lower background CPU and memory use during long sessions.",
+  "releaseNotes": {
+    "introduced": [],
+    "changed": [
+      "Gmail web-session unread sync runs at most once per minute when Inbox is not open",
+      "tmux session list refreshes only while the Terminal workspace is active",
+      "Music playback polling pauses when nothing is playing and the Media workspace is hidden"
+    ],
+    "fixed": [
+      "In-memory mail tracking no longer grows without bound over months of use"
+    ],
+    "updated": [],
+    "removed": [],
+    "breaking": []
+  }
+}

@@ -49,6 +49,8 @@ struct GmailWebView: NSViewRepresentable {
         applyVisibility(to: container)
         if isVisible, let webView = container.embeddedWebView {
             context.coordinator.resumeUnreadPollingIfNeeded(in: webView)
+        } else {
+            context.coordinator.stopUnreadPolling()
         }
     }
 
@@ -383,7 +385,7 @@ struct GmailWebView: NSViewRepresentable {
         private func startUnreadPolling(in webView: WKWebView) {
             stopUnreadPolling()
             reportUnreadCount(from: webView)
-            let timer = Timer(timeInterval: 30, repeats: true) { [weak self, weak webView] _ in
+            let timer = Timer(timeInterval: 60, repeats: true) { [weak self, weak webView] _ in
                 guard let webView else { return }
                 self?.reportUnreadCount(from: webView)
             }
@@ -479,22 +481,6 @@ private extension GmailWebView {
       return 0;
     })();
     """
-}
-
-struct GmailUnreadPoller: View {
-    let accountID: UUID
-    let accountEmail: String
-
-    var body: some View {
-        Color.clear
-            .frame(width: 0, height: 0)
-            .onAppear {
-                GmailWebView.ensureUnreadSync(accountID: accountID, email: accountEmail)
-            }
-            .onReceive(NotificationCenter.default.publisher(for: .gmailWebUnreadPollNow)) { _ in
-                GmailWebView.ensureUnreadSync(accountID: accountID, email: accountEmail)
-            }
-    }
 }
 
 struct MailWorkspaceView: View {

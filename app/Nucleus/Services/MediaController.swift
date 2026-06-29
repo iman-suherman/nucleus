@@ -562,6 +562,10 @@ final class MediaController: ObservableObject {
         musicMonitor.refresh()
     }
 
+    func setMediaWorkspaceVisible(_ visible: Bool) {
+        musicMonitor.setMediaWorkspaceVisible(visible)
+    }
+
     func selectAirPlayDevice(named name: String) {
         guard playbackSource == .musicApp else { return }
         MusicAppScriptController.setAirPlayDevice(named: name)

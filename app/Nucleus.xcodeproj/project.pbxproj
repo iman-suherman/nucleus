@@ -29,6 +29,7 @@
 		2B8811DCCB2E638B2C0D6E57 /* DashboardQuoteEmojiService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB5ECBBA5D7B3B965303F247 /* DashboardQuoteEmojiService.swift */; };
 		2D9BBC35081BBFC740FBA05F /* MenuBarPopoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2ADEB9B8C248DDB0410D9749 /* MenuBarPopoverView.swift */; };
 		2E92D4BDB66A47E6E813E56B /* BackgroundSyncServices.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50537B36D31255DB7C3030C9 /* BackgroundSyncServices.swift */; };
+		A1B2C3D4E5F60718293A4B5C /* GmailWebSyncScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C3D4E5F60718293A4B5C6D /* GmailWebSyncScheduler.swift */; };
 		31C2FB18B651A30B5F381A6F /* MenuBarStatusItemController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3040B14FCE7F0866274EF0E /* MenuBarStatusItemController.swift */; };
 		321E25ED804AB6F0BA553ABC /* AirPlayRoutePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C6984DDA572BA7E3972F8ED /* AirPlayRoutePicker.swift */; };
 		369B622F3177919D55C55827 /* DashboardWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F695044507986F1B738A6465 /* DashboardWorkspaceView.swift */; };
@@ -162,6 +163,7 @@
 		4FE025998DE849CA2FCBCC91 /* NucleusTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NucleusTheme.swift; sourceTree = "<group>"; };
 		500EAAED9E0A3F359D797709 /* Funky.caf */ = {isa = PBXFileReference; path = Funky.caf; sourceTree = "<group>"; };
 		50537B36D31255DB7C3030C9 /* BackgroundSyncServices.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundSyncServices.swift; sourceTree = "<group>"; };
+		B2C3D4E5F60718293A4B5C6D /* GmailWebSyncScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GmailWebSyncScheduler.swift; sourceTree = "<group>"; };
 		536C10D58B577BC3DF9EE13E /* ClipboardPasswordSuggestionOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardPasswordSuggestionOverlay.swift; sourceTree = "<group>"; };
 		57198357174E7DA48A1866B3 /* MusicPlaybackMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicPlaybackMonitor.swift; sourceTree = "<group>"; };
 		584F84F9AF029CC4D8800A01 /* NucleusNotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NucleusNotificationService.swift; sourceTree = "<group>"; };
@@ -351,6 +353,7 @@
 				4C6984DDA572BA7E3972F8ED /* AirPlayRoutePicker.swift */,
 				964EE9A5CC0993B6B53D3120 /* AuthStateMigration.swift */,
 				50537B36D31255DB7C3030C9 /* BackgroundSyncServices.swift */,
+				B2C3D4E5F60718293A4B5C6D /* GmailWebSyncScheduler.swift */,
 				F73321C16D7956F50F538A6E /* ClipboardPasteController.swift */,
 				EBE67C288974FF5B2F8524E6 /* CloudKitStoreMigration.swift */,
 				A5BDDEC8A6712481CBFAABBE /* DashboardAnalysisService.swift */,
@@ -569,6 +572,7 @@
 				B9E2844DD110DC0608825A91 /* AppViewModel.swift in Sources */,
 				C8B7DC0B032F4FA042820B5B /* AuthStateMigration.swift in Sources */,
 				2E92D4BDB66A47E6E813E56B /* BackgroundSyncServices.swift in Sources */,
+				A1B2C3D4E5F60718293A4B5C /* GmailWebSyncScheduler.swift in Sources */,
 				4573D9B3E1B2E7E5C1A01E2A /* BillsWorkspaceView.swift in Sources */,
 				0BB860B254C7F78CEEC21A5B /* ClipboardPasswordSuggestionOverlay.swift in Sources */,
 				92F3296DC4AFB5C4A78EF11D /* ClipboardPasteController.swift in Sources */,

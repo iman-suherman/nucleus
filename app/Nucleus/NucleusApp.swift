@@ -238,10 +238,6 @@ struct ContentView: View {
                     viewModel.dismissWhatsNew()
                 }
             }
-
-            ForEach(viewModel.webSessionAccounts) { account in
-                GmailUnreadPoller(accountID: account.id, accountEmail: account.email)
-            }
         }
         .overlay(alignment: .top) {
             if appSettings.dashboardPreferences.newsFeedEnabled,
@@ -272,7 +268,6 @@ struct ContentView: View {
         .onAppear {
             EmbeddedWebViewRegistry.syncVisibility(activePane: activeWorkspacePane(from: viewModel.sidebarSelection))
             syncBreakingNewsFeed()
-            tmuxSessionBrowser.startAutoRefresh()
         }
         .onChange(of: appSettings.dashboardPreferences.newsFeedEnabled) { _, _ in
             syncBreakingNewsFeed()

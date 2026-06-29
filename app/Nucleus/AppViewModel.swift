@@ -264,9 +264,8 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
 
         if let accountID = dashboardMailAlertRecheckAccountID,
            let account = accounts.first(where: { $0.id == accountID }) {
-            GmailWebView.ensureUnreadSync(accountID: account.id, email: account.email)
+            GmailWebSyncScheduler.shared.syncAccount(accountID: account.id, email: account.email)
         }
-        NotificationCenter.default.post(name: .gmailWebUnreadPollNow, object: nil)
 
         await syncMail()
 
@@ -520,6 +519,10 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
     }
 
     private var isShowingInbox: Bool {
+        isInboxWorkspaceActive
+    }
+
+    var isInboxWorkspaceActive: Bool {
         if case .workspace(.inbox) = sidebarSelection {
             return true
         }
@@ -741,6 +744,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
 
         beginStartupStep(.mailSync, message: "Syncing mail…")
         mailSyncService.start(viewModel: self, interval: settings.mailSyncInterval)
+        GmailWebSyncScheduler.shared.start(viewModel: self)
         completeStartupStep(.mailSync)
         Task { @MainActor in
             await syncMail()
@@ -936,6 +940,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
     }
 
     func refreshMailUnreadNow() {
+        GmailWebSyncScheduler.shared.syncAllAccounts(force: true)
         NotificationCenter.default.post(name: .gmailWebUnreadPollNow, object: nil)
         Task { await syncMail() }
     }
@@ -1413,7 +1418,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
             mailInboxNotificationDeliveredForAccount.remove(account.id)
         }
         mailMessages = mergedMessages.sorted { $0.receivedAt > $1.receivedAt }
-        knownMessageIDs.formUnion(mergedMessages.map(\.id))
+        knownMessageIDs = Set(mergedMessages.map(\.id))
 
         let context = ModelContext(modelContainer)
         try? MailRepository.replaceMessages(mergedMessages, context: context)
@@ -1438,11 +1443,6 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         }
 
         flushPendingMailNotifications()
-
-        for account in accounts where account.authMode == .webSession {
-            GmailWebView.ensureUnreadSync(accountID: account.id, email: account.email)
-        }
-        NotificationCenter.default.post(name: .gmailWebUnreadPollNow, object: nil)
 
         updateDockBadge()
         statusMessage = statusMessageForCurrentState()
