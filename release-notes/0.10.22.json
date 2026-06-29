@@ -1,0 +1,16 @@
+{
+  "version": "0.10.22",
+  "summary": "Clipboard password alerts only appear for likely secrets.",
+  "releaseNotes": {
+    "introduced": [],
+    "changed": [
+      "Clipboard password detection requires stronger secret patterns before showing a save notification"
+    ],
+    "fixed": [
+      "Copying normal text, code identifiers, git hashes, or multi-line notes no longer triggers password alerts"
+    ],
+    "updated": [],
+    "removed": [],
+    "breaking": []
+  }
+}
