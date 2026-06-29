@@ -1,15 +1,15 @@
 {
-  "version": "0.10.20",
-  "summary": "Lower background CPU and memory use during long sessions.",
+  "version": "0.10.21",
+  "summary": "Much lighter tmux session monitoring in Terminal.",
   "releaseNotes": {
     "introduced": [],
     "changed": [
-      "Gmail web-session unread sync runs at most once per minute when Inbox is not open",
-      "tmux session list refreshes only while the Terminal workspace is active",
-      "Music playback polling pauses when nothing is playing and the Media workspace is hidden"
+      "tmux session list auto-refreshes every 15 seconds instead of every 2 seconds",
+      "tmux polling pauses while an embedded terminal session is active",
+      "Terminal sidebar badge no longer triggers full-window redraws on attach-status churn"
     ],
     "fixed": [
-      "In-memory mail tracking no longer grows without bound over months of use"
+      "Terminal tmux monitoring no longer re-renders and writes settings when the session list is unchanged"
     ],
     "updated": [],
     "removed": [],
