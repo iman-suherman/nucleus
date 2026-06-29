@@ -1,0 +1,16 @@
+{
+  "version": "0.10.24",
+  "summary": "Attach to tmux sessions even when saved names differ from the live server.",
+  "releaseNotes": {
+    "introduced": [],
+    "changed": [],
+    "fixed": [
+      "tmux attach resolves the live session name before connecting, so cards labeled hugeshop-infra-iac attach even when Nucleus had a stale hugeshop-infra-iac_1_0 target",
+      "tmux attach and destroy commands on session cards use the resolved live name",
+      "saved tmux session order migrates stale names to match live sessions on refresh"
+    ],
+    "updated": [],
+    "removed": [],
+    "breaking": []
+  }
+}

@@ -122,22 +122,83 @@ enum TmuxSessionService {
         return nil
     }
 
-    static func validateSessionExists(sessionName: String, tmuxPath: String) async -> String? {
-        let target = attachTarget(for: sessionName)
-        do {
-            _ = try await run(
-                executable: tmuxPath,
-                arguments: ["-S", defaultSocketPath(), "has-session", "-t", target]
-            )
-            return nil
-        } catch {
-            return "Session \"\(target)\" was not found on the tmux server."
+    static func matchingLiveSessionName(preferredName: String, liveNames: [String]) -> String? {
+        let trimmedPreferred = preferredName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedPreferred.isEmpty else { return nil }
+
+        if liveNames.contains(trimmedPreferred) {
+            return trimmedPreferred
         }
+
+        let preferredDisplay = displayName(for: trimmedPreferred)
+        if liveNames.contains(preferredDisplay) {
+            return preferredDisplay
+        }
+
+        let displayMatches = liveNames.filter { displayName(for: $0) == preferredDisplay }
+        if displayMatches.count == 1 {
+            return displayMatches[0]
+        }
+
+        let exactDisplayMatches = liveNames.filter { $0 == preferredDisplay }
+        if exactDisplayMatches.count == 1 {
+            return exactDisplayMatches[0]
+        }
+
+        return nil
+    }
+
+    static func listSessionNames(tmuxPath: String) async -> [String] {
+        guard let output = try? await run(
+            executable: tmuxPath,
+            arguments: ["-S", defaultSocketPath(), "list-sessions", "-F", "#{session_name}"]
+        ) else {
+            return []
+        }
+
+        return output
+            .split(separator: "\n", omittingEmptySubsequences: false)
+            .map { String($0).trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+    }
+
+    static func resolveLiveSessionTarget(preferredName: String, tmuxPath: String) async -> String? {
+        let liveNames = await listSessionNames(tmuxPath: tmuxPath)
+        guard !liveNames.isEmpty else { return nil }
+        return matchingLiveSessionName(preferredName: preferredName, liveNames: liveNames)
+    }
+
+    static func validateSessionExists(sessionName: String, tmuxPath: String) async -> String? {
+        guard await resolveLiveSessionTarget(preferredName: sessionName, tmuxPath: tmuxPath) != nil else {
+            return "Session \"\(displayName(for: sessionName))\" was not found on the tmux server."
+        }
+        return nil
+    }
+
+    static func migrateSavedSessionOrder(savedOrder: [String], liveSessions: [TmuxSession]) -> [String] {
+        var migrated: [String] = []
+        var seen = Set<String>()
+
+        for savedName in savedOrder {
+            if let exact = liveSessions.first(where: { $0.name == savedName && seen.insert($0.name).inserted }) {
+                migrated.append(exact.name)
+                continue
+            }
+
+            let savedDisplay = displayName(for: savedName)
+            if let match = liveSessions.first(where: { $0.displayName == savedDisplay && seen.insert($0.name).inserted }) {
+                migrated.append(match.name)
+            }
+        }
+
+        return migrated
     }
 
     /// Detach other tmux clients so Nucleus can attach to the session.
     static func prepareSessionForAttach(sessionName: String, tmuxPath: String) async {
-        let target = attachTarget(for: sessionName)
+        guard let target = await resolveLiveSessionTarget(preferredName: sessionName, tmuxPath: tmuxPath) else {
+            return
+        }
         _ = try? await run(
             executable: tmuxPath,
             arguments: ["-S", defaultSocketPath(), "detach-client", "-s", target]
@@ -146,7 +207,9 @@ enum TmuxSessionService {
 
     /// Detach Nucleus from a session without relying on tmux prefix keys (Ctrl+B often fails in embedded terminals).
     static func detachSession(sessionName: String, tmuxPath: String) async {
-        let target = attachTarget(for: sessionName)
+        guard let target = await resolveLiveSessionTarget(preferredName: sessionName, tmuxPath: tmuxPath) else {
+            return
+        }
         _ = try? await run(
             executable: tmuxPath,
             arguments: ["-S", defaultSocketPath(), "detach-client", "-s", target]
@@ -235,7 +298,9 @@ enum TmuxSessionService {
 
     /// Kill a tmux session directly without attaching through the embedded terminal.
     static func killSession(sessionName: String, tmuxPath: String) async -> String? {
-        let target = attachTarget(for: sessionName)
+        guard let target = await resolveLiveSessionTarget(preferredName: sessionName, tmuxPath: tmuxPath) else {
+            return "Session \"\(displayName(for: sessionName))\" was not found on the tmux server."
+        }
         let socket = defaultSocketPath()
 
         _ = try? await run(
@@ -461,6 +526,7 @@ final class TmuxSessionBrowser: ObservableObject {
     private static let autoRefreshInterval: Duration = .seconds(15)
 
     @Published private(set) var sessions: [TmuxSession] = []
+    @Published private(set) var liveSessionNames: [String] = []
     @Published private(set) var errorMessage: String?
     @Published private(set) var isRefreshing = false
     @Published private(set) var tmuxPath: String?
@@ -478,14 +544,17 @@ final class TmuxSessionBrowser: ObservableObject {
     private init() {}
 
     static func applyDisplayOrder(sessions: [TmuxSession], savedOrder: [String]) -> [TmuxSession] {
+        let migratedOrder = TmuxSessionService.migrateSavedSessionOrder(
+            savedOrder: savedOrder,
+            liveSessions: sessions
+        )
         let byName = Dictionary(uniqueKeysWithValues: sessions.map { ($0.name, $0) })
         var ordered: [TmuxSession] = []
         var seen = Set<String>()
 
-        for name in savedOrder {
-            guard let session = byName[name] else { continue }
+        for name in migratedOrder {
+            guard let session = byName[name], seen.insert(name).inserted else { continue }
             ordered.append(session)
-            seen.insert(name)
         }
 
         let newcomers = sessions
@@ -564,9 +633,19 @@ final class TmuxSessionBrowser: ObservableObject {
         let result = await TmuxSessionService.listSessions(includePreviews: false)
         switch result {
         case .success(let sessions):
+            liveSessionNames = sessions.map(\.name)
+
+            let migratedOrder = TmuxSessionService.migrateSavedSessionOrder(
+                savedOrder: AppSettings.shared.tmuxSessionOrder,
+                liveSessions: sessions
+            )
+            if migratedOrder != AppSettings.shared.tmuxSessionOrder {
+                AppSettings.shared.tmuxSessionOrder = migratedOrder
+            }
+
             let ordered = Self.applyDisplayOrder(
                 sessions: sessions,
-                savedOrder: AppSettings.shared.tmuxSessionOrder
+                savedOrder: migratedOrder
             )
             let orderNames = ordered.map(\.name)
 
@@ -590,6 +669,7 @@ final class TmuxSessionBrowser: ObservableObject {
                 return
             }
             self.sessions = []
+            self.liveSessionNames = []
             self.errorMessage = message
             if badgeSessionCount != 0 {
                 badgeSessionCount = 0

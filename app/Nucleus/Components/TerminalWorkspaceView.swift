@@ -315,7 +315,11 @@ struct TerminalWorkspaceView: View {
         }
     }
     private func sessionCard(_ session: TmuxSession) -> some View {
-        let attachCommand = TmuxSessionService.attachCommandFromEmbeddedTerminal(sessionName: session.name)
+        let attachTarget = TmuxSessionService.matchingLiveSessionName(
+            preferredName: session.name,
+            liveNames: browser.liveSessionNames
+        ) ?? session.name
+        let attachCommand = TmuxSessionService.attachCommandFromEmbeddedTerminal(sessionName: attachTarget)
         let isCopied = copiedAttachSessionName == session.name
         let cardState = sessionCardState(for: session)
         let accent = cardState.accent
@@ -408,7 +412,8 @@ struct TerminalWorkspaceView: View {
     }
 
     private func sessionCardState(for session: TmuxSession) -> SessionCardState {
-        if activeTerminal?.tmuxSessionName == session.name {
+        if let activeName = activeTerminal?.tmuxSessionName,
+           activeName == session.name || TmuxSessionService.displayName(for: activeName) == session.displayName {
             return SessionCardState(
                 accent: .green,
                 background: Color.green.opacity(0.12),
@@ -640,13 +645,23 @@ struct TerminalWorkspaceView: View {
                 return
             }
 
-            if let error = await TmuxSessionService.validateSessionExists(sessionName: session.name, tmuxPath: tmuxPath) {
-                terminalErrorMessage = error
+            guard let resolvedName = await TmuxSessionService.resolveLiveSessionTarget(
+                preferredName: session.name,
+                tmuxPath: tmuxPath
+            ) else {
+                terminalErrorMessage = "Session \"\(session.displayName)\" was not found on the tmux server."
                 return
             }
 
-            await TmuxSessionService.prepareSessionForAttach(sessionName: session.name, tmuxPath: tmuxPath)
-            activeTerminal = .attaching(session)
+            let resolvedSession = TmuxSession(
+                name: resolvedName,
+                windowCount: session.windowCount,
+                isAttached: session.isAttached,
+                preview: session.preview
+            )
+
+            await TmuxSessionService.prepareSessionForAttach(sessionName: resolvedName, tmuxPath: tmuxPath)
+            activeTerminal = .attaching(resolvedSession)
         }
     }
 
