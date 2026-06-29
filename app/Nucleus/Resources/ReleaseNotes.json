@@ -1,15 +1,13 @@
 {
-  "version": "0.10.21",
-  "summary": "Much lighter tmux session monitoring in Terminal.",
+  "version": "0.10.22",
+  "summary": "Clipboard password alerts only appear for likely secrets.",
   "releaseNotes": {
     "introduced": [],
     "changed": [
-      "tmux session list auto-refreshes every 15 seconds instead of every 2 seconds",
-      "tmux polling pauses while an embedded terminal session is active",
-      "Terminal sidebar badge no longer triggers full-window redraws on attach-status churn"
+      "Clipboard password detection requires stronger secret patterns before showing a save notification"
     ],
     "fixed": [
-      "Terminal tmux monitoring no longer re-renders and writes settings when the session list is unchanged"
+      "Copying normal text, code identifiers, git hashes, or multi-line notes no longer triggers password alerts"
     ],
     "updated": [],
     "removed": [],
