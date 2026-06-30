@@ -39,6 +39,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
     @Published var notes: [NoteDocument] = []
     @Published var mailMessages: [MailMessageSummary] = []
     @Published var calendarEvents: [CalendarEventSummary] = []
+    @Published var selectedCalendarEventID: String?
     @Published var unreadByAccount: [UUID: Int] = [:]
     @Published var totalUnread = 0
     @Published var clipboardSearchQuery = ""
@@ -257,8 +258,20 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
     }
 
     func openCalendarFromMeetingReminder() {
+        if let prompt = meetingReminderPrompt, let event = prompt.events.first {
+            selectedCalendarEventID = event.id
+        }
         sidebarSelection = .workspace(.calendar)
         AppSettings.shared.selectedWorkspacePane = WorkspacePane.calendar.rawValue
+    }
+
+    func openCalendarEvent(_ event: CalendarEventSummary) {
+        selectedCalendarEventID = event.id
+        openCalendarFromMeetingReminder()
+    }
+
+    var nextMeetingTitleGroup: MeetingReminderPlanner.UpcomingMeetingGroup? {
+        MeetingReminderPlanner.upcomingMeetingGroups(from: calendarEvents).first
     }
 
     var upcomingCalendarEventCount: Int {
@@ -1042,14 +1055,46 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         if totalUnread > 0 {
             parts.append("\(totalUnread) unread email\(totalUnread == 1 ? "" : "s")")
         }
-        if let nextMeeting = calendarEvents.first(where: { $0.startDate > Date() }) {
-            parts.append("Next: \(nextMeeting.title)")
+        if let group = nextMeetingTitleGroup, let event = group.events.first {
+            let time = Self.nextMeetingTimeLabel(for: group.startDate)
+            if group.events.count == 1 {
+                let emailSuffix = event.accountEmail.isEmpty ? "" : " · \(event.accountEmail)"
+                parts.append("Next \(time): \(event.title)\(emailSuffix)")
+            } else {
+                parts.append("Next \(time): \(group.events.count) meetings")
+            }
         }
         if !parts.isEmpty {
             return parts.joined(separator: " · ")
         }
         return "Ready"
     }
+
+    static func nextMeetingTimeLabel(for startDate: Date, now: Date = Date()) -> String {
+        let calendar = Calendar.current
+        let time = nextMeetingTimeFormatter.string(from: startDate)
+        if calendar.isDateInToday(startDate) {
+            return time
+        }
+        if calendar.isDateInTomorrow(startDate) {
+            return "Tomorrow \(time)"
+        }
+        let day = nextMeetingDayFormatter.string(from: startDate)
+        return "\(day) \(time)"
+    }
+
+    private static let nextMeetingTimeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
+        formatter.dateStyle = .none
+        return formatter
+    }()
+
+    private static let nextMeetingDayFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.setLocalizedDateFormatFromTemplate("EEE d MMM")
+        return formatter
+    }()
 
     func unreadBreakdown(for counts: [UUID: Int]) -> [UnreadAccountBreakdown] {
         accounts.compactMap { account in
@@ -1117,6 +1162,10 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         }
 
         calendarEvents = (try? CalendarRepository.fetchUpcoming(context: context)) ?? []
+        if let selectedCalendarEventID,
+           !calendarEvents.contains(where: { $0.id == selectedCalendarEventID }) {
+            self.selectedCalendarEventID = nil
+        }
 
         Task { await refreshMeetingReminders() }
 

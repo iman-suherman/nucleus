@@ -26,6 +26,8 @@ struct NucleusAppLogo: View {
 }
 
 struct NucleusBrandMark: View {
+    @EnvironmentObject private var viewModel: AppViewModel
+
     var logoSize: CGFloat = 36
     var cornerRadius: CGFloat?
     var showText: Bool = true
@@ -56,9 +58,15 @@ struct NucleusBrandMark: View {
                                 .foregroundStyle(.secondary)
                         }
                     }
-                    Text("Personal Workspace")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    if let group = viewModel.nextMeetingTitleGroup {
+                        NextMeetingTitleView(group: group) { event in
+                            viewModel.openCalendarEvent(event)
+                        }
+                    } else {
+                        Text("Personal Workspace")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
         }

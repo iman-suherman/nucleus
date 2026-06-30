@@ -135,4 +135,37 @@ final class MeetingReminderPlannerTests: XCTestCase {
         let reminders = MeetingReminderPlanner.uniqueReminders(for: [work, personal], now: Date())
         XCTAssertEqual(reminders.count, 1)
     }
+
+    func testUpcomingMeetingGroupsDedupesSameStartTime() {
+        let start = Date().addingTimeInterval(900)
+        let work = CalendarEventSummary(
+            id: "work",
+            accountID: UUID(),
+            title: "Client call",
+            startDate: start,
+            endDate: start.addingTimeInterval(1800),
+            accountEmail: "work@example.com"
+        )
+        let personal = CalendarEventSummary(
+            id: "personal",
+            accountID: UUID(),
+            title: "Team sync",
+            startDate: start,
+            endDate: start.addingTimeInterval(1800),
+            accountEmail: "personal@gmail.com"
+        )
+        let later = CalendarEventSummary(
+            id: "later",
+            accountID: UUID(),
+            title: "Retro",
+            startDate: start.addingTimeInterval(3600),
+            endDate: start.addingTimeInterval(5400),
+            accountEmail: "work@example.com"
+        )
+
+        let groups = MeetingReminderPlanner.upcomingMeetingGroups(from: [work, personal, later], now: Date())
+        XCTAssertEqual(groups.count, 2)
+        XCTAssertEqual(groups[0].events.count, 2)
+        XCTAssertEqual(groups[1].events.count, 1)
+    }
 }

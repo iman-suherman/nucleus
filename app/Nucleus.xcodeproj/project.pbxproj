@@ -93,6 +93,7 @@
 		9EC8527F349AA5FE72F4ABE8 /* DashboardIncomingMailOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E48A7B5023CD11F5F01726F /* DashboardIncomingMailOverlay.swift */; };
 		9EF5B80A8FD01BADCAC44647 /* DashboardWeatherSpeechService.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA356A3F1FC0966F4066DD9F /* DashboardWeatherSpeechService.swift */; };
 		A1A5748F0C26C23E62073279 /* DashboardProcessMetricsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5A1AEBE23399CD601B924A8 /* DashboardProcessMetricsService.swift */; };
+		A759D53751D565DC79733501 /* NextMeetingTitleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBF72194B5D600B7DC1AB616 /* NextMeetingTitleView.swift */; };
 		AA2B9B165190FE2E23E7AD95 /* MailInboxLoadingPhase.swift in Sources */ = {isa = PBXBuildFile; fileRef = C201B6D32546E035E9D04B57 /* MailInboxLoadingPhase.swift */; };
 		B1DC52E1B6A22EAA75FA19EE /* MarketingScreenshotMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E5E2CE15C506802ABB7D2F9 /* MarketingScreenshotMode.swift */; };
 		B78F1CBC004C7A7D60CE6175 /* DashboardQuotes.json in Resources */ = {isa = PBXBuildFile; fileRef = B1446CE8EB0EF69B17A5FEAE /* DashboardQuotes.json */; };
@@ -254,6 +255,7 @@
 		F695044507986F1B738A6465 /* DashboardWorkspaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardWorkspaceView.swift; sourceTree = "<group>"; };
 		F73321C16D7956F50F538A6E /* ClipboardPasteController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardPasteController.swift; sourceTree = "<group>"; };
 		FB9FA20601C41D6B336DC7CA /* EventKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = EventKit.framework; path = System/Library/Frameworks/EventKit.framework; sourceTree = SDKROOT; };
+		FBF72194B5D600B7DC1AB616 /* NextMeetingTitleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NextMeetingTitleView.swift; sourceTree = "<group>"; };
 		FE21FFF77FD2D44BA923CC18 /* NucleusLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NucleusLog.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -312,6 +314,7 @@
 				A5293EFD704186720E36251C /* MenuBarNucleusMark.swift */,
 				2ADEB9B8C248DDB0410D9749 /* MenuBarPopoverView.swift */,
 				7A6E470F09EDC0FD0928F432 /* MusicAccessSetupView.swift */,
+				FBF72194B5D600B7DC1AB616 /* NextMeetingTitleView.swift */,
 				953865571573F05622595783 /* NotesWorkspaceView.swift */,
 				4FE025998DE849CA2FCBCC91 /* NucleusTheme.swift */,
 				A6EDADCCF24985DEF2C1A2DB /* ReleaseNotesDetailView.swift */,
@@ -660,6 +663,7 @@
 				E93888DB4208C8F4596E5A75 /* MusicLyricsSearchService.swift in Sources */,
 				72E293C6D0604B0AB23FF5B4 /* MusicPlaybackMonitor.swift in Sources */,
 				4A01FCAA8886DB2CFC744B4C /* MusicSemanticSearchService.swift in Sources */,
+				A759D53751D565DC79733501 /* NextMeetingTitleView.swift in Sources */,
 				CD6372D2C3B60CF249E70D00 /* NotesClipboardMigration.swift in Sources */,
 				51EAB3CEA8190FEC48F1F8B8 /* NotesWorkspaceView.swift in Sources */,
 				89DD2F6A9B7E342945B2F792 /* NotificationUserInfo.swift in Sources */,

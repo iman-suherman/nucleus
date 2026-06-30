@@ -199,6 +199,33 @@ public enum MeetingReminderPlanner {
         eventsStartingTogether(with: event, in: events).map(\.id).sorted().joined(separator: "|")
     }
 
+    public struct UpcomingMeetingGroup: Sendable, Hashable {
+        public let startDate: Date
+        public let events: [CalendarEventSummary]
+
+        public init(startDate: Date, events: [CalendarEventSummary]) {
+            self.startDate = startDate
+            self.events = events
+        }
+    }
+
+    /// Upcoming meetings grouped by overlapping start time, sorted chronologically.
+    public static func upcomingMeetingGroups(
+        from events: [CalendarEventSummary],
+        now: Date = Date()
+    ) -> [UpcomingMeetingGroup] {
+        let upcoming = events.filter { $0.startDate > now }.sorted { $0.startDate < $1.startDate }
+        var seenGroupKeys: Set<String> = []
+        var groups: [UpcomingMeetingGroup] = []
+        for event in upcoming {
+            let grouped = eventsStartingTogether(with: event, in: upcoming)
+            let groupKey = alertGroupKey(for: event, in: upcoming)
+            guard seenGroupKeys.insert(groupKey).inserted else { continue }
+            groups.append(UpcomingMeetingGroup(startDate: event.startDate, events: grouped))
+        }
+        return groups
+    }
+
     public static func reminders(for events: [CalendarEventSummary], now: Date = Date()) -> [Reminder] {
         var results: [Reminder] = []
         for event in events where event.startDate > now {
