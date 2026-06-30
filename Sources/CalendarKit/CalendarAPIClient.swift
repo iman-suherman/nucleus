@@ -170,25 +170,35 @@ public enum MeetingReminderPlanner {
         public var kind: Kind
 
         public enum Kind: String, Sendable {
-            case tenMinutes
-            case oneMinute
-            case starting
+            case twoMinutes
         }
+    }
+
+    public static let reminderLeadTime: TimeInterval = 120
+    public static let sameStartTolerance: TimeInterval = 60
+
+    public static func eventsStartingTogether(
+        with event: CalendarEventSummary,
+        in events: [CalendarEventSummary],
+        tolerance: TimeInterval = sameStartTolerance
+    ) -> [CalendarEventSummary] {
+        events
+            .filter { abs($0.startDate.timeIntervalSince(event.startDate)) <= tolerance }
+            .sorted { lhs, rhs in
+                let emailOrder = lhs.accountEmail.localizedCaseInsensitiveCompare(rhs.accountEmail)
+                if emailOrder != .orderedSame {
+                    return emailOrder == .orderedAscending
+                }
+                return lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedAscending
+            }
     }
 
     public static func reminders(for events: [CalendarEventSummary], now: Date = Date()) -> [Reminder] {
         var results: [Reminder] = []
         for event in events where event.startDate > now {
-            let tenMinuteDate = event.startDate.addingTimeInterval(-600)
-            let oneMinuteDate = event.startDate.addingTimeInterval(-60)
-
-            if tenMinuteDate > now {
-                results.append(Reminder(event: event, fireDate: tenMinuteDate, kind: .tenMinutes))
-            }
-            if oneMinuteDate > now {
-                results.append(Reminder(event: event, fireDate: oneMinuteDate, kind: .oneMinute))
-            }
-            results.append(Reminder(event: event, fireDate: event.startDate, kind: .starting))
+            let fireDate = event.startDate.addingTimeInterval(-reminderLeadTime)
+            guard fireDate > now else { continue }
+            results.append(Reminder(event: event, fireDate: fireDate, kind: .twoMinutes))
         }
         return results
     }

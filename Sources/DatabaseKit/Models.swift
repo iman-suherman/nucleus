@@ -110,15 +110,15 @@ public final class ClipboardItemRecord {
 
 @Model
 public final class CalendarEventRecord {
-    @Attribute(.unique) public var id: String
-    public var accountID: UUID
-    public var title: String
-    public var startDate: Date
-    public var endDate: Date
-    public var location: String
-    public var attendeesCSV: String
+    public var id: String = ""
+    public var accountID: UUID = UUID()
+    public var title: String = ""
+    public var startDate: Date = Date()
+    public var endDate: Date = Date()
+    public var location: String = ""
+    public var attendeesCSV: String = ""
     public var meetingLink: String?
-    public var accountEmail: String
+    public var accountEmail: String = ""
 
     public init(
         id: String,

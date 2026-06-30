@@ -10,7 +10,7 @@ struct DashboardCalendarSchedulePanel: View {
     let onRefresh: () -> Void
     let onRequestAccess: () -> Void
 
-    private static let displayLimit = 8
+    private static let scrollMaxHeight: CGFloat = 390
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -19,9 +19,15 @@ struct DashboardCalendarSchedulePanel: View {
             } else if events.isEmpty {
                 emptyState
             } else {
-                ForEach(displayedEvents) { event in
-                    eventRow(event)
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 0) {
+                        ForEach(events) { event in
+                            eventRow(event)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
+                .frame(maxHeight: Self.scrollMaxHeight)
             }
 
             if isSyncing {
@@ -34,10 +40,6 @@ struct DashboardCalendarSchedulePanel: View {
                 }
             }
         }
-    }
-
-    private var displayedEvents: [CalendarEventSummary] {
-        Array(events.prefix(Self.displayLimit))
     }
 
     private var accessPrompt: some View {

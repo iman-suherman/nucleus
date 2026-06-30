@@ -1,0 +1,22 @@
+{
+  "version": "0.11.2",
+  "summary": "Fix iCloud calendar sync, dashboard layout, and meeting alerts with join links.",
+  "releaseNotes": {
+    "introduced": [
+      "Meeting reminder popup 2 minutes before start on any workspace, with Join meeting link and Funky alert sound distinct from email",
+      "Overlapping meetings at the same time show in one alert with highlighted invite email per calendar so you can pick the right link"
+    ],
+    "changed": [
+      "Dashboard layout: Calendar schedule on the left, Apple Music above Nucleus AI on the right, scrollable event list",
+      "Meeting reminders fire once at 2 minutes before start (replaces 10‑min / 1‑min / at‑start alerts)"
+    ],
+    "fixed": [
+      "iCloud SwiftDataError on launch — CalendarEventRecord made CloudKit-compatible with one-time local store reset for calendar schema"
+    ],
+    "updated": [
+      "CloudKit error messages mention CD_CalendarEventRecord when Production schema is missing"
+    ],
+    "removed": [],
+    "breaking": []
+  }
+}

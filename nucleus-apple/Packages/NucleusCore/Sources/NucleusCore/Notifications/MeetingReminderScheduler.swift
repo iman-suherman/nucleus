@@ -2,7 +2,7 @@ import Foundation
 import NucleusKit
 import UserNotifications
 
-/// Phase 2: Local meeting reminders (10 min and 1 min before) with join-meeting action.
+/// Phase 2: Local meeting reminders (2 minutes before) with join-meeting action.
 @MainActor
 public final class MeetingReminderScheduler {
     public static let shared = MeetingReminderScheduler()
@@ -36,15 +36,13 @@ public final class MeetingReminderScheduler {
 
         center.removePendingNotificationRequests(withIdentifiers: notificationIDs(for: event.id))
 
-        for (minutes, suffix) in [(10, "10min"), (1, "1min")] {
+        for (minutes, suffix) in [(2, "2min")] {
             let fireDate = event.startDate.addingTimeInterval(-TimeInterval(minutes * 60))
             guard fireDate > Date() else { continue }
 
             let content = UNMutableNotificationContent()
             content.title = event.title
-            content.body = minutes == 1
-                ? "Starting in 1 minute"
-                : "Starting in 10 minutes"
+            content.body = "Starting in 2 minutes"
             content.sound = .default
             content.categoryIdentifier = Self.joinMeetingCategoryID
             if let link = event.meetingLink {
@@ -72,6 +70,6 @@ public final class MeetingReminderScheduler {
     }
 
     private func notificationIDs(for eventID: String) -> [String] {
-        ["\(eventID)-10min", "\(eventID)-1min"]
+        ["\(eventID)-2min"]
     }
 }

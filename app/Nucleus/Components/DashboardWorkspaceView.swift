@@ -221,9 +221,6 @@ struct DashboardWorkspaceView: View {
             if dashboardPreferences.publicHolidayEnabled {
                 publicHolidayRow
             }
-            if dashboardPreferences.calendarScheduleEnabled {
-                calendarScheduleRow
-            }
         }
     }
 
@@ -249,24 +246,45 @@ struct DashboardWorkspaceView: View {
     }
 
     private var showsActionPanelsRow: Bool {
-        dashboardPreferences.nucleusAIEnabled || dashboardPreferences.appleMusicEnabled
+        dashboardPreferences.nucleusAIEnabled
+            || dashboardPreferences.appleMusicEnabled
+            || dashboardPreferences.calendarScheduleEnabled
     }
 
     @ViewBuilder
     private var dashboardActionPanelsRow: some View {
-        dashboardColumns(spacing: dashboardRowSpacing) {
-            if dashboardPreferences.nucleusAIEnabled {
+        let showsCalendar = dashboardPreferences.calendarScheduleEnabled
+        let showsMediaStack = dashboardPreferences.appleMusicEnabled || dashboardPreferences.nucleusAIEnabled
+
+        if showsCalendar && showsMediaStack {
+            dashboardColumns(spacing: dashboardRowSpacing) {
                 flexDashboardColumn {
-                    DashboardNucleusAIPanel(isExpanded: nucleusAIExpanded)
+                    calendarScheduleRow
+                }
+                flexDashboardColumn {
+                    musicAndAIStack
                 }
             }
+            .fixedSize(horizontal: false, vertical: true)
+        } else if showsCalendar {
+            calendarScheduleRow
+        } else {
+            musicAndAIStack
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    @ViewBuilder
+    private var musicAndAIStack: some View {
+        VStack(alignment: .leading, spacing: dashboardRowSpacing) {
             if dashboardPreferences.appleMusicEnabled {
-                flexDashboardColumn {
-                    DashboardMusicPanel(isExpanded: appleMusicExpanded)
-                }
+                DashboardMusicPanel(isExpanded: appleMusicExpanded)
+            }
+            if dashboardPreferences.nucleusAIEnabled {
+                DashboardNucleusAIPanel(isExpanded: nucleusAIExpanded)
             }
         }
-        .fixedSize(horizontal: false, vertical: true)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
     }
 
     private var showsWeatherResourceRow: Bool {

@@ -102,6 +102,7 @@
 		C0DBC257A8BAB9C658468527 /* NucleusApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2698972D63EAE12C5F050DE /* NucleusApp.swift */; };
 		C1FF893494C3B5AE2F58C5A3 /* MediaController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6006FFDC6A45F10043EEBCF5 /* MediaController.swift */; };
 		C442A46B050B3F01536FCC47 /* DockBadgeController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 035D0E9FC4A418A7C52523C6 /* DockBadgeController.swift */; };
+		C62189E0E36E3BA0EDA9B7A3 /* DashboardMeetingReminderOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 624D522BB1D4439E2DBEE314 /* DashboardMeetingReminderOverlay.swift */; };
 		C67FBF9A748A2D78F0D4B1BB /* WorkspaceIdleController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D25355470BC63425B500B871 /* WorkspaceIdleController.swift */; };
 		C7B8138444FEA8F5600C4648 /* MailKit in Frameworks */ = {isa = PBXBuildFile; productRef = 05DB77AAF24A6898436A8A52 /* MailKit */; };
 		C8B7DC0B032F4FA042820B5B /* AuthStateMigration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 964EE9A5CC0993B6B53D3120 /* AuthStateMigration.swift */; };
@@ -177,6 +178,7 @@
 		5A55CAAB4D2D33098BEFB97A /* DashboardPublicHolidayExplanationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardPublicHolidayExplanationService.swift; sourceTree = "<group>"; };
 		6006FFDC6A45F10043EEBCF5 /* MediaController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaController.swift; sourceTree = "<group>"; };
 		622EA3088C0B8BBC591777A3 /* DashboardBreakingNewsOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardBreakingNewsOverlay.swift; sourceTree = "<group>"; };
+		624D522BB1D4439E2DBEE314 /* DashboardMeetingReminderOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardMeetingReminderOverlay.swift; sourceTree = "<group>"; };
 		68AD664CB4410FC8FBE21B1C /* HourlyBeepService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HourlyBeepService.swift; sourceTree = "<group>"; };
 		69A7BEC28EFE1D402738D081 /* AccountCenterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountCenterView.swift; sourceTree = "<group>"; };
 		6EC98A7D2AD632EB0F27A607 /* FoundationModels.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = FoundationModels.framework; path = System/Library/Frameworks/FoundationModels.framework; sourceTree = SDKROOT; };
@@ -299,6 +301,7 @@
 				622EA3088C0B8BBC591777A3 /* DashboardBreakingNewsOverlay.swift */,
 				87A053FB8BF862AF7AF99F41 /* DashboardCalendarSchedulePanel.swift */,
 				4E48A7B5023CD11F5F01726F /* DashboardIncomingMailOverlay.swift */,
+				624D522BB1D4439E2DBEE314 /* DashboardMeetingReminderOverlay.swift */,
 				75CD049259B1B6242B15B6DF /* DashboardNewsTickerView.swift */,
 				F695044507986F1B738A6465 /* DashboardWorkspaceView.swift */,
 				73EBDA4D81C6867B0FF2D7F5 /* KaraokeLyricsView.swift */,
@@ -604,6 +607,7 @@
 				4F29C2E3364B7255A5262494 /* DashboardClipboardDayAnalysisService.swift in Sources */,
 				9EC8527F349AA5FE72F4ABE8 /* DashboardIncomingMailOverlay.swift in Sources */,
 				3CAE1AF1473C860F9A01DED6 /* DashboardLocationSubdivisionResolver.swift in Sources */,
+				C62189E0E36E3BA0EDA9B7A3 /* DashboardMeetingReminderOverlay.swift in Sources */,
 				51F5F59CEBB58934E8084747 /* DashboardNewsAnalysisService.swift in Sources */,
 				DC31225F8CF5E258002AAF0A /* DashboardNewsFeedService.swift in Sources */,
 				7B7990E1FA8E0FBBF86E5F49 /* DashboardNewsSpeechService.swift in Sources */,

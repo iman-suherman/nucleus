@@ -137,6 +137,35 @@ enum ChatNotificationSound: String, CaseIterable, Identifiable {
     }
 }
 
+/// Calendar meeting alerts use Funky so they are distinct from the default email sound (Nucleus Mail).
+enum MeetingNotificationSound {
+    private static let soundName = "Funky"
+
+    static var notificationSound: UNNotificationSound? {
+        installInNotificationSupportIfNeeded()
+        return UNNotificationSound(named: UNNotificationSoundName(soundName))
+    }
+
+    static func playAlert() {
+        guard let url = Bundle.main.url(forResource: soundName, withExtension: "caf") else { return }
+        NSSound(contentsOf: url, byReference: false)?.play()
+    }
+
+    static func prepareNotificationSounds() {
+        installInNotificationSupportIfNeeded()
+    }
+
+    private static func installInNotificationSupportIfNeeded() {
+        guard let source = Bundle.main.url(forResource: soundName, withExtension: "caf") else { return }
+        let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+            .appendingPathComponent("Nucleus/Library/Sounds", isDirectory: true)
+        try? FileManager.default.createDirectory(at: support, withIntermediateDirectories: true)
+        let destination = support.appendingPathComponent("\(soundName).caf")
+        guard !FileManager.default.fileExists(atPath: destination.path) else { return }
+        try? FileManager.default.copyItem(at: source, to: destination)
+    }
+}
+
 enum SidebarSize: String, CaseIterable, Identifiable, Codable {
     case regular
     case compact

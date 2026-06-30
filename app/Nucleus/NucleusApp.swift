@@ -238,7 +238,17 @@ struct ContentView: View {
                     viewModel.dismissWhatsNew()
                 }
             }
+
+            if let prompt = viewModel.meetingReminderPrompt {
+                DashboardMeetingReminderOverlay(
+                    prompt: prompt,
+                    onJoinMeeting: viewModel.joinMeetingFromReminder,
+                    onOpenCalendar: viewModel.openCalendarFromMeetingReminder,
+                    onDismiss: viewModel.dismissMeetingReminder
+                )
+            }
         }
+        .animation(.easeInOut(duration: 0.2), value: viewModel.meetingReminderPrompt?.id)
         .overlay(alignment: .top) {
             if appSettings.dashboardPreferences.newsFeedEnabled,
                let alert = newsFeedService.breakingNewsAlert {

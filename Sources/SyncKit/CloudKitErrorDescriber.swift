@@ -54,8 +54,9 @@ enum CloudKitErrorDescriber {
         let detail = describe(error)
         if detail.localizedCaseInsensitiveContains("cd_entityname")
             || detail.localizedCaseInsensitiveContains("cannot create or modify field")
-            || detail.localizedCaseInsensitiveContains("cd_currencycode") {
-            return "iCloud upload failed: CloudKit Production schema is missing SwiftData fields (e.g. CD_currencyCode on CD_BillRecord). Import cloudkit/nucleus-development.ckdb into Development, deploy to Production in CloudKit Console. See cloudkit/README.md."
+            || detail.localizedCaseInsensitiveContains("cd_currencycode")
+            || detail.localizedCaseInsensitiveContains("cd_calendareventrecord") {
+            return "iCloud upload failed: CloudKit Production schema is missing SwiftData fields or record types (e.g. CD_CalendarEventRecord or CD_currencyCode). Import cloudkit/nucleus-development.ckdb into Development, deploy to Production in CloudKit Console. See cloudkit/README.md."
         }
         if detail.localizedCaseInsensitiveContains("quota") {
             return "iCloud upload failed: iCloud storage may be full. Free space in System Settings → Apple ID → iCloud, then try again."

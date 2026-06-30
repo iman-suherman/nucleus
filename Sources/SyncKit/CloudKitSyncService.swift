@@ -710,6 +710,13 @@ public final class CloudKitSyncService: ObservableObject {
             )
         }
 
+        if summary.contains("CD_CalendarEventRecord=?") {
+            log(
+                "CD_CalendarEventRecord is missing in CloudKit Production — deploy schema in CloudKit Console, then sync calendar events from the Mac.",
+                level: .warning
+            )
+        }
+
         if summary.contains("CD_NoteRecord=0") {
             await logExportFailureHints(containerID: containerID)
         }

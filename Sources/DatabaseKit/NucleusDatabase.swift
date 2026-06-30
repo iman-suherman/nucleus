@@ -139,6 +139,19 @@ public enum NucleusDatabase {
     }
 
     private static func makeCloudKitContainer() throws -> ModelContainer {
+        do {
+            return try buildCloudKitContainer()
+        } catch {
+            let detail = Self.describeContainerLoadError(error)
+            throw NSError(
+                domain: "NucleusDatabase",
+                code: (error as NSError).code,
+                userInfo: [NSLocalizedDescriptionKey: detail]
+            )
+        }
+    }
+
+    private static func buildCloudKitContainer() throws -> ModelContainer {
         let syncedConfiguration = ModelConfiguration(
             "Synced",
             schema: syncedSchema,
@@ -165,6 +178,24 @@ public enum NucleusDatabase {
             configurations: syncedConfiguration,
             localConfiguration
         )
+    }
+
+    static func describeContainerLoadError(_ error: Error) -> String {
+        let nsError = error as NSError
+        if nsError.domain.contains("SwiftData"), nsError.code == 1 {
+            return """
+            iCloud database could not open (SwiftData loadIssueModelContainer). \
+            Quit and reopen Nucleus once to apply the calendar schema fix. \
+            If it persists, deploy CD_CalendarEventRecord to CloudKit Production (see cloudkit/README.md).
+            """
+        }
+
+        if let underlying = nsError.userInfo[NSUnderlyingErrorKey] as? NSError,
+           underlying.localizedDescription.contains("CloudKit integration requires") {
+            return underlying.localizedDescription
+        }
+
+        return error.localizedDescription
     }
 
     private static func makeLocalContainer() throws -> ModelContainer {

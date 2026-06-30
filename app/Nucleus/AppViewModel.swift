@@ -54,6 +54,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
     @Published var whatsNewRelease: AppReleaseNotes?
     @Published var quickReplyContext: QuickReplyContext?
     @Published var dashboardIncomingMailPrompt: DashboardIncomingMailPrompt?
+    @Published var meetingReminderPrompt: DashboardMeetingReminderPrompt?
     @Published var clipboardPasswordSuggestion: ClipboardPasswordSuggestion?
     @Published private(set) var storedDashboardAnalysis: StoredDashboardAnalysis?
     @Published var dashboardAnalyzedAt: Date?
@@ -97,6 +98,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         }
 
         CloudKitStoreMigration.resetIfNeeded()
+        CloudKitStoreMigration.resetForCalendarCloudKitSchemaIfNeeded()
 
         modelContainer = (try? NucleusDatabase.makeContainer()) ?? {
             fatalError("Failed to create Nucleus database container")
@@ -125,7 +127,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         beginStartupStep(.database, message: "Loading workspace data…")
         if CloudKitStoreMigration.didResetThisLaunch {
             syncService.syncLogStore.log(
-                "Local database reset for iCloud compatibility (v0.4.0). Re-add Google accounts and notes, then use Sync to iCloud in Settings.",
+                "Local database reset for iCloud compatibility. Data still in iCloud — use Settings → iCloud → Sync to iCloud after reopening.",
                 level: .warning
             )
         }
@@ -195,6 +197,39 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         let reminders = MeetingReminderPlanner.reminders(for: calendarEvents)
         await NucleusNotificationService.shared.rescheduleMeetingReminders(reminders)
         statusMessage = statusMessageForCurrentState()
+    }
+
+    func presentMeetingReminder(_ event: CalendarEventSummary, kind: MeetingReminderPlanner.Reminder.Kind) {
+        guard AppSettings.shared.calendarNotificationsEnabled else { return }
+        let grouped = MeetingReminderPlanner.eventsStartingTogether(with: event, in: calendarEvents)
+        guard !grouped.isEmpty else { return }
+
+        let wasShowing = meetingReminderPrompt != nil
+        meetingReminderPrompt = DashboardMeetingReminderPrompt(
+            events: grouped,
+            kind: kind,
+            startDate: event.startDate
+        )
+        if !wasShowing {
+            MeetingNotificationSound.playAlert()
+        }
+    }
+
+    func dismissMeetingReminder() {
+        meetingReminderPrompt = nil
+    }
+
+    func joinMeetingFromReminder(_ event: CalendarEventSummary) {
+        guard let link = event.meetingLink,
+              let url = URL(string: link) else { return }
+        ChromeLauncher.open(url: url)
+        dismissMeetingReminder()
+    }
+
+    func openCalendarFromMeetingReminder() {
+        sidebarSelection = .workspace(.calendar)
+        AppSettings.shared.selectedWorkspacePane = WorkspacePane.calendar.rawValue
+        dismissMeetingReminder()
     }
 
     var upcomingCalendarEventCount: Int {
@@ -746,13 +781,14 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         NucleusNotificationService.shared.onClipboardPasswordAction = { [weak self] action in
             self?.handleClipboardPasswordNotificationAction(action)
         }
-        NucleusNotificationService.shared.onMeetingReminder = { event, kind in
-            NucleusNotificationService.shared.notifyMeetingReminder(event, kind: kind)
+        NucleusNotificationService.shared.onMeetingReminder = { [weak self] event, kind in
+            self?.presentMeetingReminder(event, kind: kind)
         }
         await refreshMeetingReminders()
         await refreshBillReminders(settings: settings)
         MailNotificationSound.prepareNotificationSounds()
         ChatNotificationSound.prepareNotificationSounds()
+        MeetingNotificationSound.prepareNotificationSounds()
         HourlyBeepService.shared.start()
         completeStartupStep(.notifications)
 
