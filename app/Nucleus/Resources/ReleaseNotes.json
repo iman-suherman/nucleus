@@ -1,13 +1,18 @@
 {
-  "version": "0.11.3",
-  "summary": "Match dashboard calendar column height to the Apple Music and Nucleus AI stack.",
+  "version": "0.11.4",
+  "summary": "Fix calendar meeting reminders so 2-minute alerts fire reliably.",
   "releaseNotes": {
     "introduced": [],
     "changed": [
-      "Dashboard calendar schedule column height aligns with the combined Apple Music and Nucleus AI panels when shown side by side",
-      "Calendar event list scroll area expands to fill the matched column height"
+      "Meeting reminder watchdog polls every 30 seconds so the in-app popup does not miss the 2-minute window",
+      "Calendar sync refreshes scheduled system notifications every 60 seconds between full syncs"
     ],
-    "fixed": [],
+    "fixed": [
+      "Calendar meeting reminders no longer skipped when sync runs within 2 minutes of start",
+      "Imminent meetings (under 2 minutes away) still alert within a few seconds",
+      "Meeting reminders reschedule when calendar events reload from iCloud",
+      "System notification scheduling checks macOS permission and logs failures instead of failing silently"
+    ],
     "updated": [],
     "removed": [],
     "breaking": []
