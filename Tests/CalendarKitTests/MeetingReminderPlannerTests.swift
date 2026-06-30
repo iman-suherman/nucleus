@@ -79,9 +79,60 @@ final class MeetingReminderPlannerTests: XCTestCase {
             meetingLink: "https://meet.google.com/personal",
             accountEmail: "personal@gmail.com"
         )
+        let events = [work, personal]
 
-        let grouped = MeetingReminderPlanner.eventsStartingTogether(with: work, in: [work, personal])
+        let grouped = MeetingReminderPlanner.eventsStartingTogether(with: work, in: events)
         XCTAssertEqual(grouped.count, 2)
         XCTAssertEqual(grouped.map(\.accountEmail), ["personal@gmail.com", "work@example.com"])
+        XCTAssertEqual(
+            MeetingReminderPlanner.alertGroupKey(for: work, in: events),
+            MeetingReminderPlanner.alertGroupKey(for: personal, in: events)
+        )
+    }
+
+    func testDueRemindersDedupesOverlappingMeetings() {
+        let start = Date().addingTimeInterval(118)
+        let work = CalendarEventSummary(
+            id: "work",
+            accountID: UUID(),
+            title: "Client call",
+            startDate: start,
+            endDate: start.addingTimeInterval(1800),
+            accountEmail: "work@example.com"
+        )
+        let personal = CalendarEventSummary(
+            id: "personal",
+            accountID: UUID(),
+            title: "Team sync",
+            startDate: start,
+            endDate: start.addingTimeInterval(1800),
+            accountEmail: "personal@gmail.com"
+        )
+
+        let due = MeetingReminderPlanner.dueReminders(for: [work, personal], now: Date())
+        XCTAssertEqual(due.count, 1)
+    }
+
+    func testUniqueRemindersDedupesOverlappingMeetings() {
+        let start = Date().addingTimeInterval(900)
+        let work = CalendarEventSummary(
+            id: "work",
+            accountID: UUID(),
+            title: "Client call",
+            startDate: start,
+            endDate: start.addingTimeInterval(1800),
+            accountEmail: "work@example.com"
+        )
+        let personal = CalendarEventSummary(
+            id: "personal",
+            accountID: UUID(),
+            title: "Team sync",
+            startDate: start,
+            endDate: start.addingTimeInterval(1800),
+            accountEmail: "personal@gmail.com"
+        )
+
+        let reminders = MeetingReminderPlanner.uniqueReminders(for: [work, personal], now: Date())
+        XCTAssertEqual(reminders.count, 1)
     }
 }

@@ -195,6 +195,10 @@ public enum MeetingReminderPlanner {
             }
     }
 
+    public static func alertGroupKey(for event: CalendarEventSummary, in events: [CalendarEventSummary]) -> String {
+        eventsStartingTogether(with: event, in: events).map(\.id).sorted().joined(separator: "|")
+    }
+
     public static func reminders(for events: [CalendarEventSummary], now: Date = Date()) -> [Reminder] {
         var results: [Reminder] = []
         for event in events where event.startDate > now {
@@ -210,14 +214,30 @@ public enum MeetingReminderPlanner {
         return results
     }
 
+    /// One reminder per overlapping start-time group (avoids duplicate alerts for the same slot).
+    public static func uniqueReminders(for events: [CalendarEventSummary], now: Date = Date()) -> [Reminder] {
+        var seenGroupKeys: Set<String> = []
+        var results: [Reminder] = []
+        for reminder in reminders(for: events, now: now) {
+            let groupKey = alertGroupKey(for: reminder.event, in: events)
+            guard seenGroupKeys.insert(groupKey).inserted else { continue }
+            results.append(reminder)
+        }
+        return results
+    }
+
     /// Events that should alert right now (about 2 minutes before start).
     public static func dueReminders(for events: [CalendarEventSummary], now: Date = Date()) -> [Reminder] {
-        events.compactMap { event in
-            guard event.startDate > now else { return nil }
+        var seenGroupKeys: Set<String> = []
+        var results: [Reminder] = []
+        for event in events where event.startDate > now {
             let secondsUntilStart = event.startDate.timeIntervalSince(now)
             let delta = abs(secondsUntilStart - reminderLeadTime)
-            guard delta <= dueWindowTolerance else { return nil }
-            return Reminder(event: event, fireDate: now, kind: .twoMinutes)
+            guard delta <= dueWindowTolerance else { continue }
+            let groupKey = alertGroupKey(for: event, in: events)
+            guard seenGroupKeys.insert(groupKey).inserted else { continue }
+            results.append(Reminder(event: event, fireDate: now, kind: .twoMinutes))
         }
+        return results
     }
 }

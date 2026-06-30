@@ -40,7 +40,6 @@ struct DashboardMeetingReminderOverlay: View {
         ZStack {
             Color.black.opacity(0.34)
                 .ignoresSafeArea()
-                .onTapGesture(perform: onDismiss)
 
             VStack(alignment: .leading, spacing: 18) {
                 header

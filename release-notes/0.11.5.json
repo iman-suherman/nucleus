@@ -1,0 +1,19 @@
+{
+  "version": "0.11.5",
+  "summary": "Calendar meeting alerts show once per group and stay until you close them.",
+  "releaseNotes": {
+    "introduced": [],
+    "changed": [
+      "Overlapping meetings at the same start time share one alert and one notification instead of firing separately",
+      "A new meeting alert replaces any open reminder popup; sound plays once per group",
+      "Join meeting and Open calendar no longer dismiss the reminder — use Close or X"
+    ],
+    "fixed": [
+      "Calendar reminder popup no longer dismisses when clicking outside the dialog",
+      "Duplicate alert sounds from watchdog and system notifications for the same meeting group"
+    ],
+    "updated": [],
+    "removed": [],
+    "breaking": []
+  }
+}

@@ -84,7 +84,8 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
     private var mailSignInPendingAccountIDs = Set<UUID>()
     private var billReminderRefreshTask: Task<Void, Never>?
     private var meetingReminderWatchdogTimer: Timer?
-    private var firedMeetingReminderIDs: Set<String> = []
+    /// Start times for meeting groups that have already shown an alert (popup + sound).
+    private var firedMeetingReminderGroups: [String: Date] = [:]
     private var billReminderSettingsObserver: AnyCancellable?
     private var menuBarSettingsObserver: AnyCancellable?
     private var dashboardQuoteEmojiTask: Task<Void, Never>?
@@ -196,8 +197,11 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
     }
 
     func refreshMeetingReminders() async {
-        let reminders = MeetingReminderPlanner.reminders(for: calendarEvents)
-        await NucleusNotificationService.shared.rescheduleMeetingReminders(reminders)
+        let reminders = MeetingReminderPlanner.uniqueReminders(for: calendarEvents)
+        await NucleusNotificationService.shared.rescheduleMeetingReminders(
+            reminders,
+            events: calendarEvents
+        )
         statusMessage = statusMessageForCurrentState()
     }
 
@@ -213,14 +217,16 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
 
     func checkMeetingRemindersDueNow() {
         guard AppSettings.shared.calendarNotificationsEnabled else { return }
+        pruneFiredMeetingReminders()
         let due = MeetingReminderPlanner.dueReminders(for: calendarEvents)
         for reminder in due {
-            guard !firedMeetingReminderIDs.contains(reminder.event.id) else { continue }
-            firedMeetingReminderIDs.insert(reminder.event.id)
             presentMeetingReminder(reminder.event, kind: reminder.kind)
         }
-        let upcomingIDs = Set(calendarEvents.filter { $0.startDate > Date() }.map(\.id))
-        firedMeetingReminderIDs.formIntersection(upcomingIDs)
+    }
+
+    private func pruneFiredMeetingReminders() {
+        let now = Date()
+        firedMeetingReminderGroups = firedMeetingReminderGroups.filter { $0.value > now }
     }
 
     func presentMeetingReminder(_ event: CalendarEventSummary, kind: MeetingReminderPlanner.Reminder.Kind) {
@@ -228,15 +234,16 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         let grouped = MeetingReminderPlanner.eventsStartingTogether(with: event, in: calendarEvents)
         guard !grouped.isEmpty else { return }
 
-        let wasShowing = meetingReminderPrompt != nil
+        let groupKey = MeetingReminderPlanner.alertGroupKey(for: event, in: calendarEvents)
+        guard firedMeetingReminderGroups[groupKey] == nil else { return }
+
+        firedMeetingReminderGroups[groupKey] = event.startDate
         meetingReminderPrompt = DashboardMeetingReminderPrompt(
             events: grouped,
             kind: kind,
             startDate: event.startDate
         )
-        if !wasShowing {
-            MeetingNotificationSound.playAlert()
-        }
+        MeetingNotificationSound.playAlert()
     }
 
     func dismissMeetingReminder() {
@@ -247,13 +254,11 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         guard let link = event.meetingLink,
               let url = URL(string: link) else { return }
         ChromeLauncher.open(url: url)
-        dismissMeetingReminder()
     }
 
     func openCalendarFromMeetingReminder() {
         sidebarSelection = .workspace(.calendar)
         AppSettings.shared.selectedWorkspacePane = WorkspacePane.calendar.rawValue
-        dismissMeetingReminder()
     }
 
     var upcomingCalendarEventCount: Int {

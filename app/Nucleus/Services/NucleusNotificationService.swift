@@ -223,7 +223,10 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
         return UUID(uuidString: raw)
     }
 
-    func rescheduleMeetingReminders(_ reminders: [MeetingReminderPlanner.Reminder]) async {
+    func rescheduleMeetingReminders(
+        _ reminders: [MeetingReminderPlanner.Reminder],
+        events: [CalendarEventSummary]
+    ) async {
         guard AppSettings.shared.calendarNotificationsEnabled else { return }
         let center = UNUserNotificationCenter.current()
 
@@ -242,7 +245,9 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
             let interval = reminder.fireDate.timeIntervalSinceNow
             guard interval > 0 else { continue }
 
-            let content = meetingContent(for: reminder.event, kind: reminder.kind)
+            let grouped = MeetingReminderPlanner.eventsStartingTogether(with: reminder.event, in: events)
+            let groupKey = MeetingReminderPlanner.alertGroupKey(for: reminder.event, in: events)
+            let content = meetingContent(for: grouped, kind: reminder.kind)
             let trigger: UNNotificationTrigger
             if interval >= 60 {
                 let components = Calendar.current.dateComponents(
@@ -254,7 +259,7 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
                 trigger = UNTimeIntervalNotificationTrigger(timeInterval: max(5, interval), repeats: false)
             }
 
-            let identifier = meetingNotificationIdentifier(for: reminder.event.id, kind: reminder.kind)
+            let identifier = meetingNotificationIdentifier(forGroupKey: groupKey, kind: reminder.kind)
             let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
             do {
                 try await center.add(request)
@@ -267,6 +272,17 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
         if scheduled > 0 {
             NucleusLog.app.info("Scheduled \(scheduled) calendar meeting reminder(s)")
         }
+    }
+
+    private func meetingNotificationIdentifier(
+        forGroupKey groupKey: String,
+        kind: MeetingReminderPlanner.Reminder.Kind
+    ) -> String {
+        var hash: UInt64 = 5381
+        for byte in groupKey.utf8 {
+            hash = ((hash << 5) &+ hash) &+ UInt64(byte)
+        }
+        return "calendar-\(hash)-\(kind.rawValue)"
     }
 
     private func meetingNotificationIdentifier(
@@ -329,30 +345,42 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
 
     func notifyMeetingReminder(_ event: CalendarEventSummary, kind: MeetingReminderPlanner.Reminder.Kind) {
         guard AppSettings.shared.calendarNotificationsEnabled else { return }
-        let content = meetingContent(for: event, kind: kind)
+        let content = meetingContent(for: [event], kind: kind)
         let request = UNNotificationRequest(
             identifier: "calendar-\(event.id)-\(kind.rawValue)-immediate",
             content: content,
             trigger: nil
         )
-        UNUserNotificationCenter.current().add(request) { _ in
-            Task { @MainActor in
-                MeetingNotificationSound.playAlert()
-            }
+        UNUserNotificationCenter.current().add(request)
+    }
+
+    private func meetingContent(
+        for events: [CalendarEventSummary],
+        kind: MeetingReminderPlanner.Reminder.Kind
+    ) -> UNMutableNotificationContent {
+        guard let event = events.first else {
+            return UNMutableNotificationContent()
         }
+        let content = UNMutableNotificationContent()
+        if events.count > 1 {
+            content.title = "\(events.count) meetings in 2 minutes"
+            content.body = events.map(\.title).joined(separator: ", ")
+        } else {
+            content.title = "Meeting in 2 minutes"
+            content.body = event.title
+        }
+        let hasJoinLink = events.contains { $0.meetingLink != nil }
+        content.categoryIdentifier = hasJoinLink ? "NUCLEUS_MEETING_JOIN" : "NUCLEUS_MEETING"
+        content.sound = MeetingNotificationSound.notificationSound
+        content.userInfo = meetingUserInfo(for: event, kind: kind)
+        return content
     }
 
     private func meetingContent(
         for event: CalendarEventSummary,
         kind: MeetingReminderPlanner.Reminder.Kind
     ) -> UNMutableNotificationContent {
-        let content = UNMutableNotificationContent()
-        content.title = "Meeting in 2 minutes"
-        content.body = event.title
-        content.categoryIdentifier = event.meetingLink == nil ? "NUCLEUS_MEETING" : "NUCLEUS_MEETING_JOIN"
-        content.sound = MeetingNotificationSound.notificationSound
-        content.userInfo = meetingUserInfo(for: event, kind: kind)
-        return content
+        meetingContent(for: [event], kind: kind)
     }
 
     private func meetingUserInfo(
@@ -512,7 +540,6 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
                 if let link = info["meetingLink"] as? String,
                    let url = URL(string: link) {
                     ChromeLauncher.open(url: url)
-                    AppViewModel.current?.dismissMeetingReminder()
                 }
             case "SAVE_PASSWORD":
                 if let entryIDRaw = info["entryID"] as? String,
