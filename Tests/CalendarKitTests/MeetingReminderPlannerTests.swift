@@ -27,7 +27,7 @@ final class MeetingReminderPlannerTests: XCTestCase {
         )
     }
 
-    func testSkipsReminderWhenLessThanTwoMinutesAway() {
+    func testSchedulesImminentReminderWhenWithinTwoMinutes() {
         let start = Date().addingTimeInterval(90)
         let event = CalendarEventSummary(
             id: "2",
@@ -39,7 +39,24 @@ final class MeetingReminderPlannerTests: XCTestCase {
         )
 
         let reminders = MeetingReminderPlanner.reminders(for: [event], now: Date())
-        XCTAssertTrue(reminders.isEmpty)
+        XCTAssertEqual(reminders.count, 1)
+        XCTAssertEqual(reminders.first?.kind, .twoMinutes)
+    }
+
+    func testDueRemindersFiresNearTwoMinuteMark() {
+        let start = Date().addingTimeInterval(118)
+        let event = CalendarEventSummary(
+            id: "due",
+            accountID: UUID(),
+            title: "Standup",
+            startDate: start,
+            endDate: start.addingTimeInterval(1800),
+            accountEmail: "work@example.com"
+        )
+
+        let due = MeetingReminderPlanner.dueReminders(for: [event], now: Date())
+        XCTAssertEqual(due.count, 1)
+        XCTAssertEqual(due.first?.event.id, "due")
     }
 
     func testGroupsEventsWithSameStartTime() {

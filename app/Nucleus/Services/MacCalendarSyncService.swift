@@ -25,6 +25,7 @@ final class MacCalendarSyncService: ObservableObject {
 
     private weak var viewModel: AppViewModel?
     private var refreshTimer: Timer?
+    private var reminderRefreshTimer: Timer?
     private var storeChangedObserver: NSObjectProtocol?
 
     private init() {}
@@ -98,6 +99,13 @@ final class MacCalendarSyncService: ObservableObject {
         refreshTimer = Timer.scheduledTimer(withTimeInterval: 300, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 await self?.syncIfAuthorized()
+            }
+        }
+
+        reminderRefreshTimer?.invalidate()
+        reminderRefreshTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                await self?.viewModel?.refreshMeetingReminders()
             }
         }
     }

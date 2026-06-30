@@ -176,6 +176,8 @@ public enum MeetingReminderPlanner {
 
     public static let reminderLeadTime: TimeInterval = 120
     public static let sameStartTolerance: TimeInterval = 60
+    /// Matches the in-app watchdog poll interval so we do not miss the 2-minute window.
+    public static let dueWindowTolerance: TimeInterval = 20
 
     public static func eventsStartingTogether(
         with event: CalendarEventSummary,
@@ -196,10 +198,26 @@ public enum MeetingReminderPlanner {
     public static func reminders(for events: [CalendarEventSummary], now: Date = Date()) -> [Reminder] {
         var results: [Reminder] = []
         for event in events where event.startDate > now {
+            let secondsUntilStart = event.startDate.timeIntervalSince(now)
             let fireDate = event.startDate.addingTimeInterval(-reminderLeadTime)
-            guard fireDate > now else { continue }
-            results.append(Reminder(event: event, fireDate: fireDate, kind: .twoMinutes))
+            if fireDate > now {
+                results.append(Reminder(event: event, fireDate: fireDate, kind: .twoMinutes))
+            } else if secondsUntilStart <= reminderLeadTime {
+                // Meeting starts within 2 minutes — schedule an imminent alert.
+                results.append(Reminder(event: event, fireDate: now.addingTimeInterval(5), kind: .twoMinutes))
+            }
         }
         return results
+    }
+
+    /// Events that should alert right now (about 2 minutes before start).
+    public static func dueReminders(for events: [CalendarEventSummary], now: Date = Date()) -> [Reminder] {
+        events.compactMap { event in
+            guard event.startDate > now else { return nil }
+            let secondsUntilStart = event.startDate.timeIntervalSince(now)
+            let delta = abs(secondsUntilStart - reminderLeadTime)
+            guard delta <= dueWindowTolerance else { return nil }
+            return Reminder(event: event, fireDate: now, kind: .twoMinutes)
+        }
     }
 }

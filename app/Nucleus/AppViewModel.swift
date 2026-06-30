@@ -83,6 +83,8 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
     private var dashboardMailAlertRecheckAccountID: UUID?
     private var mailSignInPendingAccountIDs = Set<UUID>()
     private var billReminderRefreshTask: Task<Void, Never>?
+    private var meetingReminderWatchdogTimer: Timer?
+    private var firedMeetingReminderIDs: Set<String> = []
     private var billReminderSettingsObserver: AnyCancellable?
     private var menuBarSettingsObserver: AnyCancellable?
     private var dashboardQuoteEmojiTask: Task<Void, Never>?
@@ -197,6 +199,28 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         let reminders = MeetingReminderPlanner.reminders(for: calendarEvents)
         await NucleusNotificationService.shared.rescheduleMeetingReminders(reminders)
         statusMessage = statusMessageForCurrentState()
+    }
+
+    func startMeetingReminderWatchdog() {
+        meetingReminderWatchdogTimer?.invalidate()
+        meetingReminderWatchdogTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                self?.checkMeetingRemindersDueNow()
+            }
+        }
+        checkMeetingRemindersDueNow()
+    }
+
+    func checkMeetingRemindersDueNow() {
+        guard AppSettings.shared.calendarNotificationsEnabled else { return }
+        let due = MeetingReminderPlanner.dueReminders(for: calendarEvents)
+        for reminder in due {
+            guard !firedMeetingReminderIDs.contains(reminder.event.id) else { continue }
+            firedMeetingReminderIDs.insert(reminder.event.id)
+            presentMeetingReminder(reminder.event, kind: reminder.kind)
+        }
+        let upcomingIDs = Set(calendarEvents.filter { $0.startDate > Date() }.map(\.id))
+        firedMeetingReminderIDs.formIntersection(upcomingIDs)
     }
 
     func presentMeetingReminder(_ event: CalendarEventSummary, kind: MeetingReminderPlanner.Reminder.Kind) {
@@ -527,6 +551,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
             Task { @MainActor in
                 guard let self, !self.isStartingUp else { return }
                 self.reloadLocalData()
+                await self.refreshMeetingReminders()
                 await self.refreshWebSessionStatus()
             }
         }
@@ -785,6 +810,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
             self?.presentMeetingReminder(event, kind: kind)
         }
         await refreshMeetingReminders()
+        startMeetingReminderWatchdog()
         await refreshBillReminders(settings: settings)
         MailNotificationSound.prepareNotificationSounds()
         ChatNotificationSound.prepareNotificationSounds()
@@ -1086,6 +1112,8 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         }
 
         calendarEvents = (try? CalendarRepository.fetchUpcoming(context: context)) ?? []
+
+        Task { await refreshMeetingReminders() }
 
         if !knownMessageIDs.isEmpty {
             mailUnreadSyncBaselineEstablished.formUnion(accounts.map(\.id))

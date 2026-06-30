@@ -226,20 +226,58 @@ final class NucleusNotificationService: NSObject, ObservableObject, UNUserNotifi
     func rescheduleMeetingReminders(_ reminders: [MeetingReminderPlanner.Reminder]) async {
         guard AppSettings.shared.calendarNotificationsEnabled else { return }
         let center = UNUserNotificationCenter.current()
+
+        let settings = await center.notificationSettings()
+        guard settings.authorizationStatus == .authorized else {
+            NucleusLog.app.warning("Calendar reminders not scheduled — enable notifications for Nucleus in System Settings.")
+            return
+        }
+
         let pending = await center.pendingNotificationRequests()
         let calendarIDs = pending.filter { $0.identifier.hasPrefix("calendar-") }.map(\.identifier)
         center.removePendingNotificationRequests(withIdentifiers: calendarIDs)
 
+        var scheduled = 0
         for reminder in reminders {
             let interval = reminder.fireDate.timeIntervalSinceNow
             guard interval > 0 else { continue }
 
             let content = meetingContent(for: reminder.event, kind: reminder.kind)
-            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: interval, repeats: false)
-            let identifier = "calendar-\(reminder.event.id)-\(reminder.kind.rawValue)"
+            let trigger: UNNotificationTrigger
+            if interval >= 60 {
+                let components = Calendar.current.dateComponents(
+                    [.year, .month, .day, .hour, .minute, .second],
+                    from: reminder.fireDate
+                )
+                trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+            } else {
+                trigger = UNTimeIntervalNotificationTrigger(timeInterval: max(5, interval), repeats: false)
+            }
+
+            let identifier = meetingNotificationIdentifier(for: reminder.event.id, kind: reminder.kind)
             let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
-            try? await center.add(request)
+            do {
+                try await center.add(request)
+                scheduled += 1
+            } catch {
+                NucleusLog.app.error("Failed to schedule calendar reminder for \(reminder.event.title): \(error.localizedDescription)")
+            }
         }
+
+        if scheduled > 0 {
+            NucleusLog.app.info("Scheduled \(scheduled) calendar meeting reminder(s)")
+        }
+    }
+
+    private func meetingNotificationIdentifier(
+        for eventID: String,
+        kind: MeetingReminderPlanner.Reminder.Kind
+    ) -> String {
+        var hash: UInt64 = 5381
+        for byte in eventID.utf8 {
+            hash = ((hash << 5) &+ hash) &+ UInt64(byte)
+        }
+        return "calendar-\(hash)-\(kind.rawValue)"
     }
 
     func rescheduleBillReminders(
