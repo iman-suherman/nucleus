@@ -8,6 +8,7 @@ struct DashboardCalendarSchedulePanel: View {
     let isSyncing: Bool
     let accessState: CalendarAccessState
     let hasBirthdayCalendars: Bool
+    let todaysBirthdays: [CalendarEventSummary]
     let preferredContentHeight: CGFloat?
     let onRefresh: () -> Void
     let onRequestAccess: () -> Void
@@ -22,6 +23,7 @@ struct DashboardCalendarSchedulePanel: View {
         isSyncing: Bool,
         accessState: CalendarAccessState,
         hasBirthdayCalendars: Bool,
+        todaysBirthdays: [CalendarEventSummary] = [],
         preferredContentHeight: CGFloat? = nil,
         onRefresh: @escaping () -> Void,
         onRequestAccess: @escaping () -> Void
@@ -30,6 +32,7 @@ struct DashboardCalendarSchedulePanel: View {
         self.isSyncing = isSyncing
         self.accessState = accessState
         self.hasBirthdayCalendars = hasBirthdayCalendars
+        self.todaysBirthdays = todaysBirthdays
         self.preferredContentHeight = preferredContentHeight
         self.onRefresh = onRefresh
         self.onRequestAccess = onRequestAccess
@@ -41,6 +44,11 @@ struct DashboardCalendarSchedulePanel: View {
 
     private var scheduleEvents: [CalendarEventSummary] {
         events.filter { !$0.isBirthday }
+    }
+
+    private var todaysBirthdayEvents: [CalendarEventSummary] {
+        let calendar = Calendar.current
+        return todaysBirthdays.filter { calendar.isDateInToday($0.startDate) }
     }
 
     var body: some View {
@@ -118,12 +126,15 @@ struct DashboardCalendarSchedulePanel: View {
                     .foregroundStyle(.secondary)
             }
 
-            if scheduleEvents.isEmpty {
+            if todaysBirthdayEvents.isEmpty && scheduleEvents.isEmpty {
                 Text("No upcoming events in the next two weeks.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } else {
                 LazyVStack(alignment: .leading, spacing: 0) {
+                    ForEach(todaysBirthdayEvents) { birthday in
+                        birthdayEventRow(birthday)
+                    }
                     ForEach(scheduleEvents) { event in
                         eventRow(event)
                     }
@@ -172,6 +183,40 @@ struct DashboardCalendarSchedulePanel: View {
             .buttonStyle(.bordered)
             .controlSize(.small)
         }
+    }
+
+    @ViewBuilder
+    private func birthdayEventRow(_ birthday: CalendarEventSummary) -> some View {
+        let name = BirthdayCalendarFormatting.displayName(from: birthday.title)
+
+        HStack(alignment: .top, spacing: 10) {
+            VStack(alignment: .trailing, spacing: 2) {
+                Image(systemName: "birthday.cake.fill")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.blue)
+                Text("Today")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+            .frame(width: 72, alignment: .trailing)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("\(name) birthday today")
+                    .font(.subheadline.weight(.semibold))
+                    .lineLimit(2)
+
+                if !birthday.accountEmail.isEmpty {
+                    Text(birthday.accountEmail)
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                }
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(.vertical, 2)
+        .help(BirthdayCalendarFormatting.detailTooltip(for: birthday))
+        .pointerCursor()
     }
 
     @ViewBuilder

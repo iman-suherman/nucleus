@@ -223,16 +223,26 @@ struct DashboardMonthCalendarView: View {
     private func dayNumber(_ cell: DayCellModel, onColoredBackground: Bool = false) -> some View {
         Text("\(cell.day)")
             .font(.caption2.weight(cell.isToday ? .bold : .semibold))
-            .foregroundStyle(onColoredBackground ? .white : (cell.isToday ? .white : .primary))
+            .foregroundStyle(dayNumberForeground(cell: cell, onColoredBackground: onColoredBackground))
             .frame(maxWidth: .infinity, alignment: .center)
             .padding(.vertical, 2)
             .background {
-                if cell.isToday && !onColoredBackground {
+                if cell.isToday {
                     Circle()
-                        .fill(Color.accentColor)
+                        .fill(Color.green)
                         .frame(width: 22, height: 22)
                 }
             }
+    }
+
+    private func dayNumberForeground(cell: DayCellModel, onColoredBackground: Bool) -> Color {
+        if cell.isToday {
+            return .white
+        }
+        if onColoredBackground {
+            return .white
+        }
+        return .primary
     }
 
     private func birthdayHelp(for cell: DayCellModel) -> String {

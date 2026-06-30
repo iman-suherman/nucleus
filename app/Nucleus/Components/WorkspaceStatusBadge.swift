@@ -50,7 +50,7 @@ struct WorkspaceStatusBadge: View {
 
     private var helpText: String {
         if hasUnread {
-            return unreadDetailMessage
+            return "\(unreadDetailMessage). Click to open Inbox."
         }
         if let event = nextScheduleEvent {
             return "Open \(event.title) in calendar."
@@ -60,7 +60,17 @@ struct WorkspaceStatusBadge: View {
 
     var body: some View {
         Group {
-            if let event = nextScheduleEvent {
+            if hasUnread {
+                Button {
+                    viewModel.openInboxFromDashboardUnreadSummary()
+                } label: {
+                    badgeBody
+                }
+                .buttonStyle(.plain)
+                .pointerCursor()
+                .help(helpText)
+                .accessibilityLabel("\(statusLine). Open Inbox.")
+            } else if let event = nextScheduleEvent {
                 Button {
                     viewModel.openCalendarEvent(event)
                 } label: {
@@ -82,6 +92,10 @@ struct WorkspaceStatusBadge: View {
         HStack(spacing: 10) {
             if hasUnread {
                 unreadPill(count: mailUnreadCount, icon: "envelope.fill", tint: .blue)
+            } else if nextScheduleEvent != nil {
+                Image(systemName: "calendar")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.blue)
             } else {
                 Image(systemName: "checkmark.circle.fill")
                     .font(.subheadline.weight(.semibold))

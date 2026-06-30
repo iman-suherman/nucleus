@@ -23,6 +23,7 @@ final class MacCalendarSyncService: ObservableObject {
     @Published private(set) var isSyncing = false
     @Published private(set) var lastSyncError: String?
     @Published private(set) var hasBirthdayCalendars = false
+    @Published private(set) var todaysBirthdays: [CalendarEventSummary] = []
 
     private weak var viewModel: AppViewModel?
     private var refreshTimer: Timer?
@@ -42,6 +43,7 @@ final class MacCalendarSyncService: ObservableObject {
     func refreshAccessState() {
         accessState = EventKitCalendarClient.currentAccessState()
         hasBirthdayCalendars = accessState == .authorized && EventKitCalendarClient.hasBirthdayCalendars()
+        reloadTodaysBirthdays()
     }
 
     func openCalendarAccessSettings() {
@@ -78,9 +80,22 @@ final class MacCalendarSyncService: ObservableObject {
                 CloudKitSyncService.shared.log("Queued \(exported) calendar event(s) for iCloud export")
             }
             await viewModel.refreshMeetingReminders()
+            reloadTodaysBirthdays()
         } catch {
             lastSyncError = error.localizedDescription
         }
+    }
+
+    private func reloadTodaysBirthdays() {
+        guard accessState == .authorized, hasBirthdayCalendars else {
+            todaysBirthdays = []
+            return
+        }
+
+        let calendar = Calendar.current
+        let start = calendar.startOfDay(for: Date())
+        let end = calendar.date(byAdding: .day, value: 1, to: start) ?? start
+        todaysBirthdays = EventKitCalendarClient.fetchBirthdayEvents(from: start, to: end)
     }
 
     private func registerForStoreChanges() {

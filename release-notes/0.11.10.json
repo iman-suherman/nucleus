@@ -1,0 +1,17 @@
+{
+  "version": "0.11.10",
+  "summary": "Dashboard birthday events and title bar inbox and calendar badges.",
+  "releaseNotes": {
+    "introduced": [],
+    "changed": [
+      "Dashboard calendar schedule header and list show today's birthdays as events (for example, Alice birthday today)",
+      "Today's date is highlighted in green on the dashboard birthday month calendar",
+      "Title bar unread email badge opens Inbox when clicked",
+      "Title bar shows a calendar icon when the next upcoming meeting is displayed"
+    ],
+    "fixed": [],
+    "updated": [],
+    "removed": [],
+    "breaking": []
+  }
+}

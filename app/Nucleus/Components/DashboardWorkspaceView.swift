@@ -1,4 +1,5 @@
 import AppKit
+import CalendarKit
 import Charts
 import Combine
 import DatabaseKit
@@ -850,10 +851,19 @@ struct DashboardWorkspaceView: View {
 
     private var calendarScheduleRowTitle: String {
         let count = viewModel.calendarEvents.filter { $0.endDate >= Date() }.count
+        let base: String
         if count == 0 {
-            return "Calendar schedule"
+            base = "Calendar schedule"
+        } else {
+            base = "Calendar schedule · \(count) upcoming"
         }
-        return "Calendar schedule · \(count) upcoming"
+
+        let birthdayNames = calendarService.todaysBirthdays.map {
+            BirthdayCalendarFormatting.displayName(from: $0.title)
+        }
+        guard !birthdayNames.isEmpty else { return base }
+        let birthdayEvents = birthdayNames.map { "\($0) birthday today" }.joined(separator: ", ")
+        return "\(base) · \(birthdayEvents)"
     }
 
     private var calendarScheduleRow: some View {
@@ -867,6 +877,7 @@ struct DashboardWorkspaceView: View {
                 isSyncing: calendarService.isSyncing,
                 accessState: calendarService.accessState,
                 hasBirthdayCalendars: calendarService.hasBirthdayCalendars,
+                todaysBirthdays: calendarService.todaysBirthdays,
                 onRefresh: {
                     Task { await calendarService.syncIfAuthorized() }
                 },
