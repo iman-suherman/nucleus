@@ -1,17 +1,16 @@
 {
-  "version": "0.11.0",
-  "summary": "Dedicated Calendar workspace on Mac with iCloud sync to the iOS companion app.",
+  "version": "0.11.1",
+  "summary": "Fix macOS Calendar permission so Nucleus appears in System Settings and can read your schedule.",
   "releaseNotes": {
-    "introduced": [
-      "Calendar sidebar workspace with grouped upcoming events and video call links",
-      "Calendar events sync to iPhone and iPad via iCloud when Nucleus on your Mac refreshes your schedule"
+    "introduced": [],
+    "changed": [],
+    "fixed": [
+      "Calendar access on macOS — add Hardened Runtime Calendars entitlement so the system permission prompt appears and Nucleus shows in Settings → Privacy & Security → Calendars",
+      "Calendar access setup copy clarifies you must click Allow Calendar Access before opening System Settings"
     ],
-    "changed": [
-      "Calendar events moved into the iCloud-synced data store alongside notes and bills",
-      "Dashboard Calendar schedule panel remains available and shares the same synced event list"
+    "updated": [
+      "CloudKit development schema and deploy scripts include CD_CalendarEventRecord for calendar iCloud sync"
     ],
-    "fixed": [],
-    "updated": [],
     "removed": [],
     "breaking": []
   }
