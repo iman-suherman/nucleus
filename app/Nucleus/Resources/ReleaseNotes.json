@@ -1,14 +1,12 @@
 {
-  "version": "0.11.6",
-  "summary": "Show the next meeting in the Nucleus title with calendar detail on click.",
+  "version": "0.11.7",
+  "summary": "Dashboard birthday month view and per-meeting title rotation.",
   "releaseNotes": {
     "introduced": [
-      "Nucleus sidebar title shows the next meeting time, title, and calendar email; overlapping meetings at the same time rotate every 5 seconds",
-      "Clicking the next-meeting title opens Calendar, highlights the event, and shows full details in a side panel"
+      "Dashboard calendar schedule shows a monthly grid with birthdays highlighted when macOS Birthday calendars are enabled — each day shows whose birthday it is in pink"
     ],
     "changed": [
-      "Calendar workspace uses a split layout with event list and detail panel (when, location, attendees, join link)",
-      "Toolbar status line includes next meeting time and email when mail is caught up"
+      "Nucleus title and toolbar status rotate through each upcoming meeting individually with time, title, and email — no more grouped \"2 meetings\" summary"
     ],
     "fixed": [],
     "updated": [],
