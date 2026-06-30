@@ -1,21 +1,14 @@
 {
-  "version": "0.11.2",
-  "summary": "Fix iCloud calendar sync, dashboard layout, and meeting alerts with join links.",
+  "version": "0.11.3",
+  "summary": "Match dashboard calendar column height to the Apple Music and Nucleus AI stack.",
   "releaseNotes": {
-    "introduced": [
-      "Meeting reminder popup 2 minutes before start on any workspace, with Join meeting link and Funky alert sound distinct from email",
-      "Overlapping meetings at the same time show in one alert with highlighted invite email per calendar so you can pick the right link"
-    ],
+    "introduced": [],
     "changed": [
-      "Dashboard layout: Calendar schedule on the left, Apple Music above Nucleus AI on the right, scrollable event list",
-      "Meeting reminders fire once at 2 minutes before start (replaces 10‑min / 1‑min / at‑start alerts)"
+      "Dashboard calendar schedule column height aligns with the combined Apple Music and Nucleus AI panels when shown side by side",
+      "Calendar event list scroll area expands to fill the matched column height"
     ],
-    "fixed": [
-      "iCloud SwiftDataError on launch — CalendarEventRecord made CloudKit-compatible with one-time local store reset for calendar schema"
-    ],
-    "updated": [
-      "CloudKit error messages mention CD_CalendarEventRecord when Production schema is missing"
-    ],
+    "fixed": [],
+    "updated": [],
     "removed": [],
     "breaking": []
   }
