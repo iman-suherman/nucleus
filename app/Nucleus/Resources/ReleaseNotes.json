@@ -1,18 +1,17 @@
 {
-  "version": "0.10.25",
-  "summary": "Read your macOS Calendar schedule in Nucleus with video call links and meeting reminders.",
+  "version": "0.11.0",
+  "summary": "Dedicated Calendar workspace on Mac with iCloud sync to the iOS companion app.",
   "releaseNotes": {
     "introduced": [
-      "macOS Calendar integration reads all calendars synced to the Calendar app (Google, iCloud, Exchange, and more)",
-      "Dashboard Calendar schedule panel lists upcoming events with Join video call links for Meet, Zoom, Teams, and other services",
-      "Calendar access setup in Settings → Notifications with permission guidance",
-      "Meeting reminders reschedule automatically from your local calendar events"
+      "Calendar sidebar workspace with grouped upcoming events and video call links",
+      "Calendar events sync to iPhone and iPad via iCloud when Nucleus on your Mac refreshes your schedule"
     ],
-    "changed": [],
+    "changed": [
+      "Calendar events moved into the iCloud-synced data store alongside notes and bills",
+      "Dashboard Calendar schedule panel remains available and shares the same synced event list"
+    ],
     "fixed": [],
-    "updated": [
-      "Shared meeting link extraction for Google Calendar web sync and EventKit sources"
-    ],
+    "updated": [],
     "removed": [],
     "breaking": []
   }

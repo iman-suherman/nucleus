@@ -1,24 +1,17 @@
 {
-  "version": "1.0.1",
-  "summary": "Resubmission build — guideline fixes, polish, and bill reminders on your home screen.",
+  "version": "1.0.2",
+  "summary": "Calendar tab shows your schedule synced from Nucleus on your Mac.",
   "releaseNotes": {
     "introduced": [
-      "What's New splash when you open an updated version",
-      "Home screen icon badge for bills due soon",
-      "Auto-scrolling daily quote on the dashboard"
+      "Calendar tab with upcoming events and Join meeting links synced from your Mac via iCloud",
+      "Local meeting reminders for synced calendar events when notifications are enabled"
     ],
     "changed": [
-      "Dashboard greeting and date layout",
-      "Bill due badges on the Bills tab and list rows only"
+      "Companion app tabs now include Calendar between Bills and Settings"
     ],
-    "fixed": [
-      "App Store compliance updates for app capabilities",
-      "App icon full-bleed rendering without white borders"
-    ],
+    "fixed": [],
     "updated": [],
-    "removed": [
-      "Dashboard weather forecast (not needed on phone and tablet)"
-    ],
+    "removed": [],
     "breaking": []
   }
 }
