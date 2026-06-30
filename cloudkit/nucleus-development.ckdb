@@ -43,6 +43,27 @@ DEFINE SCHEMA
         GRANT CREATE TO "_icloud"
     );
 
+    RECORD TYPE CD_CalendarEventRecord (
+        CD_accountEmail   STRING,
+        CD_accountID      STRING,
+        CD_attendeesCSV   STRING,
+        CD_endDate        TIMESTAMP,
+        CD_entityName     STRING,
+        CD_id             STRING QUERYABLE,
+        CD_location       STRING,
+        CD_meetingLink    STRING,
+        CD_startDate      TIMESTAMP,
+        CD_title          STRING QUERYABLE,
+        "___createTime"   TIMESTAMP,
+        "___createdBy"    REFERENCE,
+        "___etag"         STRING,
+        "___modTime"      TIMESTAMP,
+        "___modifiedBy"   REFERENCE,
+        "___recordID"     REFERENCE QUERYABLE,
+        GRANT READ, WRITE TO "_creator",
+        GRANT CREATE TO "_icloud"
+    );
+
     RECORD TYPE CD_ClipboardItemRecord (
         CD_capturedAt        TIMESTAMP,
         CD_content           STRING,

@@ -25,6 +25,12 @@ struct CalendarAccessSetupView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
+            if calendarService.accessState == .notDetermined {
+                Text("Nucleus will not appear in System Settings → Calendars until you click Allow Calendar Access and macOS shows the permission prompt.")
+                    .font(.caption2)
+                    .foregroundStyle(.orange)
+            }
+
             permissionRow
 
             HStack(spacing: 10) {
@@ -43,10 +49,12 @@ struct CalendarAccessSetupView: View {
                 .disabled(isSettingUp)
 
                 if calendarService.accessState != .authorized {
-                    Button("Open Settings") {
-                        calendarService.openCalendarAccessSettings()
+                    if calendarService.accessState == .denied || calendarService.accessState == .restricted {
+                        Button("Open Settings") {
+                            calendarService.openCalendarAccessSettings()
+                        }
+                        .buttonStyle(.bordered)
                     }
-                    .buttonStyle(.bordered)
                 }
             }
 
@@ -106,7 +114,7 @@ struct CalendarAccessSetupView: View {
         case .authorized:
             return "Allowed"
         case .notDetermined:
-            return "Not requested yet"
+            return "Not requested yet — click Allow Calendar Access first"
         case .denied:
             return "Denied — enable Nucleus in System Settings → Calendars"
         case .restricted:

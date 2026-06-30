@@ -21,6 +21,7 @@ REQUIRED_TYPES=(
   CD_ClipboardItemRecord
   CD_BillRecord
   CD_BillPaymentRecord
+  CD_CalendarEventRecord
   CD_DashboardAnalysisRecord
 )
 
@@ -29,7 +30,7 @@ REQUIRED_BILL_FIELDS=(
   CD_currencyCode
 )
 
-echo "==> Nucleus CloudKit schema → Production (bills included)"
+echo "==> Nucleus CloudKit schema → Production (calendar + bills)"
 echo "    Container: $CONTAINER_ID"
 echo "    Team:      $TEAM_ID"
 echo "    Schema:    $SCHEMA_FILE"
@@ -74,17 +75,17 @@ Apple only allows Production schema deploy through CloudKit Console:
 
   1. Open: $CONSOLE_URL
   2. Select environment: Development (left sidebar)
-  3. Schema → Record Types — confirm CD_BillRecord includes CD_currencyCode (String)
+  3. Schema → Record Types — confirm CD_CalendarEventRecord exists and CD_BillRecord includes CD_currencyCode (String)
   4. Also confirm these record types exist:
-     - CD_BillRecord, CD_BillPaymentRecord, CD_DashboardAnalysisRecord
+     - CD_BillRecord, CD_BillPaymentRecord, CD_CalendarEventRecord, CD_DashboardAnalysisRecord
      - CD_NoteRecord, CD_GoogleAccountRecord, CD_SyncedSettingsRecord, CD_ClipboardItemRecord
   5. Footer → "Deploy Schema Changes…"
-  6. Review changes (e.g. CD_currencyCode added to CD_BillRecord)
+  6. Review changes (e.g. CD_CalendarEventRecord added, CD_currencyCode added to CD_BillRecord)
   7. Deploy to Production
 
 After deploy:
   - Quit and reopen Nucleus (release build uses Production CloudKit)
-  - Settings → iCloud → Sync to iCloud (or Bills → Sync)
+  - Settings → iCloud → Sync to iCloud (or Calendar workspace → Refresh)
   - Export should finish without CKError partialFailure (code 2)
 
 See cloudkit/README.md for the full workflow.
@@ -185,6 +186,6 @@ if [[ "$missing_prod_fields" -eq 1 && "$missing_prod" -eq 0 ]]; then
   echo "Production has bill record types but is missing new fields (e.g. CD_currencyCode)."
   echo "Import the updated schema into Development, then deploy Development → Production."
 else
-  echo "Production is missing bill (or other) record types — deploy Development → Production."
+  echo "Production is missing record types — import Development schema, then deploy Development → Production."
 fi
 print_production_deploy_steps

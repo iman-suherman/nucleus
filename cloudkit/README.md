@@ -8,11 +8,12 @@ Canonical schema file: [`nucleus-development.ckdb`](nucleus-development.ckdb)
 
 Deploy a schema change to Production whenever a `@Model` field is added or changed, for example:
 
-| App change | CloudKit field |
-|------------|----------------|
-| Multi-currency bills (v0.5.9+) | `CD_BillRecord.CD_currencyCode` (STRING) |
+If Production is missing a field or record type, CloudKit export fails with **`CKError partialFailure (code 2)`** and synced data (bills, calendar, etc.) stops syncing.
 
-If Production is missing a field, CloudKit export fails with **`CKError partialFailure (code 2)`** and bills (or other records) stop syncing.
+| App change | CloudKit change |
+|------------|-----------------|
+| Calendar sync (v0.11.0+) | `CD_CalendarEventRecord` (new record type) |
+| Multi-currency bills (v0.5.9+) | `CD_BillRecord.CD_currencyCode` (STRING) |
 
 ## Update Production (recommended workflow)
 
@@ -34,7 +35,7 @@ CLOUDKIT_MANAGEMENT_TOKEN=... bash scripts/seed-cloudkit-development.sh
 
 ### 2. Verify Development has the new field
 
-In **Development → Schema → Record Types → CD_BillRecord**, confirm **CD_currencyCode** (String) is listed.
+In **Development → Schema → Record Types**, confirm **CD_CalendarEventRecord** exists (calendar) and **CD_BillRecord** includes **CD_currencyCode** (String).
 
 ### 3. Deploy Development → Production
 
@@ -42,10 +43,10 @@ Apple only allows Production schema deploy through the console:
 
 1. Stay in CloudKit Console for `iCloud.net.suherman.nucleus`
 2. Footer → **Deploy Schema Changes…**
-3. Review the diff (should show `CD_currencyCode` added to `CD_BillRecord`)
+3. Review the diff (should show `CD_CalendarEventRecord` added and/or `CD_currencyCode` added to `CD_BillRecord`)
 4. Deploy to **Production**
 
-Schema deploys are **additive only** — existing bill records keep working; new exports include currency.
+Schema deploys are **additive only** — existing records keep working; new exports include calendar events and bill currency.
 
 ### 4. Verify Production
 
@@ -53,12 +54,12 @@ Schema deploys are **additive only** — existing bill records keep working; new
 CLOUDKIT_MANAGEMENT_TOKEN=... bash scripts/diagnose-cloudkit-schema.sh
 ```
 
-Or in Console: **Production → Schema → CD_BillRecord** → confirm **CD_currencyCode** exists.
+Or in Console: **Production → Schema** → confirm **CD_CalendarEventRecord** and **CD_BillRecord.CD_currencyCode** exist.
 
 ### 5. Retry sync on the Mac
 
 1. Quit and reopen Nucleus (release build)
-2. **Settings → iCloud → Sync to iCloud** (or **Bills → Sync**)
+2. **Settings → iCloud → Sync to iCloud** (or open **Calendar** and refresh, then sync)
 3. Check the iCloud sync log — export should finish without `partialFailure`
 
 ## Helper scripts
@@ -78,6 +79,7 @@ Or in Console: **Production → Schema → CD_BillRecord** → confirm **CD_curr
 - `CD_ClipboardItemRecord`
 - `CD_BillRecord` (includes `CD_currencyCode`)
 - `CD_BillPaymentRecord`
+- `CD_CalendarEventRecord`
 - `CD_DashboardAnalysisRecord`
 
 Synced data lives in private zone `com.apple.coredata.cloudkit.zone`.

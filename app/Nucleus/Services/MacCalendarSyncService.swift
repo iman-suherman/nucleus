@@ -47,7 +47,11 @@ final class MacCalendarSyncService: ObservableObject {
     }
 
     func requestAccessAndSync() async {
-        accessState = await EventKitCalendarClient.requestAccess()
+        let result = await EventKitCalendarClient.requestAccess()
+        accessState = result.state
+        if let errorMessage = result.errorMessage, accessState != .authorized {
+            lastSyncError = errorMessage
+        }
         await syncIfAuthorized()
     }
 

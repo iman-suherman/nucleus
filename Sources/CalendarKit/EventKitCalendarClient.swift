@@ -14,13 +14,19 @@ public enum EventKitCalendarClient {
         mapAuthorizationStatus(EKEventStore.authorizationStatus(for: .event))
     }
 
-    public static func requestAccess() async -> CalendarAccessState {
+    public static func requestAccess() async -> (state: CalendarAccessState, errorMessage: String?) {
+        await requestAccessOnMainActor()
+    }
+
+    @MainActor
+    private static func requestAccessOnMainActor() async -> (state: CalendarAccessState, errorMessage: String?) {
         let store = EKEventStore()
         do {
             let granted = try await store.requestFullAccessToEvents()
-            return granted ? .authorized : .denied
+            let state = granted ? CalendarAccessState.authorized : .denied
+            return (state, granted ? nil : "Calendar access was not granted.")
         } catch {
-            return .denied
+            return (.denied, error.localizedDescription)
         }
     }
 

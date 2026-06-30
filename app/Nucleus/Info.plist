@@ -39,6 +39,8 @@
 	<string>Nucleus searches Apple Music and your library so you can play songs, albums, artists, and playlists.</string>
 	<key>NSAppleEventsUsageDescription</key>
 	<string>Nucleus controls the Music app to play, pause, and skip tracks on your Mac or AirPlay speakers.</string>
+	<key>NSCalendarsUsageDescription</key>
+	<string>Nucleus reads your macOS Calendar schedule to show upcoming events on the Dashboard and send meeting reminders with video call links.</string>
 	<key>NSCalendarsFullAccessUsageDescription</key>
 	<string>Nucleus reads your macOS Calendar schedule to show upcoming events on the Dashboard and send meeting reminders with video call links.</string>
 	<key>NSUserNotificationAlertStyle</key>

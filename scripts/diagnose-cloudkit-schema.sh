@@ -15,6 +15,7 @@ EXPECTED_TYPES=(
   CD_ClipboardItemRecord
   CD_BillRecord
   CD_BillPaymentRecord
+  CD_CalendarEventRecord
   CD_DashboardAnalysisRecord
 )
 
@@ -61,7 +62,7 @@ No CLOUDKIT_MANAGEMENT_TOKEN — cannot export remote schema via cktool.
 In CloudKit Console (https://icloud.developer.apple.com/), verify manually:
 
   PRODUCTION → Schema → Record Types
-    Must include: CD_NoteRecord, CD_GoogleAccountRecord, CD_SyncedSettingsRecord, CD_ClipboardItemRecord, CD_BillRecord, CD_BillPaymentRecord, CD_DashboardAnalysisRecord
+    Must include: CD_NoteRecord, CD_GoogleAccountRecord, CD_SyncedSettingsRecord, CD_ClipboardItemRecord, CD_BillRecord, CD_BillPaymentRecord, CD_CalendarEventRecord, CD_DashboardAnalysisRecord
     Wrong types (without CD_ prefix) do NOT work: NoteRecord, SyncSettingsRecord, ClipboardItemRecord
 
   PRODUCTION → Data → Zones (Private Database)
@@ -71,7 +72,7 @@ In CloudKit Console (https://icloud.developer.apple.com/), verify manually:
 Fix if CD_* types are missing:
   1. DEVELOPMENT → Schema → Import Schema → $EXPECTED
   2. DEVELOPMENT → Deploy Schema Changes → Production
-  3. Restart Nucleus → Bills → Sync (or Settings → iCloud → Upload Notes to iCloud)
+  3. Restart Nucleus → Calendar workspace → Refresh (or Settings → iCloud → Sync to iCloud)
 
 Full workflow:
   CLOUDKIT_MANAGEMENT_TOKEN=... bash scripts/deploy-cloudkit-production-schema.sh
