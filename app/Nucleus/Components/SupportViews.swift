@@ -303,6 +303,7 @@ struct AppSettingsView: View {
                 Toggle("Resource usage", isOn: dashboardPreferenceBinding(\.resourceUsageEnabled))
                 Toggle("Cloud sync panel", isOn: dashboardPreferenceBinding(\.cloudSyncPanelEnabled))
                 Toggle("Public holidays", isOn: dashboardPreferenceBinding(\.publicHolidayEnabled))
+                Toggle("Calendar schedule", isOn: dashboardPreferenceBinding(\.calendarScheduleEnabled))
                 Toggle("News feed", isOn: dashboardPreferenceBinding(\.newsFeedEnabled))
             }
 
@@ -322,6 +323,8 @@ struct AppSettingsView: View {
                 Toggle("Start with Weather & sync expanded", isOn: dashboardPreferenceBinding(\.contextPanelsExpanded))
                 Toggle("Start with Public holidays expanded", isOn: dashboardPreferenceBinding(\.publicHolidayExpanded))
                     .disabled(!settings.dashboardPreferences.publicHolidayEnabled)
+                Toggle("Start with Calendar schedule expanded", isOn: dashboardPreferenceBinding(\.calendarScheduleExpanded))
+                    .disabled(!settings.dashboardPreferences.calendarScheduleEnabled)
                 Toggle("Start with News feed expanded", isOn: dashboardPreferenceBinding(\.newsFeedExpanded))
                     .disabled(!settings.dashboardPreferences.newsFeedEnabled)
                 Toggle("Start with Summary expanded", isOn: dashboardPreferenceBinding(\.summaryExpanded))
@@ -464,6 +467,11 @@ struct AppSettingsView: View {
         Group {
             Section("Notifications") {
                 Toggle("Email notifications", isOn: $settings.emailNotificationsEnabled)
+                Toggle("Calendar meeting reminders", isOn: $settings.calendarNotificationsEnabled)
+            }
+
+            Section("Calendar") {
+                CalendarAccessSetupView()
             }
 
             Section("Hourly beep") {

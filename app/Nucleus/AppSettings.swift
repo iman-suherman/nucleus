@@ -792,8 +792,10 @@ struct DashboardPreferences: Codable, Equatable {
     var productivityExpanded: Bool
     var nucleusAIEnabled: Bool
     var appleMusicEnabled: Bool
+    var calendarScheduleEnabled: Bool
     var nucleusAIExpanded: Bool
     var appleMusicExpanded: Bool
+    var calendarScheduleExpanded: Bool
 
     init(
         quoteEnabled: Bool = true,
@@ -817,8 +819,10 @@ struct DashboardPreferences: Codable, Equatable {
         productivityExpanded: Bool = true,
         nucleusAIEnabled: Bool = true,
         appleMusicEnabled: Bool = true,
+        calendarScheduleEnabled: Bool = true,
         nucleusAIExpanded: Bool = true,
-        appleMusicExpanded: Bool = true
+        appleMusicExpanded: Bool = true,
+        calendarScheduleExpanded: Bool = true
     ) {
         self.quoteEnabled = quoteEnabled
         self.intelligentInsightEnabled = intelligentInsightEnabled
@@ -841,8 +845,10 @@ struct DashboardPreferences: Codable, Equatable {
         self.productivityExpanded = productivityExpanded
         self.nucleusAIEnabled = nucleusAIEnabled
         self.appleMusicEnabled = appleMusicEnabled
+        self.calendarScheduleEnabled = calendarScheduleEnabled
         self.nucleusAIExpanded = nucleusAIExpanded
         self.appleMusicExpanded = appleMusicExpanded
+        self.calendarScheduleExpanded = calendarScheduleExpanded
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -853,7 +859,7 @@ struct DashboardPreferences: Codable, Equatable {
         case intelligentInsightExpanded, clipboardDayExpanded
         case contextPanelsExpanded, newsFeedExpanded, summaryExpanded
         case paymentPreparationExpanded, productivityExpanded
-        case nucleusAIEnabled, appleMusicEnabled, nucleusAIExpanded, appleMusicExpanded
+        case nucleusAIEnabled, appleMusicEnabled, calendarScheduleEnabled, nucleusAIExpanded, appleMusicExpanded, calendarScheduleExpanded
     }
 
     init(from decoder: Decoder) throws {
@@ -879,7 +885,9 @@ struct DashboardPreferences: Codable, Equatable {
         productivityExpanded = try container.decodeIfPresent(Bool.self, forKey: .productivityExpanded) ?? true
         nucleusAIEnabled = try container.decodeIfPresent(Bool.self, forKey: .nucleusAIEnabled) ?? true
         appleMusicEnabled = try container.decodeIfPresent(Bool.self, forKey: .appleMusicEnabled) ?? true
+        calendarScheduleEnabled = try container.decodeIfPresent(Bool.self, forKey: .calendarScheduleEnabled) ?? true
         nucleusAIExpanded = try container.decodeIfPresent(Bool.self, forKey: .nucleusAIExpanded) ?? true
         appleMusicExpanded = try container.decodeIfPresent(Bool.self, forKey: .appleMusicExpanded) ?? true
+        calendarScheduleExpanded = try container.decodeIfPresent(Bool.self, forKey: .calendarScheduleExpanded) ?? true
     }
 }

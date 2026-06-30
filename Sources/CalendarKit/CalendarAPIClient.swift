@@ -128,22 +128,9 @@ public enum CalendarEventParser {
         if let hangout = payload["hangoutLink"] as? String {
             return hangout
         }
-        if let description = payload["description"] as? String {
-            let patterns = [
-                "https://meet.google.com/[a-z-]+",
-                "https://[a-z0-9.-]+\\.zoom.us/j/[0-9?=&]+",
-                "https://teams.microsoft.com/l/meetup-join/[^\\s]+",
-            ]
-            for pattern in patterns {
-                if let range = description.range(of: pattern, options: .regularExpression) {
-                    return String(description[range])
-                }
-            }
-        }
-        if let location = payload["location"] as? String, location.hasPrefix("http") {
-            return location
-        }
-        return nil
+        let description = payload["description"] as? String ?? ""
+        let location = payload["location"] as? String ?? ""
+        return MeetingLinkExtractor.extract(description: description, location: location)
     }
 }
 

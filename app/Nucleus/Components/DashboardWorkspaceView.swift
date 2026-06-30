@@ -17,6 +17,7 @@ struct DashboardWorkspaceView: View {
     @ObservedObject private var holidayService = DashboardPublicHolidayService.shared
     @ObservedObject private var newsFeedService = DashboardNewsFeedService.shared
     @ObservedObject private var newsSpeechService = DashboardNewsSpeechService.shared
+    @ObservedObject private var calendarService = MacCalendarSyncService.shared
 
     @State private var holidayExplanations: [String: String] = [:]
     @State private var holidayIcons: [String: String] = [:]
@@ -132,6 +133,7 @@ struct DashboardWorkspaceView: View {
             weatherService.refreshIfNeeded()
             newsFeedService.refresh(countryCodes: preferredNewsCountryCodes(), force: false)
             DashboardAnalysisService.shared.runAnalysisIfNeeded(force: false)
+            Task { await calendarService.syncIfAuthorized() }
         }
         .onChange(of: holidayService.countryGroups.map(\.countryCode)) { _, _ in
             viewModel.refreshDashboardQuoteForCurrentContext()
@@ -218,6 +220,9 @@ struct DashboardWorkspaceView: View {
             }
             if dashboardPreferences.publicHolidayEnabled {
                 publicHolidayRow
+            }
+            if dashboardPreferences.calendarScheduleEnabled {
+                calendarScheduleRow
             }
         }
     }
@@ -338,6 +343,10 @@ struct DashboardWorkspaceView: View {
 
     private var appleMusicExpanded: Binding<Bool> {
         dashboardPreferenceBinding(\.appleMusicExpanded)
+    }
+
+    private var calendarScheduleExpanded: Binding<Bool> {
+        dashboardPreferenceBinding(\.calendarScheduleExpanded)
     }
 
     private func dashboardPreferenceBinding(_ keyPath: WritableKeyPath<DashboardPreferences, Bool>) -> Binding<Bool> {
@@ -828,6 +837,40 @@ struct DashboardWorkspaceView: View {
         .overlay {
             RoundedRectangle(cornerRadius: 14)
                 .strokeBorder(Color.teal.opacity(0.2), lineWidth: 1)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var calendarScheduleRowTitle: String {
+        let count = viewModel.calendarEvents.filter { $0.endDate >= Date() }.count
+        if count == 0 {
+            return "Calendar schedule"
+        }
+        return "Calendar schedule · \(count) upcoming"
+    }
+
+    private var calendarScheduleRow: some View {
+        collapsibleDashboardSection(
+            isExpanded: calendarScheduleExpanded,
+            title: calendarScheduleRowTitle,
+            systemImage: "calendar"
+        ) {
+            DashboardCalendarSchedulePanel(
+                events: viewModel.calendarEvents.filter { $0.endDate >= Date() },
+                isSyncing: calendarService.isSyncing,
+                accessState: calendarService.accessState,
+                onRefresh: {
+                    Task { await calendarService.syncIfAuthorized() }
+                },
+                onRequestAccess: {
+                    Task { await calendarService.requestAccessAndSync() }
+                }
+            )
+        }
+        .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 14))
+        .overlay {
+            RoundedRectangle(cornerRadius: 14)
+                .strokeBorder(Color.blue.opacity(0.2), lineWidth: 1)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }

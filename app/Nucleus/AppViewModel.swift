@@ -1,5 +1,6 @@
 import AccountKit
 import AppKit
+import CalendarKit
 import ClipboardKit
 import Combine
 import DatabaseKit
@@ -37,6 +38,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
     @Published var selectedBillID: UUID?
     @Published var notes: [NoteDocument] = []
     @Published var mailMessages: [MailMessageSummary] = []
+    @Published var calendarEvents: [CalendarEventSummary] = []
     @Published var unreadByAccount: [UUID: Int] = [:]
     @Published var totalUnread = 0
     @Published var clipboardSearchQuery = ""
@@ -187,6 +189,12 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
             payments: billPayments,
             configuration: settings.billDueReminderConfiguration
         )
+    }
+
+    func refreshMeetingReminders() async {
+        let reminders = MeetingReminderPlanner.reminders(for: calendarEvents)
+        await NucleusNotificationService.shared.rescheduleMeetingReminders(reminders)
+        statusMessage = statusMessageForCurrentState()
     }
 
     private func scheduleBillReminderRefresh() {
@@ -734,8 +742,10 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         NucleusNotificationService.shared.onClipboardPasswordAction = { [weak self] action in
             self?.handleClipboardPasswordNotificationAction(action)
         }
-        NucleusNotificationService.shared.onMeetingReminder = nil
-        await NucleusNotificationService.shared.rescheduleMeetingReminders([])
+        NucleusNotificationService.shared.onMeetingReminder = { event, kind in
+            NucleusNotificationService.shared.notifyMeetingReminder(event, kind: kind)
+        }
+        await refreshMeetingReminders()
         await refreshBillReminders(settings: settings)
         MailNotificationSound.prepareNotificationSounds()
         ChatNotificationSound.prepareNotificationSounds()
@@ -746,6 +756,10 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         mailSyncService.start(viewModel: self, interval: settings.mailSyncInterval)
         GmailWebSyncScheduler.shared.start(viewModel: self)
         completeStartupStep(.mailSync)
+        MacCalendarSyncService.shared.start(viewModel: self)
+        if MacCalendarSyncService.shared.accessState == .notDetermined {
+            Task { await MacCalendarSyncService.shared.requestAccessAndSync() }
+        }
         Task { @MainActor in
             await syncMail()
         }
@@ -954,6 +968,9 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         if totalUnread > 0 {
             parts.append("\(totalUnread) unread email\(totalUnread == 1 ? "" : "s")")
         }
+        if let nextMeeting = calendarEvents.first(where: { $0.startDate > Date() }) {
+            parts.append("Next: \(nextMeeting.title)")
+        }
         if !parts.isEmpty {
             return parts.joined(separator: " · ")
         }
@@ -1024,6 +1041,8 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         } else {
             totalUnread = (try? MailRepository.unreadCount(context: context)) ?? 0
         }
+
+        calendarEvents = (try? CalendarRepository.fetchUpcoming(context: context)) ?? []
 
         if !knownMessageIDs.isEmpty {
             mailUnreadSyncBaselineEstablished.formUnion(accounts.map(\.id))

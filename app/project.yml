@@ -78,6 +78,7 @@ targets:
       - sdk: CoreLocation.framework
       - sdk: FoundationModels.framework
       - sdk: MusicKit.framework
+      - sdk: EventKit.framework
       - sdk: AVKit.framework
     scheme:
       testTargets: []

@@ -403,7 +403,7 @@ public enum CalendarWebSessionClient {
 
         let location = fields["LOCATION"] ?? ""
         let description = fields["DESCRIPTION"]?.replacingOccurrences(of: "\\n", with: "\n") ?? ""
-        let meetingLink = extractMeetingLink(description: description, location: location)
+        let meetingLink = MeetingLinkExtractor.extract(description: description, location: location)
 
         return CalendarEventSummary(
             id: "\(account.id.uuidString)-\(uid)",
@@ -454,18 +454,4 @@ public enum CalendarWebSessionClient {
         parseICSDate(key: "DTSTART", value: value)
     }
 
-    private static func extractMeetingLink(description: String, location: String) -> String? {
-        if location.hasPrefix("http") { return location }
-        let patterns = [
-            "https://meet.google.com/[a-z-]+",
-            "https://[a-z0-9.-]+\\.zoom.us/j/[0-9?=&]+",
-            "https://teams.microsoft.com/l/meetup-join/[^\\s]+",
-        ]
-        for pattern in patterns {
-            if let range = description.range(of: pattern, options: .regularExpression) {
-                return String(description[range])
-            }
-        }
-        return nil
-    }
 }
