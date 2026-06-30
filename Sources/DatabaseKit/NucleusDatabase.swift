@@ -11,13 +11,15 @@ public enum NucleusDatabase {
     private static let notesCloudKitExportDefaultsKey = "NucleusCloudKitNotesExportedToCloudKit"
     private static let billsCloudKitExportDefaultsKey = "NucleusCloudKitBillsExportedToCloudKit"
     private static let dashboardCloudKitExportDefaultsKey = "NucleusCloudKitDashboardExportedToCloudKit"
+    private static let calendarCloudKitExportDefaultsKey = "NucleusCloudKitCalendarExportedToCloudKit"
 
     public struct SyncedCloudKitExportCounts: Sendable {
         public var notes: Int
         public var bills: Int
         public var dashboard: Int
+        public var calendar: Int
 
-        public var total: Int { notes + bills + dashboard }
+        public var total: Int { notes + bills + dashboard + calendar }
     }
 
     /// Whether the active store configuration is syncing notes via CloudKit.
@@ -33,10 +35,10 @@ public enum NucleusDatabase {
         BillRecord.self,
         BillPaymentRecord.self,
         DashboardAnalysisRecord.self,
+        CalendarEventRecord.self,
     ])
 
     public static let localSchema = Schema([
-        CalendarEventRecord.self,
         ActivityNotificationRecord.self,
         MailMessageRecord.self,
     ])
@@ -253,11 +255,27 @@ public enum NucleusDatabase {
     }
 
     @discardableResult
+    public static func exportCalendarToCloudKit(context: ModelContext, force: Bool = false) throws -> Int {
+        guard usesCloudKitSync else { return 0 }
+        if !force, UserDefaults.standard.bool(forKey: calendarCloudKitExportDefaultsKey) {
+            return 0
+        }
+
+        let count = try CalendarRepository.touchAllForCloudKitExport(context: context)
+        if count > 0 || force {
+            UserDefaults.standard.set(true, forKey: calendarCloudKitExportDefaultsKey)
+            NSLog("Nucleus: Queued %ld calendar event(s) for CloudKit export.", count)
+        }
+        return count
+    }
+
+    @discardableResult
     public static func exportSyncedDataToCloudKit(context: ModelContext, force: Bool = false) throws -> SyncedCloudKitExportCounts {
         SyncedCloudKitExportCounts(
             notes: try exportNotesToCloudKit(context: context, force: force),
             bills: try exportBillsToCloudKit(context: context, force: force),
-            dashboard: try exportDashboardToCloudKit(context: context, force: force)
+            dashboard: try exportDashboardToCloudKit(context: context, force: force),
+            calendar: try exportCalendarToCloudKit(context: context, force: force)
         )
     }
 
@@ -266,6 +284,7 @@ public enum NucleusDatabase {
         UserDefaults.standard.removeObject(forKey: notesCloudKitExportDefaultsKey)
         UserDefaults.standard.removeObject(forKey: billsCloudKitExportDefaultsKey)
         UserDefaults.standard.removeObject(forKey: dashboardCloudKitExportDefaultsKey)
+        UserDefaults.standard.removeObject(forKey: calendarCloudKitExportDefaultsKey)
         UserDefaults.standard.removeObject(forKey: developmentSchemaSeedDefaultsKey)
     }
 
@@ -308,6 +327,7 @@ public enum NucleusDatabase {
             BillRecord.self,
             BillPaymentRecord.self,
             DashboardAnalysisRecord.self,
+            CalendarEventRecord.self,
         ]
         guard let managedObjectModel = NSManagedObjectModel.makeManagedObjectModel(for: syncedModels) else {
             throw NSError(domain: "NucleusDatabase", code: 1, userInfo: [
@@ -724,6 +744,23 @@ public enum CalendarRepository {
             sortBy: [SortDescriptor(\.startDate)]
         )
         return try context.fetch(descriptor).map(\.summary)
+    }
+
+    @discardableResult
+    public static func touchAllForCloudKitExport(context: ModelContext) throws -> Int {
+        let records = try context.fetch(FetchDescriptor<CalendarEventRecord>())
+        guard !records.isEmpty else { return 0 }
+
+        for record in records {
+            record.title += "\u{200B}"
+        }
+        try context.save()
+
+        for record in records where record.title.hasSuffix("\u{200B}") {
+            record.title.removeLast()
+        }
+        try context.save()
+        return records.count
     }
 }
 

@@ -24,6 +24,8 @@ final class MobileAppViewModel: ObservableObject {
 
     @Published private(set) var bills: [Bill] = []
     @Published private(set) var billPayments: [BillPayment] = []
+    @Published private(set) var calendarEvents: [CalendarEventSummary] = []
+    @Published private(set) var isReloadingCalendar = false
     @Published var dashboardQuote: String = DashboardQuotes.currentOrRandom()
     @Published var dashboardQuoteEmojis: String = ""
 
@@ -93,9 +95,12 @@ final class MobileAppViewModel: ObservableObject {
 
         observeCloudKitChanges()
         reloadBills()
+        reloadCalendarEvents()
+        await reloadCalendarWaitingForCloudImport()
         await notesService.reloadWaitingForCloudImport()
         refreshDashboardQuoteEmojis()
         await rescheduleBillReminders()
+        await rescheduleMeetingReminders()
         await syncAppIconBadge()
 
         statusMessage = "Ready"
@@ -139,6 +144,8 @@ final class MobileAppViewModel: ObservableObject {
         await iCloudSync.refresh()
         await notesService.reloadWaitingForCloudImport()
         reloadBills()
+        await reloadCalendarWaitingForCloudImport()
+        await rescheduleMeetingReminders()
     }
 
     var activeBills: [Bill] {
@@ -150,6 +157,25 @@ final class MobileAppViewModel: ObservableObject {
         bills = (try? BillRepository.fetchAll(context: context)) ?? []
         billPayments = (try? BillRepository.fetchPayments(context: context)) ?? []
         Task { await syncAppIconBadge() }
+    }
+
+    func reloadCalendarEvents() {
+        let context = ModelContext(modelContainer)
+        calendarEvents = (try? CalendarRepository.fetchUpcoming(context: context)) ?? []
+    }
+
+    func reloadCalendarWaitingForCloudImport() async {
+        isReloadingCalendar = true
+        defer { isReloadingCalendar = false }
+
+        reloadCalendarEvents()
+        guard calendarEvents.isEmpty, iCloudSync.isSignedIn, !isScreenshotMode else { return }
+
+        for delay in [2.0, 4.0, 8.0] {
+            try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+            reloadCalendarEvents()
+            if !calendarEvents.isEmpty { break }
+        }
     }
 
     func payments(for billID: UUID) -> [BillPayment] {
@@ -189,6 +215,8 @@ final class MobileAppViewModel: ObservableObject {
         switch tab {
         case .bills:
             return billsNearlyDueCount
+        case .calendar:
+            return calendarEvents.filter { $0.startDate > Date() && $0.startDate <= Date().addingTimeInterval(86400) }.count
         default:
             return 0
         }
@@ -355,6 +383,14 @@ final class MobileAppViewModel: ObservableObject {
         )
     }
 
+    func rescheduleMeetingReminders() async {
+        guard settingsSync.syncedConfiguration?.calendarNotificationsEnabled ?? true else { return }
+        MeetingReminderScheduler.shared.registerCategories()
+        for event in calendarEvents where event.startDate > Date() {
+            await MeetingReminderScheduler.shared.scheduleReminders(for: event)
+        }
+    }
+
     private func normalizeSelectedTab() {
         let normalized = MobileWorkspaceTab.normalizedForIOS(preferencesStore.preferences.selectedTab)
         guard normalized != preferencesStore.preferences.selectedTab else { return }
@@ -366,10 +402,12 @@ final class MobileAppViewModel: ObservableObject {
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in
                 self?.reloadBills()
+                self?.reloadCalendarEvents()
                 Task {
                     await self?.iCloudSync.refresh()
                     await self?.notesService.reloadWaitingForCloudImport()
                     await self?.rescheduleBillReminders()
+                    await self?.rescheduleMeetingReminders()
                 }
             }
     }

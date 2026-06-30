@@ -151,10 +151,10 @@ public final class CloudKitSyncService: ObservableObject {
 
         let exportedCounts: NucleusDatabase.SyncedCloudKitExportCounts
         do {
-            log("Queuing notes, bills, and dashboard for CloudKit export…")
+            log("Queuing notes, bills, dashboard, and calendar for CloudKit export…")
             exportedCounts = try performExport()
             log(
-                "Marked \(exportedCounts.notes) note(s), \(exportedCounts.bills) bill/payment record(s), and \(exportedCounts.dashboard) dashboard record(s) for export"
+                "Marked \(exportedCounts.notes) note(s), \(exportedCounts.bills) bill/payment record(s), \(exportedCounts.dashboard) dashboard record(s), and \(exportedCounts.calendar) calendar event(s) for export"
             )
         } catch {
             setExporting(false, for: .synced)
@@ -182,7 +182,7 @@ public final class CloudKitSyncService: ObservableObject {
             notesExportOutcome = .succeeded(noteCount: exportedCounts.notes)
             billsExportOutcome = .succeeded(recordCount: exportedCounts.bills)
             let message =
-                "Synced \(exportedCounts.notes) note(s), \(exportedCounts.bills) bill/payment record(s), and dashboard analysis to iCloud."
+                "Synced \(exportedCounts.notes) note(s), \(exportedCounts.bills) bill/payment record(s), dashboard analysis, and \(exportedCounts.calendar) calendar event(s) to iCloud."
             log(message, level: .success)
             return message
         case .failed(let error):

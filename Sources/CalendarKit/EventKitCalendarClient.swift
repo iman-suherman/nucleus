@@ -63,15 +63,6 @@ public enum EventKitCalendarClient {
         }
     }
 
-    private static func conferenceURL(for event: EKEvent) -> URL? {
-        #if os(iOS)
-        if #available(iOS 15.0, *) {
-            return event.conferenceURL
-        }
-        #endif
-        return nil
-    }
-
     private static func mapEvent(_ event: EKEvent) -> CalendarEventSummary? {
         let title = event.title?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         guard !title.isEmpty else { return nil }
@@ -81,7 +72,6 @@ public enum EventKitCalendarClient {
         let location = event.location ?? ""
         let notes = event.notes ?? ""
         let meetingLink = MeetingLinkExtractor.extract(
-            conferenceURL: conferenceURL(for: event),
             url: event.url,
             description: notes,
             location: location

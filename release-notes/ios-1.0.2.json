@@ -1,0 +1,17 @@
+{
+  "version": "1.0.2",
+  "summary": "Calendar tab shows your schedule synced from Nucleus on your Mac.",
+  "releaseNotes": {
+    "introduced": [
+      "Calendar tab with upcoming events and Join meeting links synced from your Mac via iCloud",
+      "Local meeting reminders for synced calendar events when notifications are enabled"
+    ],
+    "changed": [
+      "Companion app tabs now include Calendar between Bills and Settings"
+    ],
+    "fixed": [],
+    "updated": [],
+    "removed": [],
+    "breaking": []
+  }
+}

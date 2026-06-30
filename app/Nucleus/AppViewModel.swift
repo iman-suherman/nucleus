@@ -115,7 +115,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
 
     private func migrateLegacyWorkspaceSelection() {
         if let saved = AppSettings.shared.selectedWorkspacePane,
-           saved == "calendar" || saved == "chat" {
+           saved == "chat" {
             AppSettings.shared.selectedWorkspacePane = WorkspacePane.dashboard.rawValue
         }
     }
@@ -195,6 +195,10 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         let reminders = MeetingReminderPlanner.reminders(for: calendarEvents)
         await NucleusNotificationService.shared.rescheduleMeetingReminders(reminders)
         statusMessage = statusMessageForCurrentState()
+    }
+
+    var upcomingCalendarEventCount: Int {
+        calendarEvents.filter { $0.endDate >= Date() }.count
     }
 
     private func scheduleBillReminderRefresh() {
@@ -797,6 +801,9 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
             if let exported = try? NucleusDatabase.exportDashboardToCloudKit(context: exportContext), exported > 0 {
                 syncService.log("Queued dashboard analysis for iCloud export on launch")
             }
+            if let exported = try? NucleusDatabase.exportCalendarToCloudKit(context: exportContext), exported > 0 {
+                syncService.log("Queued \(exported) calendar event(s) for iCloud export on launch")
+            }
         }
     }
 
@@ -1208,6 +1215,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
             || !activeBills.isEmpty
             || !billPayments.isEmpty
             || storedDashboardAnalysis != nil
+            || !calendarEvents.isEmpty
     }
 
     func pushSyncedDataToCloudKit(force: Bool = true) async -> String {
@@ -1219,7 +1227,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         }
 
         if !hasSyncedDataToUpload {
-            return "No notes, bills, or dashboard analysis to sync yet."
+            return "No notes, bills, dashboard analysis, or calendar events to sync yet."
         }
 
         persistDashboardAnalysis()

@@ -47,6 +47,8 @@ struct TabletRootView: View {
             PasswordsWorkspaceScreen()
         case .bills:
             BillsWorkspaceScreen()
+        case .calendar:
+            CalendarWorkspaceScreen()
         case .settings:
             SettingsWorkspaceScreen()
         default:

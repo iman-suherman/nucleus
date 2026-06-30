@@ -5,6 +5,7 @@ import EventKit
 import Foundation
 import NucleusKit
 import SwiftData
+import SyncKit
 
 enum CalendarAccessSettingsPane {
     case calendars
@@ -65,6 +66,10 @@ final class MacCalendarSyncService: ObservableObject {
         do {
             try CalendarRepository.replaceEvents(fetched, context: context)
             viewModel.calendarEvents = fetched
+            if let exported = try? NucleusDatabase.exportCalendarToCloudKit(context: context, force: true),
+               exported > 0 {
+                CloudKitSyncService.shared.log("Queued \(exported) calendar event(s) for iCloud export")
+            }
             await viewModel.refreshMeetingReminders()
         } catch {
             lastSyncError = error.localizedDescription

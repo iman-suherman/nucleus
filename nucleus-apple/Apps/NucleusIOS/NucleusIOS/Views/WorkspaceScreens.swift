@@ -293,7 +293,7 @@ struct SettingsWorkspaceScreen: View {
                         Task { await viewModel.presentCurrentReleaseNotes() }
                     }
                     LabeledContent("Tagline", value: "Personal Workspace")
-                    Text("Nucleus for phone and tablet is your mobile companion — Dashboard, Notes, Passwords, and Bills stay in sync with your computer via cloud sync.")
+                    Text("Nucleus for phone and tablet is your mobile companion — Dashboard, Notes, Passwords, Bills, and Calendar stay in sync with your computer via cloud sync.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }

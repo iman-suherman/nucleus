@@ -10,6 +10,7 @@ enum CloudKitRecordDiagnostics {
         "CD_BillRecord",
         "CD_BillPaymentRecord",
         "CD_DashboardAnalysisRecord",
+        "CD_CalendarEventRecord",
     ]
 
     static let productionSchemaDeployHint =

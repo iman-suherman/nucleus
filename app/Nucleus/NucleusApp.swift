@@ -324,6 +324,8 @@ struct ContentView: View {
                         EmptyView()
                     case .bills:
                         BillsWorkspaceView()
+                    case .calendar:
+                        CalendarWorkspaceView()
                     case .media:
                         MediaWorkspaceView()
                     case .terminal:
@@ -542,6 +544,8 @@ struct ContentView: View {
                 NucleusCountBadge(count: viewModel.clipboardEntries.count)
             case .bills where !viewModel.activeBills.isEmpty:
                 NucleusCountBadge(count: viewModel.activeBills.count)
+            case .calendar where viewModel.upcomingCalendarEventCount > 0:
+                NucleusCountBadge(count: viewModel.upcomingCalendarEventCount)
             case .notes where viewModel.regularNotesCount > 0 || viewModel.passwordNotesCount > 0:
                 NoteFolderCountBadges(
                     notesCount: viewModel.regularNotesCount,

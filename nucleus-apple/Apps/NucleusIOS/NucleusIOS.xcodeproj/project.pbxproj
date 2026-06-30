@@ -16,6 +16,7 @@
 		67B42FF4E7AC2C6B3A30D967 /* NucleusCore in Frameworks */ = {isa = PBXBuildFile; productRef = EA9A5099159BBEB6D87E9569 /* NucleusCore */; };
 		6AE673DB077E872544D16D7D /* WorkspaceScreens.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB8D424370D4A85FA42CBEB2 /* WorkspaceScreens.swift */; };
 		8BD82BEA490EAE694B3C985A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D5CF62ADA8B73D867AA59582 /* Assets.xcassets */; };
+		8FA200E1337E685A2B49FCC5 /* CalendarScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD103515078DE6204CE5CA18 /* CalendarScreen.swift */; };
 		9D77CD6F6518920313EAE8C4 /* NucleusIOSApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81DD1C5C00FFB3720FFE53A4 /* NucleusIOSApp.swift */; };
 		A7FC776FE5B29C9CEF8639F3 /* MobileDeviceLockScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EDD708A0AACBD1CAC9D42DE /* MobileDeviceLockScreen.swift */; };
 		DEF49DDB5A6D71DEB4C809B4 /* ReleaseNotes.json in Resources */ = {isa = PBXBuildFile; fileRef = E28F99D70036651C4397E5BE /* ReleaseNotes.json */; };
@@ -55,6 +56,7 @@
 		D5CF62ADA8B73D867AA59582 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		E28F99D70036651C4397E5BE /* ReleaseNotes.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = ReleaseNotes.json; sourceTree = "<group>"; };
 		FB8D424370D4A85FA42CBEB2 /* WorkspaceScreens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceScreens.swift; sourceTree = "<group>"; };
+		FD103515078DE6204CE5CA18 /* CalendarScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarScreen.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -83,6 +85,7 @@
 			isa = PBXGroup;
 			children = (
 				6CCFCF3D2F070C5ECDA783A6 /* BillsScreen.swift */,
+				FD103515078DE6204CE5CA18 /* CalendarScreen.swift */,
 				06B9D41100EF35CD76112D20 /* DashboardScreen.swift */,
 				1EDD708A0AACBD1CAC9D42DE /* MobileDeviceLockScreen.swift */,
 				05AD418210F4B4E322618BDF /* MobileRootView.swift */,
@@ -246,6 +249,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F10991CF120092F92BC07F3F /* BillsScreen.swift in Sources */,
+				8FA200E1337E685A2B49FCC5 /* CalendarScreen.swift in Sources */,
 				6004B7EC765FD21122D95F5B /* DashboardScreen.swift in Sources */,
 				EE8B885912FCE650739554D7 /* MobileAppViewModel.swift in Sources */,
 				A7FC776FE5B29C9CEF8639F3 /* MobileDeviceLockScreen.swift in Sources */,

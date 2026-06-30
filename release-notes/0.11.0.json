@@ -1,0 +1,18 @@
+{
+  "version": "0.11.0",
+  "summary": "Dedicated Calendar workspace on Mac with iCloud sync to the iOS companion app.",
+  "releaseNotes": {
+    "introduced": [
+      "Calendar sidebar workspace with grouped upcoming events and video call links",
+      "Calendar events sync to iPhone and iPad via iCloud when Nucleus on your Mac refreshes your schedule"
+    ],
+    "changed": [
+      "Calendar events moved into the iCloud-synced data store alongside notes and bills",
+      "Dashboard Calendar schedule panel remains available and shares the same synced event list"
+    ],
+    "fixed": [],
+    "updated": [],
+    "removed": [],
+    "breaking": []
+  }
+}
