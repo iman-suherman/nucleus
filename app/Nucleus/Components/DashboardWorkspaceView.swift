@@ -921,6 +921,7 @@ struct DashboardWorkspaceView: View {
                 events: viewModel.calendarEvents.filter { $0.endDate >= Date() },
                 isSyncing: calendarService.isSyncing,
                 accessState: calendarService.accessState,
+                hasBirthdayCalendars: calendarService.hasBirthdayCalendars,
                 preferredContentHeight: calendarPanelPreferredContentHeight,
                 onRefresh: {
                     Task { await calendarService.syncIfAuthorized() }

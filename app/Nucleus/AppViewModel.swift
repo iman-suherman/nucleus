@@ -38,7 +38,14 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
     @Published var selectedBillID: UUID?
     @Published var notes: [NoteDocument] = []
     @Published var mailMessages: [MailMessageSummary] = []
-    @Published var calendarEvents: [CalendarEventSummary] = []
+    @Published var calendarEvents: [CalendarEventSummary] = [] {
+        didSet {
+            if calendarEvents.map(\.id) != oldValue.map(\.id) {
+                nextMeetingTitleRotationIndex = 0
+            }
+            syncNextMeetingTitleRotation()
+        }
+    }
     @Published var selectedCalendarEventID: String?
     @Published var unreadByAccount: [UUID: Int] = [:]
     @Published var totalUnread = 0
@@ -85,6 +92,8 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
     private var mailSignInPendingAccountIDs = Set<UUID>()
     private var billReminderRefreshTask: Task<Void, Never>?
     private var meetingReminderWatchdogTimer: Timer?
+    private var nextMeetingTitleRotationTimer: Timer?
+    @Published var nextMeetingTitleRotationIndex = 0
     /// Start times for meeting groups that have already shown an alert (popup + sound).
     private var firedMeetingReminderGroups: [String: Date] = [:]
     private var billReminderSettingsObserver: AnyCancellable?
@@ -270,8 +279,58 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         openCalendarFromMeetingReminder()
     }
 
-    var nextMeetingTitleGroup: MeetingReminderPlanner.UpcomingMeetingGroup? {
-        MeetingReminderPlanner.upcomingMeetingGroups(from: calendarEvents).first
+    var nextMeetingTitleEvents: [CalendarEventSummary] {
+        calendarEvents
+            .filter { $0.startDate > Date() }
+            .sorted { lhs, rhs in
+                if lhs.startDate != rhs.startDate {
+                    return lhs.startDate < rhs.startDate
+                }
+                let emailOrder = lhs.accountEmail.localizedCaseInsensitiveCompare(rhs.accountEmail)
+                if emailOrder != .orderedSame {
+                    return emailOrder == .orderedAscending
+                }
+                return lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedAscending
+            }
+    }
+
+    var currentNextMeetingTitleEvent: CalendarEventSummary? {
+        let events = nextMeetingTitleEvents
+        guard !events.isEmpty else { return nil }
+        return events[min(nextMeetingTitleRotationIndex, events.count - 1)]
+    }
+
+    func startNextMeetingTitleRotation() {
+        syncNextMeetingTitleRotation()
+    }
+
+    private func syncNextMeetingTitleRotation() {
+        let events = nextMeetingTitleEvents
+        if events.isEmpty {
+            nextMeetingTitleRotationIndex = 0
+            nextMeetingTitleRotationTimer?.invalidate()
+            nextMeetingTitleRotationTimer = nil
+            return
+        }
+        nextMeetingTitleRotationIndex = min(nextMeetingTitleRotationIndex, events.count - 1)
+        guard events.count > 1 else {
+            nextMeetingTitleRotationTimer?.invalidate()
+            nextMeetingTitleRotationTimer = nil
+            return
+        }
+        guard nextMeetingTitleRotationTimer == nil else { return }
+        nextMeetingTitleRotationTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                self?.advanceNextMeetingTitleRotation()
+            }
+        }
+    }
+
+    private func advanceNextMeetingTitleRotation() {
+        let count = nextMeetingTitleEvents.count
+        guard count > 1 else { return }
+        nextMeetingTitleRotationIndex = (nextMeetingTitleRotationIndex + 1) % count
+        statusMessage = statusMessageForCurrentState()
     }
 
     var upcomingCalendarEventCount: Int {
@@ -829,6 +888,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         }
         await refreshMeetingReminders()
         startMeetingReminderWatchdog()
+        startNextMeetingTitleRotation()
         await refreshBillReminders(settings: settings)
         MailNotificationSound.prepareNotificationSounds()
         ChatNotificationSound.prepareNotificationSounds()
@@ -1055,14 +1115,10 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         if totalUnread > 0 {
             parts.append("\(totalUnread) unread email\(totalUnread == 1 ? "" : "s")")
         }
-        if let group = nextMeetingTitleGroup, let event = group.events.first {
-            let time = Self.nextMeetingTimeLabel(for: group.startDate)
-            if group.events.count == 1 {
-                let emailSuffix = event.accountEmail.isEmpty ? "" : " · \(event.accountEmail)"
-                parts.append("Next \(time): \(event.title)\(emailSuffix)")
-            } else {
-                parts.append("Next \(time): \(group.events.count) meetings")
-            }
+        if let event = currentNextMeetingTitleEvent {
+            let time = Self.nextMeetingTimeLabel(for: event.startDate)
+            let emailSuffix = event.accountEmail.isEmpty ? "" : " · \(event.accountEmail)"
+            parts.append("Next \(time): \(event.title)\(emailSuffix)")
         }
         if !parts.isEmpty {
             return parts.joined(separator: " · ")

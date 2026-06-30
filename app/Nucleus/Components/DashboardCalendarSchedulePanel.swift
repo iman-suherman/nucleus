@@ -7,9 +7,13 @@ struct DashboardCalendarSchedulePanel: View {
     let events: [CalendarEventSummary]
     let isSyncing: Bool
     let accessState: CalendarAccessState
+    let hasBirthdayCalendars: Bool
     let preferredContentHeight: CGFloat?
     let onRefresh: () -> Void
     let onRequestAccess: () -> Void
+
+    @State private var calendarMonth = Date()
+    @State private var monthBirthdays: [CalendarEventSummary] = []
 
     private static let defaultScrollHeight: CGFloat = 390
 
@@ -17,6 +21,7 @@ struct DashboardCalendarSchedulePanel: View {
         events: [CalendarEventSummary],
         isSyncing: Bool,
         accessState: CalendarAccessState,
+        hasBirthdayCalendars: Bool,
         preferredContentHeight: CGFloat? = nil,
         onRefresh: @escaping () -> Void,
         onRequestAccess: @escaping () -> Void
@@ -24,6 +29,7 @@ struct DashboardCalendarSchedulePanel: View {
         self.events = events
         self.isSyncing = isSyncing
         self.accessState = accessState
+        self.hasBirthdayCalendars = hasBirthdayCalendars
         self.preferredContentHeight = preferredContentHeight
         self.onRefresh = onRefresh
         self.onRequestAccess = onRequestAccess
@@ -33,22 +39,45 @@ struct DashboardCalendarSchedulePanel: View {
         preferredContentHeight ?? Self.defaultScrollHeight
     }
 
+    private var scheduleEvents: [CalendarEventSummary] {
+        events.filter { !$0.isBirthday }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             if accessState != .authorized {
                 accessPrompt
                     .frame(maxHeight: preferredContentHeight == nil ? nil : .infinity, alignment: .topLeading)
-            } else if events.isEmpty {
+            } else if events.isEmpty && !hasBirthdayCalendars {
                 emptyState
                     .frame(maxHeight: preferredContentHeight == nil ? nil : .infinity, alignment: .topLeading)
             } else {
                 ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 0) {
-                        ForEach(events) { event in
-                            eventRow(event)
+                    VStack(alignment: .leading, spacing: 12) {
+                        if hasBirthdayCalendars {
+                            DashboardMonthCalendarView(
+                                month: calendarMonth,
+                                birthdays: monthBirthdays,
+                                scheduledEvents: scheduleEvents,
+                                onPreviousMonth: { shiftMonth(by: -1) },
+                                onNextMonth: { shiftMonth(by: 1) }
+                            )
+                        }
+
+                        if !scheduleEvents.isEmpty {
+                            LazyVStack(alignment: .leading, spacing: 0) {
+                                ForEach(scheduleEvents) { event in
+                                    eventRow(event)
+                                }
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        } else if hasBirthdayCalendars {
+                            Text("No other upcoming events in the next two weeks.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .padding(.top, 4)
                         }
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .frame(height: scrollHeight)
             }
@@ -63,6 +92,35 @@ struct DashboardCalendarSchedulePanel: View {
                 }
             }
         }
+        .onAppear {
+            reloadMonthBirthdays()
+        }
+        .onChange(of: calendarMonth) { _, _ in
+            reloadMonthBirthdays()
+        }
+        .onChange(of: hasBirthdayCalendars) { _, _ in
+            reloadMonthBirthdays()
+        }
+        .onChange(of: accessState) { _, _ in
+            reloadMonthBirthdays()
+        }
+        .onChange(of: isSyncing) { _, syncing in
+            if !syncing {
+                reloadMonthBirthdays()
+            }
+        }
+    }
+
+    private func shiftMonth(by value: Int) {
+        calendarMonth = Calendar.current.date(byAdding: .month, value: value, to: calendarMonth) ?? calendarMonth
+    }
+
+    private func reloadMonthBirthdays() {
+        guard accessState == .authorized, hasBirthdayCalendars else {
+            monthBirthdays = []
+            return
+        }
+        monthBirthdays = EventKitCalendarClient.fetchBirthdayEvents(inMonth: calendarMonth)
     }
 
     private var accessPrompt: some View {

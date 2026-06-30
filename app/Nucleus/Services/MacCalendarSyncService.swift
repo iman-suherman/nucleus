@@ -22,6 +22,7 @@ final class MacCalendarSyncService: ObservableObject {
     @Published private(set) var accessState: CalendarAccessState = .notDetermined
     @Published private(set) var isSyncing = false
     @Published private(set) var lastSyncError: String?
+    @Published private(set) var hasBirthdayCalendars = false
 
     private weak var viewModel: AppViewModel?
     private var refreshTimer: Timer?
@@ -40,6 +41,7 @@ final class MacCalendarSyncService: ObservableObject {
 
     func refreshAccessState() {
         accessState = EventKitCalendarClient.currentAccessState()
+        hasBirthdayCalendars = accessState == .authorized && EventKitCalendarClient.hasBirthdayCalendars()
     }
 
     func openCalendarAccessSettings() {

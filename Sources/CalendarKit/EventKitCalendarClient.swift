@@ -45,7 +45,43 @@ public enum EventKitCalendarClient {
 
         return events
             .compactMap { mapEvent($0) }
+            .filter { !$0.isBirthday }
             .sorted { $0.startDate < $1.startDate }
+    }
+
+    public static func hasBirthdayCalendars() -> Bool {
+        guard hasReadAccess() else { return false }
+        return EKEventStore().calendars(for: .event).contains { $0.type == .birthday }
+    }
+
+    public static func fetchBirthdayEvents(
+        inMonth month: Date,
+        calendar: Calendar = .current
+    ) -> [CalendarEventSummary] {
+        guard hasReadAccess() else { return [] }
+        guard let interval = calendar.dateInterval(of: .month, for: month) else { return [] }
+        return fetchBirthdayEvents(from: interval.start, to: interval.end)
+    }
+
+    public static func fetchBirthdayEvents(from start: Date, to end: Date) -> [CalendarEventSummary] {
+        guard hasReadAccess() else { return [] }
+
+        let store = EKEventStore()
+        let birthdayCalendars = store.calendars(for: .event).filter { $0.type == .birthday }
+        guard !birthdayCalendars.isEmpty else { return [] }
+
+        let predicate = store.predicateForEvents(withStart: start, end: end, calendars: birthdayCalendars)
+        return store.events(matching: predicate)
+            .compactMap { mapEvent($0, forceBirthday: true) }
+            .sorted { lhs, rhs in
+                if lhs.startDate != rhs.startDate {
+                    return lhs.startDate < rhs.startDate
+                }
+                return BirthdayCalendarFormatting.displayName(from: lhs.title)
+                    .localizedCaseInsensitiveCompare(
+                        BirthdayCalendarFormatting.displayName(from: rhs.title)
+                    ) == .orderedAscending
+            }
     }
 
     private static func hasReadAccess() -> Bool {
@@ -69,15 +105,16 @@ public enum EventKitCalendarClient {
         }
     }
 
-    private static func mapEvent(_ event: EKEvent) -> CalendarEventSummary? {
+    private static func mapEvent(_ event: EKEvent, forceBirthday: Bool = false) -> CalendarEventSummary? {
         let title = event.title?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         guard !title.isEmpty else { return nil }
         guard !CalendarJunkFilter.isCalendarChromeTitle(title) else { return nil }
         guard let startDate = event.startDate, let endDate = event.endDate else { return nil }
 
+        let isBirthday = forceBirthday || event.calendar.type == .birthday
         let location = event.location ?? ""
         let notes = event.notes ?? ""
-        let meetingLink = MeetingLinkExtractor.extract(
+        let meetingLink = isBirthday ? nil : MeetingLinkExtractor.extract(
             url: event.url,
             description: notes,
             location: location
@@ -103,7 +140,8 @@ public enum EventKitCalendarClient {
             location: location,
             attendees: attendees,
             meetingLink: meetingLink,
-            accountEmail: accountEmail
+            accountEmail: accountEmail,
+            isBirthday: isBirthday
         )
     }
 }

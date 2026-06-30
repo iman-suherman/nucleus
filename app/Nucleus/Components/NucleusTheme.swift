@@ -58,10 +58,8 @@ struct NucleusBrandMark: View {
                                 .foregroundStyle(.secondary)
                         }
                     }
-                    if let group = viewModel.nextMeetingTitleGroup {
-                        NextMeetingTitleView(group: group) { event in
-                            viewModel.openCalendarEvent(event)
-                        }
+                    if viewModel.currentNextMeetingTitleEvent != nil {
+                        NextMeetingTitleView()
                     } else {
                         Text("Personal Workspace")
                             .font(.caption)

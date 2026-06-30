@@ -182,6 +182,7 @@ public struct CalendarEventSummary: Identifiable, Codable, Hashable, Sendable {
     public var attendees: [String]
     public var meetingLink: String?
     public var accountEmail: String
+    public var isBirthday: Bool
 
     public init(
         id: String,
@@ -192,7 +193,8 @@ public struct CalendarEventSummary: Identifiable, Codable, Hashable, Sendable {
         location: String = "",
         attendees: [String] = [],
         meetingLink: String? = nil,
-        accountEmail: String
+        accountEmail: String,
+        isBirthday: Bool = false
     ) {
         self.id = id
         self.accountID = accountID
@@ -203,6 +205,48 @@ public struct CalendarEventSummary: Identifiable, Codable, Hashable, Sendable {
         self.attendees = attendees
         self.meetingLink = meetingLink
         self.accountEmail = accountEmail
+        self.isBirthday = isBirthday
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case accountID
+        case title
+        case startDate
+        case endDate
+        case location
+        case attendees
+        case meetingLink
+        case accountEmail
+        case isBirthday
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        accountID = try container.decode(UUID.self, forKey: .accountID)
+        title = try container.decode(String.self, forKey: .title)
+        startDate = try container.decode(Date.self, forKey: .startDate)
+        endDate = try container.decode(Date.self, forKey: .endDate)
+        location = try container.decodeIfPresent(String.self, forKey: .location) ?? ""
+        attendees = try container.decodeIfPresent([String].self, forKey: .attendees) ?? []
+        meetingLink = try container.decodeIfPresent(String.self, forKey: .meetingLink)
+        accountEmail = try container.decode(String.self, forKey: .accountEmail)
+        isBirthday = try container.decodeIfPresent(Bool.self, forKey: .isBirthday) ?? false
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(accountID, forKey: .accountID)
+        try container.encode(title, forKey: .title)
+        try container.encode(startDate, forKey: .startDate)
+        try container.encode(endDate, forKey: .endDate)
+        try container.encode(location, forKey: .location)
+        try container.encode(attendees, forKey: .attendees)
+        try container.encodeIfPresent(meetingLink, forKey: .meetingLink)
+        try container.encode(accountEmail, forKey: .accountEmail)
+        try container.encode(isBirthday, forKey: .isBirthday)
     }
 }
 

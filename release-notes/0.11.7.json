@@ -1,0 +1,16 @@
+{
+  "version": "0.11.7",
+  "summary": "Dashboard birthday month view and per-meeting title rotation.",
+  "releaseNotes": {
+    "introduced": [
+      "Dashboard calendar schedule shows a monthly grid with birthdays highlighted when macOS Birthday calendars are enabled — each day shows whose birthday it is in pink"
+    ],
+    "changed": [
+      "Nucleus title and toolbar status rotate through each upcoming meeting individually with time, title, and email — no more grouped \"2 meetings\" summary"
+    ],
+    "fixed": [],
+    "updated": [],
+    "removed": [],
+    "breaking": []
+  }
+}
