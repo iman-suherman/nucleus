@@ -1,0 +1,19 @@
+{
+  "version": "0.11.8",
+  "summary": "Refined dashboard calendar layout and clickable next-schedule title bar.",
+  "releaseNotes": {
+    "introduced": [],
+    "changed": [
+      "Dashboard calendar spans full width with birthday and schedule month grids side by side; Apple Music and Nucleus AI sit below in a left-right row",
+      "Birthday names are larger with hover tooltips showing full date and calendar source",
+      "Nucleus sidebar subtitle restored to Personal Workspace",
+      "Title bar next-schedule badge shows only the immediate upcoming slot; overlapping meetings at the same time rotate every 5 seconds"
+    ],
+    "fixed": [],
+    "updated": [
+      "Click the title bar schedule line (green check area) to open Calendar with that event highlighted and detailed"
+    ],
+    "removed": [],
+    "breaking": []
+  }
+}

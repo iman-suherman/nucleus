@@ -93,6 +93,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
     private var billReminderRefreshTask: Task<Void, Never>?
     private var meetingReminderWatchdogTimer: Timer?
     private var nextMeetingTitleRotationTimer: Timer?
+    private var nextImmediateScheduleGroupStart: Date?
     @Published var nextMeetingTitleRotationIndex = 0
     /// Start times for meeting groups that have already shown an alert (popup + sound).
     private var firedMeetingReminderGroups: [String: Date] = [:]
@@ -279,9 +280,21 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         openCalendarFromMeetingReminder()
     }
 
-    var nextMeetingTitleEvents: [CalendarEventSummary] {
+    var nextImmediateScheduleEvents: [CalendarEventSummary] {
+        let upcoming = upcomingScheduleEvents
+        guard let first = upcoming.first else { return [] }
+        return MeetingReminderPlanner.eventsStartingTogether(with: first, in: upcoming)
+    }
+
+    var currentNextMeetingTitleEvent: CalendarEventSummary? {
+        let events = nextImmediateScheduleEvents
+        guard !events.isEmpty else { return nil }
+        return events[min(nextMeetingTitleRotationIndex, events.count - 1)]
+    }
+
+    private var upcomingScheduleEvents: [CalendarEventSummary] {
         calendarEvents
-            .filter { $0.startDate > Date() }
+            .filter { !$0.isBirthday && $0.startDate > Date() }
             .sorted { lhs, rhs in
                 if lhs.startDate != rhs.startDate {
                     return lhs.startDate < rhs.startDate
@@ -294,18 +307,17 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
             }
     }
 
-    var currentNextMeetingTitleEvent: CalendarEventSummary? {
-        let events = nextMeetingTitleEvents
-        guard !events.isEmpty else { return nil }
-        return events[min(nextMeetingTitleRotationIndex, events.count - 1)]
-    }
-
     func startNextMeetingTitleRotation() {
         syncNextMeetingTitleRotation()
     }
 
     private func syncNextMeetingTitleRotation() {
-        let events = nextMeetingTitleEvents
+        let events = nextImmediateScheduleEvents
+        let groupStart = events.first?.startDate
+        if groupStart != nextImmediateScheduleGroupStart {
+            nextMeetingTitleRotationIndex = 0
+            nextImmediateScheduleGroupStart = groupStart
+        }
         if events.isEmpty {
             nextMeetingTitleRotationIndex = 0
             nextMeetingTitleRotationTimer?.invalidate()
@@ -327,10 +339,9 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
     }
 
     private func advanceNextMeetingTitleRotation() {
-        let count = nextMeetingTitleEvents.count
+        let count = nextImmediateScheduleEvents.count
         guard count > 1 else { return }
         nextMeetingTitleRotationIndex = (nextMeetingTitleRotationIndex + 1) % count
-        statusMessage = statusMessageForCurrentState()
     }
 
     var upcomingCalendarEventCount: Int {
@@ -1115,15 +1126,16 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         if totalUnread > 0 {
             parts.append("\(totalUnread) unread email\(totalUnread == 1 ? "" : "s")")
         }
-        if let event = currentNextMeetingTitleEvent {
-            let time = Self.nextMeetingTimeLabel(for: event.startDate)
-            let emailSuffix = event.accountEmail.isEmpty ? "" : " · \(event.accountEmail)"
-            parts.append("Next \(time): \(event.title)\(emailSuffix)")
-        }
         if !parts.isEmpty {
             return parts.joined(separator: " · ")
         }
         return "Ready"
+    }
+
+    func nextScheduleStatusLine(for event: CalendarEventSummary) -> String {
+        let time = Self.nextMeetingTimeLabel(for: event.startDate)
+        let emailSuffix = event.accountEmail.isEmpty ? "" : " · \(event.accountEmail)"
+        return "Next \(time): \(event.title)\(emailSuffix)"
     }
 
     static func nextMeetingTimeLabel(for startDate: Date, now: Date = Date()) -> String {

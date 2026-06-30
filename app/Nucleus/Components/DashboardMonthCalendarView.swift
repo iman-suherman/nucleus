@@ -3,47 +3,60 @@ import NucleusKit
 import SwiftUI
 
 struct DashboardMonthCalendarView: View {
+    enum DisplayMode {
+        case birthdays
+        case events
+    }
+
+    let mode: DisplayMode
     let month: Date
     let birthdays: [CalendarEventSummary]
     let scheduledEvents: [CalendarEventSummary]
+    let showsMonthNavigation: Bool
     let onPreviousMonth: () -> Void
     let onNextMonth: () -> Void
+
+    init(
+        mode: DisplayMode,
+        month: Date,
+        birthdays: [CalendarEventSummary],
+        scheduledEvents: [CalendarEventSummary],
+        showsMonthNavigation: Bool = true,
+        onPreviousMonth: @escaping () -> Void,
+        onNextMonth: @escaping () -> Void
+    ) {
+        self.mode = mode
+        self.month = month
+        self.birthdays = birthdays
+        self.scheduledEvents = scheduledEvents
+        self.showsMonthNavigation = showsMonthNavigation
+        self.onPreviousMonth = onPreviousMonth
+        self.onNextMonth = onNextMonth
+    }
 
     private var calendar: Calendar { Calendar.current }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Button(action: onPreviousMonth) {
-                    Image(systemName: "chevron.left")
-                }
-                .buttonStyle(.borderless)
-
-                Spacer()
-
+            if showsMonthNavigation {
+                monthHeader
+            } else if mode == .events {
                 Text(monthTitle)
-                    .font(.subheadline.weight(.semibold))
-
-                Spacer()
-
-                Button(action: onNextMonth) {
-                    Image(systemName: "chevron.right")
-                }
-                .buttonStyle(.borderless)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity)
             }
 
-            if !birthdays.isEmpty {
-                HStack(spacing: 6) {
-                    Image(systemName: "birthday.cake.fill")
-                        .font(.caption2)
-                        .foregroundStyle(.pink)
-                    Text("Birthdays")
-                        .font(.caption2.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                }
+            HStack(spacing: 6) {
+                Image(systemName: mode == .birthdays ? "birthday.cake.fill" : "calendar")
+                    .font(.caption)
+                    .foregroundStyle(mode == .birthdays ? .pink : .blue)
+                Text(mode == .birthdays ? "Birthdays" : "Schedule")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
             }
 
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: 7), spacing: 6) {
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: 7), spacing: 8) {
                 ForEach(weekdaySymbols, id: \.self) { day in
                     Text(day)
                         .font(.caption2.weight(.semibold))
@@ -55,7 +68,7 @@ struct DashboardMonthCalendarView: View {
                     if let cell {
                         dayCell(cell)
                     } else {
-                        Color.clear.frame(minHeight: 44)
+                        Color.clear.frame(minHeight: cellMinHeight)
                     }
                 }
             }
@@ -64,60 +77,82 @@ struct DashboardMonthCalendarView: View {
         .background(.quaternary.opacity(0.28), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
+    private var monthHeader: some View {
+        HStack {
+            Button(action: onPreviousMonth) {
+                Image(systemName: "chevron.left")
+            }
+            .buttonStyle(.borderless)
+
+            Spacer()
+
+            Text(monthTitle)
+                .font(.subheadline.weight(.semibold))
+
+            Spacer()
+
+            Button(action: onNextMonth) {
+                Image(systemName: "chevron.right")
+            }
+            .buttonStyle(.borderless)
+        }
+    }
+
     private struct DayCellModel {
         let day: Int
         let date: Date
         let birthdays: [CalendarEventSummary]
-        let hasEvent: Bool
+        let events: [CalendarEventSummary]
         let isToday: Bool
+    }
+
+    private var cellMinHeight: CGFloat {
+        mode == .birthdays ? 58 : 52
     }
 
     @ViewBuilder
     private func dayCell(_ cell: DayCellModel) -> some View {
+        switch mode {
+        case .birthdays:
+            birthdayDayCell(cell)
+        case .events:
+            eventsDayCell(cell)
+        }
+    }
+
+    @ViewBuilder
+    private func birthdayDayCell(_ cell: DayCellModel) -> some View {
         let hasBirthdays = !cell.birthdays.isEmpty
 
-        VStack(alignment: .leading, spacing: 3) {
-            Text("\(cell.day)")
-                .font(.caption2.weight(cell.isToday ? .bold : .semibold))
-                .foregroundStyle(cell.isToday ? .white : .primary)
-                .frame(maxWidth: .infinity, alignment: .center)
-                .padding(.vertical, 2)
-                .background {
-                    if cell.isToday {
-                        Circle()
-                            .fill(Color.accentColor)
-                            .frame(width: 22, height: 22)
-                    }
-                }
+        VStack(alignment: .leading, spacing: 4) {
+            dayNumber(cell)
 
             if hasBirthdays {
-                VStack(alignment: .leading, spacing: 1) {
+                VStack(alignment: .leading, spacing: 2) {
                     ForEach(cell.birthdays.prefix(2)) { birthday in
                         Text(BirthdayCalendarFormatting.displayName(from: birthday.title))
-                            .font(.system(size: 9, weight: .semibold))
+                            .font(.caption.weight(.semibold))
                             .foregroundStyle(.pink)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.75)
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.8)
+                            .help(BirthdayCalendarFormatting.detailTooltip(for: birthday))
+                            .pointerCursor()
                     }
                     if cell.birthdays.count > 2 {
                         Text("+\(cell.birthdays.count - 2) more")
-                            .font(.system(size: 8, weight: .medium))
+                            .font(.caption2.weight(.medium))
                             .foregroundStyle(.pink.opacity(0.85))
                             .lineLimit(1)
+                            .help(birthdayHelp(for: cell))
                     }
                 }
-            } else if cell.hasEvent {
-                Circle()
-                    .fill(Color.blue.opacity(0.8))
-                    .frame(width: 4, height: 4)
-                    .frame(maxWidth: .infinity)
             } else {
                 Spacer(minLength: 0)
             }
         }
-        .padding(.horizontal, 2)
-        .padding(.vertical, 4)
-        .frame(maxWidth: .infinity, minHeight: 44, alignment: .top)
+        .padding(.horizontal, 3)
+        .padding(.vertical, 5)
+        .frame(maxWidth: .infinity, minHeight: cellMinHeight, alignment: .top)
         .background {
             if hasBirthdays {
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
@@ -130,13 +165,97 @@ struct DashboardMonthCalendarView: View {
                     .strokeBorder(Color.pink.opacity(0.35), lineWidth: 1)
             }
         }
-        .help(birthdayHelp(for: cell))
+        .help(hasBirthdays ? birthdayHelp(for: cell) : "")
+        .pointerCursor()
+    }
+
+    @ViewBuilder
+    private func eventsDayCell(_ cell: DayCellModel) -> some View {
+        let dayEvents = cell.events
+        let hasEvents = !dayEvents.isEmpty
+
+        VStack(alignment: .leading, spacing: 4) {
+            dayNumber(cell)
+
+            if hasEvents {
+                VStack(alignment: .leading, spacing: 2) {
+                    ForEach(dayEvents.prefix(2)) { event in
+                        Text(event.title)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.blue)
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.8)
+                            .help(eventDetailTooltip(for: event))
+                            .pointerCursor()
+                    }
+                    if dayEvents.count > 2 {
+                        Text("+\(dayEvents.count - 2) more")
+                            .font(.caption2.weight(.medium))
+                            .foregroundStyle(.blue.opacity(0.85))
+                            .lineLimit(1)
+                            .help(eventsHelp(for: dayEvents))
+                    }
+                }
+            } else {
+                Spacer(minLength: 0)
+            }
+        }
+        .padding(.horizontal, 3)
+        .padding(.vertical, 5)
+        .frame(maxWidth: .infinity, minHeight: cellMinHeight, alignment: .top)
+        .background {
+            if hasEvents {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(Color.blue.opacity(cell.isToday ? 0.22 : 0.10))
+            }
+        }
+        .overlay {
+            if hasEvents {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .strokeBorder(Color.blue.opacity(0.28), lineWidth: 1)
+            }
+        }
+        .help(hasEvents ? eventsHelp(for: dayEvents) : "")
+        .pointerCursor()
+    }
+
+    @ViewBuilder
+    private func dayNumber(_ cell: DayCellModel) -> some View {
+        Text("\(cell.day)")
+            .font(.caption2.weight(cell.isToday ? .bold : .semibold))
+            .foregroundStyle(cell.isToday ? .white : .primary)
+            .frame(maxWidth: .infinity, alignment: .center)
+            .padding(.vertical, 2)
+            .background {
+                if cell.isToday {
+                    Circle()
+                        .fill(Color.accentColor)
+                        .frame(width: 22, height: 22)
+                }
+            }
     }
 
     private func birthdayHelp(for cell: DayCellModel) -> String {
-        guard !cell.birthdays.isEmpty else { return "" }
-        let names = cell.birthdays.map { BirthdayCalendarFormatting.displayName(from: $0.title) }
-        return names.joined(separator: ", ")
+        cell.birthdays.map { BirthdayCalendarFormatting.detailTooltip(for: $0) }.joined(separator: "\n\n")
+    }
+
+    private func eventsHelp(for events: [CalendarEventSummary]) -> String {
+        events.map { eventDetailTooltip(for: $0) }.joined(separator: "\n\n")
+    }
+
+    private func eventDetailTooltip(for event: CalendarEventSummary) -> String {
+        var lines = [event.title, eventTimeLabel(for: event.startDate)]
+        if !event.accountEmail.isEmpty {
+            lines.append(event.accountEmail)
+        }
+        if !event.location.isEmpty {
+            lines.append(event.location)
+        }
+        return lines.joined(separator: "\n")
+    }
+
+    private func eventTimeLabel(for date: Date) -> String {
+        Self.eventTimeFormatter.string(from: date)
     }
 
     private var monthTitle: String {
@@ -161,14 +280,18 @@ struct DashboardMonthCalendarView: View {
             guard let date = calendar.date(byAdding: .day, value: day - 1, to: monthInterval.start) else {
                 continue
             }
-            let dayBirthdays = birthdays.filter { calendar.isDate($0.startDate, inSameDayAs: date) }
-            let hasEvent = scheduledEvents.contains { calendar.isDate($0.startDate, inSameDayAs: date) }
+            let dayBirthdays = mode == .birthdays
+                ? birthdays.filter { calendar.isDate($0.startDate, inSameDayAs: date) }
+                : []
+            let dayEvents = mode == .events
+                ? scheduledEvents.filter { calendar.isDate($0.startDate, inSameDayAs: date) }
+                : []
             cells.append(
                 DayCellModel(
                     day: day,
                     date: date,
                     birthdays: dayBirthdays,
-                    hasEvent: hasEvent,
+                    events: dayEvents,
                     isToday: calendar.isDateInToday(date)
                 )
             )
@@ -183,6 +306,13 @@ struct DashboardMonthCalendarView: View {
     private static let monthFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateFormat = "MMMM yyyy"
+        return formatter
+    }()
+
+    private static let eventTimeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
+        formatter.dateStyle = .medium
         return formatter
     }()
 }

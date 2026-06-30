@@ -206,7 +206,7 @@ struct ContentView: View {
                 if !MarketingScreenshotMode.isActive {
                     ToolbarItem(placement: .principal) {
                         WorkspaceStatusBadge(
-                            message: viewModel.statusMessage,
+                            fallbackMessage: viewModel.statusMessage,
                             mailUnreadCount: viewModel.totalUnread,
                             mailAccounts: viewModel.unreadBreakdown(for: viewModel.unreadByAccount)
                         )

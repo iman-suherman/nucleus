@@ -1,3 +1,4 @@
+import NucleusKit
 import SwiftUI
 
 struct UnreadAccountBreakdown: Identifiable {
@@ -7,7 +8,9 @@ struct UnreadAccountBreakdown: Identifiable {
 }
 
 struct WorkspaceStatusBadge: View {
-    let message: String
+    @EnvironmentObject private var viewModel: AppViewModel
+
+    let fallbackMessage: String
     let mailUnreadCount: Int
     let mailAccounts: [UnreadAccountBreakdown]
 
@@ -15,15 +18,23 @@ struct WorkspaceStatusBadge: View {
         mailUnreadCount > 0
     }
 
+    private var nextScheduleEvent: CalendarEventSummary? {
+        guard !hasUnread else { return nil }
+        return viewModel.currentNextMeetingTitleEvent
+    }
+
     private var statusLine: String {
         if hasUnread {
             return unreadSummaryMessage
         }
-        return message
+        if let event = nextScheduleEvent {
+            return viewModel.nextScheduleStatusLine(for: event)
+        }
+        return fallbackMessage
     }
 
     private var unreadSummaryMessage: String {
-        guard mailUnreadCount > 0 else { return message }
+        guard mailUnreadCount > 0 else { return fallbackMessage }
         return "\(mailUnreadCount) unread email\(mailUnreadCount == 1 ? "" : "s")"
     }
 
@@ -37,7 +48,37 @@ struct WorkspaceStatusBadge: View {
         return "\(unreadSummaryMessage) — \(accountParts.joined(separator: ", "))"
     }
 
+    private var helpText: String {
+        if hasUnread {
+            return unreadDetailMessage
+        }
+        if let event = nextScheduleEvent {
+            return "Open \(event.title) in calendar."
+        }
+        return fallbackMessage
+    }
+
     var body: some View {
+        Group {
+            if let event = nextScheduleEvent {
+                Button {
+                    viewModel.openCalendarEvent(event)
+                } label: {
+                    badgeBody
+                }
+                .buttonStyle(.plain)
+                .pointerCursor()
+                .help(helpText)
+                .accessibilityLabel("Next schedule: \(statusLine). Open in calendar.")
+            } else {
+                badgeBody
+                    .help(helpText)
+            }
+        }
+        .animation(.easeInOut(duration: 0.25), value: viewModel.nextMeetingTitleRotationIndex)
+    }
+
+    private var badgeBody: some View {
         HStack(spacing: 10) {
             if hasUnread {
                 unreadPill(count: mailUnreadCount, icon: "envelope.fill", tint: .blue)
@@ -51,11 +92,11 @@ struct WorkspaceStatusBadge: View {
                 .font(.subheadline.weight(.semibold))
                 .lineLimit(1)
                 .truncationMode(.tail)
+                .id(nextScheduleEvent?.id ?? fallbackMessage)
         }
         .padding(.horizontal, 18)
         .padding(.vertical, 10)
         .background(.thinMaterial, in: Capsule())
-        .help(hasUnread ? unreadDetailMessage : message)
     }
 
     private func unreadPill(count: Int, icon: String, tint: Color) -> some View {

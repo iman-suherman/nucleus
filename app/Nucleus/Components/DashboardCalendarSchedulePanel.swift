@@ -15,7 +15,7 @@ struct DashboardCalendarSchedulePanel: View {
     @State private var calendarMonth = Date()
     @State private var monthBirthdays: [CalendarEventSummary] = []
 
-    private static let defaultScrollHeight: CGFloat = 390
+    private static let defaultScrollHeight: CGFloat = 420
 
     init(
         events: [CalendarEventSummary],
@@ -54,28 +54,14 @@ struct DashboardCalendarSchedulePanel: View {
             } else {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 12) {
-                        if hasBirthdayCalendars {
-                            DashboardMonthCalendarView(
-                                month: calendarMonth,
-                                birthdays: monthBirthdays,
-                                scheduledEvents: scheduleEvents,
-                                onPreviousMonth: { shiftMonth(by: -1) },
-                                onNextMonth: { shiftMonth(by: 1) }
-                            )
-                        }
+                        calendarMonthRow
 
                         if !scheduleEvents.isEmpty {
-                            LazyVStack(alignment: .leading, spacing: 0) {
-                                ForEach(scheduleEvents) { event in
-                                    eventRow(event)
-                                }
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
+                            upcomingEventsList
                         } else if hasBirthdayCalendars {
                             Text("No other upcoming events in the next two weeks.")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
-                                .padding(.top, 4)
                         }
                     }
                 }
@@ -108,6 +94,60 @@ struct DashboardCalendarSchedulePanel: View {
             if !syncing {
                 reloadMonthBirthdays()
             }
+        }
+    }
+
+    @ViewBuilder
+    private var calendarMonthRow: some View {
+        if hasBirthdayCalendars {
+            HStack(alignment: .top, spacing: 12) {
+                DashboardMonthCalendarView(
+                    mode: .birthdays,
+                    month: calendarMonth,
+                    birthdays: monthBirthdays,
+                    scheduledEvents: [],
+                    onPreviousMonth: { shiftMonth(by: -1) },
+                    onNextMonth: { shiftMonth(by: 1) }
+                )
+                .frame(maxWidth: .infinity)
+
+                DashboardMonthCalendarView(
+                    mode: .events,
+                    month: calendarMonth,
+                    birthdays: [],
+                    scheduledEvents: scheduleEvents,
+                    showsMonthNavigation: false,
+                    onPreviousMonth: { shiftMonth(by: -1) },
+                    onNextMonth: { shiftMonth(by: 1) }
+                )
+                .frame(maxWidth: .infinity)
+            }
+        } else {
+            DashboardMonthCalendarView(
+                mode: .events,
+                month: calendarMonth,
+                birthdays: [],
+                scheduledEvents: scheduleEvents,
+                onPreviousMonth: { shiftMonth(by: -1) },
+                onNextMonth: { shiftMonth(by: 1) }
+            )
+        }
+    }
+
+    @ViewBuilder
+    private var upcomingEventsList: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Upcoming")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .textCase(.uppercase)
+
+            LazyVStack(alignment: .leading, spacing: 0) {
+                ForEach(scheduleEvents) { event in
+                    eventRow(event)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
@@ -191,6 +231,19 @@ struct DashboardCalendarSchedulePanel: View {
             Spacer(minLength: 0)
         }
         .padding(.vertical, 2)
+        .help(eventListTooltip(for: event))
+        .pointerCursor()
+    }
+
+    private func eventListTooltip(for event: CalendarEventSummary) -> String {
+        var lines = [event.title, "\(dayLabel(for: event.startDate)) · \(timeLabel(for: event.startDate))"]
+        if !event.accountEmail.isEmpty {
+            lines.append(event.accountEmail)
+        }
+        if !event.location.isEmpty {
+            lines.append(event.location)
+        }
+        return lines.joined(separator: "\n")
     }
 
     private func timeLabel(for date: Date) -> String {
