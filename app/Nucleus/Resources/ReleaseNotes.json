@@ -1,15 +1,20 @@
 {
-  "version": "0.11.1",
-  "summary": "Fix macOS Calendar permission so Nucleus appears in System Settings and can read your schedule.",
+  "version": "0.11.2",
+  "summary": "Fix iCloud calendar sync, dashboard layout, and meeting alerts with join links.",
   "releaseNotes": {
-    "introduced": [],
-    "changed": [],
+    "introduced": [
+      "Meeting reminder popup 2 minutes before start on any workspace, with Join meeting link and Funky alert sound distinct from email",
+      "Overlapping meetings at the same time show in one alert with highlighted invite email per calendar so you can pick the right link"
+    ],
+    "changed": [
+      "Dashboard layout: Calendar schedule on the left, Apple Music above Nucleus AI on the right, scrollable event list",
+      "Meeting reminders fire once at 2 minutes before start (replaces 10‑min / 1‑min / at‑start alerts)"
+    ],
     "fixed": [
-      "Calendar access on macOS — add Hardened Runtime Calendars entitlement so the system permission prompt appears and Nucleus shows in Settings → Privacy & Security → Calendars",
-      "Calendar access setup copy clarifies you must click Allow Calendar Access before opening System Settings"
+      "iCloud SwiftDataError on launch — CalendarEventRecord made CloudKit-compatible with one-time local store reset for calendar schema"
     ],
     "updated": [
-      "CloudKit development schema and deploy scripts include CD_CalendarEventRecord for calendar iCloud sync"
+      "CloudKit error messages mention CD_CalendarEventRecord when Production schema is missing"
     ],
     "removed": [],
     "breaking": []
