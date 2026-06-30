@@ -1,17 +1,16 @@
 {
-  "version": "0.11.4",
-  "summary": "Fix calendar meeting reminders so 2-minute alerts fire reliably.",
+  "version": "0.11.5",
+  "summary": "Calendar meeting alerts show once per group and stay until you close them.",
   "releaseNotes": {
     "introduced": [],
     "changed": [
-      "Meeting reminder watchdog polls every 30 seconds so the in-app popup does not miss the 2-minute window",
-      "Calendar sync refreshes scheduled system notifications every 60 seconds between full syncs"
+      "Overlapping meetings at the same start time share one alert and one notification instead of firing separately",
+      "A new meeting alert replaces any open reminder popup; sound plays once per group",
+      "Join meeting and Open calendar no longer dismiss the reminder — use Close or X"
     ],
     "fixed": [
-      "Calendar meeting reminders no longer skipped when sync runs within 2 minutes of start",
-      "Imminent meetings (under 2 minutes away) still alert within a few seconds",
-      "Meeting reminders reschedule when calendar events reload from iCloud",
-      "System notification scheduling checks macOS permission and logs failures instead of failing silently"
+      "Calendar reminder popup no longer dismisses when clicking outside the dialog",
+      "Duplicate alert sounds from watchdog and system notifications for the same meeting group"
     ],
     "updated": [],
     "removed": [],
