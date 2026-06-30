@@ -43,8 +43,8 @@ targets:
         CODE_SIGN_ENTITLEMENTS: Nucleus/entitlements.mac.plist
         CODE_SIGN_STYLE: Automatic
         DEVELOPMENT_TEAM: Q3TXW887NM
-        CURRENT_PROJECT_VERSION: 11009
-        MARKETING_VERSION: 0.11.9
+        CURRENT_PROJECT_VERSION: 11010
+        MARKETING_VERSION: 0.11.10
         ENABLE_HARDENED_RUNTIME: YES
         SPARKLE_PUBLIC_ED_KEY: B6P7+AkeawAfMFk4f5j3+0diuQWorDuCYNrVX0vJeV0=
         OTHER_LDFLAGS: $(inherited) -weak_framework FoundationModels

@@ -1,12 +1,13 @@
 {
-  "version": "0.11.9",
-  "summary": "Dashboard calendar schedule list and birthday styling tweaks.",
+  "version": "0.11.10",
+  "summary": "Dashboard birthday events and title bar inbox and calendar badges.",
   "releaseNotes": {
     "introduced": [],
     "changed": [
-      "Intelligent insight and clipboard insight panels moved below the public holiday section",
-      "Calendar schedule right column shows an upcoming events list instead of a month grid",
-      "Birthday days use a blue background with white names on the dashboard month calendar"
+      "Dashboard calendar schedule header and list show today's birthdays as events (for example, Alice birthday today)",
+      "Today's date is highlighted in green on the dashboard birthday month calendar",
+      "Title bar unread email badge opens Inbox when clicked",
+      "Title bar shows a calendar icon when the next upcoming meeting is displayed"
     ],
     "fixed": [],
     "updated": [],

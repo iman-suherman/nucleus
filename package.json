@@ -1,6 +1,6 @@
 {
   "name": "nucleus",
-  "version": "0.11.9",
+  "version": "0.11.10",
   "displayName": "Nucleus",
   "publisher": "Iman Suherman",
   "private": true,
@@ -57,7 +57,8 @@
     "dev:ai-overview": "npm install --prefix services/ai-overview-api && npm run dev --prefix services/ai-overview-api",
     "deploy:retry": "node scripts/deploy-retry.cjs",
     "deploy:stop": "node scripts/deploy-stop.cjs",
-    "ci": "node scripts/ci-deploy-status.cjs",
+    "ci": "node scripts/run-infra-script.cjs ci",
+    "ci:local": "node scripts/ci-deploy-status.cjs",
     "install-hooks": "node scripts/install-git-hooks.cjs",
     "deploy:cloudkit-schema": "bash scripts/deploy-cloudkit-production-schema.sh",
     "republish:release-notes": "node scripts/republish-release-notes.cjs",
