@@ -1,15 +1,18 @@
 {
-  "version": "0.11.7",
-  "summary": "Dashboard birthday month view and per-meeting title rotation.",
+  "version": "0.11.8",
+  "summary": "Refined dashboard calendar layout and clickable next-schedule title bar.",
   "releaseNotes": {
-    "introduced": [
-      "Dashboard calendar schedule shows a monthly grid with birthdays highlighted when macOS Birthday calendars are enabled — each day shows whose birthday it is in pink"
-    ],
+    "introduced": [],
     "changed": [
-      "Nucleus title and toolbar status rotate through each upcoming meeting individually with time, title, and email — no more grouped \"2 meetings\" summary"
+      "Dashboard calendar spans full width with birthday and schedule month grids side by side; Apple Music and Nucleus AI sit below in a left-right row",
+      "Birthday names are larger with hover tooltips showing full date and calendar source",
+      "Nucleus sidebar subtitle restored to Personal Workspace",
+      "Title bar next-schedule badge shows only the immediate upcoming slot; overlapping meetings at the same time rotate every 5 seconds"
     ],
     "fixed": [],
-    "updated": [],
+    "updated": [
+      "Click the title bar schedule line (green check area) to open Calendar with that event highlighted and detailed"
+    ],
     "removed": [],
     "breaking": []
   }
