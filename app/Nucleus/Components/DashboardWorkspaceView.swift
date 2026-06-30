@@ -206,9 +206,6 @@ struct DashboardWorkspaceView: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: usesCompactDashboardLayout ? 12 : 16) {
             greetingWithQuote
-            if showsInsightsRow {
-                insightsSideBySideRow
-            }
             if showsActionPanelsRow {
                 dashboardActionPanelsRow
             }
@@ -220,6 +217,9 @@ struct DashboardWorkspaceView: View {
             }
             if dashboardPreferences.publicHolidayEnabled {
                 publicHolidayRow
+            }
+            if showsInsightsRow {
+                insightsSideBySideRow
             }
         }
     }

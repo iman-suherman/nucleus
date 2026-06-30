@@ -54,14 +54,23 @@ struct DashboardCalendarSchedulePanel: View {
             } else {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 12) {
-                        calendarMonthRow
+                        if hasBirthdayCalendars {
+                            HStack(alignment: .top, spacing: 12) {
+                                DashboardMonthCalendarView(
+                                    mode: .birthdays,
+                                    month: calendarMonth,
+                                    birthdays: monthBirthdays,
+                                    scheduledEvents: [],
+                                    onPreviousMonth: { shiftMonth(by: -1) },
+                                    onNextMonth: { shiftMonth(by: 1) }
+                                )
+                                .frame(maxWidth: .infinity)
 
-                        if !scheduleEvents.isEmpty {
-                            upcomingEventsList
-                        } else if hasBirthdayCalendars {
-                            Text("No other upcoming events in the next two weeks.")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                                scheduleListColumn
+                                    .frame(maxWidth: .infinity)
+                            }
+                        } else if !scheduleEvents.isEmpty {
+                            scheduleListColumn
                         }
                     }
                 }
@@ -98,57 +107,33 @@ struct DashboardCalendarSchedulePanel: View {
     }
 
     @ViewBuilder
-    private var calendarMonthRow: some View {
-        if hasBirthdayCalendars {
-            HStack(alignment: .top, spacing: 12) {
-                DashboardMonthCalendarView(
-                    mode: .birthdays,
-                    month: calendarMonth,
-                    birthdays: monthBirthdays,
-                    scheduledEvents: [],
-                    onPreviousMonth: { shiftMonth(by: -1) },
-                    onNextMonth: { shiftMonth(by: 1) }
-                )
-                .frame(maxWidth: .infinity)
-
-                DashboardMonthCalendarView(
-                    mode: .events,
-                    month: calendarMonth,
-                    birthdays: [],
-                    scheduledEvents: scheduleEvents,
-                    showsMonthNavigation: false,
-                    onPreviousMonth: { shiftMonth(by: -1) },
-                    onNextMonth: { shiftMonth(by: 1) }
-                )
-                .frame(maxWidth: .infinity)
-            }
-        } else {
-            DashboardMonthCalendarView(
-                mode: .events,
-                month: calendarMonth,
-                birthdays: [],
-                scheduledEvents: scheduleEvents,
-                onPreviousMonth: { shiftMonth(by: -1) },
-                onNextMonth: { shiftMonth(by: 1) }
-            )
-        }
-    }
-
-    @ViewBuilder
-    private var upcomingEventsList: some View {
+    private var scheduleListColumn: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Upcoming")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
-                .textCase(.uppercase)
-
-            LazyVStack(alignment: .leading, spacing: 0) {
-                ForEach(scheduleEvents) { event in
-                    eventRow(event)
-                }
+            HStack(spacing: 6) {
+                Image(systemName: "calendar")
+                    .font(.caption)
+                    .foregroundStyle(.blue)
+                Text("Schedule")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+
+            if scheduleEvents.isEmpty {
+                Text("No upcoming events in the next two weeks.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else {
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    ForEach(scheduleEvents) { event in
+                        eventRow(event)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
         }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
+        .background(.quaternary.opacity(0.28), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
     private func shiftMonth(by value: Int) {

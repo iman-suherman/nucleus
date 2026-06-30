@@ -1,0 +1,16 @@
+{
+  "version": "0.11.9",
+  "summary": "Dashboard calendar schedule list and birthday styling tweaks.",
+  "releaseNotes": {
+    "introduced": [],
+    "changed": [
+      "Intelligent insight and clipboard insight panels moved below the public holiday section",
+      "Calendar schedule right column shows an upcoming events list instead of a month grid",
+      "Birthday days use a blue background with white names on the dashboard month calendar"
+    ],
+    "fixed": [],
+    "updated": [],
+    "removed": [],
+    "breaking": []
+  }
+}

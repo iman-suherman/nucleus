@@ -48,10 +48,10 @@ struct DashboardMonthCalendarView: View {
             }
 
             HStack(spacing: 6) {
-                Image(systemName: mode == .birthdays ? "birthday.cake.fill" : "calendar")
+                Image(systemName: "birthday.cake.fill")
                     .font(.caption)
-                    .foregroundStyle(mode == .birthdays ? .pink : .blue)
-                Text(mode == .birthdays ? "Birthdays" : "Schedule")
+                    .foregroundStyle(.blue)
+                Text("Birthdays")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.secondary)
             }
@@ -125,14 +125,14 @@ struct DashboardMonthCalendarView: View {
         let hasBirthdays = !cell.birthdays.isEmpty
 
         VStack(alignment: .leading, spacing: 4) {
-            dayNumber(cell)
+            dayNumber(cell, onColoredBackground: hasBirthdays)
 
             if hasBirthdays {
                 VStack(alignment: .leading, spacing: 2) {
                     ForEach(cell.birthdays.prefix(2)) { birthday in
                         Text(BirthdayCalendarFormatting.displayName(from: birthday.title))
                             .font(.caption.weight(.semibold))
-                            .foregroundStyle(.pink)
+                            .foregroundStyle(.white)
                             .lineLimit(2)
                             .minimumScaleFactor(0.8)
                             .help(BirthdayCalendarFormatting.detailTooltip(for: birthday))
@@ -141,7 +141,7 @@ struct DashboardMonthCalendarView: View {
                     if cell.birthdays.count > 2 {
                         Text("+\(cell.birthdays.count - 2) more")
                             .font(.caption2.weight(.medium))
-                            .foregroundStyle(.pink.opacity(0.85))
+                            .foregroundStyle(.white.opacity(0.92))
                             .lineLimit(1)
                             .help(birthdayHelp(for: cell))
                     }
@@ -156,13 +156,13 @@ struct DashboardMonthCalendarView: View {
         .background {
             if hasBirthdays {
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(Color.pink.opacity(cell.isToday ? 0.28 : 0.16))
+                    .fill(Color.blue.opacity(cell.isToday ? 1.0 : 0.9))
             }
         }
         .overlay {
             if hasBirthdays {
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .strokeBorder(Color.pink.opacity(0.35), lineWidth: 1)
+                    .strokeBorder(Color.white.opacity(0.22), lineWidth: 1)
             }
         }
         .help(hasBirthdays ? birthdayHelp(for: cell) : "")
@@ -220,14 +220,14 @@ struct DashboardMonthCalendarView: View {
     }
 
     @ViewBuilder
-    private func dayNumber(_ cell: DayCellModel) -> some View {
+    private func dayNumber(_ cell: DayCellModel, onColoredBackground: Bool = false) -> some View {
         Text("\(cell.day)")
             .font(.caption2.weight(cell.isToday ? .bold : .semibold))
-            .foregroundStyle(cell.isToday ? .white : .primary)
+            .foregroundStyle(onColoredBackground ? .white : (cell.isToday ? .white : .primary))
             .frame(maxWidth: .infinity, alignment: .center)
             .padding(.vertical, 2)
             .background {
-                if cell.isToday {
+                if cell.isToday && !onColoredBackground {
                     Circle()
                         .fill(Color.accentColor)
                         .frame(width: 22, height: 22)
