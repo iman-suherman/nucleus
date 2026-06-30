@@ -1,0 +1,15 @@
+{
+  "version": "0.11.3",
+  "summary": "Match dashboard calendar column height to the Apple Music and Nucleus AI stack.",
+  "releaseNotes": {
+    "introduced": [],
+    "changed": [
+      "Dashboard calendar schedule column height aligns with the combined Apple Music and Nucleus AI panels when shown side by side",
+      "Calendar event list scroll area expands to fill the matched column height"
+    ],
+    "fixed": [],
+    "updated": [],
+    "removed": [],
+    "breaking": []
+  }
+}

@@ -3,9 +3,15 @@ import NucleusKit
 import SwiftUI
 import SyncKit
 
-private enum DashboardActionPanelMetrics {
+enum DashboardActionPanelMetrics {
     static let resultsAreaHeight: CGFloat = 108
     static let artworkSize: CGFloat = 36
+    static let expandedPanelMinHeight: CGFloat = 190
+
+    static func stackedHeight(panelCount: Int, spacing: CGFloat) -> CGFloat {
+        guard panelCount > 0 else { return 0 }
+        return CGFloat(panelCount) * expandedPanelMinHeight + CGFloat(max(0, panelCount - 1)) * spacing
+    }
 }
 
 struct DashboardNucleusAIPanel: View {
@@ -608,6 +614,6 @@ private func dashboardActionBox<Content: View>(
                 .padding(.bottom, 14)
         }
     }
-    .frame(maxWidth: .infinity, minHeight: isExpanded.wrappedValue ? 190 : nil, alignment: .topLeading)
+    .frame(maxWidth: .infinity, minHeight: isExpanded.wrappedValue ? DashboardActionPanelMetrics.expandedPanelMinHeight : nil, alignment: .topLeading)
     .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 14))
 }

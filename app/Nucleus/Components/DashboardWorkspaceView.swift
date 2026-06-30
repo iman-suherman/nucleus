@@ -24,6 +24,7 @@ struct DashboardWorkspaceView: View {
     @State private var holidayMetadataTask: Task<Void, Never>?
     @State private var companionCountryIndex = 0
     @State private var contextPanelsContentHeight: CGFloat = 0
+    @State private var mediaStackHeight: CGFloat = 0
     @State private var dashboardContentWidth: CGFloat = 1200
 
     @State private var isConnectingNucleusCloud = false
@@ -266,6 +267,9 @@ struct DashboardWorkspaceView: View {
                 }
             }
             .fixedSize(horizontal: false, vertical: true)
+            .onPreferenceChange(DashboardMediaStackHeightKey.self) { height in
+                mediaStackHeight = height
+            }
         } else if showsCalendar {
             calendarScheduleRow
         } else {
@@ -285,6 +289,46 @@ struct DashboardWorkspaceView: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .topLeading)
+        .background {
+            GeometryReader { proxy in
+                Color.clear.preference(
+                    key: DashboardMediaStackHeightKey.self,
+                    value: proxy.size.height
+                )
+            }
+        }
+    }
+
+    private var expectedMediaStackHeight: CGFloat {
+        var panelCount = 0
+        if dashboardPreferences.appleMusicEnabled { panelCount += 1 }
+        if dashboardPreferences.nucleusAIEnabled { panelCount += 1 }
+        return DashboardActionPanelMetrics.stackedHeight(
+            panelCount: panelCount,
+            spacing: dashboardRowSpacing
+        )
+    }
+
+    private var alignedMediaStackHeight: CGFloat {
+        if mediaStackHeight > 0 {
+            return mediaStackHeight
+        }
+        return expectedMediaStackHeight
+    }
+
+    private var calendarMatchesMediaStackHeight: Bool {
+        dashboardPreferences.calendarScheduleEnabled
+            && (dashboardPreferences.appleMusicEnabled || dashboardPreferences.nucleusAIEnabled)
+            && calendarScheduleExpanded.wrappedValue
+    }
+
+    private var calendarPanelPreferredContentHeight: CGFloat? {
+        guard calendarMatchesMediaStackHeight else { return nil }
+        let chrome = DashboardCalendarColumnLayout.sectionChromeHeight
+        return max(
+            DashboardActionPanelMetrics.resultsAreaHeight,
+            alignedMediaStackHeight - chrome
+        )
     }
 
     private var showsWeatherResourceRow: Bool {
@@ -877,6 +921,7 @@ struct DashboardWorkspaceView: View {
                 events: viewModel.calendarEvents.filter { $0.endDate >= Date() },
                 isSyncing: calendarService.isSyncing,
                 accessState: calendarService.accessState,
+                preferredContentHeight: calendarPanelPreferredContentHeight,
                 onRefresh: {
                     Task { await calendarService.syncIfAuthorized() }
                 },
@@ -890,6 +935,10 @@ struct DashboardWorkspaceView: View {
             RoundedRectangle(cornerRadius: 14)
                 .strokeBorder(Color.blue.opacity(0.2), lineWidth: 1)
         }
+        .frame(
+            minHeight: calendarMatchesMediaStackHeight ? alignedMediaStackHeight : nil,
+            alignment: .topLeading
+        )
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
@@ -2056,6 +2105,19 @@ private struct ResourceUsageSummaryCard: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+private enum DashboardCalendarColumnLayout {
+    /// Collapsible header + bottom content padding in `calendarScheduleRow`.
+    static let sectionChromeHeight: CGFloat = 68
+}
+
+private struct DashboardMediaStackHeightKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
     }
 }
 

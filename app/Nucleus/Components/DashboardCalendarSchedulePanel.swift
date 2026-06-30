@@ -7,17 +7,40 @@ struct DashboardCalendarSchedulePanel: View {
     let events: [CalendarEventSummary]
     let isSyncing: Bool
     let accessState: CalendarAccessState
+    let preferredContentHeight: CGFloat?
     let onRefresh: () -> Void
     let onRequestAccess: () -> Void
 
-    private static let scrollMaxHeight: CGFloat = 390
+    private static let defaultScrollHeight: CGFloat = 390
+
+    init(
+        events: [CalendarEventSummary],
+        isSyncing: Bool,
+        accessState: CalendarAccessState,
+        preferredContentHeight: CGFloat? = nil,
+        onRefresh: @escaping () -> Void,
+        onRequestAccess: @escaping () -> Void
+    ) {
+        self.events = events
+        self.isSyncing = isSyncing
+        self.accessState = accessState
+        self.preferredContentHeight = preferredContentHeight
+        self.onRefresh = onRefresh
+        self.onRequestAccess = onRequestAccess
+    }
+
+    private var scrollHeight: CGFloat {
+        preferredContentHeight ?? Self.defaultScrollHeight
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             if accessState != .authorized {
                 accessPrompt
+                    .frame(maxHeight: preferredContentHeight == nil ? nil : .infinity, alignment: .topLeading)
             } else if events.isEmpty {
                 emptyState
+                    .frame(maxHeight: preferredContentHeight == nil ? nil : .infinity, alignment: .topLeading)
             } else {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 0) {
@@ -27,7 +50,7 @@ struct DashboardCalendarSchedulePanel: View {
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .frame(maxHeight: Self.scrollMaxHeight)
+                .frame(height: scrollHeight)
             }
 
             if isSyncing {
