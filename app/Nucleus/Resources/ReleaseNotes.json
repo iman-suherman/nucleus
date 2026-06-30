@@ -1,15 +1,18 @@
 {
-  "version": "0.10.24",
-  "summary": "Attach to tmux sessions even when saved names differ from the live server.",
+  "version": "0.10.25",
+  "summary": "Read your macOS Calendar schedule in Nucleus with video call links and meeting reminders.",
   "releaseNotes": {
-    "introduced": [],
-    "changed": [],
-    "fixed": [
-      "tmux attach resolves the live session name before connecting, so cards labeled hugeshop-infra-iac attach even when Nucleus had a stale hugeshop-infra-iac_1_0 target",
-      "tmux attach and destroy commands on session cards use the resolved live name",
-      "saved tmux session order migrates stale names to match live sessions on refresh"
+    "introduced": [
+      "macOS Calendar integration reads all calendars synced to the Calendar app (Google, iCloud, Exchange, and more)",
+      "Dashboard Calendar schedule panel lists upcoming events with Join video call links for Meet, Zoom, Teams, and other services",
+      "Calendar access setup in Settings → Notifications with permission guidance",
+      "Meeting reminders reschedule automatically from your local calendar events"
     ],
-    "updated": [],
+    "changed": [],
+    "fixed": [],
+    "updated": [
+      "Shared meeting link extraction for Google Calendar web sync and EventKit sources"
+    ],
     "removed": [],
     "breaking": []
   }

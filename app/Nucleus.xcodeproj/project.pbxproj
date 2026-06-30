@@ -21,6 +21,7 @@
 		1C16F495A356343A23379879 /* NotesKit in Frameworks */ = {isa = PBXBuildFile; productRef = 93B2C6D49EA5F6E3F446A3F3 /* NotesKit */; };
 		1C8764470EA8BC3927644C63 /* ShortcutsRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = B211BFC3B3A9B72B9E76F91C /* ShortcutsRunner.swift */; };
 		1DDFDCAF38135EC627A0E7A8 /* GoogleOAuthConfigurationLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = B95AA6B0D2A2C4F3ACD4653E /* GoogleOAuthConfigurationLoader.swift */; };
+		20BE58F3614F28AD31362987 /* CalendarAccessSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E1FE0C6D2BF2E910876ECA7 /* CalendarAccessSetupView.swift */; };
 		23C9C5F3795363AD4BB207AD /* DashboardBreakingNewsOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 622EA3088C0B8BBC591777A3 /* DashboardBreakingNewsOverlay.swift */; };
 		27082CFD35E02F3DB28AAD8E /* LRCLibLyricsClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13B5AE182663F4D5C2C2321A /* LRCLibLyricsClient.swift */; };
 		272D062E7517B13F4DB79B89 /* MarketingScreenshotCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38ABBF4403144B9F717EF8B3 /* MarketingScreenshotCapture.swift */; };
@@ -32,6 +33,7 @@
 		2E92D4BDB66A47E6E813E56B /* BackgroundSyncServices.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50537B36D31255DB7C3030C9 /* BackgroundSyncServices.swift */; };
 		31C2FB18B651A30B5F381A6F /* MenuBarStatusItemController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3040B14FCE7F0866274EF0E /* MenuBarStatusItemController.swift */; };
 		321E25ED804AB6F0BA553ABC /* AirPlayRoutePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C6984DDA572BA7E3972F8ED /* AirPlayRoutePicker.swift */; };
+		3257E268F611CC33D783FBD2 /* MacCalendarSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A64235F82B51D2F78570EFE /* MacCalendarSyncService.swift */; };
 		369B622F3177919D55C55827 /* DashboardWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F695044507986F1B738A6465 /* DashboardWorkspaceView.swift */; };
 		37A6CBA22087747F45F0F4F5 /* EmbeddedWebViewContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5971F41F5427FCE836471DA /* EmbeddedWebViewContainer.swift */; };
 		3CAE1AF1473C860F9A01DED6 /* DashboardLocationSubdivisionResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F3E574A6A6CAA16B60DF4F8 /* DashboardLocationSubdivisionResolver.swift */; };
@@ -52,6 +54,7 @@
 		51F5F59CEBB58934E8084747 /* DashboardNewsAnalysisService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A73239886ECAEB5F1DE3660 /* DashboardNewsAnalysisService.swift */; };
 		5239A1B7AB185A4515F4E005 /* MenuBarPopoverSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = D12215EBDC2CCD7294F9F071 /* MenuBarPopoverSession.swift */; };
 		5289FB8060666083884F4A39 /* NucleusAIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9032DA9C4A151F9A3BDD3EF4 /* NucleusAIService.swift */; };
+		53C0F3DA476C7982A420CD5C /* EventKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FB9FA20601C41D6B336DC7CA /* EventKit.framework */; };
 		54097C655AC0AD8DD2FCFDFC /* DashboardAnalysisService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5BDDEC8A6712481CBFAABBE /* DashboardAnalysisService.swift */; };
 		55EF56B6133BB09050B745B7 /* MusicLyricsController.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7638A6786F3E8CB94036DB4 /* MusicLyricsController.swift */; };
 		56034055BB801694A50A22D7 /* MenuBarNucleusIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = B42E9D0E0216144EA63B3A7F /* MenuBarNucleusIcon.swift */; };
@@ -121,6 +124,7 @@
 		E626F33CBD98D177740BFAA8 /* FoundationModels.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6EC98A7D2AD632EB0F27A607 /* FoundationModels.framework */; };
 		E6FC6A78F3A887D40B0E7CBA /* TmuxAttachTerminalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88DB27EC62EC81E518FB7481 /* TmuxAttachTerminalView.swift */; };
 		E73244E30CB363CA84393025 /* MusicAccessSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6E470F09EDC0FD0928F432 /* MusicAccessSetupView.swift */; };
+		E7DBBB5CD471158F3F8D1245 /* DashboardCalendarSchedulePanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87A053FB8BF862AF7AF99F41 /* DashboardCalendarSchedulePanel.swift */; };
 		E93888DB4208C8F4596E5A75 /* MusicLyricsSearchService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5861EAEAD693E06EDEBAC1B4 /* MusicLyricsSearchService.swift */; };
 		EDB250E352E4A3372A211D5C /* AddWebGmailAccountSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 015B76265392421D7C57E815 /* AddWebGmailAccountSheet.swift */; };
 		EEB7CEB73A5AAA37F8CC22A6 /* InboxIdleRecheckController.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFC4312DE2A7EC5DCF5D888A /* InboxIdleRecheckController.swift */; };
@@ -189,6 +193,7 @@
 		8015330A043A8BED0ED7120D /* DashboardNewsSpeechService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardNewsSpeechService.swift; sourceTree = "<group>"; };
 		81F61F31E82EC125D210B051 /* NotesClipboardMigration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotesClipboardMigration.swift; sourceTree = "<group>"; };
 		85468FEB38AFD3921127A060 /* TmuxSessionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TmuxSessionService.swift; sourceTree = "<group>"; };
+		87A053FB8BF862AF7AF99F41 /* DashboardCalendarSchedulePanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardCalendarSchedulePanel.swift; sourceTree = "<group>"; };
 		88DB27EC62EC81E518FB7481 /* TmuxAttachTerminalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TmuxAttachTerminalView.swift; sourceTree = "<group>"; };
 		8D37475DD0560D594BCD02DC /* EmbeddedWebViewRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmbeddedWebViewRegistry.swift; sourceTree = "<group>"; };
 		8E5E2CE15C506802ABB7D2F9 /* MarketingScreenshotMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarketingScreenshotMode.swift; sourceTree = "<group>"; };
@@ -203,6 +208,8 @@
 		964EE9A5CC0993B6B53D3120 /* AuthStateMigration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthStateMigration.swift; sourceTree = "<group>"; };
 		97A7289328BE097836736716 /* MenuBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarController.swift; sourceTree = "<group>"; };
 		9987E7B42A89E15817F7CAD9 /* ReleaseNotesLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReleaseNotesLoader.swift; sourceTree = "<group>"; };
+		9A64235F82B51D2F78570EFE /* MacCalendarSyncService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacCalendarSyncService.swift; sourceTree = "<group>"; };
+		9E1FE0C6D2BF2E910876ECA7 /* CalendarAccessSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarAccessSetupView.swift; sourceTree = "<group>"; };
 		9F2DE343844F3EF7B493842C /* StartupSplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartupSplashView.swift; sourceTree = "<group>"; };
 		A1ADB4D8B805C7C16E7A1939 /* NucleusMail.caf */ = {isa = PBXFileReference; path = NucleusMail.caf; sourceTree = "<group>"; };
 		A1EF778F3F3692600B832ADC /* AVKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVKit.framework; path = System/Library/Frameworks/AVKit.framework; sourceTree = SDKROOT; };
@@ -242,6 +249,7 @@
 		F3040B14FCE7F0866274EF0E /* MenuBarStatusItemController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarStatusItemController.swift; sourceTree = "<group>"; };
 		F695044507986F1B738A6465 /* DashboardWorkspaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardWorkspaceView.swift; sourceTree = "<group>"; };
 		F73321C16D7956F50F538A6E /* ClipboardPasteController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardPasteController.swift; sourceTree = "<group>"; };
+		FB9FA20601C41D6B336DC7CA /* EventKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = EventKit.framework; path = System/Library/Frameworks/EventKit.framework; sourceTree = SDKROOT; };
 		FE21FFF77FD2D44BA923CC18 /* NucleusLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NucleusLog.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -264,6 +272,7 @@
 				E051D3027DB2077A6D7E7977 /* CoreLocation.framework in Frameworks */,
 				E626F33CBD98D177740BFAA8 /* FoundationModels.framework in Frameworks */,
 				2A4D12C1C5D153675FC4F7E6 /* MusicKit.framework in Frameworks */,
+				53C0F3DA476C7982A420CD5C /* EventKit.framework in Frameworks */,
 				783057E4009C73525D14D797 /* AVKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -278,12 +287,14 @@
 				69A7BEC28EFE1D402738D081 /* AccountCenterView.swift */,
 				015B76265392421D7C57E815 /* AddWebGmailAccountSheet.swift */,
 				0A4515FC13933C08473E2A2F /* BillsWorkspaceView.swift */,
+				9E1FE0C6D2BF2E910876ECA7 /* CalendarAccessSetupView.swift */,
 				536C10D58B577BC3DF9EE13E /* ClipboardPasswordSuggestionOverlay.swift */,
 				D3326E384D3AF87A7952DDF0 /* ClipboardPasteFeedbackView.swift */,
 				2D130F5FD244D81A8B8DBE22 /* ClipboardPickerView.swift */,
 				C643F64124025FA6F196C435 /* ClipboardWorkspaceView.swift */,
 				DAA42E98AAE9DC7E31534069 /* DashboardActionPanels.swift */,
 				622EA3088C0B8BBC591777A3 /* DashboardBreakingNewsOverlay.swift */,
+				87A053FB8BF862AF7AF99F41 /* DashboardCalendarSchedulePanel.swift */,
 				4E48A7B5023CD11F5F01726F /* DashboardIncomingMailOverlay.swift */,
 				75CD049259B1B6242B15B6DF /* DashboardNewsTickerView.swift */,
 				F695044507986F1B738A6465 /* DashboardWorkspaceView.swift */,
@@ -382,6 +393,7 @@
 				EFC4312DE2A7EC5DCF5D888A /* InboxIdleRecheckController.swift */,
 				1854B544721D5126CFF5A0F1 /* LocalMediaPlayerService.swift */,
 				13B5AE182663F4D5C2C2321A /* LRCLibLyricsClient.swift */,
+				9A64235F82B51D2F78570EFE /* MacCalendarSyncService.swift */,
 				588507DCB51F53ABD73D2EE2 /* MacSharingServiceButton.swift */,
 				6006FFDC6A45F10043EEBCF5 /* MediaController.swift */,
 				97A7289328BE097836736716 /* MenuBarController.swift */,
@@ -437,6 +449,7 @@
 			children = (
 				A1EF778F3F3692600B832ADC /* AVKit.framework */,
 				6ED92D3B0C9CE1BDD7CB1483 /* CoreLocation.framework */,
+				FB9FA20601C41D6B336DC7CA /* EventKit.framework */,
 				6EC98A7D2AD632EB0F27A607 /* FoundationModels.framework */,
 				A552122023BCB903B5C94A36 /* MusicKit.framework */,
 				0B2285F2575AB46242481E99 /* WeatherKit.framework */,
@@ -573,6 +586,7 @@
 				C8B7DC0B032F4FA042820B5B /* AuthStateMigration.swift in Sources */,
 				2E92D4BDB66A47E6E813E56B /* BackgroundSyncServices.swift in Sources */,
 				4573D9B3E1B2E7E5C1A01E2A /* BillsWorkspaceView.swift in Sources */,
+				20BE58F3614F28AD31362987 /* CalendarAccessSetupView.swift in Sources */,
 				0BB860B254C7F78CEEC21A5B /* ClipboardPasswordSuggestionOverlay.swift in Sources */,
 				92F3296DC4AFB5C4A78EF11D /* ClipboardPasteController.swift in Sources */,
 				BADDE8C8C5FA7DB7794F7959 /* ClipboardPasteFeedbackView.swift in Sources */,
@@ -582,6 +596,7 @@
 				8BE4C9D6E5C3FD95C1029B1C /* DashboardActionPanels.swift in Sources */,
 				54097C655AC0AD8DD2FCFDFC /* DashboardAnalysisService.swift in Sources */,
 				23C9C5F3795363AD4BB207AD /* DashboardBreakingNewsOverlay.swift in Sources */,
+				E7DBBB5CD471158F3F8D1245 /* DashboardCalendarSchedulePanel.swift in Sources */,
 				4F29C2E3364B7255A5262494 /* DashboardClipboardDayAnalysisService.swift in Sources */,
 				9EC8527F349AA5FE72F4ABE8 /* DashboardIncomingMailOverlay.swift in Sources */,
 				3CAE1AF1473C860F9A01DED6 /* DashboardLocationSubdivisionResolver.swift in Sources */,
@@ -612,6 +627,7 @@
 				F2D4DCEA095BBC57BC8F3390 /* KaraokeLyricsView.swift in Sources */,
 				27082CFD35E02F3DB28AAD8E /* LRCLibLyricsClient.swift in Sources */,
 				CC66A763B81D1FEF20E2900B /* LocalMediaPlayerService.swift in Sources */,
+				3257E268F611CC33D783FBD2 /* MacCalendarSyncService.swift in Sources */,
 				D55AE78B777E319F67953F54 /* MacSharingServiceButton.swift in Sources */,
 				AA2B9B165190FE2E23E7AD95 /* MailInboxLoadingPhase.swift in Sources */,
 				68F673476FAE5D0CA8204F89 /* MailWorkspaceView.swift in Sources */,
@@ -793,7 +809,7 @@
 				CODE_SIGN_ENTITLEMENTS = Nucleus/entitlements.mac.plist;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 10024;
+				CURRENT_PROJECT_VERSION = 10025;
 				DEVELOPMENT_TEAM = Q3TXW887NM;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = Nucleus/Info.plist;
@@ -801,7 +817,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.10.24;
+				MARKETING_VERSION = 0.10.25;
 				OTHER_LDFLAGS = "$(inherited) -weak_framework FoundationModels";
 				PRODUCT_BUNDLE_IDENTIFIER = net.suherman.nucleus;
 				SDKROOT = macosx;
@@ -817,7 +833,7 @@
 				CODE_SIGN_ENTITLEMENTS = Nucleus/entitlements.mac.plist;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 10024;
+				CURRENT_PROJECT_VERSION = 10025;
 				DEVELOPMENT_TEAM = Q3TXW887NM;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = Nucleus/Info.plist;
@@ -825,7 +841,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.10.24;
+				MARKETING_VERSION = 0.10.25;
 				OTHER_LDFLAGS = "$(inherited) -weak_framework FoundationModels";
 				PRODUCT_BUNDLE_IDENTIFIER = net.suherman.nucleus;
 				SDKROOT = macosx;
