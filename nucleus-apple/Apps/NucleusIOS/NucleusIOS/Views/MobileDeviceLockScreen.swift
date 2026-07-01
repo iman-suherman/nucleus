@@ -1,4 +1,5 @@
 import LocalAuthentication
+import NucleusCore
 import NucleusUI
 import SwiftUI
 
@@ -11,67 +12,85 @@ struct MobileDeviceLockScreen: View {
             Color(.systemBackground)
                 .ignoresSafeArea()
 
-            VStack(spacing: 24) {
-                Image(systemName: lockIconName)
-                    .font(.system(size: 52))
-                    .foregroundStyle(NucleusMobileTheme.accent)
-                    .symbolRenderingMode(.hierarchical)
+            VStack(spacing: 0) {
+                ScrollView {
+                    VStack(spacing: 24) {
+                        NucleusMobileSplashBranding()
 
-                VStack(spacing: 8) {
-                    Text("Nucleus is locked")
-                        .font(.title2.bold())
-
-                    Text(unlockDescription)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 24)
-                }
-
-                if let message = deviceLock.lastErrorMessage {
-                    Text(message)
-                        .font(.footnote)
-                        .foregroundStyle(.red)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 24)
-                }
-
-                if deviceLock.canAuthenticate {
-                    Button {
-                        Task { await attemptUnlock() }
-                    } label: {
-                        if isUnlocking {
-                            ProgressView()
-                                .frame(maxWidth: .infinity)
-                        } else {
-                            Text(deviceLock.unlockButtonTitle)
-                                .frame(maxWidth: .infinity)
-                        }
+                        Text(NucleusAppBranding.mobileCompanionSummary)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                            .frame(maxWidth: 360)
                     }
-                    .buttonStyle(.borderedProminent)
-                    .tint(NucleusMobileTheme.accent)
-                    .disabled(isUnlocking)
-                    .padding(.horizontal, 32)
-                } else {
-                    Text("Open device Settings → Passcode & security to enable biometric unlock, then return to Nucleus.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 24)
-
-                    Button("Check again") {
-                        deviceLock.refreshAvailability()
-                        Task { await attemptUnlock() }
-                    }
-                    .buttonStyle(.bordered)
-                    .padding(.horizontal, 32)
+                    .padding(.horizontal, 28)
+                    .padding(.top, 40)
+                    .padding(.bottom, 24)
                 }
+
+                unlockPanel
             }
         }
-        .task {
-            guard deviceLock.isProtectionEnabled else { return }
-            await attemptUnlock()
+    }
+
+    private var unlockPanel: some View {
+        VStack(spacing: 16) {
+            Divider()
+
+            Image(systemName: lockIconName)
+                .font(.system(size: 28))
+                .foregroundStyle(NucleusMobileTheme.accent)
+                .symbolRenderingMode(.hierarchical)
+
+            VStack(spacing: 6) {
+                Text("Nucleus is locked")
+                    .font(.headline)
+
+                Text(unlockDescription)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+
+            if let message = deviceLock.lastErrorMessage {
+                Text(message)
+                    .font(.footnote)
+                    .foregroundStyle(.red)
+                    .multilineTextAlignment(.center)
+            }
+
+            if deviceLock.canAuthenticate {
+                Button {
+                    Task { await attemptUnlock() }
+                } label: {
+                    if isUnlocking {
+                        ProgressView()
+                            .frame(maxWidth: .infinity)
+                    } else {
+                        Text(deviceLock.unlockButtonTitle)
+                            .frame(maxWidth: .infinity)
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(NucleusMobileTheme.accent)
+                .disabled(isUnlocking)
+            } else {
+                Text("Open device Settings → Passcode & security to enable biometric unlock, then return to Nucleus.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+
+                Button("Check again") {
+                    deviceLock.refreshAvailability()
+                    Task { await attemptUnlock() }
+                }
+                .buttonStyle(.bordered)
+            }
         }
+        .padding(.horizontal, 28)
+        .padding(.top, 16)
+        .padding(.bottom, 28)
+        .background(.bar)
     }
 
     private var unlockDescription: String {

@@ -226,24 +226,19 @@ struct DashboardWorkspaceView: View {
     }
 
     private var showsInsightsRow: Bool {
-        dashboardPreferences.intelligentInsightEnabled || dashboardPreferences.clipboardDayEnabled
+        dashboardPreferences.clipboardDayEnabled
     }
 
     @ViewBuilder
     private var insightsSideBySideRow: some View {
-        dashboardColumns(spacing: dashboardRowSpacing) {
-            if dashboardPreferences.intelligentInsightEnabled {
-                flexDashboardColumn {
-                    intelligentInsightBox
-                }
-            }
-            if dashboardPreferences.clipboardDayEnabled {
+        if dashboardPreferences.clipboardDayEnabled {
+            dashboardColumns(spacing: dashboardRowSpacing) {
                 flexDashboardColumn {
                     clipboardInsightBox
                 }
             }
+            .fixedSize(horizontal: false, vertical: true)
         }
-        .fixedSize(horizontal: false, vertical: true)
     }
 
     private var showsActionPanelsRow: Bool {
@@ -297,14 +292,13 @@ struct DashboardWorkspaceView: View {
                     .font(usesCompactDashboardLayout ? .title.bold() : .largeTitle.bold())
                     .fixedSize(horizontal: false, vertical: true)
 
-                if dashboardPreferences.quoteEnabled, let quoteLine {
-                    Text(quoteLine)
-                        .font(.title3)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.7)
-                        .truncationMode(.tail)
-                }
+                Text(dateAndQuoteLine(asOf: context.date))
+                    .font(.title3)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.75)
+                    .truncationMode(.tail)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             .onChange(of: DashboardTimePeriod.current(now: context.date)) { _, _ in
                 viewModel.refreshDashboardQuoteForCurrentContext()
@@ -370,12 +364,17 @@ struct DashboardWorkspaceView: View {
 
     private func greetingLine(asOf date: Date) -> String {
         let celebrateHoliday = dashboardPreferences.publicHolidayEnabled && holidayService.isPublicHoliday(on: date)
-        return DashboardGreeting.lineWithDate(
+        return DashboardGreeting.line(
             firstName: DashboardGreeting.firstName,
             now: date,
             isPublicHoliday: celebrateHoliday,
             publicHolidayName: celebrateHoliday ? holidayService.todayPublicHolidayName(on: date) : nil
         )
+    }
+
+    private func dateAndQuoteLine(asOf date: Date) -> String {
+        let quote = dashboardPreferences.quoteEnabled ? (quoteLine ?? "") : ""
+        return DashboardGreeting.dateAndQuoteLine(quote: quote, now: date)
     }
 
     private var quoteLine: String? {
@@ -1514,8 +1513,9 @@ struct DashboardWorkspaceView: View {
     private var metricsAndBillsRow: some View {
         let showSummary = dashboardPreferences.summaryMetricsEnabled
         let showBills = dashboardPreferences.billPreparationEnabled
+        let showIntelligentInsight = dashboardPreferences.intelligentInsightEnabled
 
-        if showSummary || showBills {
+        if showSummary || showBills || showIntelligentInsight {
             dashboardColumns(spacing: usesCompactDashboardLayout ? 16 : 20) {
                 if showSummary {
                     flexDashboardColumn {
@@ -1534,27 +1534,34 @@ struct DashboardWorkspaceView: View {
                     }
                 }
 
-                if showBills {
+                if showIntelligentInsight || showBills {
                     flexDashboardColumn {
-                        collapsibleDashboardSection(
-                            isExpanded: paymentPreparationExpanded,
-                            title: paymentPreparationTitle,
-                            systemImage: "sparkles",
-                            titleUsesGradient: true
-                        ) {
-                            paymentPreparationContent
-                        }
-                        .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 14))
-                        .overlay {
-                            RoundedRectangle(cornerRadius: 14)
-                                .strokeBorder(
-                                    LinearGradient(
-                                        colors: [.purple.opacity(0.25), .orange.opacity(0.2)],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    ),
-                                    lineWidth: 1
-                                )
+                        VStack(alignment: .leading, spacing: dashboardRowSpacing) {
+                            if showIntelligentInsight {
+                                intelligentInsightBox
+                            }
+                            if showBills {
+                                collapsibleDashboardSection(
+                                    isExpanded: paymentPreparationExpanded,
+                                    title: paymentPreparationTitle,
+                                    systemImage: "sparkles",
+                                    titleUsesGradient: true
+                                ) {
+                                    paymentPreparationContent
+                                }
+                                .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 14))
+                                .overlay {
+                                    RoundedRectangle(cornerRadius: 14)
+                                        .strokeBorder(
+                                            LinearGradient(
+                                                colors: [.purple.opacity(0.25), .orange.opacity(0.2)],
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            ),
+                                            lineWidth: 1
+                                        )
+                                }
+                            }
                         }
                     }
                 }

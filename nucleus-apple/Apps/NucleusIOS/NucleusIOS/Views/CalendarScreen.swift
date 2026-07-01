@@ -4,49 +4,84 @@ import SwiftUI
 
 struct CalendarWorkspaceScreen: View {
     @EnvironmentObject private var viewModel: MobileAppViewModel
+    @State private var selectedAccountEmail: String?
 
-    private var upcomingEvents: [CalendarEventSummary] {
-        viewModel.calendarEvents.filter { $0.endDate >= Date() }
+    private var filteredEvents: [CalendarEventSummary] {
+        viewModel.filteredCalendarEvents(accountEmail: selectedAccountEmail)
+    }
+
+    private var upcomingBirthdays: [CalendarEventSummary] {
+        MobileDashboardCalendarHelpers.upcomingBirthdays(in: filteredEvents)
+    }
+
+    private var upcomingMeetings: [CalendarEventSummary] {
+        MobileDashboardCalendarHelpers.upcomingScheduleEvents(in: filteredEvents)
     }
 
     var body: some View {
         NavigationStack {
-            Group {
-                if upcomingEvents.isEmpty {
-                    ContentUnavailableView {
-                        Label("No upcoming events", systemImage: "calendar")
-                    } description: {
-                        emptyDescription
-                    } actions: {
-                        Button("Refresh sync") {
-                            Task { await viewModel.refreshICloudSync() }
-                        }
+            CalendarDashboardView(
+                birthdays: upcomingBirthdays,
+                events: upcomingMeetings,
+                isSyncing: viewModel.isReloadingCalendar,
+                onRefresh: {
+                    Task { await viewModel.refreshICloudSync() }
+                }
+            )
+            .navigationTitle("Calendar")
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    MobileWorkspaceSettingsButton {
+                        viewModel.openSettings()
                     }
-                } else {
-                    CalendarDashboardView(
-                        events: upcomingEvents,
-                        isSyncing: viewModel.isReloadingCalendar,
-                        onRefresh: {
-                            Task { await viewModel.refreshICloudSync() }
-                        }
-                    )
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    calendarMenu
                 }
             }
-            .navigationTitle("Calendar")
             .safeAreaInset(edge: .bottom) {
                 CalendarSyncFooter(syncService: viewModel.iCloudSync)
-            }
-            .refreshable {
-                await viewModel.refreshICloudSync()
             }
         }
     }
 
-    private var emptyDescription: Text {
-        if viewModel.iCloudSync.isSignedIn {
-            return Text("Your schedule syncs from Nucleus on your Mac via iCloud. Pull down to refresh.")
+    private var calendarMenu: some View {
+        Menu {
+            if !viewModel.calendarAccountEmails.isEmpty {
+                Section("Account") {
+                    Button {
+                        selectedAccountEmail = nil
+                    } label: {
+                        if selectedAccountEmail == nil {
+                            Label("All accounts", systemImage: "checkmark")
+                        } else {
+                            Text("All accounts")
+                        }
+                    }
+
+                    ForEach(viewModel.calendarAccountEmails, id: \.self) { email in
+                        Button {
+                            selectedAccountEmail = email
+                        } label: {
+                            if selectedAccountEmail == email {
+                                Label(email, systemImage: "checkmark")
+                            } else {
+                                Text(email)
+                            }
+                        }
+                    }
+                }
+            }
+
+            Button {
+                Task { await viewModel.refreshICloudSync() }
+            } label: {
+                Label("Refresh sync", systemImage: "arrow.clockwise")
+            }
+        } label: {
+            Image(systemName: "line.3.horizontal.circle")
         }
-        return Text("Sign in to iCloud in Settings to sync your calendar from your Mac.")
+        .accessibilityLabel("Calendar menu")
     }
 }
 

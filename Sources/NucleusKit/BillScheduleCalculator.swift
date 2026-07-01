@@ -1,6 +1,9 @@
 import Foundation
 
 public enum BillScheduleCalculator {
+    /// Days before due (inclusive) when bills count as needing attention for badges and notifications.
+    public static let attentionWindowDays = 3
+
     public static func initialNextDueDate(
         recurrence: BillRecurrence,
         dueDayOfMonth: Int?,
@@ -303,11 +306,37 @@ public enum BillScheduleCalculator {
         return dates
     }
 
+    /// Active bills sorted by next due date (earliest first, overdue bills naturally first).
+    public static func sortedActiveBillsByDueDate(
+        _ bills: [Bill],
+        calendar: Calendar = .current
+    ) -> [Bill] {
+        bills
+            .filter { !$0.isArchived }
+            .sorted { lhs, rhs in
+                let lhsDue = calendar.startOfDay(for: lhs.nextDueDate)
+                let rhsDue = calendar.startOfDay(for: rhs.nextDueDate)
+                if lhsDue != rhsDue { return lhsDue < rhsDue }
+                if lhs.sortOrder != rhs.sortOrder { return lhs.sortOrder < rhs.sortOrder }
+                return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+            }
+    }
+
+    /// True when a bill is overdue or due within `withinDays` (inclusive).
+    public static func isDueWithinNotificationWindow(
+        for dueDate: Date,
+        withinDays: Int = attentionWindowDays,
+        reference: Date = Date(),
+        calendar: Calendar = .current
+    ) -> Bool {
+        daysUntilDue(for: dueDate, from: reference, calendar: calendar) <= withinDays
+    }
+
     /// Counts active bills with a remaining balance that are overdue or due within `withinDays` (inclusive).
     public static func dueWithinDaysOrOverdueCount(
         bills: [Bill],
         payments: [BillPayment],
-        withinDays: Int = 3,
+        withinDays: Int = attentionWindowDays,
         reference: Date = Date(),
         calendar: Calendar = .current
     ) -> Int {

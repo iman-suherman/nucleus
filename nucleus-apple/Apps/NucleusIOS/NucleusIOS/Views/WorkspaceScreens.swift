@@ -17,7 +17,7 @@ struct NotesWorkspaceScreen: View {
                     ContentUnavailableView {
                         Label("No notes yet", systemImage: "note.text")
                     } description: {
-                        emptyNotesDescription
+                        Text(emptyDescriptionText)
                     } actions: {
                         Button("New note") {
                             createNote()
@@ -36,20 +36,25 @@ struct NotesWorkspaceScreen: View {
             }
             .navigationTitle("Notes")
             .toolbar {
-                ToolbarItemGroup(placement: .topBarTrailing) {
-                    Button {
-                        createNote()
-                    } label: {
-                        Image(systemName: "plus")
+                ToolbarItem(placement: .topBarLeading) {
+                    MobileWorkspaceSettingsButton {
+                        viewModel.openSettings()
                     }
-                    .accessibilityIdentifier("notes.add")
-
+                }
+                ToolbarItemGroup(placement: .topBarTrailing) {
                     Button {
                         Task { await viewModel.captureClipboardToNote() }
                     } label: {
                         Image(systemName: "doc.on.clipboard")
                     }
                     .disabled(!ClipboardCaptureService.hasContent())
+
+                    Button {
+                        createNote()
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                    .accessibilityIdentifier("notes.add")
                 }
             }
             .navigationDestination(item: $noteToOpen) { note in
@@ -82,19 +87,17 @@ struct NotesWorkspaceScreen: View {
         }
     }
 
-    private var emptyNotesDescription: Text {
+    private var emptyDescriptionText: String {
         if !viewModel.notesService.usesCloudKitSync {
-            return Text(viewModel.notesService.syncStatusMessage)
+            return viewModel.notesService.syncStatusMessage
         }
         if let name = viewModel.iCloudSync.accountName {
-            return Text("Notes sync from your computer via cloud sync as \(name). Pull down to refresh.")
+            return "Notes sync from your computer via cloud sync as \(name). Pull down to refresh."
         }
         if viewModel.iCloudSync.isSignedIn {
-            return Text("Notes sync from your computer via cloud sync. Pull down to refresh — first import can take a minute.")
+            return "Notes sync from your computer via cloud sync. Pull down to refresh — first import can take a minute."
         }
-        return Text(
-            "Sign in to cloud sync in device Settings to sync notes from your computer."
-        )
+        return "Sign in to cloud sync in device Settings to sync notes from your computer."
     }
 }
 
@@ -113,7 +116,7 @@ struct PasswordsWorkspaceScreen: View {
                     ContentUnavailableView {
                         Label("No passwords yet", systemImage: "key.fill")
                     } description: {
-                        emptyPasswordsDescription
+                        Text(emptyDescriptionText)
                     } actions: {
                         Button("New password") {
                             createPassword()
@@ -132,6 +135,11 @@ struct PasswordsWorkspaceScreen: View {
             }
             .navigationTitle("Passwords")
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    MobileWorkspaceSettingsButton {
+                        viewModel.openSettings()
+                    }
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         createPassword()
@@ -171,25 +179,24 @@ struct PasswordsWorkspaceScreen: View {
         }
     }
 
-    private var emptyPasswordsDescription: Text {
+    private var emptyDescriptionText: String {
         if !viewModel.notesService.usesCloudKitSync {
-            return Text(viewModel.notesService.syncStatusMessage)
+            return viewModel.notesService.syncStatusMessage
         }
         if let name = viewModel.iCloudSync.accountName {
-            return Text("Password entries sync from your computer via cloud sync as \(name). Pull down to refresh.")
+            return "Password entries sync from your computer via cloud sync as \(name). Pull down to refresh."
         }
         if viewModel.iCloudSync.isSignedIn {
-            return Text("Password entries sync from your computer via cloud sync. Pull down to refresh.")
+            return "Password entries sync from your computer via cloud sync. Pull down to refresh."
         }
-        return Text(
-            "Sign in to cloud sync in device Settings to sync passwords from your computer."
-        )
+        return "Sign in to cloud sync in device Settings to sync passwords from your computer."
     }
 }
 
 struct SettingsWorkspaceScreen: View {
     @EnvironmentObject private var viewModel: MobileAppViewModel
     @EnvironmentObject private var deviceLock: MobileDeviceLockService
+    @Environment(\.dismiss) private var dismiss
     @State private var emailNotifications = true
     @State private var chatNotifications = true
     @State private var calendarNotifications = true
@@ -287,18 +294,29 @@ struct SettingsWorkspaceScreen: View {
                         .foregroundStyle(.secondary)
                 }
 
+                PublicHolidayLocationSettingsSection()
+                PublicHolidayCountrySettingsSection(settings: MobilePublicHolidaySettings.shared)
+
                 Section("About") {
                     LabeledContent("Version", value: mobileAppVersion)
                     Button("What's New in This Version") {
                         Task { await viewModel.presentCurrentReleaseNotes() }
                     }
-                    LabeledContent("Tagline", value: "Personal Workspace")
-                    Text("Nucleus for phone and tablet is your mobile companion — Dashboard, Notes, Passwords, Bills, and Calendar stay in sync with your computer via cloud sync.")
+                    LabeledContent("Tagline", value: NucleusAppBranding.tagline)
+                    Text(NucleusAppBranding.mobileCompanionSummary)
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
             }
             .navigationTitle("Settings")
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") {
+                        viewModel.closeSettings()
+                        dismiss()
+                    }
+                }
+            }
             .onAppear {
                 applySyncedSettings()
                 deviceLock.refreshAvailability()

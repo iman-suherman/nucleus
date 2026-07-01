@@ -49,6 +49,24 @@ public enum EventKitCalendarClient {
             .sorted { $0.startDate < $1.startDate }
     }
 
+    /// Meeting invites plus birthday-calendar events in the same window (for iCloud sync to iOS).
+    public static func fetchUpcomingEventsIncludingBirthdays(
+        daysAhead: Int = 14,
+        now: Date = Date()
+    ) -> [CalendarEventSummary] {
+        let meetings = fetchUpcomingEvents(daysAhead: daysAhead, now: now)
+        let calendar = Calendar.current
+        let start = calendar.startOfDay(for: now)
+        let end = calendar.date(byAdding: .day, value: daysAhead, to: start) ?? start
+        let birthdays = fetchBirthdayEvents(from: start, to: end)
+        return (meetings + birthdays).sorted { lhs, rhs in
+            if lhs.startDate != rhs.startDate {
+                return lhs.startDate < rhs.startDate
+            }
+            return lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedAscending
+        }
+    }
+
     public static func hasBirthdayCalendars() -> Bool {
         guard hasReadAccess() else { return false }
         return EKEventStore().calendars(for: .event).contains { $0.type == .birthday }

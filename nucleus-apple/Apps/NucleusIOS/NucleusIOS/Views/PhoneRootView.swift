@@ -7,7 +7,7 @@ struct PhoneRootView: View {
 
     var body: some View {
         TabView(selection: tabBinding) {
-            ForEach(MobileWorkspaceTab.iosTabs) { tab in
+            ForEach(MobileWorkspaceTab.iosMainTabs) { tab in
                 tabContent(for: tab)
                     .tabItem {
                         Label(tab.title, systemImage: tab.icon)
@@ -31,8 +31,6 @@ struct PhoneRootView: View {
             BillsWorkspaceScreen()
         case .calendar:
             CalendarWorkspaceScreen()
-        case .settings:
-            SettingsWorkspaceScreen()
         default:
             DashboardWorkspaceScreen()
         }

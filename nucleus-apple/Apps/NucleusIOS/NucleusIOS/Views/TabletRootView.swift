@@ -10,7 +10,7 @@ struct TabletRootView: View {
     var body: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
             List {
-                ForEach(MobileWorkspaceTab.iosTabs) { tab in
+                ForEach(MobileWorkspaceTab.iosMainTabs) { tab in
                     SidebarRow(
                         tab: tab,
                         badgeCount: viewModel.tabBadgeCount(for: tab),
@@ -18,6 +18,15 @@ struct TabletRootView: View {
                     ) {
                         selection = tab
                     }
+                }
+
+                Section {
+                    Button {
+                        viewModel.openSettings()
+                    } label: {
+                        Label("Settings", systemImage: "gearshape")
+                    }
+                    .accessibilityIdentifier("mobile.settings.sidebar")
                 }
             }
             .navigationTitle("Nucleus")
@@ -49,8 +58,6 @@ struct TabletRootView: View {
             BillsWorkspaceScreen()
         case .calendar:
             CalendarWorkspaceScreen()
-        case .settings:
-            SettingsWorkspaceScreen()
         default:
             DashboardWorkspaceScreen()
         }

@@ -164,4 +164,56 @@ final class BillScheduleCalculatorTests: XCTestCase {
             "Due in 15 days"
         )
     }
+
+    func testSortedActiveBillsByDueDateOrdersByNextDueDate() {
+        let calendar = Calendar(identifier: .gregorian)
+        let overdue = Bill(
+            name: "Overdue",
+            amount: 100,
+            nextDueDate: calendar.date(from: DateComponents(year: 2026, month: 6, day: 10))!
+        )
+        let dueSoon = Bill(
+            name: "Due Soon",
+            amount: 80,
+            nextDueDate: calendar.date(from: DateComponents(year: 2026, month: 6, day: 18))!
+        )
+        let later = Bill(
+            name: "Later",
+            amount: 50,
+            nextDueDate: calendar.date(from: DateComponents(year: 2026, month: 6, day: 25))!
+        )
+        let archived = Bill(
+            name: "Archived",
+            amount: 40,
+            nextDueDate: calendar.date(from: DateComponents(year: 2026, month: 6, day: 12))!,
+            isArchived: true
+        )
+
+        let sorted = BillScheduleCalculator.sortedActiveBillsByDueDate(
+            [later, archived, overdue, dueSoon],
+            calendar: calendar
+        )
+
+        XCTAssertEqual(sorted.map(\.name), ["Overdue", "Due Soon", "Later"])
+    }
+
+    func testIsDueWithinNotificationWindowIncludesOverdueAndThreeDayHorizon() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        let reference = calendar.date(from: DateComponents(year: 2026, month: 6, day: 16))!
+
+        let overdue = calendar.date(from: DateComponents(year: 2026, month: 6, day: 10))!
+        let dueInThreeDays = calendar.date(from: DateComponents(year: 2026, month: 6, day: 19))!
+        let dueInFourDays = calendar.date(from: DateComponents(year: 2026, month: 6, day: 20))!
+
+        XCTAssertTrue(
+            BillScheduleCalculator.isDueWithinNotificationWindow(for: overdue, reference: reference, calendar: calendar)
+        )
+        XCTAssertTrue(
+            BillScheduleCalculator.isDueWithinNotificationWindow(for: dueInThreeDays, reference: reference, calendar: calendar)
+        )
+        XCTAssertFalse(
+            BillScheduleCalculator.isDueWithinNotificationWindow(for: dueInFourDays, reference: reference, calendar: calendar)
+        )
+    }
 }

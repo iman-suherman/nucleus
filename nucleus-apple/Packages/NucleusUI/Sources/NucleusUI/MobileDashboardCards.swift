@@ -284,10 +284,11 @@ public struct DashboardCloudSyncCard: View {
         isConnected: Bool,
         statusLabel: String
     ) -> some View {
-        HStack(alignment: .top, spacing: 10) {
+        HStack(alignment: .center, spacing: 10) {
             Image(systemName: isConnected ? "checkmark.circle.fill" : systemImage)
+                .font(.system(size: 17, weight: .semibold))
                 .foregroundStyle(isConnected ? .green : .secondary)
-                .frame(width: 18)
+                .frame(width: 22, height: 22, alignment: .center)
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(title)

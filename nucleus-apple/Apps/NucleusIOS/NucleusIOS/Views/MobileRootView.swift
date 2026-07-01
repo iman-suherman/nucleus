@@ -8,11 +8,19 @@ struct MobileRootView: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.scenePhase) private var scenePhase
 
+    private var showsBootstrapBlockingUI: Bool {
+        viewModel.isBootstrapping
+            && (!deviceLock.isProtectionEnabled || !deviceLock.isLocked)
+    }
+
     var body: some View {
         ZStack {
             Group {
-                if viewModel.isBootstrapping {
-                    ProgressView(viewModel.statusMessage)
+                if showsBootstrapBlockingUI {
+                    MobileBootstrapSyncView(
+                        stage: viewModel.bootstrapStage,
+                        detailMessage: viewModel.bootstrapDetailMessage
+                    )
                 } else if horizontalSizeClass == .regular {
                     TabletRootView()
                 } else {
@@ -39,9 +47,35 @@ struct MobileRootView: View {
                     viewModel.dismissWhatsNew()
                 }
             }
+
+            if let prompt = viewModel.meetingReminders.prompt {
+                DashboardMeetingReminderOverlay(
+                    prompt: prompt,
+                    onJoinMeeting: { event in
+                        viewModel.joinMeetingFromReminder(event)
+                    },
+                    onOpenCalendar: {
+                        viewModel.openCalendarFromMeetingReminder()
+                    },
+                    onDismiss: {
+                        viewModel.dismissMeetingReminder()
+                    }
+                )
+            }
         }
         .animation(.easeInOut(duration: 0.22), value: viewModel.showWhatsNew)
         .animation(.easeInOut(duration: 0.2), value: deviceLock.isLocked)
+        .animation(.easeInOut(duration: 0.2), value: viewModel.meetingReminders.prompt != nil)
+        .sheet(isPresented: $viewModel.showsSettings) {
+            SettingsWorkspaceScreen()
+        }
+        .task {
+            viewModel.beginStartup()
+        }
+        .task {
+            guard deviceLock.isProtectionEnabled, deviceLock.isLocked else { return }
+            await deviceLock.unlock()
+        }
         .onChange(of: scenePhase) { _, phase in
             guard deviceLock.isProtectionEnabled else { return }
 

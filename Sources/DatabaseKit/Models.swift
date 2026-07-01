@@ -119,6 +119,7 @@ public final class CalendarEventRecord {
     public var attendeesCSV: String = ""
     public var meetingLink: String?
     public var accountEmail: String = ""
+    public var isBirthday: Bool = false
 
     public init(
         id: String,
@@ -129,7 +130,8 @@ public final class CalendarEventRecord {
         location: String = "",
         attendeesCSV: String = "",
         meetingLink: String? = nil,
-        accountEmail: String
+        accountEmail: String,
+        isBirthday: Bool = false
     ) {
         self.id = id
         self.accountID = accountID
@@ -140,6 +142,7 @@ public final class CalendarEventRecord {
         self.attendeesCSV = attendeesCSV
         self.meetingLink = meetingLink
         self.accountEmail = accountEmail
+        self.isBirthday = isBirthday
     }
 
     public var attendees: [String] {
@@ -161,7 +164,8 @@ public final class CalendarEventRecord {
             location: location,
             attendees: attendees,
             meetingLink: meetingLink,
-            accountEmail: accountEmail
+            accountEmail: accountEmail,
+            isBirthday: isBirthday
         )
     }
 }

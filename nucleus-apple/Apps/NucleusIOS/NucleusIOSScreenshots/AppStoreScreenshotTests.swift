@@ -130,6 +130,29 @@ final class AppStoreScreenshotTests: XCTestCase {
     }
 
     private func navigate(to tab: String, app: XCUIApplication) {
+        if tab == "Settings" {
+            if app.tabBars.firstMatch.exists {
+                navigate(to: "Dashboard", app: app)
+            }
+            let settings = app.buttons["Settings"]
+            if settings.waitForExistence(timeout: 5) {
+                settings.tap()
+            }
+            return
+        }
+
+        if tab == "Passwords" {
+            if app.tabBars.firstMatch.exists {
+                let button = app.tabBars.buttons["Passwords"]
+                if button.exists {
+                    button.tap()
+                } else {
+                    app.tabBars.buttons.element(boundBy: tabIndex(for: tab)).tap()
+                }
+            }
+            return
+        }
+
         if app.tabBars.firstMatch.exists {
             let button = app.tabBars.buttons[tab]
             if button.exists {
@@ -154,7 +177,7 @@ final class AppStoreScreenshotTests: XCTestCase {
         case "Notes": return 1
         case "Passwords": return 2
         case "Bills": return 3
-        case "Settings": return 4
+        case "Calendar": return 4
         default: return 0
         }
     }

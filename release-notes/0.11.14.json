@@ -1,0 +1,17 @@
+{
+  "version": "0.11.14",
+  "summary": "Mac calendar sync now includes upcoming birthdays for the iOS dashboard.",
+  "releaseNotes": {
+    "introduced": [],
+    "changed": [
+      "Calendar sync includes Birthday calendar events for the next two weeks and exports them to iCloud for the iOS dashboard",
+      "Bill due reminders use a three-day notification window to match iOS"
+    ],
+    "fixed": [],
+    "updated": [
+      "CloudKit calendar schema adds CD_isBirthday on CD_CalendarEventRecord"
+    ],
+    "removed": [],
+    "breaking": []
+  }
+}

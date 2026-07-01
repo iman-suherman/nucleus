@@ -67,6 +67,12 @@ public enum BillDueReminderPlanner {
             )
             guard remaining > 0 else { continue }
 
+            guard BillScheduleCalculator.isDueWithinNotificationWindow(
+                for: bill.nextDueDate,
+                reference: now,
+                calendar: calendar
+            ) else { continue }
+
             let dueDate = calendar.startOfDay(for: bill.nextDueDate)
             for (kind, daysBefore, isEnabled) in leadTimes where isEnabled {
                 guard let fireDate = fireDate(

@@ -54,6 +54,7 @@ DEFINE SCHEMA
         CD_meetingLink    STRING,
         CD_startDate      TIMESTAMP,
         CD_title          STRING QUERYABLE,
+        CD_isBirthday     INT64,
         "___createTime"   TIMESTAMP,
         "___createdBy"    REFERENCE,
         "___etag"         STRING,

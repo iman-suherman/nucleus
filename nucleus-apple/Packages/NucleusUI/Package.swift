@@ -11,12 +11,15 @@ let package = Package(
     ],
     dependencies: [
         .package(path: "../NucleusCore"),
+        .package(path: "../../../"),
     ],
     targets: [
         .target(
             name: "NucleusUI",
             dependencies: [
                 .product(name: "NucleusCore", package: "NucleusCore"),
+                .product(name: "CalendarKit", package: "Nucleus"),
+                .product(name: "NucleusKit", package: "Nucleus"),
             ]
         ),
     ]

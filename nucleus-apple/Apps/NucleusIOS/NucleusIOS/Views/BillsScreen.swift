@@ -53,6 +53,11 @@ struct BillsWorkspaceScreen: View {
             }
             .navigationTitle("Bills")
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    MobileWorkspaceSettingsButton {
+                        viewModel.openSettings()
+                    }
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         editorContext = .add
@@ -103,13 +108,13 @@ struct BillsWorkspaceScreen: View {
 
     private var billsList: some View {
         List {
-            if summary.dueSoonCount > 0 {
+            if viewModel.billsNearlyDueCount > 0 {
                 Section {
                     HStack {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("\(summary.dueSoonCount) due soon")
+                            Text("\(viewModel.billsNearlyDueCount) due soon")
                                 .font(.headline)
-                            Text("Across your active bills")
+                            Text("Due within \(BillScheduleCalculator.attentionWindowDays) days or overdue")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }

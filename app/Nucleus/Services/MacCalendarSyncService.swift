@@ -69,7 +69,7 @@ final class MacCalendarSyncService: ObservableObject {
         lastSyncError = nil
         defer { isSyncing = false }
 
-        let fetched = EventKitCalendarClient.fetchUpcomingEvents(daysAhead: 14)
+        let fetched = EventKitCalendarClient.fetchUpcomingEventsIncludingBirthdays(daysAhead: 14)
         let context = ModelContext(viewModel.modelContainer)
 
         do {

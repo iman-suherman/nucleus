@@ -2,6 +2,11 @@ import Foundation
 import NucleusKit
 
 public enum BirthdayCalendarFormatting {
+    public static func isBirthdayEvent(_ event: CalendarEventSummary) -> Bool {
+        if event.isBirthday { return true }
+        return event.title.localizedCaseInsensitiveContains("birthday")
+    }
+
     public static func displayName(from title: String) -> String {
         var trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return title }

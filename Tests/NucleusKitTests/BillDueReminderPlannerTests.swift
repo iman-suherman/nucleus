@@ -11,6 +11,39 @@ final class BillDueReminderPlannerTests: XCTestCase {
         let bill = Bill(
             name: "Rent",
             amount: 1000,
+            nextDueDate: try makeDate("2026-06-19", calendar: calendar)
+        )
+
+        let reminders = BillDueReminderPlanner.reminders(
+            bills: [bill],
+            payments: [],
+            configuration: BillDueReminderConfiguration(hour: 7),
+            now: now,
+            calendar: calendar
+        )
+
+        XCTAssertEqual(reminders.count, 2)
+        XCTAssertTrue(reminders.contains(where: { $0.kind == .oneDayBefore }))
+        XCTAssertTrue(reminders.contains(where: { $0.kind == .dueDate }))
+
+        let oneDayReminder = reminders.first { $0.kind == .oneDayBefore }
+        let fireDate = try XCTUnwrap(oneDayReminder?.fireDate)
+        XCTAssertEqual(calendar.component(.hour, from: fireDate), 7)
+        XCTAssertEqual(calendar.component(.minute, from: fireDate), 0)
+        XCTAssertEqual(
+            calendar.startOfDay(for: fireDate),
+            try makeDate("2026-06-18", calendar: calendar)
+        )
+    }
+
+    func testSkipsBillsOutsideThreeDayNotificationWindow() throws {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+
+        let now = try makeDate("2026-06-16T08:00:00Z", calendar: calendar)
+        let bill = Bill(
+            name: "Rent",
+            amount: 1000,
             nextDueDate: try makeDate("2026-07-01", calendar: calendar)
         )
 
@@ -22,20 +55,7 @@ final class BillDueReminderPlannerTests: XCTestCase {
             calendar: calendar
         )
 
-        XCTAssertEqual(reminders.count, 4)
-        XCTAssertTrue(reminders.contains(where: { $0.kind == .sevenDaysBefore }))
-        XCTAssertTrue(reminders.contains(where: { $0.kind == .threeDaysBefore }))
-        XCTAssertTrue(reminders.contains(where: { $0.kind == .oneDayBefore }))
-        XCTAssertTrue(reminders.contains(where: { $0.kind == .dueDate }))
-
-        let sevenDayReminder = reminders.first { $0.kind == .sevenDaysBefore }
-        let fireDate = try XCTUnwrap(sevenDayReminder?.fireDate)
-        XCTAssertEqual(calendar.component(.hour, from: fireDate), 7)
-        XCTAssertEqual(calendar.component(.minute, from: fireDate), 0)
-        XCTAssertEqual(
-            calendar.startOfDay(for: fireDate),
-            try makeDate("2026-06-24", calendar: calendar)
-        )
+        XCTAssertTrue(reminders.isEmpty)
     }
 
     func testSkipsFullyPaidBills() throws {
@@ -69,7 +89,7 @@ final class BillDueReminderPlannerTests: XCTestCase {
         let bill = Bill(
             name: "Internet",
             amount: 80,
-            nextDueDate: try makeDate("2026-07-10", calendar: calendar)
+            nextDueDate: try makeDate("2026-06-18", calendar: calendar)
         )
         let now = try makeDate("2026-06-16", calendar: calendar)
         let configuration = BillDueReminderConfiguration(

@@ -18,9 +18,6 @@ struct NucleusIOSApp: App {
             MobileRootView()
                 .environmentObject(viewModel)
                 .environmentObject(deviceLock)
-                .task {
-                    await viewModel.bootstrap()
-                }
         }
     }
 }

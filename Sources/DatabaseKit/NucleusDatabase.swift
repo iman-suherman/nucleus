@@ -762,7 +762,8 @@ public enum CalendarRepository {
                 location: event.location,
                 attendeesCSV: event.attendees.joined(separator: ";"),
                 meetingLink: event.meetingLink,
-                accountEmail: event.accountEmail
+                accountEmail: event.accountEmail,
+                isBirthday: event.isBirthday
             ))
         }
         try context.save()

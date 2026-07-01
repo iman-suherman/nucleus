@@ -8,30 +8,60 @@ struct DashboardWorkspaceScreen: View {
     @EnvironmentObject private var viewModel: MobileAppViewModel
     @StateObject private var processMetricsService = DashboardProcessMetricsService.shared
     @StateObject private var holidayService = DashboardPublicHolidayService.shared
+    @StateObject private var locationService = DashboardLocationService.shared
+    @StateObject private var holidaySettings = MobilePublicHolidaySettings.shared
 
     private var snapshot: DashboardSnapshot {
         viewModel.dashboardSnapshot()
     }
 
+    private var holidayLayout: DashboardPublicHolidayDisplayLayout {
+        DashboardPublicHolidayService.displayLayout(
+            countryGroups: holidayService.countryGroups,
+            selectedCountryCodes: holidaySettings.companionCountryCodes,
+            locationCountryCode: effectiveLocationCountryCode
+        )
+    }
+
+    private var effectiveLocationCountryCode: String? {
+        locationService.locationSnapshot?.countryCode ?? Locale.current.region?.identifier
+    }
+
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    greetingHeader
-                    insightSection
-                    publicHolidaySection
-                    resourceAndSyncRow
-                    statsGrid
-                    paymentPreparationSection
+            TimelineView(.periodic(from: .now, by: 60)) { context in
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 20) {
+                        dateAndQuoteHeader(asOf: context.date)
+                        calendarScheduleSection
+                        publicHolidaySection
+                        resourceAndSyncRow
+                        statsGrid
+                        insightSection
+                        paymentPreparationSection
+                    }
+                    .padding()
                 }
-                .padding()
+                .navigationTitle(greetingLine(asOf: context.date))
+                .navigationBarTitleDisplayMode(.large)
+                .onChange(of: DashboardTimePeriod.current(now: context.date)) { _, _ in
+                    viewModel.refreshDashboardQuoteForCurrentContext()
+                    viewModel.refreshDashboardQuoteEmojis()
+                }
             }
-            .navigationTitle("Dashboard")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    MobileWorkspaceSettingsButton {
+                        viewModel.openSettings()
+                    }
+                }
+            }
             .onAppear {
                 processMetricsService.startSamplingIfNeeded()
                 viewModel.refreshDashboardQuoteForCurrentContext()
                 viewModel.refreshDashboardQuoteEmojis()
-                holidayService.refresh(countryCode: Locale.current.region?.identifier)
+                locationService.beginLocationUpdatesIfNeeded()
+                refreshPublicHolidays()
             }
             .onDisappear {
                 processMetricsService.stopSampling()
@@ -40,7 +70,14 @@ struct DashboardWorkspaceScreen: View {
                 await viewModel.refreshICloudSync()
                 viewModel.refreshDashboardQuoteForCurrentContext()
                 viewModel.refreshDashboardQuoteEmojis()
-                holidayService.refresh(countryCode: Locale.current.region?.identifier, force: true)
+                locationService.beginLocationUpdatesIfNeeded()
+                refreshPublicHolidays(force: true)
+            }
+            .onChange(of: locationService.locationSnapshot) { _, _ in
+                refreshPublicHolidays(force: true)
+            }
+            .onChange(of: holidaySettings.companionCountryCodes) { _, _ in
+                refreshPublicHolidays(force: true)
             }
             .onChange(of: holidayService.nextHoliday?.date) { _, _ in
                 viewModel.refreshDashboardQuoteForCurrentContext()
@@ -49,28 +86,14 @@ struct DashboardWorkspaceScreen: View {
         }
     }
 
-    private var greetingHeader: some View {
-        TimelineView(.periodic(from: .now, by: 60)) { context in
-            VStack(alignment: .leading, spacing: 8) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(greetingLine(asOf: context.date))
-                        .font(.title3.weight(.semibold))
-                        .fixedSize(horizontal: false, vertical: true)
-
-                    Text(DashboardGreeting.dateLine(now: context.date))
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-
-                if let quoteLine {
-                    DashboardAutoScrollingText(quoteLine, font: .title3)
-                }
-            }
-            .onChange(of: DashboardTimePeriod.current(now: context.date)) { _, _ in
-                viewModel.refreshDashboardQuoteForCurrentContext()
-                viewModel.refreshDashboardQuoteEmojis()
-            }
-        }
+    private func dateAndQuoteHeader(asOf date: Date) -> some View {
+        Text(dateAndQuoteLine(asOf: date))
+            .font(.subheadline)
+            .foregroundStyle(.secondary)
+            .lineLimit(3)
+            .minimumScaleFactor(0.8)
+            .truncationMode(.tail)
+            .fixedSize(horizontal: false, vertical: true)
     }
 
     private func greetingLine(asOf date: Date) -> String {
@@ -80,6 +103,13 @@ struct DashboardWorkspaceScreen: View {
             now: date,
             isPublicHoliday: celebrateHoliday,
             publicHolidayName: celebrateHoliday ? holidayService.todayPublicHolidayName(on: date) : nil
+        )
+    }
+
+    private func dateAndQuoteLine(asOf date: Date) -> String {
+        DashboardGreeting.dateAndQuoteLine(
+            quote: quoteLine ?? "",
+            now: date
         )
     }
 
@@ -98,15 +128,45 @@ struct DashboardWorkspaceScreen: View {
             .trimmingCharacters(in: CharacterSet(charactersIn: "\""))
     }
 
+    private var calendarScheduleSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            if let nextMeeting = viewModel.dashboardNextMeetingGroup {
+                DashboardNextMeetingCard(group: nextMeeting)
+            }
+
+            if !viewModel.dashboardNextUpcomingBirthdays.isEmpty {
+                DashboardUpcomingBirthdaysCard(birthdays: viewModel.dashboardNextUpcomingBirthdays)
+            }
+
+            DashboardCalendarScheduleCard(
+                birthdays: [],
+                events: viewModel.dashboardScheduleEvents,
+                isSyncing: viewModel.isReloadingCalendar,
+                onShowMore: {
+                    viewModel.selectedTab = .calendar
+                }
+            )
+        }
+    }
+
     private var publicHolidaySection: some View {
-        DashboardPublicHolidayCard(
-            layout: DashboardPublicHolidayService.displayLayout(
-                countryGroups: holidayService.countryGroups,
-                selectedCountryCodes: [],
-                locationCountryCode: Locale.current.region?.identifier
-            ),
-            isLoading: holidayService.isLoading,
-            statusMessage: holidayService.statusMessage
+        VStack(alignment: .leading, spacing: 12) {
+            DashboardHolidayLocationCard(locationService: locationService)
+            DashboardPublicHolidayCard(
+                layout: holidayLayout,
+                isLoading: holidayService.isLoading,
+                statusMessage: holidayService.statusMessage
+            )
+        }
+    }
+
+    private func refreshPublicHolidays(force: Bool = false) {
+        holidayService.refresh(
+            selectedCountryCodes: holidaySettings.companionCountryCodes,
+            locationCountryCode: effectiveLocationCountryCode,
+            locationSubdivisionCode: locationService.locationSnapshot?.subdivisionCode,
+            locationLabel: locationService.locationSnapshot?.locationLabel,
+            force: force
         )
     }
 

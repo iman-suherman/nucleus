@@ -1,3 +1,4 @@
+import CalendarKit
 import Foundation
 import NucleusKit
 import UserNotifications
@@ -29,6 +30,7 @@ public final class MeetingReminderScheduler {
 
     public func scheduleReminders(for event: CalendarEventSummary) async {
         guard event.startDate > Date() else { return }
+        guard !BirthdayCalendarFormatting.isBirthdayEvent(event) else { return }
 
         let center = UNUserNotificationCenter.current()
         let settings = await center.notificationSettings()
@@ -42,12 +44,24 @@ public final class MeetingReminderScheduler {
 
             let content = UNMutableNotificationContent()
             content.title = event.title
-            content.body = "Starting in 2 minutes"
+            var bodyParts = ["Starting in 2 minutes"]
+            if !event.accountEmail.isEmpty {
+                bodyParts.append(event.accountEmail)
+            }
+            if event.meetingLink != nil {
+                bodyParts.append("Tap to join video call")
+            }
+            content.body = bodyParts.joined(separator: " · ")
             content.sound = .default
             content.categoryIdentifier = Self.joinMeetingCategoryID
+            var userInfo: [String: Any] = [
+                "eventID": event.id,
+                "accountEmail": event.accountEmail,
+            ]
             if let link = event.meetingLink {
-                content.userInfo = ["meetingLink": link]
+                userInfo["meetingLink"] = link
             }
+            content.userInfo = userInfo
 
             let components = Calendar.current.dateComponents(
                 [.year, .month, .day, .hour, .minute, .second],

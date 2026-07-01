@@ -12,8 +12,11 @@ public enum MobileWorkspaceTab: String, CaseIterable, Identifiable, Codable, Sen
 
     public var id: String { rawValue }
 
-    /// Tabs shown in the iOS / iPadOS app.
-    public static let iosTabs: [MobileWorkspaceTab] = [.dashboard, .notes, .passwords, .bills, .calendar, .settings]
+    /// Primary tabs in the iOS / iPadOS bottom bar.
+    public static let iosMainTabs: [MobileWorkspaceTab] = [.dashboard, .notes, .passwords, .bills, .calendar]
+
+    /// Includes every workspace tab reachable on iOS, including settings presented outside the tab bar.
+    public static let iosTabs: [MobileWorkspaceTab] = iosMainTabs + [.settings]
 
     public var title: String {
         switch self {
@@ -43,10 +46,10 @@ public enum MobileWorkspaceTab: String, CaseIterable, Identifiable, Codable, Sen
 
     public static func normalizedForIOS(_ tab: MobileWorkspaceTab) -> MobileWorkspaceTab {
         switch tab {
-        case .mail, .chat:
+        case .mail, .chat, .settings:
             return .dashboard
         default:
-            return iosTabs.contains(tab) ? tab : .dashboard
+            return iosMainTabs.contains(tab) ? tab : .dashboard
         }
     }
 }

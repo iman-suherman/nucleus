@@ -115,20 +115,23 @@ struct StartupSplashOverlay: View {
         let isComplete = completedSteps.contains(step)
         let isActive = activeStep == step
 
-        HStack(spacing: 10) {
-            Group {
+        HStack(alignment: .center, spacing: 10) {
+            ZStack {
                 if isComplete {
                     Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 17, weight: .semibold))
                         .foregroundStyle(.green)
                 } else if isActive {
                     ProgressView()
                         .controlSize(.small)
+                        .scaleEffect(0.85)
                 } else {
                     Image(systemName: step.icon)
+                        .font(.system(size: 15, weight: .regular))
                         .foregroundStyle(.tertiary)
                 }
             }
-            .frame(width: 18)
+            .frame(width: 22, height: 22, alignment: .center)
 
             Text(step.title)
                 .font(.subheadline)
