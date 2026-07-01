@@ -56,6 +56,18 @@ public enum CalendarEventFormatting {
         return "\(hourLabel) \(remainder) min"
     }
 
+    public static func timeUntilStartWithDurationLabel(
+        for event: CalendarEventSummary,
+        now: Date = Date()
+    ) -> String {
+        let countdown = timeUntilStartLabel(for: event.startDate, now: now)
+        let duration = durationLabel(for: event)
+        if countdown == "starting now" {
+            return "starting now for \(duration)"
+        }
+        return "\(countdown) for \(duration)"
+    }
+
     public static func meetingStartsInLabel(for startDate: Date, now: Date = Date()) -> String {
         let until = timeUntilStartLabel(for: startDate, now: now)
         if until == "starting now" {

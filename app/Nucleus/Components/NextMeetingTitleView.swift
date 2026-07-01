@@ -38,14 +38,13 @@ struct NextMeetingTitleView: View {
     }
 
     private func titleLine(for event: CalendarEventSummary) -> String {
-        let countdown = CalendarEventFormatting.timeUntilStartLabel(for: event.startDate)
-        let schedule = CalendarEventFormatting.scheduleTimeAndDurationLabel(for: event)
-        return "\(countdown) · \(schedule) · \(event.title)"
+        let countdown = CalendarEventFormatting.timeUntilStartWithDurationLabel(for: event)
+        return "Next \(countdown) · \(event.title)"
     }
 
     private func helpText(for event: CalendarEventSummary) -> String {
-        let countdown = CalendarEventFormatting.timeUntilStartLabel(for: event.startDate)
-        return "Next meeting \(countdown) (\(CalendarEventFormatting.scheduleTimeAndDurationLabel(for: event))). Click to open \(event.title) in calendar."
+        let countdown = CalendarEventFormatting.timeUntilStartWithDurationLabel(for: event)
+        return "Next meeting \(countdown). Click to open \(event.title) in calendar."
     }
 
     private func accessibilityText(for event: CalendarEventSummary) -> String {

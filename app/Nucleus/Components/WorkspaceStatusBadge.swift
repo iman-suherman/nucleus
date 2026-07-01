@@ -54,8 +54,8 @@ struct WorkspaceStatusBadge: View {
             return "\(unreadDetailMessage). Click to open Inbox."
         }
         if let event = nextScheduleEvent {
-            let countdown = CalendarEventFormatting.timeUntilStartLabel(for: event.startDate)
-            return "Open \(event.title) \(countdown) (\(CalendarEventFormatting.scheduleTimeAndDurationLabel(for: event)))."
+            let countdown = CalendarEventFormatting.timeUntilStartWithDurationLabel(for: event)
+            return "Open \(event.title) — next \(countdown)."
         }
         return fallbackMessage
     }

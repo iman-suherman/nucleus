@@ -49,6 +49,18 @@ final class CalendarEventFormattingTests: XCTestCase {
         XCTAssertEqual(CalendarEventFormatting.timeUntilStartLabel(for: start, now: now), "in 1 hr 30 min")
     }
 
+    func testTimeUntilStartWithDurationLabel() {
+        let event = makeEvent(
+            start: date(2026, 7, 1, 9, 14),
+            end: date(2026, 7, 1, 10, 14)
+        )
+        let now = date(2026, 7, 1, 9, 0)
+        XCTAssertEqual(
+            CalendarEventFormatting.timeUntilStartWithDurationLabel(for: event, now: now),
+            "in 14 min for 1 hr"
+        )
+    }
+
     func testMeetingStartsInLabel() {
         let start = date(2026, 7, 1, 9, 2)
         let now = date(2026, 7, 1, 9, 0)

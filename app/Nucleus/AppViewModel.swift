@@ -1126,7 +1126,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
     }
 
     func nextScheduleStatusLine(for event: CalendarEventSummary) -> String {
-        let countdown = CalendarEventFormatting.timeUntilStartLabel(for: event.startDate)
+        let countdown = CalendarEventFormatting.timeUntilStartWithDurationLabel(for: event)
         let emailSuffix = event.accountEmail.isEmpty ? "" : " · \(event.accountEmail)"
         return "Next \(countdown): \(event.title)\(emailSuffix)"
     }
