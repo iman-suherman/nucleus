@@ -223,8 +223,11 @@ struct DashboardCalendarSchedulePanel: View {
     private func eventRow(_ event: CalendarEventSummary) -> some View {
         HStack(alignment: .top, spacing: 10) {
             VStack(alignment: .trailing, spacing: 2) {
-                Text(timeLabel(for: event.startDate))
+                Text(CalendarEventFormatting.shortTime(for: event.startDate))
                     .font(.caption.monospacedDigit().weight(.semibold))
+                Text(CalendarEventFormatting.shortTime(for: event.endDate))
+                    .font(.caption2.monospacedDigit())
+                    .foregroundStyle(.secondary)
                 Text(dayLabel(for: event.startDate))
                     .font(.caption2)
                     .foregroundStyle(.secondary)
@@ -235,6 +238,10 @@ struct DashboardCalendarSchedulePanel: View {
                 Text(event.title)
                     .font(.subheadline.weight(.semibold))
                     .lineLimit(2)
+
+                Text(CalendarEventFormatting.durationLabel(for: event))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
 
                 if !event.accountEmail.isEmpty {
                     Text(event.accountEmail)
@@ -266,7 +273,10 @@ struct DashboardCalendarSchedulePanel: View {
     }
 
     private func eventListTooltip(for event: CalendarEventSummary) -> String {
-        var lines = [event.title, "\(dayLabel(for: event.startDate)) · \(timeLabel(for: event.startDate))"]
+        var lines = [
+            event.title,
+            "\(dayLabel(for: event.startDate)) · \(CalendarEventFormatting.scheduleTimeAndDurationLabel(for: event))",
+        ]
         if !event.accountEmail.isEmpty {
             lines.append(event.accountEmail)
         }
@@ -274,10 +284,6 @@ struct DashboardCalendarSchedulePanel: View {
             lines.append(event.location)
         }
         return lines.joined(separator: "\n")
-    }
-
-    private func timeLabel(for date: Date) -> String {
-        DashboardCalendarSchedulePanel.timeFormatter.string(from: date)
     }
 
     private func dayLabel(for date: Date) -> String {
@@ -289,13 +295,6 @@ struct DashboardCalendarSchedulePanel: View {
         }
         return DashboardCalendarSchedulePanel.dayFormatter.string(from: date)
     }
-
-    private static let timeFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.timeStyle = .short
-        formatter.dateStyle = .none
-        return formatter
-    }()
 
     private static let dayFormatter: DateFormatter = {
         let formatter = DateFormatter()

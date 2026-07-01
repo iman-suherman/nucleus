@@ -1126,9 +1126,9 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
     }
 
     func nextScheduleStatusLine(for event: CalendarEventSummary) -> String {
-        let time = Self.nextMeetingTimeLabel(for: event.startDate)
+        let countdown = CalendarEventFormatting.timeUntilStartLabel(for: event.startDate)
         let emailSuffix = event.accountEmail.isEmpty ? "" : " · \(event.accountEmail)"
-        return "Next \(time): \(event.title)\(emailSuffix)"
+        return "Next \(countdown): \(event.title)\(emailSuffix)"
     }
 
     static func nextMeetingTimeLabel(for startDate: Date, now: Date = Date()) -> String {
@@ -1142,6 +1142,10 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         }
         let day = nextMeetingDayFormatter.string(from: startDate)
         return "\(day) \(time)"
+    }
+
+    static func nextMeetingScheduleLabel(for event: CalendarEventSummary, now: Date = Date()) -> String {
+        CalendarEventFormatting.nextMeetingScheduleLabel(for: event, now: now)
     }
 
     private static let nextMeetingTimeFormatter: DateFormatter = {

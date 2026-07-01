@@ -1,3 +1,4 @@
+import CalendarKit
 import NucleusKit
 import SwiftUI
 
@@ -37,12 +38,14 @@ struct NextMeetingTitleView: View {
     }
 
     private func titleLine(for event: CalendarEventSummary) -> String {
-        let time = AppViewModel.nextMeetingTimeLabel(for: event.startDate)
-        return "\(time) · \(event.title)"
+        let countdown = CalendarEventFormatting.timeUntilStartLabel(for: event.startDate)
+        let schedule = CalendarEventFormatting.scheduleTimeAndDurationLabel(for: event)
+        return "\(countdown) · \(schedule) · \(event.title)"
     }
 
     private func helpText(for event: CalendarEventSummary) -> String {
-        "Next meeting at \(AppViewModel.nextMeetingTimeLabel(for: event.startDate)). Click to open \(event.title) in calendar."
+        let countdown = CalendarEventFormatting.timeUntilStartLabel(for: event.startDate)
+        return "Next meeting \(countdown) (\(CalendarEventFormatting.scheduleTimeAndDurationLabel(for: event))). Click to open \(event.title) in calendar."
     }
 
     private func accessibilityText(for event: CalendarEventSummary) -> String {

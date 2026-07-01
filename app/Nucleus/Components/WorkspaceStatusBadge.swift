@@ -1,3 +1,4 @@
+import CalendarKit
 import NucleusKit
 import SwiftUI
 
@@ -53,7 +54,8 @@ struct WorkspaceStatusBadge: View {
             return "\(unreadDetailMessage). Click to open Inbox."
         }
         if let event = nextScheduleEvent {
-            return "Open \(event.title) in calendar."
+            let countdown = CalendarEventFormatting.timeUntilStartLabel(for: event.startDate)
+            return "Open \(event.title) \(countdown) (\(CalendarEventFormatting.scheduleTimeAndDurationLabel(for: event)))."
         }
         return fallbackMessage
     }

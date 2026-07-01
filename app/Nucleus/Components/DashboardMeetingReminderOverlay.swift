@@ -13,9 +13,9 @@ struct DashboardMeetingReminderPrompt: Identifiable, Equatable {
 
     var headline: String {
         if events.count > 1 {
-            return "\(events.count) meetings in 2 minutes"
+            return "\(events.count) meetings \(CalendarEventFormatting.timeUntilStartLabel(for: startDate))"
         }
-        return "Meeting in 2 minutes"
+        return CalendarEventFormatting.meetingStartsInLabel(for: startDate)
     }
 
     var startLabel: String {
