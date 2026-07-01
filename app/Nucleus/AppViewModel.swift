@@ -208,11 +208,7 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
     }
 
     func refreshMeetingReminders() async {
-        let reminders = MeetingReminderPlanner.uniqueReminders(for: calendarEvents)
-        await NucleusNotificationService.shared.rescheduleMeetingReminders(
-            reminders,
-            events: calendarEvents
-        )
+        await NucleusNotificationService.shared.clearMeetingReminders()
         statusMessage = statusMessageForCurrentState()
     }
 
@@ -893,9 +889,6 @@ final class AppViewModel: ObservableObject, SyncedLayoutApplying {
         }
         NucleusNotificationService.shared.onClipboardPasswordAction = { [weak self] action in
             self?.handleClipboardPasswordNotificationAction(action)
-        }
-        NucleusNotificationService.shared.onMeetingReminder = { [weak self] event, kind in
-            self?.presentMeetingReminder(event, kind: kind)
         }
         await refreshMeetingReminders()
         startMeetingReminderWatchdog()
